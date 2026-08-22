@@ -1,9 +1,9 @@
 // Registry integrity for the unified /emulator/ shell.
 //
-// Adding a console means touching six files (consoles.js, the lander,
-// apps-registry.json, sitemap.xml, generate-previews.js, and the picker
-// tile). Missing one is silent — the console still boots locally, it just
-// never gets indexed or previewed. These checks are the cheap net for that.
+// Workflow: edit consoles.js → npm run sync:emulator (picker + missing
+// landers) → apps-registry.json → npm run sync:catalog (sitemap / PAGES).
+// These checks catch a missing lander, registry row, sitemap URL, preview
+// page, or hub picker link — silent omissions that still boot locally.
 //
 // Whether the Internet Archive item behind `iaBaseUrl` is still live is a
 // separate, network-dependent question: see scripts/check-ia-collections.sh.
@@ -54,12 +54,20 @@ describe('emulator console registry', () => {
     }
   });
 
-  it('registers every console across the six files that reference it', () => {
+  it('registers every console across discovery surfaces + hub picker', () => {
     const sitemap = read('sitemap.xml');
     const previews = read('generate-previews.js');
     const picker = read('emulator/index.html');
     const registry = JSON.parse(read('apps-registry.json'));
     const registryPaths = new Set(registry.map((app) => app.path));
+
+    const hasPickerMarkers =
+      picker.includes('<!-- sync:emulator-picker:start -->') &&
+      picker.includes('<!-- sync:emulator-picker:end -->');
+    assert.ok(
+      hasPickerMarkers,
+      'hub must keep sync:emulator-picker markers for npm run sync:emulator'
+    );
 
     for (const id of Object.keys(consoles)) {
       assert.ok(existsSync(join(repoRoot, `emulator/${id}/index.html`)), `${id}: no lander`);

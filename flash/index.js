@@ -221,7 +221,7 @@ async function loadCollectionList() {
     if (!iaClient) throw new Error('Internet Archive client unavailable.');
     if (!window.proxyService) throw new Error('Proxy service not available.');
 
-    allSwfs = await iaClient.getAllRoms();
+    allSwfs = await iaClient.fetchRomList();
     filteredSwfs = allSwfs.slice();
     renderSwfs(filteredSwfs);
   } catch (error) {
@@ -341,7 +341,7 @@ async function maybeDeepLink() {
   try {
     if (!iaClient) iaClient = createIaClient();
     if (!iaClient) return;
-    allSwfs = await iaClient.getAllRoms();
+    allSwfs = await iaClient.fetchRomList();
     const lower = wanted.toLowerCase();
     const match =
       allSwfs.find((s) => s.name.toLowerCase() === lower) ||

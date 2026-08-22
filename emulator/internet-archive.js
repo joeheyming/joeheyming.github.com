@@ -439,10 +439,6 @@
       return roms;
     }
 
-    async getAllRoms() {
-      return this.fetchRomList();
-    }
-
     async loadRom(rom, opts) {
       opts = opts || {};
       if (!window.proxyService) {

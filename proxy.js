@@ -1,20 +1,43 @@
 // Universal Proxy Service Module - supports both simfiles and ROM files.
+//
+// =============================================================================
+// Caller Interface (narrow surface — prefer these)
+// =============================================================================
+//   proxyService.fetchJson(url, options?)
+//   proxyService.fetchHtml(url, options?)
+//   proxyService.fetchBinary(url, options?)       // alias of fetchBinaryWithProxy
+//   proxyService.fetchBinaryStream(url, options?)
+//
+// Shared options on the Interface methods:
+//   options.signal   — AbortSignal (e.g. jsh Ctrl+C); merged with per-request timeout
+//   options.timeout  — ms; overrides the service default for that call
+//   options.skipDirect, options.maxRetries, options.headers — passed through
+//   options.validate / options.validateBinary — optional body checks; on false the
+//     chain advances. `fetchJson` defaults validate to reject non-JSON bodies.
+//
+// Internal (chain / scoring / diagnostics — not the default caller contract):
+//   fetchWithProxy, fetchBinaryWithProxy, postWithProxy,
+//   tryDirectFetch, tryDirectBinaryFetch, getOrderedProxies, encodeUrlForProxy,
+//   updateProxyScore, disableProxy / enableProxy, getProxyStats, cachedFetch, …
+//
+// Test Adapter: `new ProxyService({ fetchImpl, storageImpl })` injects fetch and
+// storage so unit tests can use recorded responses / in-memory storage without
+// real network. Production keeps `window.proxyService = new ProxyService()`.
+//
+// =============================================================================
+// Behavior notes
+// =============================================================================
 // Agnostic of target origin; callers pass options for behavior:
 //   options.skipDirect: true — skip direct fetch (use when origin blocks CORS).
 //   options.deferProxies: string[] — try these proxy URL prefixes last (e.g. ['https://corsproxy.io/']).
-//   options.timeout, options.maxRetries, options.headers — passed through.
-//   options.signal — optional AbortSignal (e.g. jsh Ctrl+C); merged with timeout for each fetch.
-//   options.validate: (text)=>boolean — optional body check; on false the proxy
-//     is treated as failed and the chain advances. `fetchJson` sets this by
-//     default to reject non-JSON bodies (catches codetabs' rate-limit garbage).
 //
 // Auto-invalidation: proxies that return well-known "dead" response bodies
 // (paywall blobs, "domain not registered", "bad request" landing JSON) are
 // banned for a long TTL so we don't burn budget hammering services that
 // pulled the rug. Bans are scoped by mode ('text' | 'binary' | '*') because
 // some proxies (e.g. corsproxy.io as of mid-2026) work fine for text but
-// have paywalled binary content types. Bans persist to localStorage so a
-// reload doesn't re-probe the same dead services.
+// have paywalled binary content types. Bans persist via storageImpl (default
+// localStorage) so a reload doesn't re-probe the same dead services.
 
 const PROXY_HEALTH_STORAGE_KEY = 'heyming.proxyService.v1';
 const DEAD_PROXY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -141,7 +164,23 @@ function mergeFetchAbortSignal(timeoutMs, userSignal) {
 }
 
 class ProxyService {
-  constructor() {
+  /**
+   * @param {{
+   *   fetchImpl?: typeof fetch,
+   *   storageImpl?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null
+   * }} [deps] — optional Adapter seams for tests. Defaults: ambient `fetch`
+   *   and `localStorage` (or null when storage is unavailable).
+   */
+  constructor(deps = {}) {
+    // Adapter seams — production uses ambient globals; tests inject stubs.
+    this.fetchImpl = deps.fetchImpl || ((input, init) => fetch(input, init));
+    this.storageImpl =
+      deps.storageImpl !== undefined
+        ? deps.storageImpl
+        : typeof localStorage !== 'undefined'
+        ? localStorage
+        : null;
+
     // Proxy services ordered roughly by current reliability.
     //
     // The auto-ban system pulls a proxy from the pool when it either
@@ -420,11 +459,11 @@ class ProxyService {
   }
 
   _loadPersistedProxyHealth() {
-    if (typeof localStorage === 'undefined') {
+    if (!this.storageImpl) {
       return;
     }
     try {
-      const raw = localStorage.getItem(PROXY_HEALTH_STORAGE_KEY);
+      const raw = this.storageImpl.getItem(PROXY_HEALTH_STORAGE_KEY);
       if (!raw) {
         return;
       }
@@ -482,7 +521,7 @@ class ProxyService {
   }
 
   _schedulePersistProxyHealth() {
-    if (typeof localStorage === 'undefined') {
+    if (!this.storageImpl) {
       return;
     }
     if (this._persistHealthTimer != null) {
@@ -510,7 +549,7 @@ class ProxyService {
           if (typeof until !== 'number' || until <= now) continue;
           cors[origin] = until;
         }
-        localStorage.setItem(
+        this.storageImpl.setItem(
           PROXY_HEALTH_STORAGE_KEY,
           JSON.stringify({ v: 1, savedAt: Date.now(), proxies, dead, cors })
         );
@@ -593,7 +632,7 @@ class ProxyService {
       // Default stays a short CORS probe so blocked origins fall through fast.
       const timeoutMs = options.timeout != null ? options.timeout : 3000;
       const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
-      const response = await fetch(url, {
+      const response = await this.fetchImpl(url, {
         method: 'GET',
         headers: {
           Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -622,7 +661,7 @@ class ProxyService {
     return null;
   }
 
-  // Fetch content through multiple proxy options with fallback, timeout, and retries
+  // Internal: text proxy chain. Prefer fetchJson / fetchHtml on the caller Interface.
   async fetchWithProxy(url, options = {}) {
     const { signal: userAbort, ...optionsForKey } = options;
     const cacheKey = `${url}-${JSON.stringify(optionsForKey)}`;
@@ -666,7 +705,7 @@ class ProxyService {
           console.log(`Trying proxy: ${proxy.substring(0, 30)}...`);
 
           const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
-          const response = await fetch(proxyUrl, {
+          const response = await this.fetchImpl(proxyUrl, {
             method: 'GET',
             headers: {
               Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -826,7 +865,7 @@ class ProxyService {
       // failure that will never succeed just delays the real download.
       const timeoutMs = 3000;
       const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
-      const response = await fetch(url, {
+      const response = await this.fetchImpl(url, {
         method: 'GET',
         headers: {
           Accept: 'application/octet-stream,*/*',
@@ -863,7 +902,7 @@ class ProxyService {
     return null;
   }
 
-  // Fetch content via POST through proxy
+  // Internal: POST through a small hard-coded proxy subset.
   async postWithProxy(url, body, options = {}) {
     const userAbort = options.signal;
     const timeoutMs = options.timeout || this.timeoutMs;
@@ -889,7 +928,7 @@ class ProxyService {
           console.log(`Trying POST via proxy: ${proxy.substring(0, 30)}...`);
 
           const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
-          const response = await fetch(proxyUrl, {
+          const response = await this.fetchImpl(proxyUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
@@ -945,7 +984,7 @@ class ProxyService {
     );
   }
 
-  // Fetch content as binary (for ROMs)
+  // Internal buffered binary chain; prefer Interface method fetchBinary.
   async fetchBinaryWithProxy(url, options = {}) {
     const { signal: userAbort, validateBinary, ...optionsForKey } = options;
     const cacheKey = `binary-${url}-${JSON.stringify(optionsForKey)}`;
@@ -999,7 +1038,7 @@ class ProxyService {
           const startTime = Date.now();
 
           const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
-          const response = await fetch(proxyUrl, {
+          const response = await this.fetchImpl(proxyUrl, {
             method: 'GET',
             headers: {
               Accept: 'application/octet-stream,*/*',
@@ -1261,7 +1300,7 @@ class ProxyService {
    */
   async _streamToBlob(url, ctx) {
     const { signal, onProgress, contentType, headers } = ctx;
-    const res = await fetch(url, {
+    const res = await this.fetchImpl(url, {
       method: 'GET',
       signal,
       headers: {
@@ -1513,9 +1552,9 @@ class ProxyService {
    */
   async cachedFetch(cacheKey, ttlMs, fetcher) {
     const fullKey = `proxy.cache.v1:${cacheKey}`;
-    if (typeof localStorage !== 'undefined') {
+    if (this.storageImpl) {
       try {
-        const raw = localStorage.getItem(fullKey);
+        const raw = this.storageImpl.getItem(fullKey);
         if (raw) {
           const entry = JSON.parse(raw);
           if (entry && typeof entry.savedAt === 'number' && Date.now() - entry.savedAt < ttlMs) {
@@ -1527,9 +1566,9 @@ class ProxyService {
       }
     }
     const value = await fetcher();
-    if (typeof localStorage !== 'undefined') {
+    if (this.storageImpl) {
       try {
-        localStorage.setItem(fullKey, JSON.stringify({ savedAt: Date.now(), value }));
+        this.storageImpl.setItem(fullKey, JSON.stringify({ savedAt: Date.now(), value }));
       } catch {
         /* quota / private mode — pretend we cached */
       }
@@ -1539,7 +1578,7 @@ class ProxyService {
 
   // Reset all proxy scores (useful for testing). Also clears the dead-list
   // and circuit-breaker state so a stuck client can recover without a
-  // full localStorage wipe.
+  // full storage wipe.
   resetProxyScores() {
     this.proxyOptions.forEach((proxy) => {
       this.proxyScores.set(proxy, 1.0);
@@ -1551,9 +1590,9 @@ class ProxyService {
     this.proxyLastFailure.clear();
     this.proxyConsecutiveHardFailures.clear();
     this.directBinaryBlockedUntil.clear();
-    if (typeof localStorage !== 'undefined') {
+    if (this.storageImpl) {
       try {
-        localStorage.removeItem(PROXY_HEALTH_STORAGE_KEY);
+        this.storageImpl.removeItem(PROXY_HEALTH_STORAGE_KEY);
       } catch {
         /* ignore */
       }
@@ -1562,14 +1601,13 @@ class ProxyService {
   }
 }
 
-// Create global instance
+// Create global instance (production Adapter: ambient fetch + localStorage)
 const proxyService = new ProxyService();
 
-// Make globally accessible
-// Main API: window.proxyService.fetchWithProxy(url, options), .fetchBinaryWithProxy(url, options)
+// Make globally accessible — prefer Interface methods documented at file top.
 window.proxyService = proxyService;
 
-// Export for module systems
+// Export for module systems / tests (`new ProxyService({ fetchImpl, storageImpl })`)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { ProxyService, proxyService };
 }

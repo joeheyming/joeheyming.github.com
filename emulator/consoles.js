@@ -1,9 +1,14 @@
 // Registry of every console the unified /emulator/ shell supports.
 //
-// One entry per console. Adding a new console (e.g. SNES, GBA) is just a
-// matter of dropping a record in here and pushing a card on the picker —
-// every other shared file (rom-browser, launch, internet-archive) reads
-// from this object and reconfigures itself automatically.
+// Adding a console:
+//   1. Drop a record here (id, title, ejsCore, accents, iaBaseUrl, …).
+//   2. npm run sync:emulator  — regenerates hub picker tiles + creates a
+//      missing emulator/<id>/index.html lander (never overwrites existing).
+//   3. Add an apps-registry.json entry for the lander.
+//   4. npm run sync:catalog   — sitemap / PAGES / manifest shortcuts.
+//
+// Shared shell files (rom-browser, launch, internet-archive) read from this
+// object and reconfigure themselves automatically.
 // Consoles that need a system BIOS (Neo Geo, PS1) set `biosRequired` +
 // `biosFileName`; launch.js persists the upload in IndexedDB.
 // Optional `biosIaBaseUrl` fetches BIOS from a different IA item than

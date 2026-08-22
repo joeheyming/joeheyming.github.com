@@ -13,10 +13,9 @@
  * Layout: 1 ding (root, an octave below the rim notes) at the centre,
  * with 8 tongues evenly spaced around the rim. Tongues are positioned
  * by setting `--angle` and `--ring` CSS custom properties; the bowl
- * scales fluidly with viewport. Strikes are pointer-driven so a single
- * `pointerdown` handler covers mouse, touch, pen, and multi-touch
- * naturally; sliding the pointer between tongues retriggers the new
- * one (same idea as the harp's drag-to-strum).
+ * scales fluidly with viewport. Strikes go through PointerSurface
+ * (strike-on-enter) so mouse, touch, pen, and multi-touch share one
+ * path; sliding between tongues retriggers the new one.
  */
 import {
   getCtx,
@@ -28,6 +27,7 @@ import {
   NOTE_NAMES
 } from '../shared/audio.js';
 import { makePrefs } from '../shared/prefs.js';
+import { createPointerSurface } from '../shared/pointer-surface.js';
 
 const Prefs = makePrefs('play.steeldrum.prefs.v1');
 
@@ -202,10 +202,9 @@ const announceNote = (midi) => {
   }, 500);
 };
 
-/** Map of pointerId → currently-tracked tongue element. Hoisted above
- *  renderTongues so the renderer can clear it on re-render without
- *  hitting a TDZ ReferenceError on the very first call. */
-const trackedTongue = new Map();
+/** Created after strike helpers below; releaseAll on re-render drops
+ *  pointers whose targets were just detached. */
+let surface = null;
 
 /** Index-aligned with the current MIDI list (ding at [0]). */
 const tongueEls = [];
@@ -283,10 +282,8 @@ const renderTongues = () => {
   }
 
   bowl.classList.toggle('hide-labels', !showLabelsEl.checked);
-  trackedTongue.clear();
+  surface?.releaseAll();
 };
-
-renderTongues();
 
 // ---------- Pointer handling ----------
 //
@@ -324,37 +321,21 @@ const triggerStrike = (tongueEl) => {
   struckTimers.set(tongueEl, timer);
 };
 
-const findTongueAt = (clientX, clientY) => {
-  const target = document.elementFromPoint(clientX, clientY);
-  return target && target.closest ? target.closest('.hang-tongue') : null;
-};
-
-bowl.addEventListener('pointerdown', (event) => {
-  const tongue = event.target.closest('.hang-tongue');
-  if (!tongue) return;
-  bowl.setPointerCapture?.(event.pointerId);
-  trackedTongue.set(event.pointerId, tongue);
-  triggerStrike(tongue);
-  event.preventDefault();
-});
-
-bowl.addEventListener('pointermove', (event) => {
-  if (!trackedTongue.has(event.pointerId)) return;
-  const tongue = findTongueAt(event.clientX, event.clientY);
-  const previous = trackedTongue.get(event.pointerId);
-  if (tongue && tongue !== previous) {
-    trackedTongue.set(event.pointerId, tongue);
+// Strike-on-enter: tap and drag-across both hit via onEnter. Custom
+// hitTest keeps polar geometry honest when elementFromPoint lands on
+// the bowl chrome between tongues.
+surface = createPointerSurface(bowl, {
+  targetSelector: '.hang-tongue',
+  hitTest: (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return el && el.closest ? el.closest('.hang-tongue') : null;
+  },
+  onEnter: (tongue) => {
     triggerStrike(tongue);
   }
 });
 
-const endPointer = (event) => {
-  if (!trackedTongue.has(event.pointerId)) return;
-  trackedTongue.delete(event.pointerId);
-};
-bowl.addEventListener('pointerup', endPointer);
-bowl.addEventListener('pointercancel', endPointer);
-bowl.addEventListener('lostpointercapture', endPointer);
+renderTongues();
 
 // ---------- Controls ----------
 

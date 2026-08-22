@@ -108,53 +108,19 @@
       });
     }
 
-    function normalizePathname(pathname) {
-      let p = (pathname || '/').replace(/\/index\.html$/i, '');
-      p = p.replace(/\/+$/, '') || '/';
-      return p;
-    }
-
-    function resolveAppId(registry) {
-      const here = normalizePathname(window.location.pathname);
-      const search = window.location.search || '';
-      let best = null;
-      let bestScore = -1;
-      for (const app of registry || []) {
-        if (!app || !app.id || !app.path) continue;
-        const raw = app.path.startsWith('./') ? '/' + app.path.slice(2) : app.path;
-        const q = raw.indexOf('?');
-        const pathPart = normalizePathname(q >= 0 ? raw.slice(0, q) : raw);
-        const wantSearch = q >= 0 ? raw.slice(q) : '';
-        if (pathPart !== here) continue;
-        if (wantSearch) {
-          const required = new URLSearchParams(wantSearch);
-          const actual = new URLSearchParams(search);
-          let ok = true;
-          for (const [key, value] of required.entries()) {
-            if (actual.get(key) !== value) {
-              ok = false;
-              break;
-            }
-          }
-          if (!ok) continue;
-        }
-        const score = pathPart.length + wantSearch.length;
-        if (score > bestScore) {
-          best = app;
-          bestScore = score;
-        }
-      }
-      if (best) return best.id;
-      const segments = here.split('/').filter(Boolean);
-      return segments[0] || 'home';
-    }
-
     Promise.resolve()
+      .then(() => loadScript('/shared/registry-path.js'))
       .then(() => loadScript('/presence/config.js'))
       .then(() => loadScript('/presence.js'))
       .then(() => fetch('/apps-registry.json', { cache: 'default' }).then((r) => r.json()))
       .then((registry) => {
-        const pageKey = resolveAppId(Array.isArray(registry) ? registry : []);
+        const list = Array.isArray(registry) ? registry : [];
+        const pageKey = window.HeymingRegistryPath
+          ? window.HeymingRegistryPath.resolveAppIdFromLocation(list, {
+              pathname: window.location.pathname,
+              search: window.location.search
+            })
+          : 'home';
         if (window.heymingPresence && typeof window.heymingPresence.start === 'function') {
           window.heymingPresence.start(pageKey);
         }
@@ -980,37 +946,13 @@
     return path || '/';
   }
 
-  function normalizePathname(pathname) {
-    let p = (pathname || '/').replace(/\/index\.html$/i, '');
-    p = p.replace(/\/+$/, '') || '/';
-    return p;
-  }
-
-  /** Split a registry `path` (`./play/drums/` or `./emulator/nes/`) into parts. */
-  function registryPathParts(app) {
-    const raw = app.path || '';
-    const withoutDot = raw.startsWith('./')
-      ? '/' + raw.slice(2)
-      : raw.startsWith('/')
-      ? raw
-      : '/' + raw;
-    const q = withoutDot.indexOf('?');
-    const pathPart = q >= 0 ? withoutDot.slice(0, q) : withoutDot;
-    const search = q >= 0 ? withoutDot.slice(q) : '';
-    return { pathname: normalizePathname(pathPart), search };
-  }
-
   function locationMatchesApp(app) {
-    const parts = registryPathParts(app);
-    const here = normalizePathname(window.location.pathname);
-    if (here !== parts.pathname) return false;
-    if (!parts.search) return true;
-    const required = new URLSearchParams(parts.search);
-    const actual = new URLSearchParams(window.location.search || '');
-    for (const [key, value] of required.entries()) {
-      if (actual.get(key) !== value) return false;
-    }
-    return true;
+    const api = window.HeymingRegistryPath;
+    if (!api) return false;
+    return api.locationMatchesApp(app, {
+      pathname: window.location.pathname,
+      search: window.location.search
+    });
   }
 
   /**
@@ -1019,20 +961,13 @@
    */
   function resolveAppIdFromLocation(registry) {
     const list = registry || cachedRegistry;
-    let best = null;
-    let bestScore = -1;
-    for (const app of list) {
-      if (!app || !app.id || !app.path) continue;
-      if (!locationMatchesApp(app)) continue;
-      const parts = registryPathParts(app);
-      const score = parts.pathname.length + parts.search.length;
-      if (score > bestScore) {
-        best = app;
-        bestScore = score;
-      }
-    }
-    if (best) return best.id;
-    return getCurrentProject() || 'home';
+    const api = window.HeymingRegistryPath;
+    if (!api) return getCurrentProject() || 'home';
+    return api.resolveAppIdFromLocation(
+      list,
+      { pathname: window.location.pathname, search: window.location.search },
+      { fallback: () => getCurrentProject() || 'home' }
+    );
   }
 
   function isCurrentApp(app) {
@@ -1040,6 +975,28 @@
   }
 
   let cachedRegistry = [];
+
+  function ensureRegistryPathLoaded() {
+    if (window.HeymingRegistryPath) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const src = '/shared/registry-path.js';
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        existing.addEventListener('load', () => resolve(), { once: true });
+        existing.addEventListener('error', () => reject(new Error(src)), { once: true });
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = false;
+      s.addEventListener('load', () => {
+        s.dataset.loaded = '1';
+        resolve();
+      });
+      s.addEventListener('error', () => reject(new Error('Failed to load ' + src)));
+      document.head.appendChild(s);
+    });
+  }
 
   function buildSection(label, apps) {
     if (!apps.length) return null;
@@ -1434,14 +1391,17 @@
 
   function boot() {
     insertChrome();
-    // Registry first so presence page key resolves nested apps (play-drums)
-    // before the first heartbeat when possible.
-    loadRegistry().then((registry) => {
-      populateDrawer(registry);
-      ensurePresence().then(() => {
-        syncPresencePage();
+    // Registry path Module + registry JSON first so presence page key
+    // resolves nested apps (play-drums) before the first heartbeat.
+    ensureRegistryPathLoaded()
+      .catch((err) => console.warn('[nav.js] registry-path unavailable', err))
+      .then(() => loadRegistry())
+      .then((registry) => {
+        populateDrawer(registry);
+        ensurePresence().then(() => {
+          syncPresencePage();
+        });
       });
-    });
   }
 
   if (document.readyState === 'loading') {

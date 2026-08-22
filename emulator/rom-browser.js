@@ -31,16 +31,9 @@ class RomBrowserElement extends HTMLElement {
   get iaClient() {
     if (this._ia) return this._ia;
     const cfg = this.consoleConfig;
-    if (!cfg || !cfg.iaBaseUrl || !window.InternetArchiveRoms) return null;
-    this._ia = new window.InternetArchiveRoms({
-      baseUrl: cfg.iaBaseUrl,
-      descriptionPrefix: cfg.iaDescriptionPrefix,
-      fileExtensions: cfg.iaFileExtensions,
-      excludeNames: cfg.iaExcludeNames,
-      binaryTimeout: cfg.iaBinaryTimeout,
-      maxRetries: cfg.iaMaxRetries,
-      preferMetadata: cfg.iaPreferMetadata !== false
-    });
+    const acquire = window.emulatorRomAcquire;
+    if (!cfg || !acquire || typeof acquire.createIaClient !== 'function') return null;
+    this._ia = acquire.createIaClient(cfg);
     return this._ia;
   }
 
@@ -525,7 +518,7 @@ class RomBrowserElement extends HTMLElement {
         throw new Error('ROM browser is not configured for this console.');
       }
 
-      this.allRoms = await ia.getAllRoms();
+      this.allRoms = await ia.fetchRomList();
       this.filteredRoms = [...this.allRoms];
 
       if (this.allRoms.length === 0) {
@@ -672,19 +665,22 @@ class RomBrowserElement extends HTMLElement {
 
       // Wrap in a File so EmulatorJS sees a real filename — libretro cores
       // (FCEUmm, genesis_plus_gx, gambatte) detect format from the suffix.
-      // Preserve the source extension: zip-based collections (NES / Sega)
-      // pass through as .zip and the core unzips, raw .gb / .gbc from the
-      // GameBoyColor item are handed to gambatte directly. Faking .zip on
-      // raw ROM bytes used to silently hang the core.
-      const ext = rom.fileExtension || '.zip';
-      const mimeType = ext === '.zip' ? 'application/zip' : 'application/octet-stream';
-      const filename = `${rom.title}${ext}`;
-      const romFile = new File([romData], filename, { type: mimeType });
+      // Shared helper keeps deep-link and browser paths identical.
+      const acquire = window.emulatorRomAcquire;
+      const romFile =
+        acquire && typeof acquire.fileFromRomBytes === 'function'
+          ? acquire.fileFromRomBytes(romData, rom)
+          : new File([romData], `${rom.title}${rom.fileExtension || '.zip'}`, {
+              type:
+                (rom.fileExtension || '.zip') === '.zip'
+                  ? 'application/zip'
+                  : 'application/octet-stream'
+            });
 
       this.closeBrowser();
 
       if (typeof window.launchEmulator === 'function') {
-        window.launchEmulator(romFile, filename);
+        window.launchEmulator(romFile, romFile.name);
       } else {
         console.error('launchEmulator not available on window');
         alert('Emulator not ready. Please reload the page and try again.');

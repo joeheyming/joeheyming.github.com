@@ -11,16 +11,15 @@
  *     can later un-highlight everything it touched; cleared here on
  *     every rebuild.
  *   - Pointer events on the fretboard: tap-to-pluck on the cell the
- *     pointer is over, with `createScrollGesture` deferring touch
- *     plucks ~80ms so a horizontal swipe (which the browser commits to
- *     as native scroll) never accidentally fires a note.
+ *     pointer is over, via PointerSurface with scroll-gesture deferral
+ *     so a horizontal swipe (native pan-x) never accidentally fires a note.
  *
  * Exports a controller factory so the orchestrator can pass in shared
  * state (the engine, the active-instrument accessor, the now-playing
  * label) without this module reaching for module-level globals.
  */
 import { midiToName } from '../shared/audio.js';
-import { createScrollGesture } from '../shared/scroll-gesture.js';
+import { createPointerSurface } from '../shared/pointer-surface.js';
 import { midiAtCell } from './instruments.js';
 
 /**
@@ -40,11 +39,9 @@ export function createFretboardController({
   engine,
   cellEls,
   chordShapeCells,
-  getActiveInstrument,
+  getActiveInstrument
 }) {
   let nowPlayingTimer = null;
-  const lastCellByPointer = new Map();
-  const fretboardScrollGesture = createScrollGesture();
 
   const announceNote = (midi) => {
     nowPlaying.textContent = midiToName(midi);
@@ -69,10 +66,8 @@ export function createFretboardController({
     announceNote(midi);
   };
 
-  const pluckFromCell = (cell, pointerId) => {
+  const pluckFromCell = (cell) => {
     if (!cell || cell.classList.contains('unavailable')) return;
-    if (lastCellByPointer.get(pointerId) === cell) return;
-    lastCellByPointer.set(pointerId, cell);
     const stringIdx = Number(cell.dataset.string);
     const fret = Number(cell.dataset.fret);
     playFret(stringIdx, fret);
@@ -166,42 +161,21 @@ export function createFretboardController({
     });
   }
 
-  // Pointer events. Wired ONCE at controller creation; subsequent
-  // `build()` calls swap out the cells but the listeners on the
-  // container survive (event delegation pattern).
-  fretboardEl.addEventListener('pointerdown', (event) => {
-    const cell = event.target.closest('.fret-cell');
-    if (!cell || cell.classList.contains('unavailable')) return;
-    try {
-      fretboardEl.setPointerCapture?.(event.pointerId);
-    } catch (_) {
-      /* synthetic events may have no registered pointer */
+  // Cross-cell-drag + tap-vs-pan-x: PointerSurface owns tracking and
+  // scroll-gesture deferral. hitTest skips unavailable (drone) cells so
+  // a press there never commits a pluck.
+  createPointerSurface(fretboardEl, {
+    deferScrollOnTouch: true,
+    hitTest: (x, y) => {
+      const el = document.elementFromPoint(x, y);
+      if (!el || !el.closest) return null;
+      const cell = el.closest('.fret-cell');
+      if (!cell || cell.classList.contains('unavailable')) return null;
+      return cell;
+    },
+    onEnter: (cell) => {
+      pluckFromCell(cell);
     }
-    // Tap-deferral helper for touch input. The fretboard's `touch-action:
-    // pan-x` lets the browser handle horizontal scroll natively (with
-    // momentum). The util defers our pluck by ~80ms so a horizontal swipe
-    // — which the browser commits to as a scroll within ~10-20ms and then
-    // sends `pointercancel` to us — never accidentally fires a note.
-    fretboardScrollGesture.start(event, {
-      play: () => pluckFromCell(cell, event.pointerId),
-    });
-    if (event.pointerType !== 'touch') event.preventDefault();
-  });
-
-  fretboardEl.addEventListener('pointermove', (event) => {
-    if (!lastCellByPointer.has(event.pointerId)) return;
-    const target = document.elementFromPoint(event.clientX, event.clientY);
-    const cell = target && target.closest && target.closest('.fret-cell');
-    if (cell) pluckFromCell(cell, event.pointerId);
-  });
-
-  fretboardEl.addEventListener('pointerup', (event) => {
-    fretboardScrollGesture.end(event.pointerId);
-    lastCellByPointer.delete(event.pointerId);
-  });
-  fretboardEl.addEventListener('pointercancel', (event) => {
-    fretboardScrollGesture.cancel(event.pointerId);
-    lastCellByPointer.delete(event.pointerId);
   });
 
   return { build, playFret, flashCell, announceNote };

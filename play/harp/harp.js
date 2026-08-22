@@ -10,13 +10,9 @@
  * plucks, which mirrors how a real harp behaves (strings ring out
  * naturally; the player doesn't damp them).
  *
- * Strum: pointers tracked with the same drag-to-play pattern used by the
- * shared keyboard. On `pointerdown` we pluck the string under the pointer
- * and remember it. On `pointermove` we resolve the new string via
- * `document.elementFromPoint` and pluck it only if it's a different
- * string than the previous one for that pointer — so a slow drag inside
- * one string doesn't retrigger, but a sweep across the strings plucks
- * each one as the pointer crosses it.
+ * Strum: PointerSurface tracks which string each pointer is on. The
+ * pluck fires on leave or release (real-harp push-then-release), while
+ * a thin pointermove refreshes sideways deflection within a string.
  */
 import {
   getCtx,
@@ -28,6 +24,7 @@ import {
   NOTE_NAMES
 } from '../shared/audio.js';
 import { makePrefs } from '../shared/prefs.js';
+import { createPointerSurface } from '../shared/pointer-surface.js';
 
 const Prefs = makePrefs('play.harp.prefs.v1');
 
@@ -179,10 +176,9 @@ const announceNote = (midi) => {
 
 const stringEls = []; // index-aligned with current MIDI list
 
-/** Map of pointerId → currently-tracked string element. Hoisted above
- *  renderStrings so the renderer can clear it on re-render without
- *  hitting a TDZ ReferenceError on the very first call. */
-const trackedString = new Map();
+/** Created after pluck helpers below; releaseAll on re-render drops
+ *  pointers whose targets were just detached (no accidental pluck). */
+let surface = null;
 
 const renderStrings = () => {
   const scaleName = scaleEl.value;
@@ -220,8 +216,7 @@ const renderStrings = () => {
     label.className = 'harp-string-label';
     // C strings keep the octave number; everything else shows just the
     // pitch letter so high-density scales stay readable.
-    label.textContent =
-      pitchClass === 0 ? noteName : NOTE_NAMES[pitchClass].replace(/\d+$/, '');
+    label.textContent = pitchClass === 0 ? noteName : NOTE_NAMES[pitchClass].replace(/\d+$/, '');
     el.appendChild(label);
 
     stringsContainer.appendChild(el);
@@ -232,10 +227,8 @@ const renderStrings = () => {
 
   // After a re-render any pointers we were tracking now reference detached
   // elements — drop them so the next gesture starts clean.
-  trackedString.clear();
+  surface?.releaseAll();
 };
-
-renderStrings();
 
 // ---------- Pointer (touch + mouse) tracking ----------
 //
@@ -299,45 +292,34 @@ const pluckString = (stringEl) => {
   }, 560);
 };
 
-const updatePointer = (clientX, clientY, pointerId) => {
-  const target = document.elementFromPoint(clientX, clientY);
-  const stringEl = target && target.closest && target.closest('.harp-string');
-  const previous = trackedString.get(pointerId);
-
-  if (stringEl !== previous) {
-    // Crossed a string boundary: previous string releases and plucks.
-    if (previous) pluckString(previous);
-    trackedString.set(pointerId, stringEl || null);
+// Pluck-on-leave / pluck-on-release: deflect on enter, snap+sound when the
+// finger leaves a string or lifts. isConnected guards releaseAll after a
+// re-render so detached strings don't fire a ghost pluck.
+surface = createPointerSurface(stringsContainer, {
+  targetSelector: '.harp-string',
+  onEnter: (stringEl, _ptrId, event) => {
+    setDeflect(stringEl, computeDeflect(stringEl, event.clientX));
+  },
+  onLeave: (stringEl) => {
+    pluckString(stringEl);
+  },
+  onRelease: (stringEl) => {
+    if (stringEl && stringEl.isConnected) pluckString(stringEl);
   }
-
-  if (stringEl) setDeflect(stringEl, computeDeflect(stringEl, clientX));
-};
-
-stringsContainer.addEventListener('pointerdown', (event) => {
-  const stringEl = event.target.closest('.harp-string');
-  if (!stringEl) return;
-  stringsContainer.setPointerCapture?.(event.pointerId);
-  trackedString.set(event.pointerId, stringEl);
-  // Start deflecting right away so the user sees instant feedback even
-  // before they begin moving.
-  setDeflect(stringEl, computeDeflect(stringEl, event.clientX));
-  event.preventDefault();
 });
 
+// Deflect updates while the finger stays on one string. PointerSurface
+// only fires enter/leave on target changes, so this thin move listener
+// refreshes --deflect without owning tracking.
 stringsContainer.addEventListener('pointermove', (event) => {
-  if (!trackedString.has(event.pointerId)) return;
-  updatePointer(event.clientX, event.clientY, event.pointerId);
+  if (!(event.buttons & 1) && event.pointerType === 'mouse') return;
+  const fromTarget = event.target.closest && event.target.closest('.harp-string');
+  const stringEl =
+    fromTarget || document.elementFromPoint(event.clientX, event.clientY)?.closest('.harp-string');
+  if (stringEl) setDeflect(stringEl, computeDeflect(stringEl, event.clientX));
 });
 
-const endPointer = (event) => {
-  if (!trackedString.has(event.pointerId)) return;
-  const stringEl = trackedString.get(event.pointerId);
-  trackedString.delete(event.pointerId);
-  if (stringEl) pluckString(stringEl);
-};
-stringsContainer.addEventListener('pointerup', endPointer);
-stringsContainer.addEventListener('pointercancel', endPointer);
-stringsContainer.addEventListener('lostpointercapture', endPointer);
+renderStrings();
 
 // ---------- Controls ----------
 
@@ -373,10 +355,7 @@ const heldKeys = new Set();
 document.addEventListener('keydown', (event) => {
   if (event.repeat) return;
   const target = event.target;
-  if (
-    target instanceof HTMLElement &&
-    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
-  ) {
+  if (target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
     return;
   }
   const idx = KEYBOARD_BINDINGS.indexOf(event.key);

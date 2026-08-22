@@ -42,48 +42,55 @@
     }
   }
 
-  function normalizePathname(pathname) {
-    let path = (pathname || '/').replace(/\/index\.html$/i, '');
-    path = path.replace(/\/+$/, '');
-    return path || '/';
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        if (existing.dataset.loaded === '1' || window.HeymingRegistryPath) {
+          resolve();
+          return;
+        }
+        existing.addEventListener('load', () => resolve(), { once: true });
+        existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), {
+          once: true
+        });
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = false;
+      const timer = setTimeout(() => reject(new Error(`Timeout loading ${src}`)), 3000);
+      script.addEventListener('load', () => {
+        clearTimeout(timer);
+        script.dataset.loaded = '1';
+        resolve();
+      });
+      script.addEventListener('error', () => {
+        clearTimeout(timer);
+        reject(new Error(`Failed to load ${src}`));
+      });
+      document.head.appendChild(script);
+    });
+  }
+
+  function ensureRegistryPath() {
+    if (window.HeymingRegistryPath) return Promise.resolve();
+    return loadScript('/shared/registry-path.js');
   }
 
   function getCurrentAppId() {
-    const here = normalizePathname(window.location.pathname);
-    const actualSearch = new URLSearchParams(window.location.search);
-    let best = null;
-    let bestScore = -1;
-
-    for (const app of registry) {
-      if (!app?.id || !app.path) continue;
-      const rawPath = app.path.startsWith('./') ? `/${app.path.slice(2)}` : app.path;
-      const queryIndex = rawPath.indexOf('?');
-      const pathname = normalizePathname(queryIndex >= 0 ? rawPath.slice(0, queryIndex) : rawPath);
-      if (pathname !== here) continue;
-
-      const expectedSearch =
-        queryIndex >= 0 ? new URLSearchParams(rawPath.slice(queryIndex + 1)) : null;
-      let matches = true;
-      if (expectedSearch) {
-        for (const [key, value] of expectedSearch) {
-          if (actualSearch.get(key) !== value) {
-            matches = false;
-            break;
-          }
-        }
-      }
-      if (!matches) continue;
-
-      const score = pathname.length + (expectedSearch ? rawPath.length - queryIndex : 0);
-      if (score > bestScore) {
-        best = app.id;
-        bestScore = score;
-      }
+    const api = window.HeymingRegistryPath;
+    if (!api) {
+      const here = (window.location.pathname || '/')
+        .replace(/\/index\.html$/i, '')
+        .replace(/\/+$/, '');
+      const segments = (here || '/').split('/').filter(Boolean);
+      return segments[0] || 'home';
     }
-
-    if (best) return best;
-    const segments = here.split('/').filter(Boolean);
-    return segments[0] || 'home';
+    return api.resolveAppIdFromLocation(registry, {
+      pathname: window.location.pathname,
+      search: window.location.search
+    });
   }
 
   function getDefinition(id) {
@@ -352,16 +359,19 @@
     return () => listeners.delete(listener);
   }
 
-  const ready = Promise.all([
-    fetch('/achievements-catalog.json').then((response) => {
-      if (!response.ok) throw new Error(`catalog HTTP ${response.status}`);
-      return response.json();
-    }),
-    fetch('/apps-registry.json').then((response) => {
-      if (!response.ok) throw new Error(`registry HTTP ${response.status}`);
-      return response.json();
-    })
-  ])
+  const ready = ensureRegistryPath()
+    .then(() =>
+      Promise.all([
+        fetch('/achievements-catalog.json').then((response) => {
+          if (!response.ok) throw new Error(`catalog HTTP ${response.status}`);
+          return response.json();
+        }),
+        fetch('/apps-registry.json').then((response) => {
+          if (!response.ok) throw new Error(`registry HTTP ${response.status}`);
+          return response.json();
+        })
+      ])
+    )
     .then(([catalogDocument, registryDocument]) => {
       catalog = Array.isArray(catalogDocument?.achievements) ? catalogDocument.achievements : [];
       registry = Array.isArray(registryDocument) ? registryDocument : [];

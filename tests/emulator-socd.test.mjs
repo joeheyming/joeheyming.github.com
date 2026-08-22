@@ -181,15 +181,26 @@ describe('emulator SOCD wiring', () => {
     for (const page of pages) {
       const html = read(page);
       assert.ok(html.includes('/emulator/socd.js'), `${page}: missing socd.js`);
+      assert.ok(html.includes('/emulator/bios.js'), `${page}: missing bios.js`);
+      assert.ok(html.includes('/emulator/rom-acquire.js'), `${page}: missing rom-acquire.js`);
+      assert.ok(html.includes('/emulator/ejs-mount.js'), `${page}: missing ejs-mount.js`);
+      const socdAt = html.indexOf('/emulator/socd.js');
+      const mountAt = html.indexOf('/emulator/ejs-mount.js');
+      const launchAt = html.indexOf('/emulator/launch.js');
+      const acquireAt = html.indexOf('/emulator/rom-acquire.js');
+      const browserAt = html.indexOf('/emulator/rom-browser.js');
+      assert.ok(socdAt < mountAt, `${page}: socd.js must load before ejs-mount.js`);
+      assert.ok(mountAt < launchAt, `${page}: ejs-mount.js must load before launch.js`);
+      assert.ok(acquireAt < browserAt, `${page}: rom-acquire.js must load before rom-browser.js`);
       assert.ok(
-        html.indexOf('/emulator/socd.js') < html.indexOf('/emulator/launch.js'),
-        `${page}: socd.js must load before launch.js calls install()`
+        html.indexOf('/emulator/bios.js') < launchAt,
+        `${page}: bios.js must load before launch.js`
       );
     }
   });
 
   it('is installed at game start rather than on page load', () => {
-    const launch = read('emulator/launch.js');
-    assert.match(launch, /window\.emulatorSocd\?\.install\(\)/);
+    const mount = read('emulator/ejs-mount.js');
+    assert.match(mount, /window\.emulatorSocd\?\.install\(\)/);
   });
 });

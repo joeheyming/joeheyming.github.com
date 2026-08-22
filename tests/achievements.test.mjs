@@ -7,6 +7,7 @@ import { JSDOM } from 'jsdom';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = readFileSync(path.join(ROOT, 'achievements.js'), 'utf8');
+const REGISTRY_PATH = readFileSync(path.join(ROOT, 'shared/registry-path.js'), 'utf8');
 
 const TEST_CATALOG = {
   version: 1,
@@ -80,6 +81,7 @@ function loadRuntime(url = 'https://joeheyming.github.io/doom/') {
   });
   dom.window.fetch = (requestUrl) =>
     requestUrl.includes('catalog') ? response(TEST_CATALOG) : response(TEST_REGISTRY);
+  new Function('window', 'globalThis', REGISTRY_PATH)(dom.window, dom.window);
   dom.window.eval(SOURCE);
   return dom;
 }
@@ -141,6 +143,7 @@ test('malformed storage is ignored safely', async () => {
   dom.window.matchMedia = () => ({ matches: false });
   dom.window.fetch = (requestUrl) =>
     requestUrl.includes('catalog') ? response(TEST_CATALOG) : response(TEST_REGISTRY);
+  new Function('window', 'globalThis', REGISTRY_PATH)(dom.window, dom.window);
   dom.window.eval(SOURCE);
   await dom.window.heymingAchievements.ready;
 

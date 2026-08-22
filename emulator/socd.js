@@ -18,7 +18,7 @@
 // if it is still physically down, so sliding from Left to Right across an
 // overlap keeps moving instead of stalling until the player re-presses.
 //
-// Installed by launch.js at game start, not on page load — the boot card,
+// Installed by ejs-mount.js at game start, not on page load — the boot card,
 // ROM browser, and lean-back grid all navigate with the arrow keys and must
 // keep seeing both directions.
 (function () {

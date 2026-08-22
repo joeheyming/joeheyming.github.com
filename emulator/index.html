@@ -206,15 +206,19 @@
     <script src="/proxy.js"></script>
 
     <!-- Shared emulator shell. Load order matters: leanback (mode) →
-         registry → IA client → web component → orchestrator.
+         registry → IA client → rom-acquire → web component → socd →
+         bios → ejs-mount → orchestrator.
          Absolute /emulator/ paths so console landers (/emulator/nes/)
          can reuse the same scripts. -->
     <script src="/emulator/leanback.js"></script>
     <script src="/emulator/consoles.js"></script>
     <script src="/emulator/internet-archive.js"></script>
+    <script src="/emulator/rom-acquire.js"></script>
     <script src="/emulator/rom-browser.js"></script>
     <script src="/shared/breadcrumbs.js"></script>
     <script src="/emulator/socd.js"></script>
+    <script src="/emulator/bios.js"></script>
+    <script src="/emulator/ejs-mount.js"></script>
     <script src="/emulator/launch.js"></script>
 
     <link rel="stylesheet" href="/emulator/emulator.css" />
@@ -262,6 +266,7 @@
       <div class="boot-card" id="boot-card">
         <h2>🕹️ Pick a console</h2>
         <div class="picker-grid">
+          <!-- sync:emulator-picker:start -->
           <a class="picker-tile" href="/emulator/nes/">
             <span class="picker-emoji">🕹️</span>
             <span class="picker-title">NES</span>
@@ -297,11 +302,6 @@
             <span class="picker-title">GBA</span>
             <span class="picker-sub">Game Boy Advance</span>
           </a>
-          <a class="picker-tile" href="/emulator/snes/">
-            <span class="picker-emoji">🟣</span>
-            <span class="picker-title">SNES</span>
-            <span class="picker-sub">Super Nintendo</span>
-          </a>
           <a class="picker-tile" href="/emulator/neogeo/">
             <span class="picker-emoji">🥊</span>
             <span class="picker-title">Neo Geo</span>
@@ -311,6 +311,11 @@
             <span class="picker-emoji">🟠</span>
             <span class="picker-title">Neo Geo Pocket</span>
             <span class="picker-sub">NGP &amp; Color</span>
+          </a>
+          <a class="picker-tile" href="/emulator/snes/">
+            <span class="picker-emoji">🟣</span>
+            <span class="picker-title">SNES</span>
+            <span class="picker-sub">Super Nintendo</span>
           </a>
           <a class="picker-tile" href="/emulator/n64/">
             <span class="picker-emoji">🎲</span>
@@ -322,6 +327,7 @@
             <span class="picker-title">PS1</span>
             <span class="picker-sub">PlayStation</span>
           </a>
+          <!-- sync:emulator-picker:end -->
         </div>
         <div class="picker-extra">
           <h3 class="picker-extra-heading">Also try</h3>

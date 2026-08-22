@@ -19,6 +19,7 @@ import { SampleKit } from '../shared/samples.js';
 import { makePrefs } from '../shared/prefs.js';
 import { LoopTrack } from '../shared/loop-track.js';
 import { createLoopTrackController } from '../shared/loop-track-ui.js';
+import { createPointerSurface } from '../shared/pointer-surface.js';
 
 const Prefs = makePrefs('play.drums.prefs.v1');
 
@@ -650,37 +651,15 @@ const triggerPad = (id) => {
   looper.noteHit(id);
 };
 
-// Pointer input — trigger on press, and again whenever the pointer drags
-// onto a new pad so a sweep across the kit makes a drumroll.
-const lastPadByPointer = new Map();
-
-const triggerFromPad = (padEl, pointerId) => {
-  if (!padEl) return;
-  if (lastPadByPointer.get(pointerId) === padEl) return;
-  lastPadByPointer.set(pointerId, padEl);
-  triggerPad(padEl.dataset.id);
-};
-
-padsContainer.addEventListener('pointerdown', (event) => {
-  const padEl = event.target.closest('.drum-pad');
-  if (!padEl) return;
-  padsContainer.setPointerCapture?.(event.pointerId);
-  triggerFromPad(padEl, event.pointerId);
-  event.preventDefault();
+// Pointer input — strike-on-enter: trigger on press, and again whenever
+// the pointer drags onto a new pad so a sweep across the kit makes a
+// drumroll. PointerSurface owns per-pointer tracking and drag-cross.
+createPointerSurface(padsContainer, {
+  targetSelector: '.drum-pad',
+  onEnter: (padEl) => {
+    triggerPad(padEl.dataset.id);
+  }
 });
-
-padsContainer.addEventListener('pointermove', (event) => {
-  if (!lastPadByPointer.has(event.pointerId)) return;
-  const target = document.elementFromPoint(event.clientX, event.clientY);
-  const padEl = target && target.closest && target.closest('.drum-pad');
-  if (padEl) triggerFromPad(padEl, event.pointerId);
-});
-
-const endDrumPointer = (event) => {
-  lastPadByPointer.delete(event.pointerId);
-};
-padsContainer.addEventListener('pointerup', endDrumPointer);
-padsContainer.addEventListener('pointercancel', endDrumPointer);
 
 // Keyboard input
 const heldKeys = new Set();
