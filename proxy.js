@@ -220,6 +220,18 @@ class ProxyService {
     this.binaryTimeoutMs = 25000; // Longer for video/audio
     this.maxRetries = 3; // More retries for better success rate
 
+    // Origins that refused a direct (unproxied) binary request, mapped to the
+    // time the block expires. The browser prints its own console error for
+    // every blocked cross-origin request and that output cannot be suppressed
+    // from JS — a try/catch around fetch() only hides the exception, not the
+    // network log. So once an origin has refused us we skip the probe, which
+    // also stops wasting its timeout budget. Persisted alongside proxy health
+    // because each ROM launch is a fresh page load; the TTL re-probes in case
+    // the origin starts sending Access-Control-Allow-Origin.
+    /** @type {Map<string, number>} */
+    this.directBinaryBlockedUntil = new Map();
+    this.directBinaryBlockTtlMs = 24 * 60 * 60 * 1000; // 1 day
+
     // Circuit breaker: skip a proxy for this long after it fails (avoids hammering a down proxy).
     // Keys are `${proxy}|${mode}` so a slow HTML listing timeout does not skip the
     // same host for a subsequent ROM binary download (and vice versa).
@@ -455,6 +467,15 @@ class ProxyService {
           }
         }
       }
+      const cors = data && data.cors;
+      if (cors && typeof cors === 'object') {
+        const now = Date.now();
+        for (const origin of Object.keys(cors)) {
+          const until = cors[origin];
+          if (typeof until !== 'number' || until <= now) continue;
+          this.directBinaryBlockedUntil.set(origin, until);
+        }
+      }
     } catch {
       /* ignore corrupt or private mode */
     }
@@ -484,9 +505,14 @@ class ProxyService {
           if (typeof until !== 'number' || until <= now) continue;
           dead[key] = { until, reason: this.proxyDeadReason.get(key) || '' };
         }
+        const cors = {};
+        for (const [origin, until] of this.directBinaryBlockedUntil.entries()) {
+          if (typeof until !== 'number' || until <= now) continue;
+          cors[origin] = until;
+        }
         localStorage.setItem(
           PROXY_HEALTH_STORAGE_KEY,
-          JSON.stringify({ v: 1, savedAt: Date.now(), proxies, dead })
+          JSON.stringify({ v: 1, savedAt: Date.now(), proxies, dead, cors })
         );
       } catch {
         /* quota, private mode */
@@ -755,6 +781,42 @@ class ProxyService {
     );
   }
 
+  /** @returns {string} '' when the URL cannot be parsed. */
+  _originOf(url) {
+    try {
+      return new URL(url, window.location.href).origin;
+    } catch {
+      return '';
+    }
+  }
+
+  /** @returns {boolean} True when this origin refused a direct binary request recently. */
+  directBinaryBlocked(url) {
+    const origin = this._originOf(url);
+    if (!origin) return false;
+    const until = this.directBinaryBlockedUntil.get(origin);
+    if (!until) return false;
+    if (until <= Date.now()) {
+      this.directBinaryBlockedUntil.delete(origin);
+      return false;
+    }
+    return true;
+  }
+
+  _markDirectBinaryBlocked(url) {
+    const origin = this._originOf(url);
+    if (!origin) return;
+    this.directBinaryBlockedUntil.set(origin, Date.now() + this.directBinaryBlockTtlMs);
+    this._schedulePersistProxyHealth();
+  }
+
+  _clearDirectBinaryBlock(url) {
+    const origin = this._originOf(url);
+    if (origin && this.directBinaryBlockedUntil.delete(origin)) {
+      this._schedulePersistProxyHealth();
+    }
+  }
+
   // Try direct binary fetch first (in case server allows CORS). Caller passes skipDirect: true to skip.
   async tryDirectBinaryFetch(url, options = {}) {
     const userAbort = options.signal;
@@ -775,6 +837,7 @@ class ProxyService {
       });
       if (response.ok) {
         console.log('Direct binary fetch succeeded (no proxy needed)');
+        this._clearDirectBinaryBlock(url);
         const arrayBuffer = await response.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
         if (!uint8Array.length) return null;
@@ -788,6 +851,11 @@ class ProxyService {
       // Only rethrow a caller AbortSignal — probe timeouts must fall through.
       if (error && error.name === 'AbortError' && userAbort && userAbort.aborted) {
         throw error;
+      }
+      // A TypeError here is the CORS/network refusal; an AbortError is just the
+      // probe timing out, which says nothing about the origin's CORS policy.
+      if (!error || error.name !== 'AbortError') {
+        this._markDirectBinaryBlocked(url);
       }
       // Expected - most sites block CORS
       console.log(`Direct binary fetch blocked (expected): ${error && error.message}`);
@@ -895,7 +963,7 @@ class ProxyService {
       this.cache.delete(cacheKey);
     }
 
-    if (!options.skipDirect) {
+    if (!options.skipDirect && !this.directBinaryBlocked(url)) {
       const directResult = await this.tryDirectBinaryFetch(url, options);
       if (directResult) {
         this._cacheSet(cacheKey, directResult);
@@ -1094,7 +1162,7 @@ class ProxyService {
     // rate-limited). Failure is expected for archive.org's MP4 URLs
     // because the 302 redirect lands on dn710203.ca.archive.org, an
     // origin that doesn't set Access-Control-Allow-Origin.
-    if (!options.skipDirect) {
+    if (!options.skipDirect && !this.directBinaryBlocked(url)) {
       try {
         const blob = await this._streamToBlob(url, {
           signal: userAbort,
@@ -1104,10 +1172,12 @@ class ProxyService {
         });
         if (blob) {
           console.log('Direct binary stream succeeded (no proxy needed)');
+          this._clearDirectBinaryBlock(url);
           return blob;
         }
       } catch (err) {
         if (err && err.name === 'AbortError') throw err;
+        this._markDirectBinaryBlocked(url);
         console.log(`Direct binary stream blocked: ${err && err.message}`);
       }
     }
@@ -1480,6 +1550,7 @@ class ProxyService {
     this.proxyDeadReason.clear();
     this.proxyLastFailure.clear();
     this.proxyConsecutiveHardFailures.clear();
+    this.directBinaryBlockedUntil.clear();
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.removeItem(PROXY_HEALTH_STORAGE_KEY);

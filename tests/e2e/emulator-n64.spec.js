@@ -8,6 +8,25 @@ const METADATA = {
 };
 
 /**
+ * Serve the ROM binary. archive.org's item CDN never allows a direct
+ * cross-origin fetch, so `loadRom` goes straight through a CORS proxy — the
+ * request URL is a proxy prefix with the archive.org URL percent-encoded
+ * inside it. Match either form so the mock survives a change of proxy order.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function mockRomDownload(page) {
+  await page.route(
+    (url) => /archive\.org(\/|%2F)download/i.test(url.href),
+    (route) =>
+      route.fulfill({
+        contentType: 'application/octet-stream',
+        body: Buffer.alloc(256, 1)
+      })
+  );
+}
+
+/**
  * @param {import('@playwright/test').Page} page
  */
 async function openMockCollection(page) {
@@ -28,13 +47,7 @@ async function openMockCollection(page) {
 
 test.describe('N64 emulator suite', () => {
   test('routes to the N64 core and supports direct play or download', async ({ page }) => {
-    await page.route('https://archive.org/download/**', (route) =>
-      route.fulfill({
-        contentType: 'application/octet-stream',
-        body: Buffer.alloc(256, 1)
-      })
-    );
-
+    await mockRomDownload(page);
     await openMockCollection(page);
 
     await expect(page.locator('#romFileInput')).toHaveAttribute(
@@ -105,12 +118,7 @@ test.describe('N64 emulator suite', () => {
   });
 
   test('offers a game-list escape while the emulator core loads', async ({ page }) => {
-    await page.route('https://archive.org/download/**', (route) =>
-      route.fulfill({
-        contentType: 'application/octet-stream',
-        body: Buffer.alloc(256, 1)
-      })
-    );
+    await mockRomDownload(page);
     await openMockCollection(page);
 
     await page.getByRole('button', { name: 'Play now' }).click();

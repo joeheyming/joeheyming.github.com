@@ -78,6 +78,7 @@
       timeout: opts.timeout || 120000,
       maxRetries: opts.maxRetries != null ? opts.maxRetries : 4,
       skipDirect: opts.skipDirect === true,
+      signal: opts.signal,
       validateBinary: (bytes) => looksLikeRomPayload(ext, bytes)
     });
   }
@@ -442,14 +443,25 @@
       return this.fetchRomList();
     }
 
-    async loadRom(rom) {
+    async loadRom(rom, opts) {
+      opts = opts || {};
       if (!window.proxyService) {
         throw new Error('Proxy service not available');
       }
       const url = await this._resolveCdnDownloadUrl(rom.downloadUrl);
+      if (opts.signal && opts.signal.aborted) {
+        throw new DOMException('ROM download cancelled', 'AbortError');
+      }
       return fetchRom(url, {
         timeout: this.binaryTimeout,
-        maxRetries: this.maxRetries
+        maxRetries: this.maxRetries,
+        // archive.org's item CDN nodes (ia######.us.archive.org and friends)
+        // never send Access-Control-Allow-Origin, so a direct attempt is a
+        // guaranteed failure that costs a probe timeout and prints a CORS
+        // error the browser won't let us suppress. The listing path skips it
+        // for the same reason.
+        skipDirect: true,
+        signal: opts.signal
       });
     }
   }

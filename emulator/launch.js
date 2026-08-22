@@ -694,6 +694,26 @@
     wireTvFocus(bootCard);
   }
 
+  function returnToGameList() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('rom');
+    url.hash = '';
+    window.location.assign(`${url.pathname}${url.search}`);
+  }
+
+  function mountPlayChrome() {
+    let bar = document.getElementById('emu-play-chrome');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'emu-play-chrome';
+      document.body.appendChild(bar);
+    }
+    bar.innerHTML =
+      '<button type="button" class="emu-chrome-btn" id="emu-game-list-btn">Cancel loading / Game list</button>';
+    bar.hidden = false;
+    document.getElementById('emu-game-list-btn')?.addEventListener('click', returnToGameList);
+  }
+
   function renderPicker() {
     const brand = document.getElementById('brand');
     const bootCard = document.getElementById('boot-card');
@@ -767,17 +787,26 @@
     const bootCard = document.getElementById('boot-card');
     const wanted = romQuery.trim();
     if (!wanted || !bootCard) return false;
+    const controller = new AbortController();
 
     bootCard.innerHTML = `
       <h2>Loading ROM</h2>
       <p class="picker-help">Loading ${escapeHtml(wanted)}…</p>
+      <button type="button" class="btn btn-secondary" id="cancelDeeplinkBtn">
+        Cancel — back to game list
+      </button>
     `;
+    document.getElementById('cancelDeeplinkBtn')?.addEventListener('click', () => {
+      controller.abort();
+      returnToGameList();
+    });
 
     try {
       const ia = createIaClient(cfg);
       if (!ia) throw new Error('ROM browser is not configured for this console.');
 
       const roms = await ia.getAllRoms();
+      if (controller.signal.aborted) return false;
       const lower = wanted.toLowerCase();
       const rom = roms.find(
         (r) =>
@@ -787,7 +816,8 @@
       );
       if (!rom) throw new Error(`ROM not found: ${wanted}`);
 
-      const romData = await ia.loadRom(rom);
+      const romData = await ia.loadRom(rom, { signal: controller.signal });
+      if (controller.signal.aborted) return false;
       const ext = rom.fileExtension || '.zip';
       const mimeType = ext === '.zip' ? 'application/zip' : 'application/octet-stream';
       const filename = `${rom.title}${ext}`;
@@ -795,6 +825,7 @@
       window.launchEmulator(romFile, filename, { deeplink: true });
       return true;
     } catch (err) {
+      if (controller.signal.aborted || (err && err.name === 'AbortError')) return false;
       console.error('Deep-link ROM load failed:', err);
       renderBootCard(cfg);
       const boot = document.getElementById('boot-card');
@@ -968,7 +999,7 @@
     // ROM browser + local-file picker so they can pick another game.
     window.EJS_Buttons = Object.assign({}, window.EJS_Buttons, {
       exitEmulation: {
-        callback: () => window.location.reload()
+        callback: returnToGameList
       }
     });
 
@@ -982,6 +1013,8 @@
     if (['sega', 'gg', 'sega32x', 'gb', 'neogeo', 'snes', 'n64', 'ps1'].includes(cfg.id)) {
       window.heymingAchievements?.unlockForCurrentApp('first-action');
     }
+
+    mountPlayChrome();
 
     const script = document.createElement('script');
     script.src = 'https://cdn.emulatorjs.org/latest/data/loader.js';
