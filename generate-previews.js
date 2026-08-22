@@ -26,7 +26,7 @@ const PAGES = [
   {
     url: `${BASE_URL}/emulator/`,
     output: 'emulator/emulator-preview.png',
-    title: 'Retro Emulator (NES / Sega / SNES / GB / Neo Geo)'
+    title: 'Retro Emulator (NES / Sega / SNES / GB / Neo Geo / N64)'
   },
   {
     url: `${BASE_URL}/emulator/nes/`,
@@ -62,6 +62,11 @@ const PAGES = [
     url: `${BASE_URL}/emulator/neogeo/`,
     output: 'emulator/neogeo/neogeo-preview.png',
     title: 'Neo Geo Emulator'
+  },
+  {
+    url: `${BASE_URL}/emulator/n64/`,
+    output: 'emulator/n64/n64-preview.png',
+    title: 'N64 Emulator'
   },
   {
     url: `${BASE_URL}/emulator/ps1/`,

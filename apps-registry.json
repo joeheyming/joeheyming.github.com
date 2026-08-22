@@ -1397,8 +1397,8 @@
     "id": "emulator",
     "name": "Emulator 🎮",
     "shortName": "Emulator",
-    "description": "Pick a console — NES, Sega, SNES, and more",
-    "detailedDescription": "Unified retro emulator shell. Pick NES, Sega Genesis, Game Gear, Sega 32X, SNES, Game Boy, Neo Geo, or PlayStation, then browse Internet Archive collections or load your own ROM. Powered by EmulatorJS.",
+    "description": "Pick a console — NES, Sega, SNES, N64, and more",
+    "detailedDescription": "Unified retro emulator shell. Pick NES, Sega Genesis, Game Gear, Sega 32X, SNES, Game Boy, Neo Geo, Nintendo 64, or PlayStation, then browse Internet Archive collections or load your own ROM. Powered by EmulatorJS.",
     "icon": "🎮",
     "path": "./emulator/",
     "category": "game",
@@ -1418,6 +1418,7 @@
       "snes",
       "gameboy",
       "neogeo",
+      "n64",
       "ps1"
     ],
     "related": [
@@ -1428,6 +1429,7 @@
       "gameboy",
       "snes",
       "neogeo",
+      "n64",
       "ps1",
       "flash"
     ],
@@ -1465,6 +1467,7 @@
       "gameboy",
       "neogeo",
       "snes",
+      "n64",
       "ps1",
       "doom",
       "pacman",
@@ -1517,6 +1520,7 @@
       "gameboy",
       "neogeo",
       "snes",
+      "n64",
       "ps1",
       "doom",
       "pacman",
@@ -1570,6 +1574,7 @@
       "nes",
       "snes",
       "neogeo",
+      "n64",
       "ps1"
     ],
     "shareCategory": "game",
@@ -1606,6 +1611,7 @@
       "snes",
       "gameboy",
       "neogeo",
+      "n64",
       "ps1"
     ],
     "shareCategory": "game",
@@ -1642,6 +1648,7 @@
       "sega32x",
       "neogeo",
       "snes",
+      "n64",
       "ps1",
       "doom",
       "pacman"
@@ -1689,6 +1696,7 @@
       "sega32x",
       "gameboy",
       "snes",
+      "n64",
       "ps1",
       "doom",
       "flash"
@@ -1735,6 +1743,7 @@
       "sega32x",
       "gameboy",
       "neogeo",
+      "n64",
       "ps1"
     ],
     "shareCategory": "game",
@@ -1746,6 +1755,47 @@
       "preset": "snes",
       "analyticsLabel": "SNES"
     },
+    "appTier": "experience",
+    "geo": false
+  },
+  {
+    "id": "n64",
+    "name": "N64 🎲",
+    "shortName": "N64",
+    "description": "Nintendo 64 emulator",
+    "detailedDescription": "Play Nintendo 64 games in your browser. Browse individual .z64 games on Internet Archive with direct play and download fallback, or bring your own .z64 / .n64 / .v64 ROM. Gamepad recommended. Part of the unified emulator shell (EmulatorJS / mupen64plus_next).",
+    "icon": "🎲",
+    "path": "./emulator/n64/",
+    "category": "game",
+    "subCategory": "console",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-red-600/20 to-blue-700/20",
+    "border": "border-red-500/30 hover:border-red-400/50",
+    "taskbarGradient": "from-red-600 to-blue-800",
+    "taskbarText": "text-white",
+    "tags": [
+      "retro",
+      "emulator",
+      "nintendo",
+      "n64",
+      "nintendo 64",
+      "64-bit",
+      "3d"
+    ],
+    "related": [
+      "nes",
+      "sega",
+      "gamegear",
+      "sega32x",
+      "gameboy",
+      "neogeo",
+      "snes",
+      "ps1",
+      "doom",
+      "pacman"
+    ],
+    "shareCategory": "game",
     "appTier": "experience",
     "geo": false
   },
@@ -1780,7 +1830,8 @@
       "sega32x",
       "gameboy",
       "neogeo",
-      "snes"
+      "snes",
+      "n64"
     ],
     "shareCategory": "game",
     "appTier": "experience",

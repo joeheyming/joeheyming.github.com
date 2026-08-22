@@ -191,7 +191,8 @@ class RomBrowserElement extends HTMLElement {
           gap: 0.5rem;
           justify-content: center;
         }
-        .error-actions button {
+        .error-actions button,
+        .error-actions a {
           appearance: none;
           border: 1px solid var(--hairline);
           background: var(--surface-1);
@@ -200,8 +201,10 @@ class RomBrowserElement extends HTMLElement {
           padding: 0.5rem 0.9rem;
           font: inherit;
           cursor: pointer;
+          text-decoration: none;
         }
-        .error-actions button.primary {
+        .error-actions button.primary,
+        .error-actions a.primary {
           border-color: var(--accent-bright);
           background: var(--accent-bright-soft);
         }
@@ -314,6 +317,37 @@ class RomBrowserElement extends HTMLElement {
         }
         .rom-info { color: var(--text-2); font-size: 0.875rem; line-height: 1.4; }
         .rom-size { color: var(--text-3); font-size: 0.75rem; margin-top: 0.25rem; }
+        .rom-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-top: 0.8rem;
+        }
+        .rom-actions button,
+        .rom-actions a {
+          appearance: none;
+          border: 1px solid var(--hairline);
+          border-radius: 0.5rem;
+          padding: 0.5rem 0.75rem;
+          background: var(--surface-0);
+          color: var(--text-1);
+          font: inherit;
+          font-size: 0.85rem;
+          font-weight: 600;
+          line-height: 1.2;
+          text-decoration: none;
+          cursor: pointer;
+        }
+        .rom-actions button {
+          border-color: var(--accent-bright);
+          background: var(--accent-bright);
+          color: var(--text-on-accent);
+        }
+        .rom-actions button:focus-visible,
+        .rom-actions a:focus-visible {
+          outline: 3px solid var(--accent-bright);
+          outline-offset: 2px;
+        }
         .search-container { margin-bottom: 0; position: relative; }
         .search-container[hidden] { display: none !important; }
         .search-input {
@@ -540,24 +574,48 @@ class RomBrowserElement extends HTMLElement {
 
     const romGrid = document.createElement('div');
     romGrid.className = 'rom-grid';
+    const cfg = this.consoleConfig;
+    const allowExternalDownload = !!(cfg && cfg.iaAllowExternalDownload);
 
     roms.forEach((rom) => {
       const romCard = document.createElement('div');
       romCard.className = 'rom-card';
-      romCard.setAttribute('role', 'button');
-      romCard.tabIndex = 0;
+      const title = this._escapeHtml(rom.title);
+      const description = this._escapeHtml(rom.description);
+      const size = this._escapeHtml(rom.size);
+
+      if (!allowExternalDownload) {
+        romCard.setAttribute('role', 'button');
+        romCard.tabIndex = 0;
+      }
       romCard.innerHTML = `
-        <div class="rom-title">${rom.title}</div>
-        <div class="rom-info">${rom.description}</div>
-        <div class="rom-size">${rom.size}</div>
-      `;
-      romCard.addEventListener('click', () => this.loadRom(rom));
-      romCard.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          this.loadRom(rom);
+        <div class="rom-title">${title}</div>
+        <div class="rom-info">${description}</div>
+        <div class="rom-size">${size}</div>
+        ${
+          allowExternalDownload
+            ? `<div class="rom-actions">
+                <button type="button" data-action="play-rom">Play in browser</button>
+                <a href="${this._escapeHtml(
+                  rom.downloadUrl || '#'
+                )}" target="_blank" rel="noopener noreferrer">Download instead</a>
+              </div>`
+            : ''
         }
-      });
+      `;
+      if (allowExternalDownload) {
+        romCard
+          .querySelector('[data-action="play-rom"]')
+          ?.addEventListener('click', () => this.loadRom(rom));
+      } else {
+        romCard.addEventListener('click', () => this.loadRom(rom));
+        romCard.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.loadRom(rom);
+          }
+        });
+      }
       romGrid.appendChild(romCard);
     });
 
@@ -566,10 +624,14 @@ class RomBrowserElement extends HTMLElement {
 
     const lb = window.emulatorLeanback;
     if (lb && typeof lb.applyRovingTabindex === 'function') {
-      this._romRoving = lb.applyRovingTabindex(romGrid, { selector: '.rom-card' });
+      this._romRoving = lb.applyRovingTabindex(romGrid, {
+        selector: allowExternalDownload ? '[data-action="play-rom"]' : '.rom-card'
+      });
       if (this.isTv) this._romRoving.focusFirst();
     } else if (this.isTv) {
-      const first = romGrid.querySelector('.rom-card');
+      const first = romGrid.querySelector(
+        allowExternalDownload ? '[data-action="play-rom"]' : '.rom-card'
+      );
       if (first) first.focus({ preventScroll: false });
     }
   }
@@ -622,12 +684,20 @@ class RomBrowserElement extends HTMLElement {
     } catch (error) {
       console.error('Error loading ROM:', error);
       const detail = (error && error.message) || 'Unknown error';
+      const canDownload = !!(cfg && cfg.iaAllowExternalDownload && rom.downloadUrl);
+      const downloadAction = canDownload
+        ? `<a class="primary" href="${this._escapeHtml(
+            rom.downloadUrl
+          )}" target="_blank" rel="noopener noreferrer">Download instead</a>` +
+          '<button type="button" data-action="load-local">Load saved ROM</button>'
+        : '';
       if (contentArea) {
         contentArea.innerHTML =
           `<div class="error">Failed to load ${this._escapeHtml(rom.title)}.` +
           `<div class="error-detail">${this._escapeHtml(detail)}</div>` +
           '<div class="error-actions">' +
           '<button type="button" class="primary" data-action="retry-rom">Retry download</button>' +
+          downloadAction +
           '<button type="button" data-action="back-list">Back to list</button>' +
           '</div></div>';
         contentArea.querySelector('[data-action="retry-rom"]')?.addEventListener('click', () => {
@@ -636,33 +706,43 @@ class RomBrowserElement extends HTMLElement {
         contentArea
           .querySelector('[data-action="back-list"]')
           ?.addEventListener('click', restoreList);
+        contentArea.querySelector('[data-action="load-local"]')?.addEventListener('click', () => {
+          this.closeBrowser();
+          document.getElementById('romFileInput')?.click();
+        });
       } else {
         alert('Failed to load ROM: ' + detail);
       }
     }
   }
 
-  /**
-   * PS1-size disc images cannot ride the free CORS proxy chain (400s /
-   * timeouts on 100–500+ MB files). Hand the user the Archive download
-   * URL, then the local file picker once the browser finishes saving.
-   */
+  /** Hand the user the Archive URL, then offer the local file picker. */
   showExternalDownload(rom, restoreList) {
     const contentArea = this.shadowRoot.getElementById('contentArea');
     if (!contentArea) return;
 
-    const sizeLabel = rom.size && rom.size !== 'Unknown' ? rom.size : 'often 100–500+ MB';
+    const cfg = this.consoleConfig;
+    const isDisc = !!(cfg && cfg.iaExternalDownload);
+    const sizeLabel =
+      rom.size && rom.size !== 'Unknown'
+        ? rom.size
+        : isDisc
+        ? 'often 100–500+ MB'
+        : 'size unavailable';
     const href = rom.downloadUrl || '#';
+    const explanation = isDisc
+      ? 'PlayStation discs are too large to download through this page’s proxies ' +
+        '(browser CORS limits). Download from Internet Archive in a new tab, then ' +
+        'load the saved <code>.chd</code> file here.'
+      : 'Download this ROM directly from Internet Archive, then load the saved file here.';
 
     contentArea.innerHTML = `
       <div class="external-download">
         <h3>${this._escapeHtml(rom.title)}</h3>
-        <p class="size-line">Disc image size: ${this._escapeHtml(sizeLabel)}</p>
-        <p>
-          PlayStation discs are too large to download through this page’s proxies
-          (browser CORS limits). Download from Internet Archive in a new tab, then
-          load the saved <code>.chd</code> file here.
-        </p>
+        <p class="size-line">${isDisc ? 'Disc image' : 'ROM'} size: ${this._escapeHtml(
+      sizeLabel
+    )}</p>
+        <p>${explanation}</p>
         <div class="external-actions">
           <a class="buttonish primary" data-action="open-ia" href="${this._escapeHtml(
             href

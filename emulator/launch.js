@@ -642,7 +642,7 @@
 
     const controlsSummary = tv ? 'Controls' : 'Keyboard Controls';
     const gamepadHint =
-      tv || cfg.id === 'ps1'
+      tv || cfg.id === 'ps1' || cfg.id === 'n64'
         ? hasGamepadApi()
           ? `<p class="controls-gamepad-hint">Gamepad recommended — works via the browser Gamepad API.</p>`
           : `<p class="controls-gamepad-hint">Use D-pad or keyboard controls; this browser does not expose the Gamepad API.</p>`
@@ -706,7 +706,7 @@
       <span class="brand-logo">🎮</span>
       <h1>
         Retro Game Emulator
-        <span class="sub">NES · Sega · Game Gear · 32X · SNES · Game Boy · Neo Geo · PS1</span>
+        <span class="sub">NES · Sega · Game Gear · 32X · SNES · Game Boy · Neo Geo · N64 · PS1</span>
       </h1>
     `;
 
@@ -979,7 +979,7 @@
       window.trackEvent(`${cfg.id}_rom_loaded`, 'Emulator', labelBase, timeOnPage);
     }
 
-    if (['sega', 'gg', 'sega32x', 'gb', 'neogeo', 'snes', 'ps1'].includes(cfg.id)) {
+    if (['sega', 'gg', 'sega32x', 'gb', 'neogeo', 'snes', 'n64', 'ps1'].includes(cfg.id)) {
       window.heymingAchievements?.unlockForCurrentApp('first-action');
     }
 

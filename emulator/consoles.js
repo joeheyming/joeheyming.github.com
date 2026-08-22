@@ -249,6 +249,44 @@
       ]
     },
 
+    n64: {
+      id: 'n64',
+      title: 'N64',
+      subtitle: 'Nintendo 64',
+      emoji: '🎲',
+      // EmulatorJS resolves `n64` to mupen64plus_next (parallel-n64 on iOS).
+      ejsCore: 'n64',
+      fileAccept: '.z64,.n64,.v64,.zip,.7z',
+      fileExtsLabel: '.z64 / .n64 / .v64',
+      // Nintendo 64 logo red and deep blue.
+      accentHex: '#e60012',
+      accentGoldHex: '#1d4ed8',
+      // Flat, per-game BigEndian ROMs. Files are usually 8–64 MB, so try
+      // the proxy first but always offer the direct Archive download too.
+      iaBaseUrl: 'https://archive.org/download/pack-roms-nintendo-64-eu-us-jap',
+      iaDescriptionPrefix: 'Nintendo 64 game',
+      iaFileExtensions: ['.z64'],
+      iaBinaryTimeout: 180000,
+      iaAllowExternalDownload: true,
+      howto: [
+        'Pick a game from Internet Archive or load your own ROM.',
+        'If a large ROM times out, use Download instead and load the saved file.',
+        'Use a gamepad for analog-stick games.'
+      ],
+      romHelp:
+        'N64 ROMs can be large. This page tries to load them directly; Download instead is available when a browser proxy is slow.',
+      controls: [
+        { label: 'Analog stick', key: 'Arrow keys' },
+        { label: 'A / B', key: 'X / Z' },
+        { label: 'C buttons', key: 'I / J / K / L' },
+        { label: 'L / R', key: 'Q / E' },
+        { label: 'Z trigger', key: 'Tab' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
     ps1: {
       id: 'ps1',
       title: 'PS1',
