@@ -42,7 +42,11 @@ export function parseTs(v) {
  * @param {string[]} names
  */
 export function colIndex(cols, names) {
-  const lower = cols.map((c) => String(c).toLowerCase());
+  const lower = cols.map((c) => String(c).toLowerCase().trim());
+  for (const name of names) {
+    const exact = lower.findIndex((c) => c === name);
+    if (exact >= 0) return exact;
+  }
   for (const name of names) {
     const i = lower.findIndex((c) => c.includes(name));
     if (i >= 0) return i;
@@ -99,9 +103,12 @@ export function parseMessages(table, room) {
 
     const name = iName >= 0 ? String(row[iName] ?? '').trim() : 'Anon';
     const uuid = iUuid >= 0 ? String(row[iUuid] ?? '').trim() : '';
+    const storedId =
+      iId >= 0 && row[iId] != null && String(row[iId]).trim() ? String(row[iId]).trim() : '';
+    // Older Apps Script column detection matched "id" inside "uuid".
     const id =
-      iId >= 0 && row[iId] != null && String(row[iId]).trim()
-        ? String(row[iId]).trim()
+      storedId && storedId !== uuid
+        ? storedId
         : `${uuid}-${parseTs(iTs >= 0 ? row[iTs] : null)}-${message.slice(0, 12)}`;
 
     out.push({
