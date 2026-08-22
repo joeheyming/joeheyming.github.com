@@ -188,12 +188,8 @@ The hamburger nav toggle is `position: fixed` at `top: 20px; left: 20px` (deskto
   ```
 - Full-bleed hero layouts: use `padding-top` ≥ 60px on the first content block so the toggle doesn't land on a heading.
 
-The automated test `tests/e2e/nav-toggle-overlap.spec.js` checks all apps at desktop (1280×720), mobile portrait (390×844), and mobile landscape (844×390). Run it after any header or layout change:
-```bash
-npx playwright test nav-toggle-overlap
-```
-Failing tests save a screenshot to `tests/e2e/screenshots/` for visual debugging.
-```
+Check the relevant app's source when changing its header. Do not add a
+site-wide browser sweep for this shared CSS invariant.
 
 ---
 
@@ -298,9 +294,25 @@ When a file gets unwieldy, split by responsibility — not by arbitrary line cou
 ## Testing
 
 - **Unit/integration tests:** `tests/*.test.mjs` (run with `node --test` or `npm test`).
-- **E2E tests:** `tests/e2e/*.spec.js` under `playwright.config.js`.
-  - Prefer adding a spec here over ad-hoc browser sessions.
-  - Do **not** use `playwright-cli` for one-off UI checks — read the source instead.
+
+### Stop: do not add Playwright tests
+
+For the love of god, please no more Playwright tests. This personal static site
+previously accumulated 469 browser tests that took more than two minutes and
+still did not finish. They were deleted.
+
+- Use `node:test` for behavior and pure logic.
+- Use jsdom for HTML structure, metadata, accessibility attributes, and DOM
+  behavior that does not require layout.
+- Read the relevant HTML/CSS/JS for visual changes and trust the user's report.
+- Never launch a browser once per app or viewport to check a shared invariant.
+- Do not restore `@playwright/test`, `playwright.config.js`, or `tests/e2e/`.
+- Do not sneak browser automation into `npm test`; tests must be local,
+  deterministic, and network-free.
+
+The `playwright` package remains only for explicit asset-generation scripts such
+as `generate-previews.js`. That is tooling, not a license to add browser tests.
+Only add a browser test if the user explicitly requests one in the current task.
 
 ---
 

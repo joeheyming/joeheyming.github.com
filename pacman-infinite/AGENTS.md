@@ -597,11 +597,14 @@ with `pacman-infinite` first. This is what makes:
 If you add another companion app, register it the same way and
 update both `related` lists so the cross-link is symmetric.
 
-## Testing notes (read before reaching for a browser)
+## Testing notes
 
-See `.cursor/rules/ui-verification.mdc` — the default in this repo is **don't reflex-launch `playwright-cli`** for layout / "did the change land?" checks. Read the source, trust the user, or extend `tests/e2e/*.spec.js` instead.
+See `.cursor/rules/ui-verification.mdc`: do not add Playwright tests. Read the
+source, trust the user, and use `node:test` for logic. Browser automation requires
+an explicit user request in the current task.
 
-If a browser session is genuinely needed (runtime-only bugs, explicit user request), two things specific to this app are worth knowing:
+If the user explicitly requests a browser session, two things specific to this
+app are worth knowing:
 
 - Force-start a run from the console / `eval`:
   `window.game.startGame()` — skips menu + intro.
