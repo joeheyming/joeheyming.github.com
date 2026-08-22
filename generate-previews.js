@@ -500,6 +500,11 @@ const PAGES = [
     title: 'Browser Synth'
   },
   {
+    url: `${BASE_URL}/play/sampler/`,
+    output: 'play/sampler/sampler-preview.png',
+    title: 'DirectWave Sampler'
+  },
+  {
     url: `${BASE_URL}/play/metronome/`,
     output: 'play/metronome/metronome-preview.png',
     title: 'Browser Metronome'

@@ -83,6 +83,12 @@ notes outside the recorded range.
 [`play/synth`](./synth/) is intentionally a subtractive synthesiser; it
 uses no samples at all.
 
+## Sampler
+
+[`play/sampler`](./sampler/) is a DirectWave-style keyboard sampler. Its
+built-in sounds are original and generated in the browser; no third-party
+sample packs are included.
+
 ## Chiptune
 
 [`play/chiptune`](./chiptune/) is an original browser chip tracker (Web

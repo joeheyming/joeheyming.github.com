@@ -442,6 +442,16 @@
       "y": 640
     },
     {
+      "id": "play-sampler:first-action",
+      "appId": "play-sampler",
+      "title": "Sample Triggered",
+      "description": "Play a note on the DirectWave sampler.",
+      "icon": "🎚️",
+      "parentId": "play-synth:first-action",
+      "x": 356,
+      "y": 640
+    },
+    {
       "id": "play-tuner:first-action",
       "appId": "play-tuner",
       "title": "Reference Tone",

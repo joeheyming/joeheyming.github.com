@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="robots" content="index, follow" />
+    <title>DirectWave Sampler — Open DWP Instruments 🎚️</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎚️</text></svg>"
+    />
+    <meta
+      name="description"
+      content="Open monolithic FL Studio DirectWave DWP instruments and play them with touch, a computer keyboard, or MIDI. Files never leave your device."
+    />
+    <meta name="theme-color" content="#101827" />
+    <link rel="canonical" href="https://joeheyming.github.io/play/sampler/" />
+    <link rel="manifest" href="/play/manifest.json" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Sampler" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Play" />
+    <meta property="og:title" content="DirectWave Sampler — Open DWP Instruments 🎚️" />
+    <meta
+      property="og:description"
+      content="Open a monolithic DirectWave DWP instrument and play it with touch, computer keys, or MIDI."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/play/sampler/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/play/sampler/sampler-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="DirectWave Sampler with a piano keyboard" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DirectWave Sampler — Open DWP Instruments 🎚️" />
+    <meta
+      name="twitter:description"
+      content="Open a monolithic DirectWave DWP instrument and play it with touch, computer keys, or MIDI."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/play/sampler/sampler-preview.png"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "DirectWave Sampler",
+        "url": "https://joeheyming.github.io/play/sampler/",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Web Browser",
+        "description": "Open monolithic FL Studio DirectWave DWP instruments and play them from a piano keyboard.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "Monolithic DirectWave DWP support",
+          "Touch and computer-keyboard playing",
+          "MIDI keyboard support",
+          "Sample zone map",
+          "Three built-in sounds"
+        ]
+      }
+    </script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/achievements.js"></script>
+    <script>
+      (function () {
+        var m = window.matchMedia;
+        if (
+          (m && m('(display-mode: standalone)').matches) ||
+          (m && m('(display-mode: fullscreen)').matches) ||
+          window.navigator.standalone === true
+        ) {
+          window.heymingNavInitialized = true;
+          document.documentElement.classList.add('pwa-standalone');
+          var s = document.createElement('style');
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop{display:none!important}';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/shared/breadcrumbs.css" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="app-header">
+      <nav
+        class="app-breadcrumbs"
+        aria-label="Breadcrumb"
+        data-crumbs='[{"emoji":"🎵","label":"Instruments","href":"../"},{"emoji":"🎚️","label":"Sampler"}]'
+      ></nav>
+    </header>
+
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🎚️</span>
+        <h1>DirectWave Sampler</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+        <div class="midi-status" id="midi-status" hidden>
+          <span class="midi-dot" aria-hidden="true"></span>
+          <span class="midi-label">MIDI</span>
+        </div>
+      </div>
+    </header>
+
+    <p class="instrument-lede">
+      Play the keyboard below with your mouse, finger, or computer keys. Switch
+      <strong>Sound</strong>
+      to change instrument — or load your own DirectWave file further down.
+    </p>
+
+    <section class="instrument-controls" aria-label="Sampler controls">
+      <div class="control">
+        <label for="sound">Sound</label>
+        <select id="sound"></select>
+        <span class="hint" id="load-status" role="status" aria-live="polite"></span>
+      </div>
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="65" />
+      </div>
+      <div class="control">
+        <label for="layout">Keyboard</label>
+        <select id="layout">
+          <option value="25">25 keys</option>
+          <option value="49" selected>49 keys</option>
+          <option value="61">61 keys</option>
+          <option value="88">88 keys</option>
+        </select>
+      </div>
+      <div class="control octave-control">
+        <label>Octave</label>
+        <div class="octave-buttons">
+          <button id="octave-down" type="button" aria-label="Octave down">−</button>
+          <span id="octave-display" class="octave-display" aria-live="polite">C2</span>
+          <button id="octave-up" type="button" aria-label="Octave up">+</button>
+        </div>
+      </div>
+      <div class="control control-toggle">
+        <label class="toggle-label">
+          <input type="checkbox" id="sustain" />
+          <span>Sustain</span>
+        </label>
+      </div>
+      <div class="control control-toggle">
+        <label class="toggle-label">
+          <input type="checkbox" id="show-notes" checked />
+          <span>Labels</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="sampler-stage" aria-label="Sampler keyboard">
+      <div class="piano-keyboard" id="piano-keyboard"></div>
+    </section>
+
+    <main class="sampler-main">
+      <section class="program-panel" aria-labelledby="program-name">
+        <div class="program-heading">
+          <div>
+            <p class="eyebrow" id="program-format">Built-in sound</p>
+            <h2 id="program-name">Warm Pad</h2>
+            <p id="program-description">A soft sustained tone.</p>
+          </div>
+          <dl class="program-stats">
+            <div>
+              <dt>Zones</dt>
+              <dd id="zone-count">5</dd>
+            </div>
+            <div>
+              <dt>Range</dt>
+              <dd id="key-range">C-1–G9</dd>
+            </div>
+            <div>
+              <dt>Layers</dt>
+              <dd id="layer-count">1</dd>
+            </div>
+          </dl>
+        </div>
+        <p class="panel-note">
+          Each block below is one sample zone — how wide a stretch of keys it covers, and how hard
+          you have to play to trigger it.
+        </p>
+        <div class="zone-map" id="zone-map" aria-label="Loaded sample zones"></div>
+      </section>
+
+      <section class="loader-panel" aria-labelledby="load-heading">
+        <div class="loader-copy">
+          <p class="eyebrow">Optional</p>
+          <h2 id="load-heading">Have an FL Studio DirectWave file?</h2>
+          <p>
+            Load a monolithic
+            <code>.dwp</code>
+            and play it above. Your file never leaves this device.
+          </p>
+        </div>
+        <div class="loader-actions">
+          <input id="dwp-file" type="file" accept=".dwp,application/octet-stream" hidden />
+          <button class="primary-action" id="choose-file" type="button">Choose DWP file</button>
+        </div>
+        <div
+          class="drop-zone"
+          id="drop-zone"
+          role="button"
+          tabindex="0"
+          aria-label="Drop a monolithic DWP file here"
+        >
+          Drop a
+          <code>.dwp</code>
+          file here
+        </div>
+        <p class="load-error" id="load-error" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li>
+          <strong>Tap or click</strong>
+          the keys, or use the
+          <kbd>Z</kbd>
+          –
+          <kbd>M</kbd>
+          and
+          <kbd>Q</kbd>
+          –
+          <kbd>U</kbd>
+          rows on a computer keyboard.
+          <kbd>[</kbd>
+          and
+          <kbd>]</kbd>
+          shift the octave.
+        </li>
+        <li>
+          <strong>Sound</strong>
+          switches between the built-in instruments and any DirectWave file you load. A connected
+          MIDI keyboard plays it too, with velocity.
+        </li>
+      </ul>
+
+      <h2>About DWP support</h2>
+      <p>
+        This player supports monolithic DWP files, which contain their samples inside the preset.
+        Presets that rely on separate sample folders, DWB banks, effects, and older formats are not
+        supported yet.
+      </p>
+      <p>
+        DWP files can contain old local file paths. This app shows only sample filenames and never
+        uploads anything.
+      </p>
+    </section>
+
+    <script type="module" src="index.js"></script>
+    <script src="/shared/breadcrumbs.js"></script>
+  </body>
+</html>

@@ -2269,6 +2269,7 @@
       "play-drums",
       "play-guitar",
       "play-composer",
+      "play-sampler",
       "awesome",
       "posts"
     ],
@@ -2306,6 +2307,7 @@
       "play",
       "play-accordion",
       "play-synth",
+      "play-sampler",
       "play-metronome",
       "play-tuner"
     ],
@@ -2435,7 +2437,41 @@
       "play",
       "play-piano",
       "play-drums",
-      "play-theremin"
+      "play-theremin",
+      "play-sampler"
+    ],
+    "shareCategory": "entertainment",
+    "appTier": "experience",
+    "geo": true
+  },
+  {
+    "id": "play-sampler",
+    "name": "DirectWave Sampler 🎚️",
+    "shortName": "Sampler",
+    "description": "Play monolithic DirectWave DWP instruments",
+    "detailedDescription": "Open a monolithic DirectWave DWP file and play it with mouse, touch, MIDI, or a computer keyboard. Includes three built-in sounds.",
+    "icon": "🎚️",
+    "path": "./play/sampler/",
+    "category": "entertainment",
+    "gradient": "from-fuchsia-500/20 to-violet-500/20",
+    "border": "border-fuchsia-500/30 hover:border-fuchsia-400/50",
+    "taskbarGradient": "from-fuchsia-500 to-violet-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 1000,
+    "defaultHeight": 700,
+    "tags": [
+      "music",
+      "sampler",
+      "directwave",
+      "dwp",
+      "audio",
+      "electronic"
+    ],
+    "related": [
+      "play",
+      "play-synth",
+      "play-piano",
+      "play-chiptune"
     ],
     "shareCategory": "entertainment",
     "appTier": "experience",
@@ -2535,6 +2571,7 @@
       "play-synth",
       "play-composer",
       "play-drums",
+      "play-sampler",
       "posts"
     ],
     "shareCategory": "entertainment",
