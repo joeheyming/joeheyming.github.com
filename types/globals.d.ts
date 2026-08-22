@@ -48,6 +48,11 @@ interface Window {
   HeymingOS: HeymingOSNamespace;
   heymingOS: import('../terminal/core/heyming-os').HeymingOS;
   heymingAchievements?: HeymingAchievements;
+  /** Desktop toast adapter (`achievements-toast.js`), loaded by achievements.js. */
+  HeymingAchievementToasts?: {
+    enqueue(definition: AchievementDefinition): void;
+    wire?(): void;
+  };
   /** Controller → arrow-key bridge (`gamepad-keys.js`, opt-in per page). */
   gamepadKeys?: GamepadKeysApi;
 

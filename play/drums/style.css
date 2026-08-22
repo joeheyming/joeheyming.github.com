@@ -8,7 +8,6 @@
   --play-drums-key-bg: var(--surface-2);
   --play-drums-rec: var(--danger);
   --play-drums-rec-soft: var(--danger-soft);
-  --play-drums-rec-mint: var(--success-soft);
   --play-drums-warn: var(--warning);
   --play-drums-tab-bg: var(--surface-2);
 }
@@ -324,7 +323,7 @@
 .loop-play.playing {
   border-color: var(--accent-3);
   background: color-mix(in srgb, var(--success) 16%, transparent);
-  color: var(--play-drums-rec-mint);
+  color: var(--success);
   box-shadow: 0 0 18px -4px color-mix(in srgb, var(--success) 50%, transparent);
 }
 

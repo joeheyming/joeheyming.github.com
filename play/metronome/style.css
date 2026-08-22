@@ -8,7 +8,6 @@
   /* Auto-scoped identity palette for play-metro. Every bare color in
    * this file is routed through one of these tokens so the brand
    * audit sees zero literals while keeping the visual identity. */
-  --play-metro-c01: rgba(30, 41, 59, 0.85);
   --play-metro-c02: rgba(148, 163, 184, 0.4);
   --play-metro-c03: rgba(129, 140, 248, 0.35);
   --play-metro-c04: rgba(129, 140, 248, 0.45);
@@ -21,7 +20,6 @@
   --play-metro-c11: #ef4444;
   --play-metro-c12: #f97316;
   --play-metro-c13: rgba(239, 68, 68, 0.7);
-  --play-metro-c14: #ecfdf5;
 }
 
 .metronome-stage {
@@ -65,7 +63,7 @@
   height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border);
-  background: var(--play-metro-c01, rgba(30, 41, 59, 0.85));
+  background: var(--surface-1);
   color: var(--fg);
   font-size: 24px;
   font-weight: 700;
@@ -329,7 +327,7 @@
 }
 
 .secondary-btn {
-  background: var(--play-metro-c01, rgba(30, 41, 59, 0.85));
+  background: var(--surface-1);
   color: var(--fg);
 }
 
@@ -349,7 +347,7 @@
 .secondary-btn.tapping {
   border-color: var(--accent-3);
   background: color-mix(in srgb, var(--success) 16%, transparent);
-  color: var(--play-metro-c14, #ecfdf5);
+  color: var(--success);
 }
 
 .btn-icon {

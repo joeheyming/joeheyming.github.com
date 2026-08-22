@@ -27,6 +27,10 @@ function renderShareButton() {
   // load. It is irrelevant to the button's styling; stub it so the test
   // does not depend on the network or log a failed load.
   dom.window.fetch = () => Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+  // Related-projects may load registry-path; CE tests do not need it.
+  dom.window.HeymingRegistryPath = {
+    resolveAppIdFromLocation: () => 'periodic-speller'
+  };
 
   dom.window.eval(readFileSync(path.join(ROOT, 'share.js'), 'utf8'));
 

@@ -358,10 +358,13 @@ window.ShareButton = ShareButtonElement;
     const projectRelationships = {};
     const projectMetadata = {};
     for (const app of registryApps) {
+      const path = app.path || '';
+      const href = path.startsWith('./') ? '/' + path.slice(2) : path || `/${app.id}/`;
       projectMetadata[app.id] = {
         name: app.shortName || app.name,
         icon: app.icon || '📦',
-        description: app.description || ''
+        description: app.description || '',
+        href
       };
       if (app.related && app.related.length) {
         projectRelationships[app.id] = {
@@ -370,19 +373,69 @@ window.ShareButton = ShareButtonElement;
         };
       }
     }
-    return { projectRelationships, projectMetadata };
+    return { projectRelationships, projectMetadata, registryApps };
   });
 
-  // Get current project from URL
-  function getCurrentProject() {
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        if (existing.dataset.loaded === '1' || window.HeymingRegistryPath) {
+          resolve();
+          return;
+        }
+        existing.addEventListener('load', () => resolve(), { once: true });
+        existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), {
+          once: true
+        });
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = false;
+      const timer = setTimeout(() => reject(new Error(`Timeout loading ${src}`)), 3000);
+      script.addEventListener('load', () => {
+        clearTimeout(timer);
+        script.dataset.loaded = '1';
+        resolve();
+      });
+      script.addEventListener('error', () => {
+        clearTimeout(timer);
+        reject(new Error(`Failed to load ${src}`));
+      });
+      document.head.appendChild(script);
+    });
+  }
+
+  function ensureRegistryPath() {
+    if (window.HeymingRegistryPath) return Promise.resolve();
+    return loadScript('/shared/registry-path.js').catch((error) => {
+      console.warn('[share.js] Could not load registry-path.js', error);
+    });
+  }
+
+  // First URL segment only — fallback when registry-path is unavailable.
+  function getCurrentProjectFallback() {
     const path = window.location.pathname;
     const segments = path.split('/').filter((s) => s);
     return segments[0] || null;
   }
 
+  function resolveCurrentProject(registryApps) {
+    const api = window.HeymingRegistryPath;
+    if (api && Array.isArray(registryApps)) {
+      return api.resolveAppIdFromLocation(
+        registryApps,
+        { pathname: window.location.pathname, search: window.location.search },
+        { fallback: () => getCurrentProjectFallback() }
+      );
+    }
+    return getCurrentProjectFallback();
+  }
+
   // Create related projects widget
-  function createRelatedProjects(projectRelationships, projectMetadata) {
-    const currentProject = getCurrentProject();
+  function createRelatedProjects(projectRelationships, projectMetadata, registryApps) {
+    const currentProject = resolveCurrentProject(registryApps);
     if (!currentProject || !projectRelationships[currentProject]) {
       return null;
     }
@@ -416,7 +469,7 @@ window.ShareButton = ShareButtonElement;
           ${relatedProjects
             .map(
               (project) => `
-            <a href="/${project.id}/" 
+            <a href="${project.href || `/${project.id}/`}" 
                class="related-project-card"
                data-event="related_project_click"
                data-event-category="Engagement"
@@ -996,11 +1049,12 @@ window.ShareButton = ShareButtonElement;
   }
 
   async function insertWidget() {
-    const [{ projectRelationships, projectMetadata }] = await Promise.all([
+    const [{ projectRelationships, projectMetadata, registryApps }] = await Promise.all([
       registryMapsPromise,
+      ensureRegistryPath(),
       domReady()
     ]);
-    const widget = createRelatedProjects(projectRelationships, projectMetadata);
+    const widget = createRelatedProjects(projectRelationships, projectMetadata, registryApps);
     if (widget) {
       document.head.appendChild(style);
       document.body.appendChild(widget);

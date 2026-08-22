@@ -136,45 +136,9 @@
     document.documentElement.setAttribute('data-nav-size', backSize);
   }
 
-  // Section grouping for the drawer. Order = render order in the rail.
-  // Each def has a `filter(app)` that decides membership; the first matching
-  // section wins (so put more-specific sub-category buckets before their
-  // parent category). Anything left over lands in "More" so we never
-  // silently drop apps. Mirror-ish of GALLERY_SECTIONS in index.js — the
-  // drawer and home page should categorize apps the same way, so users
-  // don't have to re-learn where things live per surface.
-  //
-  // `subCategory` is a registry field on apps-registry.json:
-  //   "console" — nes / sega / gamegear / sega32x / gameboy / neogeo / snes / ps1
-  //   "music"   — piano-hero / accordion-hero (Make music)
-  const SECTION_DEFS = [
-    {
-      id: 'utility',
-      label: 'Utilities',
-      filter: (app) => app.category === 'utility'
-    },
-    {
-      id: 'game',
-      label: 'Games',
-      filter: (app) =>
-        app.category === 'game' && app.subCategory !== 'console' && app.subCategory !== 'music'
-    },
-    {
-      id: 'console',
-      label: 'Retro consoles',
-      filter: (app) => app.subCategory === 'console'
-    },
-    {
-      id: 'music',
-      label: 'Make music',
-      filter: (app) => app.id === 'play' || /^play-/.test(app.id) || app.subCategory === 'music'
-    },
-    {
-      id: 'entertainment',
-      label: 'Entertainment',
-      filter: (app) => app.category === 'entertainment'
-    }
-  ];
+  // Section taxonomy lives in /shared/app-sections.js (shared with home).
+  // Loaded in boot() before populateDrawer.
+  let SECTION_DEFS = [];
 
   function getCurrentProject() {
     const path = window.location.pathname;
@@ -1090,7 +1054,7 @@
       apps.sort((a, b) =>
         (a.shortName || a.name || a.id).localeCompare(b.shortName || b.name || b.id)
       );
-      const section = buildSection(def.label, apps);
+      const section = buildSection(def.label || def.title, apps);
       if (section) sectionsHost.appendChild(section);
     }
 
@@ -1391,10 +1355,16 @@
 
   function boot() {
     insertChrome();
-    // Registry path Module + registry JSON first so presence page key
-    // resolves nested apps (play-drums) before the first heartbeat.
+    // Registry path + section taxonomy + registry JSON before presence.
     ensureRegistryPathLoaded()
       .catch((err) => console.warn('[nav.js] registry-path unavailable', err))
+      .then(() => loadScriptOnce('/shared/app-sections.js'))
+      .catch((err) => console.warn('[nav.js] app-sections unavailable', err))
+      .then(() => {
+        if (window.HeymingAppSections?.SECTIONS) {
+          SECTION_DEFS = window.HeymingAppSections.SECTIONS;
+        }
+      })
       .then(() => loadRegistry())
       .then((registry) => {
         populateDrawer(registry);

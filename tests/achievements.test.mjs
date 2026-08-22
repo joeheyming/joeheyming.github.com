@@ -69,7 +69,7 @@ function readJavaScriptTree(directory) {
     .join('\n');
 }
 
-function loadRuntime(url = 'https://joeheyming.github.io/doom/') {
+function loadRuntime(url = 'https://joeheyming.github.io/doom/', { storage } = {}) {
   const dom = new JSDOM('<!doctype html><body></body>', {
     runScripts: 'outside-only',
     url
@@ -79,8 +79,19 @@ function loadRuntime(url = 'https://joeheyming.github.io/doom/') {
     addEventListener() {},
     removeEventListener() {}
   });
+  if (typeof storage === 'string') {
+    dom.window.localStorage.setItem('heyming.achievements.v1', storage);
+  }
   dom.window.fetch = (requestUrl) =>
     requestUrl.includes('catalog') ? response(TEST_CATALOG) : response(TEST_REGISTRY);
+
+  // Core unlock tests force matchMedia off; stub toast so ready does not
+  // wait on a jsdom <script src> fetch that never completes.
+  dom.window.HeymingAchievementToasts = {
+    enqueue() {},
+    wire() {}
+  };
+
   new Function('window', 'globalThis', REGISTRY_PATH)(dom.window, dom.window);
   dom.window.eval(SOURCE);
   return dom;
@@ -135,16 +146,7 @@ test('level 2 requires level 1 and a blocked action must be retried', async () =
 });
 
 test('malformed storage is ignored safely', async () => {
-  const dom = new JSDOM('<!doctype html><body></body>', {
-    runScripts: 'outside-only',
-    url: 'https://joeheyming.github.io/doom/'
-  });
-  dom.window.localStorage.setItem('heyming.achievements.v1', '{not json');
-  dom.window.matchMedia = () => ({ matches: false });
-  dom.window.fetch = (requestUrl) =>
-    requestUrl.includes('catalog') ? response(TEST_CATALOG) : response(TEST_REGISTRY);
-  new Function('window', 'globalThis', REGISTRY_PATH)(dom.window, dom.window);
-  dom.window.eval(SOURCE);
+  const dom = loadRuntime('https://joeheyming.github.io/doom/', { storage: '{not json' });
   await dom.window.heymingAchievements.ready;
 
   assert.deepEqual(Object.keys(dom.window.heymingAchievements.getUnlocked()), []);

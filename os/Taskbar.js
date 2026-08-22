@@ -22,13 +22,17 @@ export class Taskbar {
   createButton(windowId, title) {
     if (!this.container) return;
 
+    const win = this.windowManager.getWindow(windowId);
+    const icon = this.windowManager.getAppIconForWindow(win);
+    const label = win?.title || title;
+
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'taskbar-app active';
     button.setAttribute('data-window-id', String(windowId));
     button.setAttribute('aria-pressed', 'true');
-    button.setAttribute('aria-label', title);
-    button.innerHTML = `${this.windowManager.getAppIcon(title)} ${title}`;
+    button.setAttribute('aria-label', label);
+    button.innerHTML = `${icon} ${label}`;
 
     button.addEventListener('click', () => {
       const win = this.windowManager.getWindow(windowId);

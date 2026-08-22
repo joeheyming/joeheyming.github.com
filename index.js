@@ -101,88 +101,13 @@ const POPULAR_APP_IDS = [
   'ps1'
 ];
 
-// Section grouping for the full gallery. Order is presentation order on
-// the page. Each section pulls from the registry by category, with the
-// /play/* music family carved out so it gets its own bucket.
-//
-// Sub-category carve-outs (registry field `subCategory`, see apps-registry.json):
-//   "console" — nes / sega / gameboy / neogeo / snes / n64 / ps1 get their own "Retro consoles" bucket
-//                instead of appearing under "Games".
-//   "music"   — piano-hero / accordion-hero join the /play/* music family
-//                under "Make music" instead of appearing under "Games".
-const GALLERY_SECTIONS = [
-  {
-    id: 'games',
-    icon: '🕹️',
-    title: 'Games',
-    blurb: 'Browser games — no install, no signup, no ads.',
-    filter: (app) =>
-      app.category === 'game' && app.subCategory !== 'console' && app.subCategory !== 'music'
-  },
-  {
-    id: 'consoles',
-    icon: '🎮',
-    title: 'Retro consoles',
-    blurb: 'Emulate NES, Sega, SNES, Game Boy, GBA, Neo Geo, Neo Geo Pocket, N64, and more in the browser.',
-    filter: (app) => app.subCategory === 'console'
-  },
-  {
-    id: 'music',
-    icon: '🎵',
-    title: 'Make music',
-    blurb: 'Pick an instrument and play it right in your browser.',
-    filter: (app) => app.id === 'play' || /^play-/.test(app.id) || app.subCategory === 'music'
-  },
-  {
-    id: 'tools',
-    icon: '🛠️',
-    title: 'Tools',
-    blurb: 'Useful little utilities.',
-    filter: (app) => app.category === 'utility' && app.id !== 'play' && !/^play-/.test(app.id)
-  },
-  {
-    id: 'fun',
-    icon: '🎉',
-    title: 'Fun & experiments',
-    blurb: 'Just-for-fun side projects.',
-    filter: (app) => app.category === 'entertainment' && app.id !== 'play' && !/^play-/.test(app.id)
-  }
-];
-
-// Stand-in tier map for the gallery during the rollout. Once
-// apps-registry.json carries an `appTier` field on every entry, this map
-// becomes obsolete and tierFor() reads from app.appTier directly.
-const TIER_FALLBACK = {
-  calculator: 'system',
-  notepad: 'system',
-  'wordle-finder': 'system',
-  terminal: 'system',
-  weather: 'system',
-  stock: 'system',
-  clock: 'system',
-  countdown: 'system',
-  filemanager: 'system',
-  'image-viewer': 'system',
-  'media-player': 'system',
-  read: 'system',
-  doom: 'experience',
-  nes: 'experience',
-  stepmania: 'experience',
-  pacman: 'experience',
-  'pacman-infinite': 'experience',
-  badapple: 'experience',
-  starwars: 'experience',
-  'bad-apple': 'experience',
-  pbs: 'experience',
-  paint: 'experience',
-  'model-viewer': 'experience',
-  farm: 'experience',
-  ascii: 'experience'
-};
+// Section grouping for the full gallery. Taxonomy lives in
+// /shared/app-sections.js so the nav drawer stays aligned.
+const GALLERY_SECTIONS = (window.HeymingAppSections && window.HeymingAppSections.SECTIONS) || [];
 
 function tierFor(app) {
-  if (app.appTier) return app.appTier;
-  return TIER_FALLBACK[app.id] || 'app';
+  if (window.HeymingAppSections) return window.HeymingAppSections.tierFor(app);
+  return app.appTier || 'app';
 }
 
 function featuredHrefFromPath(path) {

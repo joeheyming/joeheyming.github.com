@@ -101,9 +101,11 @@ export class WindowManager {
     windowElement.style.left = left + 'px';
     windowElement.style.top = top + 'px';
 
+    const titleBarIcon = windowChromeOptions?.titleBarIcon || '📱';
+
     windowElement.innerHTML = `
       <div class="os-window-titlebar" data-window-id="${windowId}">
-        <span class="app-icon">${windowChromeOptions?.titleBarIcon ?? this.getAppIcon(title)}</span>
+        <span class="app-icon">${titleBarIcon}</span>
         <span class="os-window-title">${title}</span>
         <div class="os-window-controls">
           <button type="button" class="os-window-control minimize" data-action="minimize" data-window-id="${windowId}" aria-label="Minimize window">−</button>
@@ -128,6 +130,8 @@ export class WindowManager {
       id: windowId,
       element: windowElement,
       title: title,
+      icon: titleBarIcon,
+      appId: windowChromeOptions?.appId || null,
       minimized: false,
       maximized: false,
       originalBounds: null
@@ -169,21 +173,21 @@ export class WindowManager {
       { titleBarIcon: app.icon || '📦', appId: app.id }
     );
     win.appId = app.id;
+    win.icon = app.icon || '📦';
+    win.app = app;
     return win;
   }
 
   /**
-   * Get app icon for title bar
+   * Icon for a window — prefers the value stored at create time, then AppModule by id.
+   * @param {{ icon?: string, appId?: string|null }|null|undefined} win
    */
-  getAppIcon(title) {
-    if (window.AppModule) {
-      const apps = window.AppModule.getAllApps();
-      const app = apps.find((a) => a.name === title);
-      if (app?.icon) {
-        return app.icon;
-      }
+  getAppIconForWindow(win) {
+    if (win?.icon) return win.icon;
+    if (win?.appId && window.AppModule?.getAllApps) {
+      const app = window.AppModule.getAllApps().find((a) => a.id === win.appId);
+      if (app?.icon) return app.icon;
     }
-
     return '📱';
   }
 
