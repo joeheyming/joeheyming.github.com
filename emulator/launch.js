@@ -266,6 +266,7 @@
     if (!brand || !bootCard) return;
 
     renderEmuBreadcrumbs(cfg);
+    bootCard.classList.remove('boot-card-picker');
 
     brand.innerHTML = `
       <span class="brand-logo">${cfg.emoji}</span>
@@ -482,6 +483,7 @@
 
     setDocumentTitle(null);
     renderEmuBreadcrumbs(null);
+    bootCard.classList.add('boot-card-picker');
 
     brand.innerHTML = `
       <span class="brand-logo">🎮</span>

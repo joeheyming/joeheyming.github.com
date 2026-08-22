@@ -118,6 +118,11 @@ body {
   box-shadow: var(--shadow-card);
 }
 
+/* The console picker needs more room than a single-console lander. */
+.boot-card-picker {
+  max-width: 640px;
+}
+
 .boot-card h2 {
   font-size: 15px;
   font-weight: 700;
@@ -541,24 +546,13 @@ kbd {
 
 /* Picker (when no ?console= is set) — tiles that mirror the
  * boot-card identity language. Hover behavior matches .btn-primary
- * so the affordance reads the same. Four consoles → 2×2 by default,
- * one row on wide viewports. */
+ * so the affordance reads the same. Column count follows the card
+ * width, not the viewport: the card is capped well below most
+ * viewports, so viewport breakpoints packed columns too tightly. */
 .picker-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 12px;
-}
-
-@media (min-width: 720px) {
-  .picker-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (min-width: 960px) {
-  .picker-grid {
-    grid-template-columns: repeat(5, 1fr);
-  }
 }
 
 .picker-tile {
@@ -742,8 +736,12 @@ kbd {
   margin-bottom: 24px;
 }
 
+:root[data-mode='tv'] .boot-card-picker {
+  max-width: 900px;
+}
+
 :root[data-mode='tv'] .picker-grid {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 16px;
 }
 
