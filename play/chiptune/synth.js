@@ -19,12 +19,14 @@ export class ChipTransport {
    * @param {{
    *   getSong: () => import('./model.js').Song,
    *   onStep?: (step: number, arrangementIndex: number) => void,
+   *   onPause?: () => void,
    *   onStop?: () => void
    * }} opts
    */
   constructor(opts) {
     this.getSong = opts.getSong;
     this.onStep = opts.onStep || (() => {});
+    this.onPause = opts.onPause || (() => {});
     this.onStop = opts.onStop || (() => {});
     this.playing = false;
     this.loopSong = true;
@@ -48,26 +50,34 @@ export class ChipTransport {
     const ctx = getCtx();
     if (this.playing) return;
     this.playing = true;
-    this._step = 0;
-    this._arrIndex = 0;
     this._nextStepTime = ctx.currentTime + 0.05;
     this._tick();
   }
 
-  stop() {
+  _halt() {
     this.playing = false;
     if (this._timer) {
       clearTimeout(this._timer);
       this._timer = 0;
     }
     this._stopAll();
+  }
+
+  pause() {
+    if (!this.playing) return;
+    this._halt();
+    this.onPause();
+  }
+
+  stop() {
+    this._halt();
     this._step = 0;
     this._arrIndex = 0;
     this.onStop();
   }
 
   toggle() {
-    if (this.playing) this.stop();
+    if (this.playing) this.pause();
     else this.play();
   }
 

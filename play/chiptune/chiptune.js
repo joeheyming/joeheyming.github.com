@@ -71,6 +71,10 @@ const transport = new ChipTransport({
       els.status.textContent = `Playing ${pat?.name || '?'} · step ${step + 1}/${song.steps}`;
     }
   },
+  onPause: () => {
+    updatePlayButton();
+    if (els.status) els.status.textContent = 'Paused';
+  },
   onStop: () => {
     grid.clearPlayhead();
     highlightArrangement(-1);
@@ -212,8 +216,8 @@ function updatePlayButton() {
   els.play.setAttribute('aria-pressed', playing ? 'true' : 'false');
   const label = els.play.querySelector('.btn-label');
   const icon = els.play.querySelector('.btn-icon');
-  if (label) label.textContent = playing ? 'Stop' : 'Play';
-  if (icon) icon.textContent = playing ? '■' : '▶';
+  if (label) label.textContent = playing ? 'Pause' : 'Play';
+  if (icon) icon.textContent = playing ? '❚❚' : '▶';
 }
 
 function renderChannels() {
