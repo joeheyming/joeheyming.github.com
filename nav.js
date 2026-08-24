@@ -5,15 +5,9 @@
 // loads this script in <head>; the toggle injects itself top-left and
 // opens a drawer populated from /apps-registry.json.
 //
-// Also loads /presence/config.js + /presence.js for live per-app
-// active-user badges (Form heartbeats → Presence sheet → gviz).
-// No-ops until config placeholders are replaced.
-//
 // Behavior:
-//   • Skipped on /os/ (the OS shell renders its own taskbar/launcher
-//     + PresenceIndicator).
-//   • Inside an iframe (OS app window): no drawer chrome, but presence
-//     still heartbeats so Doom-in-OS counts as doom.
+//   • Skipped on /os/ (the OS shell renders its own taskbar/launcher).
+//   • Inside an iframe (OS app window): no drawer chrome.
 //   • Skipped in standalone PWAs (cross-app nav would dump users out
 //     of their installed app into a browser tab).
 //   • <script src="/nav.js" data-nav-size="compact"> opts the host page
@@ -60,10 +54,8 @@
     return;
   }
 
-  // OS app windows load the same index.html in an iframe. Skip the drawer
-  // chrome there, but still heartbeat presence so Doom-in-OS counts as doom.
+  // OS app windows load the same index.html in an iframe. Skip the drawer chrome there.
   if (window.self !== window.top) {
-    bootIframePresence();
     return;
   }
 
@@ -76,58 +68,6 @@
   if (isStandalone) {
     document.documentElement.classList.add('pwa-standalone');
     return;
-  }
-
-  /**
-   * Presence-only boot for iframes (Heyming OS windows). Resolves the
-   * registry app id from the iframe URL so nested paths like /play/drums/
-   * map to play-drums.
-   */
-  function bootIframePresence() {
-    function loadScript(src) {
-      return new Promise((resolve, reject) => {
-        const existing = document.querySelector('script[src="' + src + '"]');
-        if (existing) {
-          if (existing.dataset.loaded === '1') {
-            resolve();
-            return;
-          }
-          existing.addEventListener('load', () => resolve(), { once: true });
-          existing.addEventListener('error', () => reject(new Error(src)), { once: true });
-          return;
-        }
-        const s = document.createElement('script');
-        s.src = src;
-        s.async = false;
-        s.addEventListener('load', () => {
-          s.dataset.loaded = '1';
-          resolve();
-        });
-        s.addEventListener('error', () => reject(new Error('Failed to load ' + src)));
-        document.head.appendChild(s);
-      });
-    }
-
-    Promise.resolve()
-      .then(() => loadScript('/shared/registry-path.js'))
-      .then(() => loadScript('/presence/config.js'))
-      .then(() => loadScript('/presence.js'))
-      .then(() => fetch('/apps-registry.json', { cache: 'default' }).then((r) => r.json()))
-      .then((registry) => {
-        const list = Array.isArray(registry) ? registry : [];
-        const pageKey = window.HeymingRegistryPath
-          ? window.HeymingRegistryPath.resolveAppIdFromLocation(list, {
-              pathname: window.location.pathname,
-              search: window.location.search
-            })
-          : 'home';
-        if (window.heymingPresence && typeof window.heymingPresence.start === 'function') {
-          window.heymingPresence.start(pageKey);
-        }
-      })
-      .catch((err) => {
-        console.warn('[nav.js] iframe presence unavailable', err);
-      });
   }
 
   const selfScript = document.currentScript;
@@ -562,52 +502,6 @@
       text-overflow: ellipsis;
     }
 
-    .heyming-nav-presence {
-      flex-shrink: 0;
-      min-width: 1.25rem;
-      padding: 1px 6px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      line-height: 1.4;
-      text-align: center;
-      color: var(--hn-fg-mute);
-      background: var(--hn-accent-soft);
-      cursor: help;
-    }
-
-    .heyming-nav-presence[hidden] {
-      display: none !important;
-    }
-
-    /* Fast floating tip (native title= is too slow). Portaled to <body>
-     * so the scrollable drawer list does not clip it. */
-    .heyming-nav-presence-tip {
-      position: fixed;
-      z-index: 1000001;
-      max-width: 220px;
-      padding: 6px 9px;
-      border-radius: var(--radius, 4px);
-      font-size: 12px;
-      font-weight: 500;
-      line-height: 1.35;
-      /* Fixed inverse tip — readable on light and dark app chrome. */
-      color: #f0f3f6;
-      background: #1c2128;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(2px);
-      transition: opacity 80ms ease, transform 80ms ease;
-    }
-
-    .heyming-nav-presence-tip.is-visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
     /* "System" shortcuts (Home + OS desktop) are pinned above the app
      * sections under a single bottom divider so the pair reads as one
      * group rather than two stray rows. */
@@ -753,8 +647,6 @@
     if (window.trackEvent) {
       window.trackEvent('nav_drawer_open', 'Navigation', getPageName());
     }
-
-    refreshPresenceBadges();
   }
 
   // `reason` is the close source: 'backdrop' | 'escape' | 'close_button'.
@@ -778,7 +670,6 @@
     toggle.setAttribute('aria-expanded', 'false');
     toggle.setAttribute('aria-label', 'Open navigation menu');
     toggle.removeAttribute('hidden');
-    hidePresenceTip();
     if (lastFocus && typeof lastFocus.focus === 'function') {
       lastFocus.focus();
     }
@@ -1068,7 +959,6 @@
 
     wireSearch();
     scrollActiveIntoView();
-    syncPresencePage();
   }
 
   function scrollActiveIntoView() {
@@ -1175,16 +1065,6 @@
     });
   }
 
-  function presencePageKey() {
-    return resolveAppIdFromLocation(cachedRegistry);
-  }
-
-  function syncPresencePage() {
-    const api = window.heymingPresence;
-    if (!api || typeof api.setPage !== 'function') return;
-    api.setPage(presencePageKey());
-  }
-
   function loadScriptOnce(src) {
     return new Promise((resolve, reject) => {
       const existing = document.querySelector('script[src="' + src + '"]');
@@ -1209,141 +1089,6 @@
     });
   }
 
-  let presenceReady = null;
-  function ensurePresence() {
-    if (presenceReady) return presenceReady;
-    presenceReady = loadScriptOnce('/presence/config.js')
-      .then(() => loadScriptOnce('/presence.js'))
-      .then(() => {
-        if (window.heymingPresence && typeof window.heymingPresence.start === 'function') {
-          // Prefer registry-resolved id (play-drums); fall back until registry loads.
-          window.heymingPresence.start(presencePageKey());
-        }
-      })
-      .catch((err) => {
-        console.warn('[nav.js] Presence unavailable', err);
-      });
-    return presenceReady;
-  }
-
-  function clearPresenceBadges() {
-    hidePresenceTip();
-    drawer.querySelectorAll('.heyming-nav-presence').forEach((badge) => {
-      badge.hidden = true;
-      badge.textContent = '';
-      badge.removeAttribute('aria-label');
-      badge.removeAttribute('data-tip');
-    });
-  }
-
-  function ensurePresenceBadge(item) {
-    let badge = item.querySelector('.heyming-nav-presence');
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'heyming-nav-presence';
-      badge.hidden = true;
-      badge.addEventListener('pointerenter', () => showPresenceTip(badge));
-      badge.addEventListener('pointerleave', hidePresenceTip);
-      item.appendChild(badge);
-    }
-    return badge;
-  }
-
-  function presenceBadgeLabel(n, isCurrentApp) {
-    if (isCurrentApp) {
-      return n === 1 ? '1 other person on this page' : n + ' other people on this page';
-    }
-    return n === 1 ? '1 person on this page right now' : n + ' people on this page right now';
-  }
-
-  // Native title= tooltips lag ~1s; show our own tip almost immediately.
-  const PRESENCE_TIP_DELAY_MS = 60;
-  let presenceTipEl = null;
-  let presenceTipTimer = null;
-
-  function positionPresenceTip(badge) {
-    if (!presenceTipEl) return;
-    const rect = badge.getBoundingClientRect();
-    const tipRect = presenceTipEl.getBoundingClientRect();
-    const gap = 8;
-    let left = rect.right + gap;
-    let top = rect.top + (rect.height - tipRect.height) / 2;
-    // Prefer right of the badge; flip left if it would leave the viewport.
-    if (left + tipRect.width > window.innerWidth - 8) {
-      left = rect.left - tipRect.width - gap;
-    }
-    if (left < 8) left = 8;
-    if (top < 8) top = 8;
-    if (top + tipRect.height > window.innerHeight - 8) {
-      top = window.innerHeight - tipRect.height - 8;
-    }
-    presenceTipEl.style.left = Math.round(left) + 'px';
-    presenceTipEl.style.top = Math.round(top) + 'px';
-  }
-
-  function showPresenceTip(badge) {
-    const text = badge.getAttribute('data-tip');
-    if (!text || badge.hidden) return;
-    hidePresenceTip();
-    presenceTipTimer = setTimeout(() => {
-      presenceTipTimer = null;
-      presenceTipEl = document.createElement('div');
-      presenceTipEl.className = 'heyming-nav-presence-tip';
-      presenceTipEl.setAttribute('role', 'tooltip');
-      presenceTipEl.textContent = text;
-      document.body.appendChild(presenceTipEl);
-      positionPresenceTip(badge);
-      // Next frame so the opacity transition runs.
-      requestAnimationFrame(() => {
-        if (presenceTipEl) presenceTipEl.classList.add('is-visible');
-      });
-    }, PRESENCE_TIP_DELAY_MS);
-  }
-
-  function hidePresenceTip() {
-    if (presenceTipTimer != null) {
-      clearTimeout(presenceTipTimer);
-      presenceTipTimer = null;
-    }
-    if (presenceTipEl) {
-      presenceTipEl.remove();
-      presenceTipEl = null;
-    }
-  }
-
-  async function refreshPresenceBadges() {
-    try {
-      await ensurePresence();
-      const api = window.heymingPresence;
-      if (!api || typeof api.isConfigured !== 'function' || !api.isConfigured()) {
-        clearPresenceBadges();
-        return;
-      }
-      const current = presencePageKey();
-      const counts = await api.fetchCounts(current);
-      drawer.querySelectorAll('.heyming-nav-item[data-app-id]').forEach((item) => {
-        const id = item.dataset.appId;
-        const n = (counts && counts[id]) || 0;
-        const badge = ensurePresenceBadge(item);
-        if (n > 0) {
-          const label = presenceBadgeLabel(n, id === current);
-          badge.hidden = false;
-          badge.textContent = String(n);
-          badge.setAttribute('aria-label', label);
-          badge.setAttribute('data-tip', label);
-        } else {
-          badge.hidden = true;
-          badge.textContent = '';
-          badge.removeAttribute('aria-label');
-          badge.removeAttribute('data-tip');
-        }
-      });
-    } catch (err) {
-      console.warn('[nav.js] Presence badges failed', err);
-      clearPresenceBadges();
-    }
-  }
-
   // Insert when DOM ready, then async-fetch the registry to fill in the rail.
   function insertChrome() {
     document.head.appendChild(style);
@@ -1355,7 +1100,7 @@
 
   function boot() {
     insertChrome();
-    // Registry path + section taxonomy + registry JSON before presence.
+    // Load registry path, section taxonomy, and registry JSON before rendering.
     ensureRegistryPathLoaded()
       .catch((err) => console.warn('[nav.js] registry-path unavailable', err))
       .then(() => loadScriptOnce('/shared/app-sections.js'))
@@ -1368,9 +1113,6 @@
       .then(() => loadRegistry())
       .then((registry) => {
         populateDrawer(registry);
-        ensurePresence().then(() => {
-          syncPresencePage();
-        });
       });
   }
 

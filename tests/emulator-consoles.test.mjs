@@ -102,13 +102,25 @@ describe('emulator console registry', () => {
     }
   });
 
-  it('keeps disc-sized consoles on the download-then-load path', () => {
+  it('keeps every Internet Archive collection on the download-then-load path', () => {
+    // The shell never fetches ROM bytes (emulator/rom-acquire.js). A console
+    // record must not imply otherwise, in config or in boot-card copy.
     for (const cfg of Object.values(consoles)) {
-      if (!cfg.iaExternalDownload) continue;
+      if (!cfg.iaBaseUrl) continue;
+      assert.ok(
+        !('iaAllowInBrowser' in cfg),
+        `${cfg.id}: iaAllowInBrowser cannot re-enable in-page ROM loading`
+      );
+      assert.ok(
+        !('iaAllowExternalDownload' in cfg),
+        `${cfg.id}: external download is the only path, so the opt-in is dead config`
+      );
       assert.ok(
         /download/i.test(cfg.romHelp || ''),
-        `${cfg.id}: disc console must tell the player to download first`
+        `${cfg.id}: romHelp must tell the player to download first`
       );
+      const copy = `${cfg.romHelp || ''} ${(cfg.howto || []).join(' ')}`;
+      assert.ok(!/play in browser/i.test(copy), `${cfg.id}: copy still promises in-browser play`);
     }
   });
 

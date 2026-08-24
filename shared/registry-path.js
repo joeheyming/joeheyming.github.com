@@ -1,9 +1,9 @@
 /**
  * Shared registry path → app identity.
  *
- * One Module for “which apps-registry entry matches this URL?” so nav,
- * achievements, and presence heartbeats stay aligned on query-specific
- * paths (e.g. /doom/?manual=browse → doom-mods).
+ * One Module for “which apps-registry entry matches this URL?” so nav and
+ * achievements stay aligned on query-specific paths
+ * (e.g. /doom/?manual=browse → doom-mods).
  */
 (function (global) {
   'use strict';

@@ -286,11 +286,6 @@ const PAGES = [
     title: 'Everything is Awesome'
   },
   {
-    url: `${BASE_URL}/analytics/`,
-    output: 'analytics/analytics-preview.png',
-    title: 'Presence'
-  },
-  {
     url: `${BASE_URL}/youtube/`,
     output: 'youtube/joetube-preview.png',
     title: 'JoeTube'

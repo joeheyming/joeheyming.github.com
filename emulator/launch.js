@@ -6,14 +6,16 @@
 //   - swaps the static boot card out for a console picker so the
 //     visitor can choose between NES / Sega / Game Boy / ...
 //
-// Also defines `window.launchEmulator(romSource, romName, opts)` which the
-// local-file picker and the ROM browser both call. Mounting (EJS_* globals,
-// loader.js, SOCD) lives in emulator/ejs-mount.js; BIOS in emulator/bios.js;
-// IA File helpers in emulator/rom-acquire.js. This file keeps chrome,
-// analytics, achievements, and boot-card orchestration.
+// Also defines `window.launchEmulator(romSource, romName)`, which only the
+// local-file picker calls — ROM binaries are never fetched into the page
+// (policy note in emulator/rom-acquire.js). Mounting (EJS_* globals,
+// loader.js, SOCD) lives in emulator/ejs-mount.js; BIOS in emulator/bios.js.
+// This file keeps chrome, analytics, achievements, and boot-card
+// orchestration.
 //
-// Lean-back (TV / console): hides the file picker, supports `?rom=<name>`
-// deep links, and wires D-pad focus via emulatorLeanback.applyRovingTabindex.
+// Lean-back (TV / console): hides the file picker, resolves `?rom=<name>`
+// deep links to a download handoff, and wires D-pad focus via
+// emulatorLeanback.applyRovingTabindex.
 //
 // Without cross-origin isolation there is no SharedArrayBuffer, so EmulatorJS
 // boots its normal single-thread cores with EJS_threads pinned off. Missing
@@ -529,56 +531,89 @@
   }
 
   /**
+   * Insert a panel above the boot card handing the visitor the Archive
+   * download link plus the local file picker. Deep links resolve to this,
+   * never to a running game (emulator/rom-acquire.js policy).
+   *
+   * @param {object} cfg
+   * @param {{ title: string, downloadUrl?: string, fileExtension?: string }} rom
+   */
+  function renderDeeplinkHandoff(cfg, rom) {
+    renderBootCard(cfg);
+    const boot = document.getElementById('boot-card');
+    if (!boot || !boot.firstChild) return;
+
+    const isDisc = !!cfg.iaExternalDownload;
+    const panel = document.createElement('div');
+    panel.className = 'deeplink-handoff';
+    panel.innerHTML = `
+      <h3>${escapeHtml(rom.title)}</h3>
+      <p>
+        Games are never streamed into the page. Download the
+        ${isDisc ? 'disc image' : 'ROM'} from Internet Archive, then load the
+        saved file below.
+      </p>
+      <div class="deeplink-handoff-actions">
+        <a class="btn btn-secondary" id="deeplinkDownloadLink" href="${escapeHtml(
+          rom.downloadUrl || '#'
+        )}" target="_blank" rel="noopener noreferrer">Download from Internet Archive</a>
+        <button type="button" class="btn btn-secondary" id="deeplinkLoadLocalBtn">
+          I have the file — load it
+        </button>
+      </div>
+    `;
+    boot.insertBefore(panel, boot.firstChild.nextSibling);
+
+    document.getElementById('deeplinkLoadLocalBtn')?.addEventListener('click', () => {
+      document.getElementById('romFileInput')?.click();
+    });
+  }
+
+  /**
    * Deep link: /emulator/nes/?rom=<IA rom.name> (legacy: ?console=nes&rom=…)
+   *
+   * Looks the title up in the collection metadata and shows the download
+   * handoff. No ROM bytes are fetched and the emulator is not launched, so
+   * `?rom=` cannot be used to bypass the download-then-load flow.
+   *
    * @param {object} cfg
    * @param {string} romQuery
    */
   async function tryDeeplinkRom(cfg, romQuery) {
     const bootCard = document.getElementById('boot-card');
     const wanted = romQuery.trim();
-    if (!wanted || !bootCard) return false;
-    const controller = new AbortController();
+    if (!wanted || !bootCard) return;
     const acquire = romAcquire();
 
     bootCard.innerHTML = `
-      <h2>Loading ROM</h2>
-      <p class="picker-help">Loading ${escapeHtml(wanted)}…</p>
+      <h2>Finding ${escapeHtml(wanted)}</h2>
+      <p class="picker-help">Looking it up in the Internet Archive collection…</p>
       <button type="button" class="btn btn-secondary" id="cancelDeeplinkBtn">
         Cancel — back to game list
       </button>
     `;
-    document.getElementById('cancelDeeplinkBtn')?.addEventListener('click', () => {
-      controller.abort();
-      returnToGameList();
-    });
+    document.getElementById('cancelDeeplinkBtn')?.addEventListener('click', returnToGameList);
 
     try {
       const ia = acquire && acquire.createIaClient(cfg);
       if (!ia) throw new Error('ROM browser is not configured for this console.');
 
       const roms = await ia.fetchRomList();
-      if (controller.signal.aborted) return false;
       const rom = acquire.findRomByQuery(roms, wanted);
       if (!rom) throw new Error(`ROM not found: ${wanted}`);
 
-      const romData = await ia.loadRom(rom, { signal: controller.signal });
-      if (controller.signal.aborted) return false;
-      const romFile = acquire.fileFromRomBytes(romData, rom);
-      window.launchEmulator(romFile, romFile.name, { deeplink: true });
-      return true;
+      renderDeeplinkHandoff(cfg, rom);
     } catch (err) {
-      if (controller.signal.aborted || (err && err.name === 'AbortError')) return false;
-      console.error('Deep-link ROM load failed:', err);
+      console.error('Deep-link ROM lookup failed:', err);
       renderBootCard(cfg);
       const boot = document.getElementById('boot-card');
-      if (boot) {
+      if (boot && boot.firstChild) {
         const note = document.createElement('p');
         note.className = 'deeplink-error';
         note.textContent =
-          'Could not load “' + wanted + '”. Pick a ROM from the collection instead.';
+          'Could not find “' + wanted + '”. Pick a game from the collection instead.';
         boot.insertBefore(note, boot.firstChild.nextSibling);
       }
-      return false;
     }
   }
 
@@ -665,14 +700,11 @@
     }
   });
 
-  // Public entry point: handed a File (preferred — keeps the filename
-  // intact for the libretro zip sniffer) or an object URL string.
-  // Thin wrapper: BIOS gate + chrome/analytics/achievements, then
+  // Public entry point: handed a File from the local picker — the only way
+  // a game enters the emulator (emulator/rom-acquire.js policy). Thin
+  // wrapper: BIOS gate + chrome/analytics/achievements, then
   // emulatorEjsMount.mount for EJS_* + loader + SOCD.
-  //
-  // opts.deeplink — prefix the GA label with `deeplink:` for deep-link loads.
-  window.launchEmulator = async function launchEmulator(romSource, romName, opts) {
-    opts = opts || {};
+  window.launchEmulator = async function launchEmulator(romSource, romName) {
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
     if (!cfg) {
       console.error('launchEmulator: no active console; bailing.');
@@ -708,9 +740,8 @@
       const gameName =
         romName || (romSource && typeof romSource === 'object' && romSource.name) || 'unknown';
       const raw = gameName.toString().slice(0, 80);
-      const labelBase = opts.deeplink ? `deeplink:${raw}` : raw;
       const timeOnPage = Math.round((Date.now() - SHELL_LOADED_AT) / 1000);
-      window.trackEvent(`${cfg.id}_rom_loaded`, 'Emulator', labelBase, timeOnPage);
+      window.trackEvent(`${cfg.id}_rom_loaded`, 'Emulator', raw, timeOnPage);
     }
 
     // Unlock once per console lander app id (derived from the registry).

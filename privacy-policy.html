@@ -54,19 +54,14 @@
       <strong>joeheyming.github.io</strong>
       (personal projects and demos by Joe Heyming) handles information.
       <strong>Last updated:</strong>
-      August 9, 2026.
+      August 23, 2026.
     </p>
 
     <h2>Summary</h2>
     <p>
       This site is mostly static pages in your browser. Some tools use
       <strong>Google Analytics</strong>
-      to understand aggregate traffic. The navigation drawer may use an anonymous
-      <strong>presence heartbeat</strong>
-      (Google Form + Sheet) to show how many other people are on each app; daily aggregates from
-      that sheet are also charted on the public
-      <a href="/analytics/">Presence</a>
-      page.
+      to understand aggregate traffic.
       <strong>Posts</strong>
       lets visitors pin notes to a shared board via another Google Form + Sheet. Some apps may offer
       a
@@ -123,32 +118,6 @@
       any time.
     </p>
 
-    <h2>Active presence (nav drawer)</h2>
-    <p>
-      Standalone app pages may send an anonymous
-      <strong>presence heartbeat</strong>
-      so the site navigation drawer can show how many other people are currently on each app. A
-      random id is stored in your browser’s
-      <strong>local storage</strong>
-      (not your name or email). About once a minute while the tab is visible, the page submits that
-      id and the current app path to a
-      <strong>Google Form</strong>
-      ; a linked
-      <strong>Google Sheet</strong>
-      (publicly readable) holds one row per id with the last-seen time. Closing the tab stops
-      heartbeats; stale rows expire after a few minutes. Heartbeats are disabled on
-      <code>localhost</code>
-      and other local/dev hosts (same rule as Analytics). This is separate from Google Analytics.
-    </p>
-    <p>
-      The same sheet also keeps
-      <strong>daily aggregate</strong>
-      concurrent-user rollups (peak and average per app, about 90 days). The public
-      <a href="/analytics/">Presence</a>
-      page charts those aggregates for anyone to view. They are concurrent-presence counts, not
-      pageviews or unique-visitor totals, and they do not include names, emails, or IP addresses.
-    </p>
-
     <h2>Posts (shared corkboard)</h2>
     <p>
       The
@@ -190,7 +159,7 @@
       <strong>Google Form</strong>
       linked to a publicly readable
       <strong>Google Sheet</strong>
-      . An anonymous id (often the same one used for presence) is stored in
+      . An anonymous id is stored in
       <strong>local storage</strong>
       along with your chosen nickname and whether the panel is open. Chat is not shown on mobile.
       Before send, the page may run

@@ -209,27 +209,6 @@ export class WindowManager {
       win.element.style.zIndex = this.topZIndex;
       this.activeWindow = win;
       this._emit('focus', windowId);
-      this._claimIframePresence(win);
-    }
-  }
-
-  /**
-   * Tell the focused app iframe to claim the shared presence UUID so
-   * switching OS windows updates "who's on which app" without waiting
-   * for a click inside the iframe content.
-   */
-  _claimIframePresence(win) {
-    const iframe = win?.element?.querySelector?.('iframe');
-    if (!iframe || !iframe.contentWindow) return;
-    try {
-      iframe.contentWindow.focus();
-    } catch {
-      // Ignore — some browsers block focus while the pointer is elsewhere.
-    }
-    try {
-      iframe.contentWindow.postMessage({ type: 'heyming-presence-claim' }, window.location.origin);
-    } catch {
-      // Ignore cross-origin / detached frame errors.
     }
   }
 

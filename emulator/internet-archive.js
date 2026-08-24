@@ -439,6 +439,12 @@
       return roms;
     }
 
+    /**
+     * Binary fetch. The /emulator/ shell never calls this — ROMs are
+     * downloaded from Archive and re-entered through the local file picker
+     * (see emulator/rom-acquire.js). /flash/ still uses it for .swf files,
+     * which are small enough to stream.
+     */
     async loadRom(rom, opts) {
       opts = opts || {};
       if (!window.proxyService) {

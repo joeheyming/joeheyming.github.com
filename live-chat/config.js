@@ -46,7 +46,7 @@ export const CONFIG = {
   // localStorage keys.
   nickKey: 'heyming-live-chat-nick',
   openKey: 'heyming-live-chat-open',
-  // Prefer the same anonymous id as presence when available.
+  // Keep the legacy storage key so existing visitors retain their anonymous chat id.
   uuidKey: 'heyming-presence-id',
   demoKeyPrefix: 'heyming-live-chat-demo:'
 };

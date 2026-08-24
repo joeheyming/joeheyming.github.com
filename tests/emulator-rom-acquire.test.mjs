@@ -1,4 +1,4 @@
-// Shared ROM File naming from emulator/rom-acquire.js (fake bytes, no network).
+// Shared IA client construction and matching from emulator/rom-acquire.js.
 
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
@@ -23,43 +23,6 @@ before(() => {
   window.eval(source);
   acquire = window.emulatorRomAcquire;
   assert.ok(acquire, 'emulatorRomAcquire should be exported');
-});
-
-describe('emulator fileFromRomBytes', () => {
-  it('names a zip collection entry title.zip with application/zip', () => {
-    const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04]);
-    const file = acquire.fileFromRomBytes(bytes, {
-      title: 'Super Mario Bros',
-      fileExtension: '.zip'
-    });
-    assert.equal(file.name, 'Super Mario Bros.zip');
-    assert.equal(file.type, 'application/zip');
-    assert.equal(file.size, 4);
-  });
-
-  it('preserves raw ROM extensions for gambatte-style collections', () => {
-    const bytes = new Uint8Array([0xc0, 0xde]);
-    const file = acquire.fileFromRomBytes(bytes, {
-      title: 'Tetris',
-      fileExtension: '.gb'
-    });
-    assert.equal(file.name, 'Tetris.gb');
-    assert.equal(file.type, 'application/octet-stream');
-  });
-
-  it('defaults to .zip when the list entry omits fileExtension', () => {
-    const file = acquire.fileFromRomBytes(new Uint8Array([1]), { title: 'Adventure' });
-    assert.equal(file.name, 'Adventure.zip');
-    assert.equal(file.type, 'application/zip');
-  });
-
-  it('falls back to rom.name when title is missing', () => {
-    const file = acquire.fileFromRomBytes(new Uint8Array([1]), {
-      name: 'metroid',
-      fileExtension: '.nes'
-    });
-    assert.equal(file.name, 'metroid.nes');
-  });
 });
 
 describe('emulator findRomByQuery', () => {

@@ -161,8 +161,7 @@ When adding or fixing an app for Search:
 | File | What it does | When to load |
 |------|-------------|--------------|
 | `/analytics.js` | GA init, `trackEvent`, engagement pings, shared-link tracking | Almost always (with the async gtag loader) |
-| `/nav.js` | Hamburger toggle (top-left) + left-rail drawer with all apps from `apps-registry.json`; loads `/presence/config.js` + `/presence.js` for live per-app active-user badges; hides itself inside iframes and standalone PWA | All standalone pages |
-| `/presence.js` | Form heartbeats + gviz aggregation for nav presence badges (config in `/presence/config.js`) | Loaded by `nav.js` — do not add to app `<head>` separately. Also loaded by `/os/` for the taskbar chip |
+| `/nav.js` | Hamburger toggle (top-left) + left-rail drawer with all apps from `apps-registry.json`; hides itself inside iframes and standalone PWA | All standalone pages |
 | `/feedback.js` | `<feedback-button>` web component → Google Form | Most apps |
 | `/share.js` | Related-projects panel from `apps-registry.json` `related` field | Apps with `related` entries |
 | `/proxy.js` | `window.proxyService` — CORS-safe fetch with fallback proxies, caching, circuit breaker | Only when fetching cross-origin resources (ROMs, APIs, etc.) |
