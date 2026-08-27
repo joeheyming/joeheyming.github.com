@@ -11,7 +11,13 @@ import path from 'node:path';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const SITE_ORIGIN = 'https://joeheyming.github.io';
-const SITEMAP_EXCLUDE_PATHS = new Set(['/sega/', '/nes/', '/legend-of-doom/', '/play/guitar/']);
+const SITEMAP_EXCLUDE_PATHS = new Set([
+  '/sega/',
+  '/nes/',
+  '/legend-of-doom/',
+  '/sonic-doom/',
+  '/play/guitar/'
+]);
 
 function registryToSitePath(appPath) {
   let raw = appPath.startsWith('./') ? appPath.slice(2) : appPath;

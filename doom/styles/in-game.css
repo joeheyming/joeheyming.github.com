@@ -255,6 +255,9 @@ body.mobile #flavorSwitcher.floating {
 .flavor-switch-menu button[data-switch='castlevania'] .dot {
   background: var(--doom-dot-castlevania, #7a3fb1);
 }
+.flavor-switch-menu button[data-switch='sonic'] .dot {
+  background: var(--doom-dot-sonic, #1ec8e8);
+}
 .flavor-switch-menu button[data-switch='moddb'] .dot {
   background: var(--doom-dot-moddb, #d96aa6);
 }

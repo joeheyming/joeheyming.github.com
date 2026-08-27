@@ -1,17 +1,14 @@
-/* DOOM — flavor picker: five cards (Classic / Freedoom / Legend / Mario /
-   Metroid / Castlevania), loading-focus mode that expands the clicked
-   card to full width, inline progress UI, and the inline flavor dropdown
-   that sits below the picker. */
+/* DOOM — flavor picker: seven cards (Classic / Freedoom / Legend / Mario /
+   Metroid / Castlevania / Sonic), loading-focus mode that expands the
+   clicked card to full width, inline progress UI, and the inline flavor
+   dropdown that sits below the picker. */
 
-/* Flavor picker. Five cards now (Classic / Freedoom / Legend / Mario /
-   Metroid) — three layout modes:
-     • Mobile (<640px): single column, dense typography. Vertical
-       phones have to scroll past 5 cards + intro + warn banner so
-       every line of vertical space matters.
-     • Tablet (640–1100px): 2-col wrap, 5th card spans full width
-       (intentional — drawing attention to the newest flavor).
-     • Desktop (>=1100px): 5-across row. Below 1100px, 5 cards each
-       get <190px which is too cramped for the uppercase title.
+/* Flavor picker. Seven cards — three layout modes:
+     • Mobile (<640px): single column, dense typography.
+     • Tablet (640–1100px): 2-col wrap; an odd last card spans full
+       width (draws attention to the newest flavor).
+     • Desktop (>=1100px): wrap at ~4-across. Seven nowrap columns
+       squash the uppercase titles below ~190px.
    The card click is the user gesture target — both selects the
    flavor AND triggers prime+launch (no second click). */
 #flavorPicker {
@@ -36,12 +33,12 @@
 }
 @media (min-width: 1100px) {
   #flavorPicker {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 14px;
   }
   .flavor-card {
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 1 1 calc(25% - 11px);
+    min-width: 200px;
   }
 }
 .flavor-card {
@@ -85,6 +82,9 @@
 }
 .flavor-card[data-flavor='castlevania'] {
   --flavor-color: #b894e8;
+}
+.flavor-card[data-flavor='sonic'] {
+  --flavor-color: #1ec8e8;
 }
 .flavor-card:hover:not([disabled]):not(.loading) {
   background: var(--panel2);

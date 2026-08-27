@@ -38,6 +38,7 @@ const SITEMAP_EXCLUDE_PATHS = new Set([
   '/sega/',
   '/nes/',
   '/legend-of-doom/',
+  '/sonic-doom/',
   '/play/guitar/'
 ]);
 

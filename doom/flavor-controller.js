@@ -118,6 +118,25 @@
       iwadName: 'Castlevania.ipk3',
       modUrl: null,
       modName: null
+    },
+    // Sonic DOOM — AeriaVelocity's Sonic the Hedgehog in DOOM: Legacy
+    // Edition (2023-04-11). Same author as Sonic: Lock & Load; that
+    // GZDoom total conversion is a ~187 MB PK3 (over GitHub's 100 MB
+    // file limit) and is a full original campaign. Legacy is the
+    // MarioDoom-shaped sibling: Sonic movement, rings, boost, and Super
+    // Sonic layered over a Doom 2 IWAD. We ship Freedoom Phase 2.
+    // MP3 lumps were transcoded to Ogg Vorbis in-place (UZDoom WASM
+    // has no MP3 decoder); the Super Sonic WAV was also Vorbis'd to
+    // keep the fetch under ~36 MB.
+    sonic: {
+      title: 'Sonic DOOM',
+      tagline: 'Sonic the Hedgehog in DOOM: Legacy Edition, running in your browser.',
+      launchLabel: 'Launch Sonic DOOM',
+      iwadUrl: null,
+      iwadName: null,
+      bundledIwad: 'freedoom2.wad',
+      modUrl: 'sonicdoom-legacy.pk3',
+      modName: 'sonicdoom-legacy.pk3'
     }
   };
 
@@ -446,6 +465,9 @@
     } else if (flavor === 'castlevania') {
       if (emoji) emoji.textContent = '🦇';
       if (title) title.firstChild.textContent = 'Castlevania';
+    } else if (flavor === 'sonic') {
+      if (emoji) emoji.textContent = '💨';
+      if (title) title.firstChild.textContent = 'Sonic DOOM';
     }
     if (tagline) tagline.textContent = cfg.tagline;
   }

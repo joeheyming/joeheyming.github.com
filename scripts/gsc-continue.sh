@@ -13,6 +13,7 @@
 #   /sega/           -> /emulator/?console=sega
 #   /nes/            -> /emulator/?console=nes
 #   /legend-of-doom/ -> /doom/?flavor=legend
+#   /sonic-doom/     -> /doom/?flavor=sonic
 #   /play/guitar/    -> /play/strings/
 # Each has <meta name="robots" content="noindex"> and a meta-refresh; do not
 # add them to the priority list.

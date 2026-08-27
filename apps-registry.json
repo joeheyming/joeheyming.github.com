@@ -64,14 +64,14 @@
     "name": "Doom 💀",
     "shortName": "Doom",
     "description": "Classic first-person shooter",
-    "detailedDescription": "Classic FPS in your browser. Pick Classic DOOM, Freedoom, Legend of DOOM, Mario DOOM, Metroid DOOM, or Castlevania: Simon's Destiny at launch.",
+    "detailedDescription": "Classic FPS in your browser. Pick Classic DOOM, Freedoom, Legend of DOOM, Mario DOOM, Metroid DOOM, Castlevania: Simon's Destiny, or Sonic DOOM at launch.",
     "icon": "💀",
     "path": "./doom/",
     "category": "game",
     "defaultWidth": 1024,
     "defaultHeight": 768,
     "desktopIcon": true,
-    "tags": ["fps", "retro", "popular"],
+    "tags": ["fps", "retro", "popular", "sonic"],
     "related": ["badapple", "starwars", "pacman", "minesweeper"],
     "shareCategory": "game",
     "pwaShortcut": {
@@ -82,7 +82,7 @@
     "featured": {
       "order": 1,
       "headline": "Play Doom",
-      "blurb": "Classic FPS in your browser. Six flavors — Classic, Freedoom, Zelda, Mario, Metroid, Castlevania — with music & sound.",
+      "blurb": "Classic FPS in your browser. Seven flavors — Classic, Freedoom, Zelda, Mario, Metroid, Castlevania, Sonic — with music & sound.",
       "tagsLine": "🕹️ Game • ⭐ Popular",
       "preset": "doom",
       "analyticsLabel": "Doom"

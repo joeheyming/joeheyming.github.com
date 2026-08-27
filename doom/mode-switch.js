@@ -4,7 +4,8 @@
 //   body.picker-mode   → (default)     (three-card flavor picker)
 //   (no class)         → ?manual=1     (full uzdoom-loader picker UI)
 // Also tags body.flavor-classic / .flavor-freedoom / .flavor-legend /
-// .flavor-mario / .flavor-metroid / .flavor-castlevania for accent
+// .flavor-mario / .flavor-metroid / .flavor-castlevania /
+// .flavor-sonic for accent
 // color theming when a flavor is locked in.
 
 (function () {
@@ -18,7 +19,8 @@
     legend: 1,
     mario: 1,
     metroid: 1,
-    castlevania: 1
+    castlevania: 1,
+    sonic: 1
   };
   if (manual) {
     // No class — leave the manual picker visible.

@@ -79,6 +79,7 @@
   --doom-dot-mario: #2a73d8;
   --doom-dot-metroid: #c39e3a;
   --doom-dot-castlevania: #7a3fb1;
+  --doom-dot-sonic: #1ec8e8;
   --doom-dot-moddb: #d96aa6;
   --doom-dot-manual: #888888;
 
@@ -148,4 +149,8 @@ body.flavor-metroid {
 body.flavor-castlevania {
   --accent: #7a3fb1;
   --accent-dim: #3f1f5c;
+}
+body.flavor-sonic {
+  --accent: #1ec8e8;
+  --accent-dim: #0a5a6e;
 }
