@@ -50,6 +50,7 @@ export const Icons = {
 
     // YouTube links
     if (mimeType === 'application/x-youtube') return '📺';
+    if (mimeType === 'application/vnd.smaf' || mimeType === 'application/x-smaf') return '🎵';
 
     // Application subtypes
     if (mimeType.includes('word')) return '📘';

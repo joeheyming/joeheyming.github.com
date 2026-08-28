@@ -233,7 +233,8 @@ body {
 }
 
 /* Hide native video when showing YouTube */
-#media-wrapper.youtube-mode #media {
+#media-wrapper.youtube-mode #media,
+#media-wrapper.midi-mode #media {
   display: none;
 }
 
@@ -323,6 +324,30 @@ body {
    * readable. Do not use --text-1 — it flips near-white in dark mode. */
   background: var(--pure-black);
   display: block;
+}
+
+.midi-seek-row {
+  display: none;
+  width: 100%;
+  max-width: 400px;
+  margin-top: 24px;
+}
+
+#media-wrapper.midi-mode .midi-seek-row {
+  display: block;
+}
+
+#midi-seek {
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent-primary);
+}
+
+#midi-seek:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 /* Loading state */

@@ -67,6 +67,10 @@ export function applyFileSystemDbMime(FileSystemDB) {
       ogg: 'audio/ogg',
       flac: 'audio/flac',
       m4a: 'audio/mp4',
+      mid: 'audio/midi',
+      midi: 'audio/midi',
+      kar: 'audio/midi',
+      mmf: 'application/vnd.smaf',
 
       // Video
       mp4: 'video/mp4',

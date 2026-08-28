@@ -1,7 +1,18 @@
 /**
  * Heyming OS Media Player
- * Plays video and audio files from the filesystem or dropped from the OS
+ * Plays video and audio files from the filesystem or dropped from the OS.
+ * MIDI / SMAF (.mmf) files are synthesized in-browser (not via <video>).
  */
+
+import {
+  fileLooksLikeSequence,
+  midiProgressFromTicks,
+  midiTickFromProgress,
+  prepareMidiBytes,
+  sniffSequenceKind
+} from './midi-sequence.js';
+
+const MIDI_SEEK_MAX = 1000;
 
 // Debug logging helper
 function debug(...args) {
@@ -40,6 +51,7 @@ class MediaPlayer {
     this.audioVisual = document.getElementById('audio-visual');
     this.audioTitle = document.getElementById('audio-title');
     this.audioArtist = document.getElementById('audio-artist');
+    this.midiSeek = document.getElementById('midi-seek');
     this.vizCanvas = document.getElementById('viz-canvas');
     /** @type {CanvasRenderingContext2D|null} */
     this.vizCtx = null;
@@ -73,11 +85,19 @@ class MediaPlayer {
     this.isInOS = window.parent !== window;
     this.isAudio = false;
     this.isYouTube = false;
+    this.isMidi = false;
     this._isResetting = false;
     /** @type {string|null} */
     this._mediaBlobUrl = null;
     /** @type {ReturnType<typeof setTimeout>|null} */
     this._errorTimeout = null;
+    /** @type {ReturnType<typeof setInterval>|null} */
+    this._midiTimer = null;
+    /** @type {InstanceType<typeof WebAudioTinySynth>|null} */
+    this._midiSynth = null;
+    this._midiDurationSec = 0;
+    this._midiSeeking = false;
+    this._analyserToDest = false;
 
     this.init();
   }
@@ -99,6 +119,11 @@ class MediaPlayer {
       aac: 'audio/aac',
       flac: 'audio/flac',
       wma: 'audio/x-ms-wma',
+      mid: 'audio/midi',
+      midi: 'audio/midi',
+      kar: 'audio/midi',
+      rmi: 'audio/midi',
+      mmf: 'application/vnd.smaf',
       webm: 'video/webm',
       mp4: 'video/mp4',
       ogv: 'video/ogg',
@@ -113,6 +138,7 @@ class MediaPlayer {
     this.setupMessageListener();
     this.setupMediaEvents();
     this.setupToolbar();
+    this.setupMidiSeek();
     this.setupKeyboardShortcuts();
 
     // Request pending file from OS (in case message was missed)
@@ -145,6 +171,7 @@ class MediaPlayer {
 
     // Playback speed
     this.playbackSpeed.addEventListener('change', (e) => {
+      if (this.isMidi) return;
       this.media.playbackRate = parseFloat(e.target.value);
     });
 
@@ -194,6 +221,7 @@ class MediaPlayer {
           break;
         case 'm':
           this.media.muted = !this.media.muted;
+          this.syncMidiVolume();
           break;
         case 'o':
           if (e.ctrlKey || e.metaKey) {
@@ -307,10 +335,8 @@ class MediaPlayer {
     // Click media/audio-visual to play/pause
     this.media.addEventListener('click', () => this.togglePlayPause());
     this.audioVisual.addEventListener('click', (e) => {
-      // Don't toggle if clicking on the seek bar
-      if (e.target !== this.audioSeek) {
-        this.togglePlayPause();
-      }
+      if (e.target.closest('#midi-seek-row')) return;
+      this.togglePlayPause();
     });
 
     // Double-click to fullscreen (video only)
@@ -325,7 +351,16 @@ class MediaPlayer {
     if (this.isInOS) {
       postOsIframeMessage({
         type: 'openFileDialog',
-        fileTypes: ['video/*', 'audio/*', 'application/x-youtube'],
+        fileTypes: [
+          'video/*',
+          'audio/*',
+          'audio/midi',
+          'application/vnd.smaf',
+          'mid',
+          'midi',
+          'mmf',
+          'application/x-youtube'
+        ],
         title: 'Open Media'
       });
     } else {
@@ -335,6 +370,10 @@ class MediaPlayer {
   }
 
   togglePlayPause() {
+    if (this.isMidi) {
+      this.toggleMidiPlayPause();
+      return;
+    }
     if (!this.media.src) return;
 
     if (this.media.paused) {
@@ -345,6 +384,10 @@ class MediaPlayer {
   }
 
   skip(seconds) {
+    if (this.isMidi) {
+      this.skipMidi(seconds);
+      return;
+    }
     if (!this.media.src) return;
     this.media.currentTime = Math.max(
       0,
@@ -354,11 +397,13 @@ class MediaPlayer {
 
   adjustVolume(delta) {
     this.media.volume = Math.max(0, Math.min(1, this.media.volume + delta));
+    this.syncMidiVolume();
   }
 
   toggleLoop() {
     this.isLooping = !this.isLooping;
     this.media.loop = this.isLooping;
+    if (this._midiSynth) this._midiSynth.setLoop(this.isLooping ? 1 : 0);
     this.btnLoop.classList.toggle('active', this.isLooping);
     this.btnLoop.title = this.isLooping ? 'Loop On (L)' : 'Loop Off (L)';
   }
@@ -378,7 +423,7 @@ class MediaPlayer {
   }
 
   toggleFullscreen() {
-    if (!this.media.src && !this.isYouTube) return;
+    if (!this.media.src && !this.isYouTube && !this.isMidi) return;
 
     if (document.fullscreenElement) {
       document.exitFullscreen();
@@ -393,9 +438,25 @@ class MediaPlayer {
     this.btnPlayPause.disabled = !enabled;
     this.btnSkipForward.disabled = !enabled;
     this.btnLoop.disabled = !enabled;
-    this.playbackSpeed.disabled = !enabled;
-    this.btnPip.disabled = !enabled || this.isAudio;
+    this.playbackSpeed.disabled = !enabled || this.isMidi;
+    this.btnPip.disabled = !enabled || this.isAudio || this.isMidi;
     this.btnFullscreen.disabled = !enabled;
+    if (this.midiSeek) this.midiSeek.disabled = !enabled || !this.isMidi;
+  }
+
+  setupMidiSeek() {
+    if (!this.midiSeek) return;
+    this.midiSeek.max = String(MIDI_SEEK_MAX);
+    const endSeek = () => {
+      this._midiSeeking = false;
+    };
+    this.midiSeek.addEventListener('pointerdown', () => {
+      this._midiSeeking = true;
+    });
+    this.midiSeek.addEventListener('pointerup', endSeek);
+    this.midiSeek.addEventListener('pointercancel', endSeek);
+    this.midiSeek.addEventListener('change', endSeek);
+    this.midiSeek.addEventListener('input', () => this.seekMidiFromSlider());
   }
 
   updateTimeDisplay() {
@@ -420,12 +481,25 @@ class MediaPlayer {
   // ========== File Loading ==========
 
   detectMediaType(fileName, mimeType) {
+    if (fileLooksLikeSequence(fileName, mimeType)) return true;
     if (mimeType) {
       return mimeType.startsWith('audio/');
     }
     // Fallback to extension check
     const ext = fileName.split('.').pop().toLowerCase();
-    const audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'wma'];
+    const audioExtensions = [
+      'mp3',
+      'wav',
+      'ogg',
+      'm4a',
+      'aac',
+      'flac',
+      'wma',
+      'mid',
+      'midi',
+      'kar',
+      'mmf'
+    ];
     return audioExtensions.includes(ext);
   }
 
@@ -433,7 +507,11 @@ class MediaPlayer {
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
-      if (file.type.startsWith('video/') || file.type.startsWith('audio/')) {
+      if (
+        file.type.startsWith('video/') ||
+        file.type.startsWith('audio/') ||
+        fileLooksLikeSequence(file.name, file.type)
+      ) {
         this.loadMediaFile(file);
       } else {
         this.showError('Please drop a video or audio file');
@@ -442,8 +520,12 @@ class MediaPlayer {
   }
 
   loadMediaFile(file) {
-    const url = URL.createObjectURL(file);
     this.currentFile = { fileName: file.name };
+    if (fileLooksLikeSequence(file.name, file.type)) {
+      file.arrayBuffer().then((buf) => this.playSequence(buf, file.name));
+      return;
+    }
+    const url = URL.createObjectURL(file);
     this.isAudio = this.detectMediaType(file.name, file.type);
     this.playMedia(url, file.name);
   }
@@ -475,7 +557,15 @@ class MediaPlayer {
 
     // Virtual FS binary files (contentBytes → postMessage as ArrayBuffer)
     if (content instanceof ArrayBuffer || ArrayBuffer.isView(content)) {
+      const bytes =
+        content instanceof ArrayBuffer
+          ? new Uint8Array(content)
+          : new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
       const mime = this.mimeFromMediaFileName(fileName);
+      if (sniffSequenceKind(bytes) || fileLooksLikeSequence(fileName, mime)) {
+        this.playSequence(bytes, fileName);
+        return;
+      }
       this.isAudio = this.detectMediaType(fileName, mime);
       const blob = new Blob([content], { type: mime });
       const url = URL.createObjectURL(blob);
@@ -493,7 +583,16 @@ class MediaPlayer {
       return;
     }
 
-    // Detect if audio based on content type or filename
+    if (fileLooksLikeSequence(fileName, this.mimeFromMediaFileName(fileName))) {
+      this.contentToArrayBuffer(content).then((buf) => {
+        if (!buf) {
+          this.showError('Could not read MIDI/MMF data');
+          return;
+        }
+        this.playSequence(buf, fileName);
+      });
+      return;
+    }
     if (typeof content === 'string' && content.startsWith('data:')) {
       const mimeType = content.split(';')[0].replace('data:', '');
       this.isAudio = this.detectMediaType(fileName, mimeType);
@@ -527,6 +626,10 @@ class MediaPlayer {
       debug('Playing URL media');
       this.playMedia(content, fileName);
     } else if (content instanceof Blob) {
+      if (fileLooksLikeSequence(fileName, content.type)) {
+        content.arrayBuffer().then((buf) => this.playSequence(buf, fileName));
+        return;
+      }
       debug('Playing blob media');
       const url = URL.createObjectURL(content);
       this.playMedia(url, fileName);
@@ -544,6 +647,7 @@ class MediaPlayer {
   }
 
   playMedia(src, name) {
+    this.stopMidiPlayback();
     this.dropZone.classList.remove('active');
     this.mediaWrapper.classList.remove('hidden');
     this.mediaWrapper.classList.add('loading');
@@ -641,6 +745,7 @@ class MediaPlayer {
   }
 
   playYouTube(videoId, name) {
+    this.stopMidiPlayback();
     this.isYouTube = true;
     this.isAudio = false;
 
@@ -671,22 +776,244 @@ class MediaPlayer {
     this.timeDisplay.textContent = 'YouTube';
   }
 
+  // ========== MIDI / SMAF ==========
+
+  /**
+   * @param {unknown} content
+   * @returns {Promise<ArrayBuffer|null>}
+   */
+  async contentToArrayBuffer(content) {
+    if (content instanceof ArrayBuffer) return content;
+    if (ArrayBuffer.isView(content)) {
+      return content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength);
+    }
+    if (typeof Blob !== 'undefined' && content instanceof Blob) {
+      return content.arrayBuffer();
+    }
+    if (typeof content === 'string') {
+      if (
+        content.startsWith('data:') ||
+        content.startsWith('blob:') ||
+        content.startsWith('http') ||
+        content.startsWith('/') ||
+        content.startsWith('./') ||
+        content.startsWith('../')
+      ) {
+        try {
+          const res = await fetch(content);
+          return await res.arrayBuffer();
+        } catch (err) {
+          console.error('Failed to fetch media bytes', err);
+          return null;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * @param {ArrayBuffer|ArrayBufferView} buf
+   * @param {string} name
+   */
+  playSequence(buf, name) {
+    this.stopMidiClock();
+    if (this._midiSynth) this._midiSynth.stopMIDI();
+    this.dropZone.classList.remove('active');
+    this.mediaWrapper.classList.remove('hidden', 'error', 'youtube-mode');
+    this.mediaWrapper.classList.add('loading', 'audio-mode', 'midi-mode');
+    this.youtubeContainer.classList.remove('visible');
+    this.audioVisual.classList.add('visible');
+    this.mediaName.textContent = name || 'MIDI';
+
+    this._isResetting = true;
+    this.media.removeAttribute('src');
+    this.media.load();
+    requestAnimationFrame(() => {
+      this._isResetting = false;
+    });
+
+    let prepared;
+    try {
+      prepared = prepareMidiBytes(buf, { fileName: name });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Could not play this MIDI/MMF file';
+      this.showError(msg);
+      return;
+    }
+
+    this.isMidi = true;
+    this.isAudio = true;
+    this.isYouTube = false;
+    this._midiDurationSec = prepared.durationSec || 0;
+    this.audioTitle.textContent = prepared.title || this.extractTitle(name);
+    this.audioArtist.textContent =
+      prepared.artist || (prepared.kind === 'smaf' ? 'SMAF ringtone' : 'MIDI');
+
+    try {
+      this.initMidiSynth();
+    } catch (err) {
+      this.showError('MIDI synthesizer is not available in this browser');
+      return;
+    }
+
+    const midi = prepared.midi;
+    const ab = midi.buffer.slice(midi.byteOffset, midi.byteOffset + midi.byteLength);
+    this._midiSynth.loadMIDI(ab);
+    this._midiSynth.setLoop(this.isLooping ? 1 : 0);
+    this.syncMidiVolume();
+
+    this.playbackSpeed.value = '1';
+    if (this.midiSeek) this.midiSeek.value = '0';
+    this.enableControls(true);
+    this.mediaWrapper.classList.remove('loading');
+    this.startMidiClock();
+    this.toggleMidiPlayPause(true);
+  }
+
+  initMidiSynth() {
+    this.ensureAnalyserGraph();
+    if (typeof WebAudioTinySynth !== 'function') {
+      throw new Error('WebAudioTinySynth missing');
+    }
+    if (!this._midiSynth) {
+      this._midiSynth = new WebAudioTinySynth({ quality: 1, voices: 64, useReverb: 1 });
+    }
+    this._midiSynth.setAudioContext(this.audioCtx, this.analyser);
+    if (!this._analyserToDest && this.analyser && this.audioCtx) {
+      this.analyser.connect(this.audioCtx.destination);
+      this._analyserToDest = true;
+    }
+  }
+
+  ensureAnalyserGraph() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!this.audioCtx) {
+      this.audioCtx = new AC();
+    }
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+    if (!this.analyser) {
+      this.analyser = this.audioCtx.createAnalyser();
+      this.analyser.fftSize = 256;
+      this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+    }
+  }
+
+  syncMidiVolume() {
+    if (!this._midiSynth) return;
+    const lev = this.media.muted ? 0 : 0.5 * this.media.volume;
+    this._midiSynth.setMasterVol(lev);
+  }
+
+  toggleMidiPlayPause(forcePlay) {
+    if (!this._midiSynth) return;
+    const st = this._midiSynth.getPlayStatus();
+    const shouldPlay = forcePlay === true || !st.play;
+    if (shouldPlay) {
+      if (this.audioCtx?.state === 'suspended') this.audioCtx.resume();
+      this._midiSynth.playMIDI();
+      this.btnPlayPause.textContent = '⏸️';
+      this.btnPlayPause.title = 'Pause (Space)';
+      this.mediaWrapper.classList.add('playing');
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
+      this.drawSpectrum();
+    } else {
+      this._midiSynth.stopMIDI();
+      this.btnPlayPause.textContent = '▶️';
+      this.btnPlayPause.title = 'Play (Space)';
+      this.mediaWrapper.classList.remove('playing');
+      this.stopSpectrum();
+    }
+  }
+
+  skipMidi(seconds) {
+    if (!this._midiSynth) return;
+    const st = this._midiSynth.getPlayStatus();
+    if (!st.maxTick) return;
+    const dur = this._midiDurationSec || 0;
+    const progress = midiProgressFromTicks(st.curTick, st.maxTick);
+    const cur = progress * dur;
+    const next = dur > 0 ? Math.max(0, Math.min(dur, cur + seconds)) : 0;
+    const tick = midiTickFromProgress(st.maxTick, dur > 0 ? next / dur : 0);
+    this._midiSynth.locateMIDI(tick);
+    this.updateMidiClock();
+  }
+
+  seekMidiFromSlider() {
+    if (!this._midiSynth || !this.midiSeek) return;
+    const st = this._midiSynth.getPlayStatus();
+    if (!st.maxTick) return;
+    const progress = Number(this.midiSeek.value) / MIDI_SEEK_MAX;
+    const tick = midiTickFromProgress(st.maxTick, progress);
+    this._midiSynth.locateMIDI(tick);
+    const dur = this._midiDurationSec || 0;
+    const cur = progress * dur;
+    this.timeDisplay.textContent = `${this.formatTime(cur)} / ${this.formatTime(dur)}`;
+  }
+
+  startMidiClock() {
+    this.stopMidiClock();
+    this.updateMidiClock();
+    this._midiTimer = setInterval(() => this.updateMidiClock(), 100);
+  }
+
+  stopMidiClock() {
+    if (this._midiTimer) {
+      clearInterval(this._midiTimer);
+      this._midiTimer = null;
+    }
+  }
+
+  updateMidiClock() {
+    if (!this.isMidi || !this._midiSynth) return;
+    const st = this._midiSynth.getPlayStatus();
+    const dur = this._midiDurationSec || 0;
+    const progress = midiProgressFromTicks(st.curTick, st.maxTick);
+    const cur = progress * dur;
+    this.timeDisplay.textContent = `${this.formatTime(cur)} / ${this.formatTime(dur)}`;
+    if (!this._midiSeeking && this.midiSeek) {
+      this.midiSeek.value = String(Math.round(progress * MIDI_SEEK_MAX));
+    }
+    if (!st.play && st.maxTick > 0 && st.curTick >= st.maxTick && !this.isLooping) {
+      this.btnPlayPause.textContent = '▶️';
+      this.btnPlayPause.title = 'Play (Space)';
+      this.mediaWrapper.classList.remove('playing');
+      this.stopSpectrum();
+    }
+  }
+
+  stopMidiPlayback() {
+    this.stopMidiClock();
+    if (this._midiSynth) {
+      this._midiSynth.stopMIDI();
+      this._midiSynth.setLoop(0);
+    }
+    this.isMidi = false;
+    this._midiDurationSec = 0;
+    this._midiSeeking = false;
+    this.mediaWrapper.classList.remove('midi-mode');
+    if (this.midiSeek) {
+      this.midiSeek.value = '0';
+      this.midiSeek.disabled = true;
+    }
+  }
+
   // ========== Audio Visualizer ==========
 
   initAudioContext(mediaElement) {
-    if (this.audioCtx) {
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume();
-      }
-      return;
+    this.ensureAnalyserGraph();
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
     }
-    this.audioCtx = new AudioContext();
-    this.analyser = this.audioCtx.createAnalyser();
-    this.analyser.fftSize = 256;
-    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+    if (mediaElement._heymingMediaSource) return;
     const source = this.audioCtx.createMediaElementSource(mediaElement);
+    mediaElement._heymingMediaSource = source;
     source.connect(this.analyser);
-    this.analyser.connect(this.audioCtx.destination);
+    if (!this._analyserToDest) {
+      this.analyser.connect(this.audioCtx.destination);
+      this._analyserToDest = true;
+    }
   }
 
   drawSpectrum() {
@@ -769,6 +1096,7 @@ class MediaPlayer {
   reset() {
     this._revokeMediaBlobUrl();
     this.stopSpectrum();
+    this.stopMidiPlayback();
     this.media.pause();
 
     this._isResetting = true;
@@ -779,7 +1107,14 @@ class MediaPlayer {
     });
 
     this.mediaWrapper.classList.add('hidden');
-    this.mediaWrapper.classList.remove('audio-mode', 'playing', 'youtube-mode', 'loading', 'error');
+    this.mediaWrapper.classList.remove(
+      'audio-mode',
+      'playing',
+      'youtube-mode',
+      'midi-mode',
+      'loading',
+      'error'
+    );
     this.audioVisual.classList.remove('visible');
     this.youtubeContainer.classList.remove('visible');
     this.youtubePlayer.removeAttribute('src');
