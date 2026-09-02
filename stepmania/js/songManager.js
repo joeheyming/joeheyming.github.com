@@ -6,7 +6,6 @@ import {
   extractSimfileId,
   fetchZeniusSimfile,
   parseZeniusSimfile,
-  loadLocalSimfile,
   fetchZeniusAudioFromZip
 } from './songLoader.js';
 import {
@@ -163,6 +162,16 @@ class SongManager {
   }
 
   /**
+   * Drop the current song so the home screen can take over.
+   */
+  clearCurrentSong() {
+    const oldSong = this._currentSong;
+    this._currentSong = null;
+    this._currentDifficulty = 0;
+    this._emitEvent('songChanged', { song: null, previousSong: oldSong });
+  }
+
+  /**
    * Set current difficulty
    * @param {number} index - Difficulty index
    */
@@ -235,31 +244,6 @@ class SongManager {
     } finally {
       this._isLoading = false;
     }
-  }
-
-  // ===========================================================================
-  // LOADING - LOCAL
-  // ===========================================================================
-
-  /**
-   * Load a local simfile
-   * @param {string} simfileUrl - URL to .sm file
-   * @param {Function} [onProgress] - Progress callback
-   * @returns {Promise<object>} Parsed data
-   */
-  async loadLocalSimfile(simfileUrl, onProgress = null) {
-    onProgress?.('Fetching simfile...', 25);
-
-    const parsedData = await loadLocalSimfile(simfileUrl);
-
-    // Cache it if we have a current song
-    if (this._currentSong) {
-      this.cacheParsedData(this._currentSong.key, parsedData);
-    }
-
-    onProgress?.('Simfile loaded', 50);
-
-    return parsedData;
   }
 
   // ===========================================================================

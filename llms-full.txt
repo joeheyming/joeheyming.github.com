@@ -105,7 +105,7 @@ Tags: retro, emulator, sega, 16-bit
 
 ### [Stepmania 💃](https://joeheyming.github.io/stepmania/)
 
-Browser StepMania — scrolling arrows, your own songs, keyboard or dance pad. Bring a .sm chart or pick from the built-in pack.
+Browser StepMania — scrolling arrows, keyboard or dance pad. Pick charts from the Zenius song library; nothing is bundled in the page.
 
 Tags: rhythm, music, dance, popular
 

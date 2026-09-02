@@ -145,6 +145,126 @@ body {
   flex-shrink: 0;
   max-height: 60vh;
   overflow: hidden;
+  user-select: none;
+  background-size: cover;
+  background-position: center;
+}
+
+.sm-home {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1.1rem 1.25rem;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  backdrop-filter: blur(10px);
+  text-align: center;
+}
+
+.sm-home[hidden] {
+  display: none;
+}
+
+.sm-home-kicker {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.sm-home-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 3vw, 1.6rem);
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.sm-home-lead {
+  margin: 0 auto;
+  max-width: 28rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.sm-home-browse {
+  align-self: center;
+  margin: 0.15rem 0 0.35rem;
+  padding: 0.55rem 1.25rem;
+  border: 1px solid var(--hairline-accent);
+  border-radius: 0.6rem;
+  background: linear-gradient(135deg, var(--accent-primary-bg), var(--accent-primary));
+  color: var(--text-on-accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sm-home-browse:hover {
+  filter: brightness(1.08);
+}
+
+.sm-home-browse:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.sm-home-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+  text-align: left;
+  min-height: 0;
+}
+
+.sm-home-heading {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.sm-home-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sm-home-chip {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-accent);
+  background: color-mix(in srgb, var(--surface-0) 40%, transparent);
+  color: var(--text-1);
+  font-size: 0.75rem;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sm-home-chip:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary-hover);
+}
+
+.sm-home-empty {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
+@media (max-width: 640px) {
+  .sm-home-lists {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Reserve space before custom elements upgrade (CLS). */

@@ -1,5 +1,5 @@
 // Song Loader - ES Module
-// Handles loading songs from Zenius-I-Vanisher and local simfiles
+// Handles loading songs from Zenius-I-Vanisher
 
 import { SimfileParser } from './simfileParser.js';
 import {
@@ -193,7 +193,7 @@ export function parseZeniusSimfile(simfileData, simfileId) {
     title: simfileData.title,
     artist: simfileData.artist,
     url: simfileData.audioUrl,
-    background: simfileData.backgroundUrl || '/stepmania/songs/Lost/background.png',
+    background: simfileData.backgroundUrl || null,
     video: simfileData.aviUrl || null, // AVI video if available (will be converted by videoConverter)
     simfile: null
   };
@@ -203,19 +203,6 @@ export function parseZeniusSimfile(simfileData, simfileId) {
     songData,
     parsedData
   };
-}
-
-/**
- * Load and parse a local simfile
- * @param {string} simfileUrl - URL to the simfile
- * @returns {Promise<Object>} Parsed simfile data
- */
-export async function loadLocalSimfile(simfileUrl) {
-  const response = await fetch(simfileUrl);
-  const simfileText = await response.text();
-
-  const parser = new SimfileParser();
-  return parser.parse(simfileText);
 }
 
 /**

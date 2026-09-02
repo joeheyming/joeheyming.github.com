@@ -121,16 +121,9 @@ const PAGES = [
     url: `${BASE_URL}/stepmania/`,
     output: 'stepmania/stepmania-preview.png',
     title: 'StepMania',
-    // The "Welcome to StepMania" prompt is injected ~500ms after load
-    // and completely blocks the actual game UI. Dismiss it so the
-    // preview shows the idle game (Lost background + step buttons).
     setup: async (page) => {
-      const dismiss = page.locator('#dismiss-prompt');
-      if (await dismiss.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await dismiss.click();
-      }
-      await page.waitForSelector('#sm-micro');
-      await page.waitForTimeout(500);
+      await page.waitForSelector('#sm-home');
+      await page.waitForTimeout(400);
     }
   },
   {

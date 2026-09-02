@@ -408,7 +408,7 @@
     "name": "Stepmania 💃",
     "shortName": "Stepmania",
     "description": "Rhythm game excellence",
-    "detailedDescription": "Browser StepMania — scrolling arrows, your own songs, keyboard or dance pad. Bring a .sm chart or pick from the built-in pack.",
+    "detailedDescription": "Browser StepMania — scrolling arrows, keyboard or dance pad. Pick charts from the Zenius song library; nothing is bundled in the page.",
     "icon": "💃",
     "path": "./stepmania/",
     "category": "game",
@@ -429,7 +429,7 @@
     "featured": {
       "order": 8,
       "headline": "Dance to your music",
-      "blurb": "Browser rhythm game. Drop in any .sm file or pick from a built-in pack. Keyboard, dance pad, or autoplay.",
+      "blurb": "Browser rhythm game. Pick a chart from the song library, then play with keyboard, dance pad, or autoplay.",
       "tagsLine": "🕹️ Game • 🎵 Bring your own songs",
       "preset": "stepmania",
       "analyticsLabel": "StepMania"

@@ -275,7 +275,7 @@
                 "name": "How do I add my own songs?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Open the built-in Zenius song browser and paste or click a simfile link from zenius-i-vanisher.com. The .sm chart and audio are fetched through a CORS proxy, parsed in the browser, and played. Recent plays and favorites are remembered in localStorage; the chart itself is re-fetched on the next visit. A default song (\"Lost\") is bundled and loads automatically when no song is specified."
+                  "text": "Open the built-in Zenius song browser from the home screen and paste or click a simfile link from zenius-i-vanisher.com. The .sm chart and audio are fetched through a CORS proxy, parsed in the browser, and played. Recent plays and favorites are remembered in localStorage; the chart itself is re-fetched on the next visit."
                 }
               },
               {
@@ -307,7 +307,7 @@
                 "name": "Can I play offline?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "The page and the bundled \"Lost\" song work offline once they've loaded. Songs from the Zenius browser are network-fetched per play, so adding or replaying those needs a connection."
+                  "text": "The game page itself can be cached by the browser, but songs from the Zenius library are fetched per play, so browsing or replaying those needs a connection."
                 }
               }
             ]
@@ -547,15 +547,26 @@
         <div
           id="sm-micro"
           class="relative bg-surface-0/50 rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl border border-hairline-accent overflow-hidden touch-manipulation flex-1"
-          style="
-            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
-              url(songs/Lost/background.png);
-            background-size: cover;
-            background-position: center;
-            user-select: none;
-          "
         >
-          <!-- Video Background Container -->
+          <div id="sm-home" class="sm-home">
+            <p class="sm-home-kicker">Song library</p>
+            <h3 class="sm-home-title">Pick a song to play</h3>
+            <p class="sm-home-lead">
+              Browse charts from Zenius-I-Vanisher. Nothing is bundled here — choose a track and it
+              loads in the browser.
+            </p>
+            <button type="button" id="sm-home-browse" class="sm-home-browse">Browse songs</button>
+            <div class="sm-home-lists">
+              <section class="sm-home-section">
+                <h4 class="sm-home-heading">Recent</h4>
+                <div id="sm-home-recent" class="sm-home-chips"></div>
+              </section>
+              <section class="sm-home-section">
+                <h4 class="sm-home-heading">Saved</h4>
+                <div id="sm-home-saved" class="sm-home-chips"></div>
+              </section>
+            </div>
+          </div>
           <div
             id="video-background-container"
             class="absolute inset-0 rounded-2xl md:rounded-3xl overflow-hidden pointer-events-none"
@@ -673,11 +684,7 @@
             controls
             class="w-full rounded-lg bg-surface-0/50 backdrop-blur-lg"
             autobuffer
-          >
-            <source src="songs/Lost/Lost.mp3" type="audio/mpeg" />
-            <source src="songs/Lost/Lost.ogg" type="audio/ogg" />
-            Audio tag not supported
-          </audio>
+          ></audio>
         </div>
       </div>
 

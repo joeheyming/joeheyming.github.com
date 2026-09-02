@@ -1,15 +1,12 @@
 // Main Page Controller - ES Module
 // Orchestrates page initialization, URL handling, song loading, and UI coordination
 
-import { songs } from './songs.js';
-import { steps } from './steps.js';
 import gameState from './gameState.js';
 import { resetGame } from './stepmania.js';
 import {
   extractSimfileId,
   fetchZeniusSimfile,
   parseZeniusSimfile,
-  loadLocalSimfile,
   fetchZeniusAudioFromZip,
   formatLoadError
 } from './songLoader.js';
@@ -26,9 +23,9 @@ import {
   MIN_VALID_AUDIO_SIZE,
   binaryPayloadByteLength
 } from './songProxyTransport.js';
-import { scheduleFirstVisitBrowserPrompt } from './browserWelcomePrompt.js';
-import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
 import { recordRecentPlay } from './zeniusLibraryStorage.js';
+import { bindHomeScreen, hideHomeScreen, showHomeScreen } from './homeScreen.js';
+import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
 
 /**
  * Main Page Controller
@@ -49,16 +46,12 @@ export class MainPageController {
 
   async init() {
     this.bindEvents();
+    bindHomeScreen();
 
-    // Check URL parameters first
     const hasURLParams = await this.initByURL();
 
-    // Only load default song if no URL parameters were found
     if (!hasURLParams) {
-      this.loadDefaultSong();
-
-      // Auto-open browser for first-time visitors to improve discovery
-      scheduleFirstVisitBrowserPrompt();
+      this.enterHome();
     }
   }
 
@@ -122,6 +115,9 @@ export class MainPageController {
         return;
       }
       if (e.key === 'r' || e.key === 'R') {
+        if (!songManager.getCurrentSong()) {
+          return;
+        }
         e.preventDefault();
         this.restartSong();
       }
@@ -129,9 +125,8 @@ export class MainPageController {
   }
 
   async initByURL() {
-    const { song, difficulty, zenius: zeniusUrl, autoplay } = getURLParams();
+    const { difficulty, zenius: zeniusUrl, autoplay } = getURLParams();
 
-    // Set autoplay mode from URL param
     if (autoplay) {
       gameState.setAutoplay(true);
     }
@@ -140,53 +135,7 @@ export class MainPageController {
       return await this.loadFromZeniusURL(zeniusUrl, difficulty);
     }
 
-    if (!song) {
-      return false;
-    }
-
-    // Use the imported songs object
-    const foundSong = Object.keys(songs).find((s) => {
-      return songs[s].title === song;
-    });
-
-    if (foundSong) {
-      const songData = songs[foundSong];
-
-      this.lastSongKey = foundSong;
-      this.lastDifficulty = difficulty;
-      this.lastZeniusUrl = null;
-
-      try {
-        LoadingOverlay.showLoading(songData.title, 'Loading from URL...', 5);
-
-        this.setCurrentSong(foundSong, songData);
-        this.setCurrentDifficulty(difficulty);
-
-        LoadingOverlay.updateProgress('Loading song list...', 15);
-
-        if (songData.simfile) {
-          LoadingOverlay.updateProgress('Fetching song charts...', 25);
-          await this.loadSimfile(songData.simfile);
-        }
-
-        LoadingOverlay.updateProgress('Starting song...', 40);
-        document.getElementById('sub-title').textContent = songData.title;
-        await this.startSelectedSong(true, true);
-
-        return true;
-      } catch (error) {
-        LoadingOverlay.hide();
-        console.error('Error loading song from URL:', error);
-        LoadingOverlay.showError(
-          'Could not load song',
-          formatLoadError(error) || 'Unable to load song data — try again or return to browser'
-        );
-        return false;
-      }
-    } else {
-      console.error(`Song not found: ${song}`);
-      return false;
-    }
+    return false;
   }
 
   async loadFromZeniusURL(zeniusUrl, difficulty) {
@@ -198,6 +147,7 @@ export class MainPageController {
 
     this.lastZeniusUrl = zeniusUrl;
     this.lastDifficulty = difficulty;
+    hideHomeScreen();
 
     try {
       LoadingOverlay.showLoading('from Song Library', 'Parsing song URL...', 5);
@@ -255,70 +205,27 @@ export class MainPageController {
         'Could not load song',
         formatLoadError(error) || 'Network error — try again or return to the song browser'
       );
+      showHomeScreen();
       return false;
     } finally {
       this._isLoadingFromZenius = false;
     }
   }
 
-  loadDefaultSong() {
-    const defaultSong = 'Lost';
-    const songData = songs[defaultSong];
-
-    if (songData) {
-      // Load audio via AudioManager (fire and forget for default song)
-      audioManager.loadUrl(songData.url, 'audio/mpeg').catch(() => {});
-
-      const gameArea = document.getElementById('sm-micro');
-      gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${songData.background})`;
-
-      // Load the default steps for the Lost song
-      if (steps && steps.noteData) {
-        // Create a deep copy of the note data to avoid mutation issues
-        const noteDataCopy = steps.noteData.map((note) => [note[0], note[1], { ...note[2] }]);
-
-        gameState.setSong({
-          bpm: songData.bpm || 120,
-          addToMusicPosition: songData.offset || -0.03,
-          bpmChanges: []
-        });
-
-        gameState.setSteps({ noteData: noteDataCopy });
-        gameState.setNoteData(noteDataCopy);
-        gameState.setBpm(songData.bpm || 120);
-        gameState.setBpmChanges([]);
-        gameState.setBgChanges([]);
-
-        // Set current song info
-        this.setCurrentSong(defaultSong, songData);
-
-        // Create a parsed song entry for the default song
-        const parsedData = {
-          title: songData.title || 'Lost',
-          artist: songData.artist || 'Unknown',
-          bpm: songData.bpm || 120,
-          offset: songData.offset || -0.03,
-          charts: [
-            {
-              type: 'dance-single',
-              description: '',
-              difficulty: 'Medium',
-              rating: 5,
-              radarValues: '',
-              noteData: noteDataCopy
-            }
-          ],
-          bgChanges: [],
-          bpmChanges: []
-        };
-
-        songManager.cacheParsedData(defaultSong, parsedData);
-
-        // Update difficulty selector with the default chart (passing
-        // songKey so PB chips render in the dropdown labels).
-        DifficultySelector.setCharts(parsedData.charts, defaultSong);
-      }
+  enterHome() {
+    this.lastZeniusUrl = null;
+    this.lastSongKey = null;
+    this.lastDifficulty = null;
+    songManager.clearCurrentSong();
+    DifficultySelector.setCharts([]);
+    audioManager.reset();
+    gameState.setSteps({ noteData: [] });
+    gameState.setNoteData([]);
+    const subTitle = document.getElementById('sub-title');
+    if (subTitle) {
+      subTitle.textContent = 'Dance to the Beat';
     }
+    showHomeScreen();
   }
 
   setCurrentSong(songKey, songData) {
@@ -347,16 +254,6 @@ export class MainPageController {
     }
   }
 
-  async loadSimfile(simfileUrl) {
-    const parsedData = await loadLocalSimfile(simfileUrl);
-    const currentSongKey = songManager.getCurrentSongKey();
-
-    songManager.cacheParsedData(currentSongKey, parsedData);
-
-    DifficultySelector.setCharts(parsedData.charts, currentSongKey);
-    DifficultySelector.syncFromURL();
-  }
-
   async onDifficultySelected(index) {
     if (this.isUpdatingDifficulty) {
       return;
@@ -372,17 +269,7 @@ export class MainPageController {
   }
 
   updateURLWithDifficulty(difficulty) {
-    const params = { difficulty };
-    const currentSong = songManager.getCurrentSong();
-
-    if (currentSong) {
-      if (!currentSong.key.startsWith('zenius_')) {
-        params.song = currentSong.data.title;
-      }
-      // For zenius songs, the zenius param is already in URL
-    }
-
-    updateURLParams(params);
+    updateURLParams({ difficulty });
     this.syncMainDifficultySelector(difficulty);
   }
 
@@ -607,7 +494,12 @@ export class MainPageController {
     }
 
     const gameArea = document.getElementById('sm-micro');
-    gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${currentSongData.background})`;
+    const overlay = 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7))';
+    if (currentSongData.background) {
+      gameArea.style.backgroundImage = `${overlay}, url(${currentSongData.background})`;
+    } else {
+      gameArea.style.backgroundImage = overlay;
+    }
 
     const chartProgress = startProgress + 50;
     if (useMainLoading) {
@@ -619,7 +511,11 @@ export class MainPageController {
   }
 
   handleURLChange() {
-    this.initByURL();
+    void this.initByURL().then((hasURLParams) => {
+      if (!hasURLParams) {
+        this.enterHome();
+      }
+    });
   }
 
   async handleRetry() {
@@ -643,90 +539,18 @@ export class MainPageController {
 
     if (this.lastZeniusUrl) {
       await this.loadFromZeniusURL(this.lastZeniusUrl, this.lastDifficulty);
-    } else if (this.lastSongKey) {
-      const songData = songs[this.lastSongKey];
-      if (songData) {
-        try {
-          LoadingOverlay.showLoading(songData.title, `Retrying... (Attempt ${this.retryCount})`, 5);
-          this.setCurrentSong(this.lastSongKey, songData);
-          this.setCurrentDifficulty(this.lastDifficulty);
-
-          LoadingOverlay.updateProgress('Loading song list...', 15);
-
-          if (songData.simfile) {
-            LoadingOverlay.updateProgress('Fetching song charts...', 25);
-            await this.loadSimfile(songData.simfile);
-          }
-
-          LoadingOverlay.updateProgress('Starting song...', 40);
-          document.getElementById('sub-title').textContent = songData.title;
-          await this.startSelectedSong(true, true);
-
-          // Reset retry count on success
-          this.retryCount = 0;
-        } catch (error) {
-          console.error('Error retrying song:', error);
-
-          // Track error with context
-          if (typeof window.trackError === 'function') {
-            window.trackError({
-              type: 'loading_error',
-              message: error.message || 'Failed to retry song',
-              context: `Retry attempt ${this.retryCount}`,
-              recoverable: true,
-              stack: error.stack
-            });
-          }
-
-          // Show helpful error message with retry count
-          const maxRetries = 3;
-          if (this.retryCount >= maxRetries) {
-            LoadingOverlay.showError(
-              'Failed to load song',
-              `After ${this.retryCount} attempts, the song couldn't be loaded. This may be due to network issues or the song may no longer be available.`,
-              {
-                onRetry: () => {
-                  this.retryCount = 0; // Reset for manual retry
-                  this.handleRetry();
-                },
-                onBack: () => {
-                  this.retryCount = 0;
-                  this.handleBackToBrowser();
-                }
-              }
-            );
-          } else {
-            LoadingOverlay.showError(
-              'Failed to retry song',
-              `Attempt ${this.retryCount} failed. The game will retry automatically, or you can return to the browser to select a different song.`,
-              {
-                onRetry: () => this.handleRetry(),
-                onBack: () => {
-                  this.retryCount = 0;
-                  this.handleBackToBrowser();
-                }
-              }
-            );
-          }
-        }
-      }
     } else {
       LoadingOverlay.hide();
-      this.loadDefaultSong();
+      this.enterHome();
       this.retryCount = 0;
     }
   }
 
   handleBackToBrowser() {
-    this.lastZeniusUrl = null;
-    this.lastSongKey = null;
-    this.lastDifficulty = null;
-
     LoadingOverlay.hide();
-
     clearURLParams();
-
-    this.loadDefaultSong();
+    this.enterHome();
+    ZeniusBrowser.showBrowser();
   }
 
   showReadyToPlayMessage() {
@@ -888,6 +712,9 @@ export class MainPageController {
    * Restart the current song from the beginning
    */
   restartSong() {
+    if (!songManager.getCurrentSong()) {
+      return;
+    }
     resetGame();
     audioManager.seek(0);
     audioManager.play();
