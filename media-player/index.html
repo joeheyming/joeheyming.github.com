@@ -242,8 +242,16 @@
             <div id="audio-title">Unknown Track</div>
             <div id="audio-artist">Unknown Artist</div>
           </div>
-          <div class="visualizer">
-            <canvas id="viz-canvas"></canvas>
+          <div class="viz-panel">
+            <div
+              class="visualizer"
+              id="viz-resize"
+              title="Click to change visualizer style"
+              aria-label="Visualizer — click to change style"
+            >
+              <canvas id="viz-canvas"></canvas>
+              <div class="viz-label" id="viz-label" aria-live="polite"></div>
+            </div>
           </div>
           <div class="midi-seek-row" id="midi-seek-row">
             <input

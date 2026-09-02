@@ -13,8 +13,18 @@ import {
   prepareMidiBytes,
   sniffSequenceKind
 } from './midi-sequence.js';
+import {
+  VIZ_MODE_LABELS,
+  clampVizSize,
+  drawVisualizer,
+  nextVizMode,
+  normalizeVizMode
+} from './visualizer.js';
 
 const MIDI_SEEK_MAX = 1000;
+// v2: v1 could persist a 0x0 measurement taken while the panel was hidden,
+// which restored as a minimum-size canvas.
+const VIZ_PREFS_KEY = 'heyming.media-player.viz.v2';
 
 // Debug logging helper
 function debug(...args) {
@@ -56,8 +66,11 @@ class MediaPlayer {
     this.midiSeek = document.getElementById('midi-seek');
     this.midiChannelList = document.getElementById('midi-channel-list');
     this.vizCanvas = document.getElementById('viz-canvas');
+    this.vizResize = document.getElementById('viz-resize');
+    this.vizLabel = document.getElementById('viz-label');
     /** @type {CanvasRenderingContext2D|null} */
     this.vizCtx = null;
+    this.vizMode = 'both';
     /** @type {AudioContext|null} */
     this.audioCtx = null;
     /** @type {AnalyserNode|null} */
@@ -109,6 +122,11 @@ class MediaPlayer {
     this._midiSolo = null;
     this._midiSendWrapped = false;
     this._midiOrigSend = null;
+    /** @type {ReturnType<typeof setTimeout>|null} */
+    this._vizLabelTimer = null;
+    /** @type {{ width: number, height: number }|null} */
+    this._vizSize = null;
+    this._vizDragging = false;
 
     this.init();
   }
@@ -150,6 +168,7 @@ class MediaPlayer {
     this.setupMediaEvents();
     this.setupToolbar();
     this.setupMidiSeek();
+    this.setupVisualizerUi();
     this.setupKeyboardShortcuts();
 
     // Request pending file from OS (in case message was missed)
@@ -346,7 +365,7 @@ class MediaPlayer {
     // Click media/audio-visual to play/pause
     this.media.addEventListener('click', () => this.togglePlayPause());
     this.audioVisual.addEventListener('click', (e) => {
-      if (e.target.closest('#midi-seek-row, #midi-channels')) return;
+      if (e.target.closest('#midi-seek-row, #midi-channels, .viz-panel')) return;
       this.togglePlayPause();
     });
 
@@ -468,6 +487,94 @@ class MediaPlayer {
     this.midiSeek.addEventListener('pointercancel', endSeek);
     this.midiSeek.addEventListener('change', endSeek);
     this.midiSeek.addEventListener('input', () => this.seekMidiFromSlider());
+  }
+
+  setupVisualizerUi() {
+    this.loadVizPrefs();
+    if (!this.vizResize) return;
+
+    // A corner resize drag also ends in a click, so only cycle the mode when
+    // the pointer stayed put and the box did not change size.
+    let downAt = null;
+    this.vizResize.addEventListener('pointerdown', (e) => {
+      const rect = this.vizResize.getBoundingClientRect();
+      downAt = { x: e.clientX, y: e.clientY, width: rect.width, height: rect.height };
+      this._vizDragging = true;
+    });
+    this.vizResize.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!downAt) return;
+      const rect = this.vizResize.getBoundingClientRect();
+      const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 4;
+      const resized =
+        Math.abs(rect.width - downAt.width) > 1 || Math.abs(rect.height - downAt.height) > 1;
+      downAt = null;
+      if (moved || resized) return;
+      this.cycleVizMode();
+    });
+    window.addEventListener('pointerup', () => {
+      if (!this._vizDragging) return;
+      this._vizDragging = false;
+      this.captureVizSize();
+      this.saveVizPrefs();
+    });
+  }
+
+  /**
+   * Remember the box size only while the user is dragging the resize corner.
+   * The panel is `display: none` until a file loads, so an automatic observer
+   * would measure 0x0 and pin the canvas to its minimum on the next visit.
+   */
+  captureVizSize() {
+    if (!this.vizResize) return;
+    const rect = this.vizResize.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return;
+    this._vizSize = clampVizSize(rect.width, rect.height);
+  }
+
+  cycleVizMode() {
+    this.vizMode = nextVizMode(this.vizMode);
+    this.saveVizPrefs();
+    this.flashVizLabel();
+  }
+
+  flashVizLabel() {
+    if (!this.vizLabel) return;
+    this.vizLabel.textContent = VIZ_MODE_LABELS[this.vizMode] || this.vizMode;
+    this.vizLabel.classList.add('visible');
+    if (this._vizLabelTimer) clearTimeout(this._vizLabelTimer);
+    this._vizLabelTimer = setTimeout(() => {
+      this.vizLabel.classList.remove('visible');
+      this._vizLabelTimer = null;
+    }, 1200);
+  }
+
+  loadVizPrefs() {
+    try {
+      const raw = localStorage.getItem(VIZ_PREFS_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      this.vizMode = normalizeVizMode(parsed?.mode);
+      if (parsed?.width == null || parsed?.height == null) return;
+      this._vizSize = clampVizSize(parsed.width, parsed.height);
+      if (this.vizResize) {
+        this.vizResize.style.width = `${this._vizSize.width}px`;
+        this.vizResize.style.height = `${this._vizSize.height}px`;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  saveVizPrefs() {
+    try {
+      localStorage.setItem(
+        VIZ_PREFS_KEY,
+        JSON.stringify({ mode: this.vizMode, ...(this._vizSize || {}) })
+      );
+    } catch {
+      /* ignore */
+    }
   }
 
   updateTimeDisplay() {
@@ -1175,51 +1282,31 @@ class MediaPlayer {
       this._vizRafId = requestAnimationFrame(draw);
 
       const rect = canvas.getBoundingClientRect();
-      if (canvas.width !== rect.width || canvas.height !== rect.height) {
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+      const width = rect.width;
+      const height = rect.height;
+      // Back the canvas at device resolution so enlarging the panel sharpens
+      // the trace instead of upscaling a 1x buffer, then draw in CSS pixels.
+      const dpr = window.devicePixelRatio || 1;
+      const bufferWidth = Math.max(1, Math.round(width * dpr));
+      const bufferHeight = Math.max(1, Math.round(height * dpr));
+      if (canvas.width !== bufferWidth || canvas.height !== bufferHeight) {
+        canvas.width = bufferWidth;
+        canvas.height = bufferHeight;
       }
-
-      const width = canvas.width;
-      const height = canvas.height;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       this.analyser.getByteFrequencyData(this.dataArray);
       if (this.timeArray) this.analyser.getByteTimeDomainData(this.timeArray);
-      ctx.clearRect(0, 0, width, height);
-
-      const barBand = Math.max(24, Math.floor(height * 0.28));
-      const gradient = ctx.createLinearGradient(0, height - barBand, 0, height);
-      gradient.addColorStop(0, brandToken('--accent-blue', '#1a73e8'));
-      gradient.addColorStop(1, brandToken('--accent-red', '#ea4335'));
-      ctx.fillStyle = gradient;
-      ctx.globalAlpha = 0.45;
-
-      const bufferLength = this.dataArray.length;
-      const barWidth = (width / bufferLength) * 2.5;
-      let x = 0;
-
-      for (let i = 0; i < bufferLength; i++) {
-        const barHeight = (this.dataArray[i] / 255) * barBand;
-        ctx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
-        x += barWidth;
-        if (x > width) break;
-      }
-
-      ctx.globalAlpha = 1;
-      if (this.timeArray && this.timeArray.length > 1) {
-        ctx.beginPath();
-        ctx.strokeStyle = brandToken('--accent-green', '#34a853');
-        ctx.lineWidth = 1.5;
-        ctx.lineJoin = 'round';
-        const n = this.timeArray.length;
-        for (let i = 0; i < n; i++) {
-          const px = (i / (n - 1)) * width;
-          const py = (this.timeArray[i] / 255) * height;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.stroke();
-      }
+      drawVisualizer(ctx, {
+        mode: this.vizMode,
+        freq: this.dataArray,
+        time: this.timeArray,
+        width,
+        height,
+        barTop: brandToken('--accent-blue', '#1a73e8'),
+        barBottom: brandToken('--accent-red', '#ea4335'),
+        line: brandToken('--accent-green', '#34a853')
+      });
     };
 
     draw();
@@ -1231,6 +1318,7 @@ class MediaPlayer {
       this._vizRafId = null;
     }
     if (this.vizCanvas && this.vizCtx) {
+      this.vizCtx.setTransform(1, 0, 0, 1, 0, 0);
       this.vizCtx.clearRect(0, 0, this.vizCanvas.width, this.vizCanvas.height);
     }
   }
