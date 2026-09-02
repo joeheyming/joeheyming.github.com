@@ -24,6 +24,7 @@ import './step-button.js';
 import './score-panel.js';
 import './loading-overlay.js';
 import './game-over-modal.js';
+import './settings-sheet.js';
 
 // Boot engine after custom elements and controller module are registered (DOM may still be loading).
 startStepmania();

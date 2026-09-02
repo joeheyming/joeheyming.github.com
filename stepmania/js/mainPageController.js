@@ -10,7 +10,8 @@ import {
   fetchZeniusSimfile,
   parseZeniusSimfile,
   loadLocalSimfile,
-  fetchZeniusAudioFromZip
+  fetchZeniusAudioFromZip,
+  formatLoadError
 } from './songLoader.js';
 import { DifficultySelector } from './difficulty-selector.js';
 import { ZeniusBrowser } from './zenius-browser.js';
@@ -99,10 +100,21 @@ export class MainPageController {
       });
     }
 
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsSheet = document.getElementById('settings-sheet');
+    if (settingsBtn && settingsSheet) {
+      settingsBtn.addEventListener('click', () => {
+        settingsSheet.toggle();
+      });
+    }
+
     // Keyboard shortcut for restart (R key)
     document.addEventListener('keydown', (e) => {
-      // Don't trigger if typing in an input field
+      // Don't trigger if typing in an input field or rebinding keys
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      if (settingsSheet && !settingsSheet.hidden) {
         return;
       }
       // no meta or ctrl key
@@ -166,8 +178,8 @@ export class MainPageController {
         LoadingOverlay.hide();
         console.error('Error loading song from URL:', error);
         LoadingOverlay.showError(
-          'Failed to load song',
-          'Unable to load song data - try again or return to browser'
+          'Could not load song',
+          formatLoadError(error) || 'Unable to load song data — try again or return to browser'
         );
         return false;
       }
@@ -240,8 +252,8 @@ export class MainPageController {
       LoadingOverlay.hide();
       console.error('Error loading from Song Library URL:', error);
       LoadingOverlay.showError(
-        'Failed to load from Song Library',
-        'Network error - try again or return to browser'
+        'Could not load song',
+        formatLoadError(error) || 'Network error — try again or return to the song browser'
       );
       return false;
     } finally {
@@ -504,6 +516,8 @@ export class MainPageController {
     if (audioUrl.includes('zenius-i-vanisher.com')) {
       // AudioManager handles blob URL cleanup automatically in loadBlob()
       let audioLoaded = false;
+      /** @type {unknown} */
+      let lastAudioError = null;
 
       // Try direct proxy download first (with short timeout - many files are blocked)
       try {
@@ -529,9 +543,11 @@ export class MainPageController {
         if (audioData && binaryPayloadByteLength(audioData) > MIN_VALID_AUDIO_SIZE) {
           await audioManager.loadArrayBuffer(audioData, mimeType);
           audioLoaded = true;
+        } else {
+          lastAudioError = new Error('Audio download was empty or too small');
         }
       } catch (error) {
-        // Direct download failed, will try ZIP fallback
+        lastAudioError = error;
       }
 
       // Fallback: Download ZIP and extract audio
@@ -551,17 +567,16 @@ export class MainPageController {
           if (zipResult) {
             await audioManager.loadBlob(zipResult.audioBlob, zipResult.audioType);
             audioLoaded = true;
+          } else if (!lastAudioError) {
+            lastAudioError = new Error('Song pack ZIP had no audio file');
           }
         } catch (zipError) {
-          // ZIP fallback also failed
+          lastAudioError = zipError;
         }
       }
 
       if (!audioLoaded) {
-        LoadingOverlay.showError(
-          'Audio Not Available',
-          'Could not download the audio file for this song. The file may have been removed.'
-        );
+        LoadingOverlay.showError('Could not load audio', formatLoadError(lastAudioError));
         return;
       }
     } else {
@@ -570,10 +585,7 @@ export class MainPageController {
         await audioManager.loadUrl(audioUrl, mimeType);
       } catch (error) {
         console.error('Audio failed to load:', error);
-        LoadingOverlay.showError(
-          'Audio Load Failed',
-          'The audio file could not be played. Try a different song.'
-        );
+        LoadingOverlay.showError('Could not load audio', formatLoadError(error));
         throw error;
       }
     }

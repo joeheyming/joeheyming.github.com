@@ -16,6 +16,15 @@ const STATES = {
   HIDDEN: 'hidden'
 };
 
+/** @param {unknown} value */
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 class LoadingOverlayElement extends HTMLElement {
   /** @type {LoadingOverlayElement|null} */
   static _instance = null;
@@ -75,7 +84,9 @@ class LoadingOverlayElement extends HTMLElement {
     const difficultyOptions = this._charts
       .map((chart, i) => {
         const selected = i === this._currentDifficulty ? 'selected' : '';
-        return `<option value="${i}" ${selected}>${chart.difficulty} (${chart.rating})</option>`;
+        return `<option value="${i}" ${selected}>${escapeHtml(chart.difficulty)} (${escapeHtml(
+          chart.rating
+        )})</option>`;
       })
       .join('');
 
@@ -103,7 +114,7 @@ class LoadingOverlayElement extends HTMLElement {
         }
         .content {
           text-align: center;
-          max-width: 400px;
+          max-width: 28rem;
           padding: 1rem;
         }
         .spinner {
@@ -142,6 +153,8 @@ class LoadingOverlayElement extends HTMLElement {
           color: var(--pure-white);
           opacity: 0.85;
           margin-bottom: 1rem;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
         .progress-container {
           margin-top: 1rem;
@@ -268,8 +281,8 @@ class LoadingOverlayElement extends HTMLElement {
           <div class="error-icon ${!isError ? 'hidden' : ''}" id="error-icon">⚠️</div>
           
           <!-- Title & Status -->
-          <h2 class="title" id="title">${this._title}</h2>
-          <p class="status" id="status">${this._status}</p>
+          <h2 class="title" id="title">${escapeHtml(this._title)}</h2>
+          <p class="status" id="status">${escapeHtml(this._status)}</p>
           
           <!-- Progress Bar -->
           <div class="progress-container ${!isLoading ? 'hidden' : ''}" id="progress-container">

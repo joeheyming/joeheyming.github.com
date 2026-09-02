@@ -12,6 +12,54 @@ import {
 const FETCH_TIMEOUT = 15000;
 const MAX_RETRIES = 3;
 
+export const ZENIUS_ORIGIN = 'https://zenius-i-vanisher.com';
+export const ZENIUS_V52 = 'https://zenius-i-vanisher.com/v5.2/';
+
+/**
+ * Resolve a href from a Zenius HTML page against the site origin.
+ * Handles relative paths, absolute URLs, protocol-relative URLs, and `&amp;`.
+ * @param {string|null|undefined} href
+ * @returns {string|null}
+ */
+export function resolveZeniusUrl(href) {
+  if (href == null || typeof href !== 'string') return null;
+  const decoded = href.replace(/&amp;/g, '&').trim();
+  if (!decoded) return null;
+  let abs;
+  try {
+    abs = new URL(decoded, ZENIUS_V52);
+  } catch {
+    return null;
+  }
+  if (abs.protocol !== 'http:' && abs.protocol !== 'https:') return null;
+  return abs.href;
+}
+
+/**
+ * Turn a proxy / fetch failure into a short overlay line (no raw "Error protocol").
+ * @param {unknown} err
+ * @returns {string}
+ */
+export function formatLoadError(err) {
+  const msg = err instanceof Error ? err.message : err == null ? '' : String(err);
+  if (/content type is not allowed on the free plan/i.test(msg)) {
+    return 'The download proxy blocked this audio file. Try Retry or pick another song.';
+  }
+  if (/media files are not supported/i.test(msg)) {
+    return 'The download proxy blocked this audio file. Try Retry or pick another song.';
+  }
+  if (/protocol/i.test(msg)) {
+    return 'Could not download this song (bad file URL). Try Retry or another song.';
+  }
+  if (/all proxies failed/i.test(msg)) {
+    return 'Could not download this song through any proxy. Try Retry or another song.';
+  }
+  if (!msg.trim()) {
+    return 'Could not download the audio for this song. Try Retry or pick another.';
+  }
+  return msg;
+}
+
 /**
  * Helper to fetch simfiles through proxy with appropriate settings
  * @param {string} url - URL to fetch
@@ -87,11 +135,14 @@ export async function fetchZeniusSimfile(simfileId, transport) {
     throw new Error('Could not find simfile or audio files on Zenius page');
   }
 
-  const audioUrl = 'https://zenius-i-vanisher.com' + audioMatch[1];
-  const backgroundUrl = backgroundMatch
-    ? 'https://zenius-i-vanisher.com' + backgroundMatch[1]
-    : null;
-  const aviUrl = aviMatch ? 'https://zenius-i-vanisher.com' + aviMatch[1] : null;
+  const audioUrl = resolveZeniusUrl(audioMatch[1]);
+  const simfileDirectUrl = resolveZeniusUrl(simfileMatch[1]);
+  const backgroundUrl = backgroundMatch ? resolveZeniusUrl(backgroundMatch[1]) : null;
+  const aviUrl = aviMatch ? resolveZeniusUrl(aviMatch[1]) : null;
+
+  if (!audioUrl || !simfileDirectUrl) {
+    throw new Error('Could not resolve simfile or audio URLs on Zenius page');
+  }
 
   // Extract title and artist from page
   const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/);
@@ -113,7 +164,6 @@ export async function fetchZeniusSimfile(simfileId, transport) {
   }
 
   // Fetch the actual simfile content
-  const simfileDirectUrl = 'https://zenius-i-vanisher.com' + simfileMatch[1];
   const simfileText = await fetchSimfile(simfileDirectUrl, t);
 
   return {

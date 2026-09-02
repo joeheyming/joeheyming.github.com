@@ -428,6 +428,20 @@ feedback-button {
   display: inline;
 }
 
+/* Keyboard remaps and the gamepad-connected chip are desktop-only.
+   Mobile play is on-screen arrows; those controls just crowd the toolbar. */
+@media (max-width: 768px) {
+  #settings-btn,
+  #gamepad-status {
+    display: none !important;
+  }
+}
+
+body.mobile #settings-btn,
+body.mobile #gamepad-status {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .restart-btn {
     padding: 0.25rem 0.75rem;

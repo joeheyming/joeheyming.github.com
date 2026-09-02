@@ -17,6 +17,7 @@ import {
   updateZeniusSavedButtonLabel,
   updateZeniusBrowserLayout
 } from './zeniusRender.js';
+import { formatLoadError } from './songLoader.js';
 
 class ZeniusBrowserElement extends HTMLElement {
   /** @type {ZeniusBrowserElement|null} */
@@ -385,7 +386,7 @@ class ZeniusBrowserElement extends HTMLElement {
       this.displayContent(content, path);
     } catch (error) {
       console.error('Error loading content:', error);
-      this.showError(`Failed to load content: ${error.message}`, () => {
+      this.showError(`Could not load the song list: ${formatLoadError(error)}`, () => {
         this.loadContent(path);
       });
     } finally {
@@ -560,14 +561,9 @@ class ZeniusBrowserElement extends HTMLElement {
       }
       console.error('Zenius search failed:', error);
       this.setZeniusSpotlightUiVisible(false);
-      this.showError(
-        `Search failed: ${
-          error.message || 'Network error'
-        }. The Zenius search may be unavailable through proxies. Try again shortly.`,
-        () => {
-          this.runZeniusSearch();
-        }
-      );
+      this.showError(`Search failed: ${formatLoadError(error)}. Try again shortly.`, () => {
+        this.runZeniusSearch();
+      });
     } finally {
       if (reqId === this._searchReqId) {
         this.hideLoading();

@@ -679,7 +679,8 @@ class GameState {
   }
 
   /**
-   * Reset note judgments (clear tapNoteScore from all notes)
+   * Reset note judgments so a restarted chart can be hit and drawn again.
+   * Gameplay mutates `note[2]` in place (`tapNoteScore`, `holdCompleted`).
    */
   resetNoteJudgments() {
     if (this.steps && this.steps.noteData) {
@@ -687,6 +688,7 @@ class GameState {
         const noteProps = note[2];
         if (noteProps) {
           delete noteProps.tapNoteScore;
+          delete noteProps.holdCompleted;
         }
       });
     }

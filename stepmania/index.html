@@ -403,7 +403,8 @@
             'feedback-button',
             'difficulty-selector',
             'step-button',
-            'score-panel'
+            'score-panel',
+            'sm-settings-sheet'
           ];
           return Promise.all(
             critical.map(function (name) {
@@ -506,6 +507,19 @@
           >
             <span class="restart-icon-only">🔄</span>
             <span class="restart-text-label">Restart</span>
+          </button>
+
+          <button
+            id="settings-btn"
+            class="restart-btn"
+            title="Keybinds"
+            type="button"
+            data-event="open_settings"
+            data-event-category="StepMania"
+            data-event-label="Settings Button"
+          >
+            <span class="restart-icon-only">⌨️</span>
+            <span class="restart-text-label">Keys</span>
           </button>
 
           <!-- Main Difficulty Selector -->
@@ -791,6 +805,7 @@
     <loading-overlay id="loading-overlay"></loading-overlay>
 
     <game-over-modal id="game-over-modal"></game-over-modal>
+    <sm-settings-sheet id="settings-sheet"></sm-settings-sheet>
 
     <!-- SEO content footer. Marked .seo-intro + hidden so it stays in the
          DOM for crawlers but doesn't show on the page. -->

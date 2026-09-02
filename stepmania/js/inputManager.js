@@ -53,12 +53,98 @@ const ACTION_KEYS = {
   TOGGLE_PITCH_PRESERVE: 220 // \ (backslash)
 };
 
+export const KEYBINDS_STORAGE_KEY = 'heyming.stepmania.keybinds.v1';
+
+const RESERVED_ACTION_KEY_CODES = new Set(Object.values(ACTION_KEYS));
+
+/**
+ * @param {number} keyCode
+ * @returns {boolean}
+ */
+export function isReservedActionKey(keyCode) {
+  return RESERVED_ACTION_KEY_CODES.has(keyCode);
+}
+
+/**
+ * @param {number} keyCode
+ * @returns {string}
+ */
+export function keyCodeLabel(keyCode) {
+  const named = {
+    8: 'Backspace',
+    9: 'Tab',
+    13: 'Enter',
+    16: 'Shift',
+    17: 'Ctrl',
+    18: 'Alt',
+    27: 'Esc',
+    32: 'Space',
+    37: '←',
+    38: '↑',
+    39: '→',
+    40: '↓',
+    188: ',',
+    190: '.',
+    191: '/',
+    192: '`',
+    219: '[',
+    220: '\\',
+    221: ']',
+    222: "'"
+  };
+  if (named[keyCode]) return named[keyCode];
+  if (keyCode >= 65 && keyCode <= 90) return String.fromCharCode(keyCode);
+  if (keyCode >= 48 && keyCode <= 57) return String.fromCharCode(keyCode);
+  if (keyCode >= 96 && keyCode <= 105) return `Num ${keyCode - 96}`;
+  return `Key ${keyCode}`;
+}
+
+/**
+ * @param {unknown} raw
+ * @param {Object<number, number>} defaults
+ * @returns {Object<number, number>}
+ */
+export function parseStoredKeyBindings(raw, defaults = DEFAULT_KEY_BINDINGS) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { ...defaults };
+  }
+  /** @type {Object<number, number>} */
+  const out = {};
+  for (const [key, col] of Object.entries(raw)) {
+    const keyCode = Number(key);
+    const column = Number(col);
+    if (!Number.isInteger(keyCode) || keyCode < 1) continue;
+    if (!Number.isInteger(column) || column < 0 || column > 3) continue;
+    if (isReservedActionKey(keyCode)) continue;
+    out[keyCode] = column;
+  }
+  return Object.keys(out).length ? out : { ...defaults };
+}
+
+/**
+ * @param {Object<number, number>} bindings
+ * @returns {Object<string, number>}
+ */
+export function serializeKeyBindings(bindings) {
+  /** @type {Object<string, number>} */
+  const out = {};
+  for (const [key, col] of Object.entries(bindings || {})) {
+    out[String(key)] = col;
+  }
+  return out;
+}
+
 class InputManager {
-  constructor() {
-    if (InputManager.instance) {
+  /**
+   * @param {{ storage?: Storage | { getItem(key: string): string|null, setItem(key: string, value: string): void }, forTests?: boolean }} [options]
+   */
+  constructor(options = {}) {
+    if (!options.forTests && InputManager.instance) {
       return InputManager.instance;
     }
-    InputManager.instance = this;
+    if (!options.forTests) {
+      InputManager.instance = this;
+    }
 
     /** @type {Object<number, number>} Key code to column mapping */
     this.keyBindings = { ...DEFAULT_KEY_BINDINGS };
@@ -71,6 +157,9 @@ class InputManager {
 
     /** @type {boolean} Whether input is enabled */
     this.enabled = true;
+
+    /** @type {Storage | { getItem(key: string): string|null, setItem(key: string, value: string): void } | null} */
+    this._storage = options.storage ?? (typeof localStorage !== 'undefined' ? localStorage : null);
 
     /** Event callbacks */
     this._callbacks = {
@@ -92,6 +181,7 @@ class InputManager {
     };
 
     this._initialized = false;
+    this.loadPersistedKeyBindings();
   }
 
   /**
@@ -99,6 +189,8 @@ class InputManager {
    */
   init() {
     if (this._initialized) return;
+
+    this.loadPersistedKeyBindings();
 
     document.addEventListener('keydown', this._boundHandlers.onKeyDown);
     document.addEventListener('keyup', this._boundHandlers.onKeyUp);
@@ -132,6 +224,7 @@ class InputManager {
    */
   setKeyBindings(bindings) {
     this.keyBindings = { ...bindings };
+    this._persistKeyBindings();
   }
 
   /**
@@ -139,17 +232,23 @@ class InputManager {
    */
   resetKeyBindings() {
     this.keyBindings = { ...DEFAULT_KEY_BINDINGS };
+    this._persistKeyBindings();
   }
 
   /**
    * Bind a key to a column
    * @param {number} keyCode - Key code
    * @param {number} column - Column index (0-3)
+   * @returns {boolean} False if the key is reserved or the column is invalid
    */
   bindKey(keyCode, column) {
+    if (isReservedActionKey(keyCode)) return false;
     if (column >= 0 && column <= 3) {
       this.keyBindings[keyCode] = column;
+      this._persistKeyBindings();
+      return true;
     }
+    return false;
   }
 
   /**
@@ -158,6 +257,31 @@ class InputManager {
    */
   unbindKey(keyCode) {
     delete this.keyBindings[keyCode];
+    this._persistKeyBindings();
+  }
+
+  loadPersistedKeyBindings() {
+    if (!this._storage) return;
+    try {
+      const raw = this._storage.getItem(KEYBINDS_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      this.keyBindings = parseStoredKeyBindings(parsed, DEFAULT_KEY_BINDINGS);
+    } catch {
+      this.keyBindings = { ...DEFAULT_KEY_BINDINGS };
+    }
+  }
+
+  _persistKeyBindings() {
+    if (!this._storage) return;
+    try {
+      this._storage.setItem(
+        KEYBINDS_STORAGE_KEY,
+        JSON.stringify(serializeKeyBindings(this.keyBindings))
+      );
+    } catch {
+      /* quota / private mode */
+    }
   }
 
   /**
@@ -325,13 +449,16 @@ class InputManager {
    */
   _isInputField(event) {
     const target = event.target;
+    if (!target) return false;
+    const nodeName = target.nodeName;
     return (
       target.tagName === 'INPUT' ||
       target.tagName === 'TEXTAREA' ||
       target.contentEditable === 'true' ||
       target.isContentEditable ||
-      target.nodeName === 'ZENIUS-BROWSER' ||
-      target.nodeName === 'SMO-BROWSER'
+      nodeName === 'ZENIUS-BROWSER' ||
+      nodeName === 'SMO-BROWSER' ||
+      nodeName === 'SM-SETTINGS-SHEET'
     );
   }
 
@@ -556,9 +683,11 @@ class InputManager {
 const inputManager = new InputManager();
 
 // Export column constants for convenience
-export { COLUMNS };
+export { COLUMNS, ACTION_KEYS, DEFAULT_KEY_BINDINGS };
 
 // Make globally accessible for non-module scripts
-window.inputManager = inputManager;
+if (typeof window !== 'undefined') {
+  window.inputManager = inputManager;
+}
 
 export { InputManager, inputManager };

@@ -117,6 +117,29 @@ describe('GameState', () => {
       assert.equal(gameState.getHealth(), 50);
       assert.equal(gameState.getBpm(), 200);
     });
+
+    it('clears tapNoteScore and holdCompleted so replayed notes are hittable', () => {
+      const tapProps = {};
+      const holdProps = { Type: 2, Duration: 96 };
+      gameState.setNoteData([
+        [1, 0, tapProps],
+        [2, 1, holdProps]
+      ]);
+
+      adjudicateColumnPress(1, 0, gameState.getNoteData(), {}, 0);
+      holdProps.holdCompleted = true;
+      assert.equal('tapNoteScore' in tapProps, true);
+      assert.equal(holdProps.holdCompleted, true);
+
+      gameState.resetScores();
+
+      assert.equal('tapNoteScore' in tapProps, false);
+      assert.equal('holdCompleted' in holdProps, false);
+
+      const after = adjudicateColumnPress(1, 0, gameState.getNoteData(), {}, 0);
+      assert.equal(after.hit, true);
+      assert.equal(after.tapNoteScore, 0);
+    });
   });
 });
 
