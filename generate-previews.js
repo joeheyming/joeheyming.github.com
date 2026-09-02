@@ -1322,6 +1322,12 @@ const PAGES = [
     url: `${BASE_URL}/posts/`,
     output: 'posts/posts-preview.png',
     title: 'Posts'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/play/wave-draw/`,
+    output: 'play/wave-draw/wave-draw-preview.png',
+    title: 'Wave Draw'
   }
 ];
 

@@ -1568,7 +1568,7 @@
     "taskbarGradient": "from-rose-500 to-pink-500",
     "taskbarText": "text-white",
     "defaultWidth": 800,
-    "defaultHeight": 500,
+    "defaultHeight": 680,
     "system": true,
     "tags": ["media", "video", "audio", "midi", "mmf", "smaf"],
     "handles": [
@@ -1579,7 +1579,7 @@
       "application/vnd.smaf",
       "application/x-youtube"
     ],
-    "related": ["filemanager", "youtube", "airwave", "awesome", "piano-hero"],
+    "related": ["filemanager", "youtube", "airwave", "awesome", "piano-hero", "play-wave-draw"],
     "shareCategory": "utility",
     "appTier": "system",
     "geo": true
@@ -1841,7 +1841,7 @@
     "defaultWidth": 900,
     "defaultHeight": 600,
     "tags": ["music", "synth", "audio", "electronic"],
-    "related": ["play", "play-piano", "play-drums", "play-theremin", "play-sampler"],
+    "related": ["play", "play-piano", "play-drums", "play-theremin", "play-sampler", "play-wave-draw"],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1925,7 +1925,28 @@
     "defaultWidth": 1100,
     "defaultHeight": 760,
     "tags": ["music", "chiptune", "tracker", "beepbox", "synth", "sequencer", "audio"],
-    "related": ["play-synth", "play-composer", "play-drums", "play-sampler", "posts"],
+    "related": ["play-synth", "play-composer", "play-drums", "play-sampler", "play-wave-draw", "posts"],
+    "shareCategory": "entertainment",
+    "appTier": "experience",
+    "geo": true
+  },
+  {
+    "id": "play-wave-draw",
+    "name": "Wave Draw ✏️",
+    "shortName": "Wave Draw",
+    "description": "Draw a waveform and play it",
+    "detailedDescription": "Sketch a single period with the mouse — sine, square, saw, or any scribble — and play it as a wavetable oscillator from the keyboard or MIDI.",
+    "icon": "✏️",
+    "path": "./play/wave-draw/",
+    "category": "entertainment",
+    "gradient": "from-emerald-500/20 to-cyan-500/20",
+    "border": "border-emerald-600/30 hover:border-emerald-500/50",
+    "taskbarGradient": "from-emerald-700 to-cyan-900",
+    "taskbarText": "text-white",
+    "defaultWidth": 960,
+    "defaultHeight": 720,
+    "tags": ["music", "synth", "wavetable", "waveform", "draw", "oscillator", "audio"],
+    "related": ["play-synth", "play-chiptune", "media-player", "play"],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true

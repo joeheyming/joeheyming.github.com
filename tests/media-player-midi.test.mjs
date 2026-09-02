@@ -8,7 +8,9 @@ import {
   estimateMidiDurationSec,
   smafHuffmanInflate,
   midiProgressFromTicks,
-  midiTickFromProgress
+  midiTickFromProgress,
+  listMidiChannels,
+  midiChannelLabel
 } from '../media-player/midi-sequence.js';
 
 function u32be(n) {
@@ -49,6 +51,40 @@ function oneNoteMidi() {
   const off = [0x81, 0x48, 0x80, 0x3c, 0x40]; // delta 200
   const eot = [0x00, 0xff, 0x2f, 0x00];
   const track = [...tempo, ...on, ...off, ...eot];
+  return Uint8Array.from([
+    0x4d,
+    0x54,
+    0x68,
+    0x64,
+    0x00,
+    0x00,
+    0x00,
+    0x06,
+    0x00,
+    0x00,
+    0x00,
+    0x01,
+    0x01,
+    0xf4,
+    0x4d,
+    0x54,
+    0x72,
+    0x6b,
+    ...u32be(track.length),
+    ...track
+  ]);
+}
+
+/** Format-0 SMF: piano on ch1, violin on ch2. */
+function twoChannelMidi() {
+  const pc0 = [0x00, 0xc0, 0x00];
+  const pc1 = [0x00, 0xc1, 0x28];
+  const on0 = [0x00, 0x90, 0x3c, 0x40];
+  const on1 = [0x00, 0x91, 0x40, 0x40];
+  const off0 = [0x81, 0x48, 0x80, 0x3c, 0x40];
+  const off1 = [0x00, 0x81, 0x40, 0x40];
+  const eot = [0x00, 0xff, 0x2f, 0x00];
+  const track = [...pc0, ...pc1, ...on0, ...on1, ...off0, ...off1, ...eot];
   return Uint8Array.from([
     0x4d,
     0x54,
@@ -146,5 +182,28 @@ describe('midi seek mapping', () => {
     assert.equal(midiTickFromProgress(1000, 0.25), 250);
     assert.equal(midiTickFromProgress(1000, -1), 0);
     assert.equal(midiTickFromProgress(1000, 2), 1000);
+  });
+});
+
+describe('listMidiChannels', () => {
+  it('reports the one-note SMF on channel 1 with no program', () => {
+    const chans = listMidiChannels(oneNoteMidi());
+    assert.equal(chans.length, 1);
+    assert.equal(chans[0].channel, 0);
+    assert.equal(chans[0].hasNotes, true);
+    assert.equal(chans[0].program, null);
+    assert.equal(midiChannelLabel(0, null), 'Ch1');
+  });
+
+  it('reports two channels with program names', () => {
+    const chans = listMidiChannels(twoChannelMidi());
+    assert.equal(chans.length, 2);
+    assert.equal(chans[0].channel, 0);
+    assert.equal(chans[0].program, 0);
+    assert.equal(chans[1].channel, 1);
+    assert.equal(chans[1].program, 40);
+    assert.match(midiChannelLabel(0, 0), /Acoustic Grand/);
+    assert.match(midiChannelLabel(1, 40), /Violin/);
+    assert.equal(midiChannelLabel(9, 0), 'Ch10 Drums');
   });
 });

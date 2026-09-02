@@ -21,6 +21,213 @@ export function midiTickFromProgress(maxTick, progress) {
   return Math.round(p * maxTick);
 }
 
+/** General MIDI program names (0–127). Channel 10 (index 9) is drums. */
+export const GM_PROGRAM_NAMES = [
+  'Acoustic Grand',
+  'Bright Piano',
+  'Electric Grand',
+  'Honky-tonk',
+  'Electric Piano 1',
+  'Electric Piano 2',
+  'Harpsichord',
+  'Clavinet',
+  'Celesta',
+  'Glockenspiel',
+  'Music Box',
+  'Vibraphone',
+  'Marimba',
+  'Xylophone',
+  'Tubular Bells',
+  'Dulcimer',
+  'Drawbar Organ',
+  'Percussive Organ',
+  'Rock Organ',
+  'Church Organ',
+  'Reed Organ',
+  'Accordion',
+  'Harmonica',
+  'Tango Accordion',
+  'Nylon Guitar',
+  'Steel Guitar',
+  'Jazz Guitar',
+  'Clean Guitar',
+  'Muted Guitar',
+  'Overdrive Guitar',
+  'Distortion Guitar',
+  'Guitar Harmonics',
+  'Acoustic Bass',
+  'Finger Bass',
+  'Pick Bass',
+  'Fretless Bass',
+  'Slap Bass 1',
+  'Slap Bass 2',
+  'Synth Bass 1',
+  'Synth Bass 2',
+  'Violin',
+  'Viola',
+  'Cello',
+  'Contrabass',
+  'Tremolo Strings',
+  'Pizzicato',
+  'Harp',
+  'Timpani',
+  'String Ensemble 1',
+  'String Ensemble 2',
+  'Synth Strings 1',
+  'Synth Strings 2',
+  'Choir Aahs',
+  'Voice Oohs',
+  'Synth Choir',
+  'Orchestra Hit',
+  'Trumpet',
+  'Trombone',
+  'Tuba',
+  'Muted Trumpet',
+  'French Horn',
+  'Brass Section',
+  'Synth Brass 1',
+  'Synth Brass 2',
+  'Soprano Sax',
+  'Alto Sax',
+  'Tenor Sax',
+  'Baritone Sax',
+  'Oboe',
+  'English Horn',
+  'Bassoon',
+  'Clarinet',
+  'Piccolo',
+  'Flute',
+  'Recorder',
+  'Pan Flute',
+  'Blown Bottle',
+  'Shakuhachi',
+  'Whistle',
+  'Ocarina',
+  'Lead Square',
+  'Lead Saw',
+  'Lead Calliope',
+  'Lead Chiff',
+  'Lead Charang',
+  'Lead Voice',
+  'Lead Fifths',
+  'Lead Bass+Lead',
+  'Pad New Age',
+  'Pad Warm',
+  'Pad Polysynth',
+  'Pad Choir',
+  'Pad Bowed',
+  'Pad Metallic',
+  'Pad Halo',
+  'Pad Sweep',
+  'FX Rain',
+  'FX Soundtrack',
+  'FX Crystal',
+  'FX Atmosphere',
+  'FX Brightness',
+  'FX Goblins',
+  'FX Echoes',
+  'FX Sci-Fi',
+  'Sitar',
+  'Banjo',
+  'Shamisen',
+  'Koto',
+  'Kalimba',
+  'Bagpipe',
+  'Fiddle',
+  'Shanai',
+  'Tinkle Bell',
+  'Agogo',
+  'Steel Drums',
+  'Woodblock',
+  'Taiko Drum',
+  'Melodic Tom',
+  'Synth Drum',
+  'Reverse Cymbal',
+  'Guitar Fret Noise',
+  'Breath Noise',
+  'Seashore',
+  'Bird Tweet',
+  'Telephone Ring',
+  'Helicopter',
+  'Applause',
+  'Gunshot'
+];
+
+/**
+ * @param {number} channel 0–15
+ * @param {number|null|undefined} program
+ */
+export function midiChannelLabel(channel, program) {
+  const n = channel + 1;
+  if (channel === 9) return `Ch${n} Drums`;
+  const name =
+    typeof program === 'number' && program >= 0 && program < GM_PROGRAM_NAMES.length
+      ? GM_PROGRAM_NAMES[program]
+      : null;
+  return name ? `Ch${n} ${name}` : `Ch${n}`;
+}
+
+/**
+ * Channels that actually play notes in an SMF (after RIFF unwrap).
+ * @param {ArrayBuffer|Uint8Array} data
+ * @returns {{ channel: number, program: number|null, hasNotes: boolean }[]}
+ */
+export function listMidiChannels(data) {
+  const view = unwrapRiffMidi(toBytes(data));
+  /** @type {{ channel: number, program: number|null, hasNotes: boolean }[]} */
+  const channels = [];
+  for (let channel = 0; channel < 16; channel++) {
+    channels.push({ channel, program: null, hasNotes: false });
+  }
+  if (view.length < 14) return [];
+  const headerLen = readU32(view, 4);
+  let idx = 8 + headerLen;
+  const ntrks = readU16(view, 10);
+  for (let tr = 0; tr < ntrks && idx + 8 <= view.length; tr++) {
+    if (readFourCC(view, idx) !== 'MTrk') break;
+    const len = readU32(view, idx + 4);
+    const start = idx + 8;
+    const end = Math.min(start + len, view.length);
+    let i = start;
+    let running = 0;
+    while (i < end) {
+      const delta = readMidiVlq(view, i);
+      i = delta.next;
+      if (i >= end) break;
+      let status = view[i];
+      if (status < 0x80) status = running;
+      else {
+        i++;
+        running = status;
+      }
+      if (status === 0xff) {
+        if (i >= end) break;
+        const type = view[i++];
+        const lenV = readMidiVlq(view, i);
+        i = lenV.next + lenV.value;
+        if (type === 0x2f) break;
+      } else if (status === 0xf0 || status === 0xf7) {
+        const lenV = readMidiVlq(view, i);
+        i = lenV.next + lenV.value;
+      } else {
+        const hi = status & 0xf0;
+        const ch = status & 0x0f;
+        if (hi === 0xc0) {
+          channels[ch].program = view[i] & 0x7f;
+          i += 1;
+        } else if (hi === 0xd0) {
+          i += 1;
+        } else {
+          if (hi === 0x90 && view[i + 1] > 0) channels[ch].hasNotes = true;
+          i += 2;
+        }
+      }
+    }
+    idx = start + len;
+  }
+  return channels.filter((c) => c.hasNotes);
+}
+
 const SEQUENCE_MIMES = new Set([
   'audio/midi',
   'audio/mid',

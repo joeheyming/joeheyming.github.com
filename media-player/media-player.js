@@ -6,6 +6,8 @@
 
 import {
   fileLooksLikeSequence,
+  listMidiChannels,
+  midiChannelLabel,
   midiProgressFromTicks,
   midiTickFromProgress,
   prepareMidiBytes,
@@ -52,6 +54,7 @@ class MediaPlayer {
     this.audioTitle = document.getElementById('audio-title');
     this.audioArtist = document.getElementById('audio-artist');
     this.midiSeek = document.getElementById('midi-seek');
+    this.midiChannelList = document.getElementById('midi-channel-list');
     this.vizCanvas = document.getElementById('viz-canvas');
     /** @type {CanvasRenderingContext2D|null} */
     this.vizCtx = null;
@@ -61,6 +64,8 @@ class MediaPlayer {
     this.analyser = null;
     /** @type {Uint8Array|null} */
     this.dataArray = null;
+    /** @type {Uint8Array|null} */
+    this.timeArray = null;
     /** @type {number|null} */
     this._vizRafId = null;
 
@@ -98,6 +103,12 @@ class MediaPlayer {
     this._midiDurationSec = 0;
     this._midiSeeking = false;
     this._analyserToDest = false;
+    /** @type {Set<number>} */
+    this._midiMuted = new Set();
+    /** @type {number|null} */
+    this._midiSolo = null;
+    this._midiSendWrapped = false;
+    this._midiOrigSend = null;
 
     this.init();
   }
@@ -335,7 +346,7 @@ class MediaPlayer {
     // Click media/audio-visual to play/pause
     this.media.addEventListener('click', () => this.togglePlayPause());
     this.audioVisual.addEventListener('click', (e) => {
-      if (e.target.closest('#midi-seek-row')) return;
+      if (e.target.closest('#midi-seek-row, #midi-channels')) return;
       this.togglePlayPause();
     });
 
@@ -848,6 +859,8 @@ class MediaPlayer {
     this.audioTitle.textContent = prepared.title || this.extractTitle(name);
     this.audioArtist.textContent =
       prepared.artist || (prepared.kind === 'smaf' ? 'SMAF ringtone' : 'MIDI');
+    this.resetMidiMixer();
+    this.renderMidiChannels(prepared.midi);
 
     try {
       this.initMidiSynth();
@@ -878,6 +891,7 @@ class MediaPlayer {
     if (!this._midiSynth) {
       this._midiSynth = new WebAudioTinySynth({ quality: 1, voices: 64, useReverb: 1 });
     }
+    this.wrapMidiSend();
     this._midiSynth.setAudioContext(this.audioCtx, this.analyser);
     if (!this._analyserToDest && this.analyser && this.audioCtx) {
       this.analyser.connect(this.audioCtx.destination);
@@ -895,8 +909,9 @@ class MediaPlayer {
     }
     if (!this.analyser) {
       this.analyser = this.audioCtx.createAnalyser();
-      this.analyser.fftSize = 256;
+      this.analyser.fftSize = 2048;
       this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+      this.timeArray = new Uint8Array(this.analyser.fftSize);
     }
   }
 
@@ -975,6 +990,7 @@ class MediaPlayer {
     if (!this._midiSeeking && this.midiSeek) {
       this.midiSeek.value = String(Math.round(progress * MIDI_SEEK_MAX));
     }
+    this.applyMutedChannelVolumes();
     if (!st.play && st.maxTick > 0 && st.curTick >= st.maxTick && !this.isLooping) {
       this.btnPlayPause.textContent = '▶️';
       this.btnPlayPause.title = 'Play (Space)';
@@ -992,10 +1008,139 @@ class MediaPlayer {
     this.isMidi = false;
     this._midiDurationSec = 0;
     this._midiSeeking = false;
+    this.resetMidiMixer();
     this.mediaWrapper.classList.remove('midi-mode');
     if (this.midiSeek) {
       this.midiSeek.value = '0';
       this.midiSeek.disabled = true;
+    }
+  }
+
+  wrapMidiSend() {
+    if (!this._midiSynth || this._midiSendWrapped) return;
+    const orig = this._midiSynth.send.bind(this._midiSynth);
+    this._midiOrigSend = orig;
+    this._midiSynth.send = (msg, t) => {
+      if (!msg || !msg.length) return orig(msg, t);
+      const status = msg[0];
+      if (status < 0x80 || status >= 0xf0) return orig(msg, t);
+      const hi = status & 0xf0;
+      const ch = status & 0x0f;
+      if (!this.isMidiChannelMuted(ch)) return orig(msg, t);
+      if (hi === 0x90) {
+        orig([status, msg[1], 0], t);
+        return;
+      }
+      if (hi === 0xb0 && (msg[1] === 7 || msg[1] === 11)) {
+        orig([status, msg[1], 0], t);
+        return;
+      }
+      orig(msg, t);
+    };
+    this._midiSendWrapped = true;
+  }
+
+  isMidiChannelMuted(ch) {
+    if (this._midiSolo != null) return ch !== this._midiSolo;
+    return this._midiMuted.has(ch);
+  }
+
+  applyMutedChannelVolumes() {
+    if (!this._midiSynth) return;
+    for (let ch = 0; ch < 16; ch++) {
+      if (!this.isMidiChannelMuted(ch)) continue;
+      if (typeof this._midiSynth.setChVol === 'function') {
+        this._midiSynth.setChVol(ch, 0);
+      }
+    }
+  }
+
+  silenceMidiChannel(ch) {
+    const send = this._midiOrigSend || this._midiSynth?.send?.bind(this._midiSynth);
+    if (!send) return;
+    send([0xb0 | ch, 123, 0]);
+    send([0xb0 | ch, 120, 0]);
+    send([0xb0 | ch, 7, 0]);
+    if (typeof this._midiSynth.setChVol === 'function') this._midiSynth.setChVol(ch, 0);
+  }
+
+  resetMidiMixer() {
+    this._midiMuted = new Set();
+    this._midiSolo = null;
+    if (this.midiChannelList) this.midiChannelList.replaceChildren();
+  }
+
+  renderMidiChannels(midiBytes) {
+    if (!this.midiChannelList) return;
+    this.midiChannelList.replaceChildren();
+    const rows = listMidiChannels(midiBytes);
+    for (const info of rows) {
+      const row = document.createElement('div');
+      row.className = 'midi-ch-row';
+      row.dataset.channel = String(info.channel);
+
+      const name = document.createElement('span');
+      name.className = 'midi-ch-name';
+      name.textContent = midiChannelLabel(info.channel, info.program);
+
+      const muteBtn = document.createElement('button');
+      muteBtn.type = 'button';
+      muteBtn.textContent = 'Mute';
+      muteBtn.setAttribute('aria-pressed', 'false');
+      muteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleMidiMute(info.channel);
+      });
+
+      const soloBtn = document.createElement('button');
+      soloBtn.type = 'button';
+      soloBtn.textContent = 'Solo';
+      soloBtn.setAttribute('aria-pressed', 'false');
+      soloBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleMidiSolo(info.channel);
+      });
+
+      row.append(name, muteBtn, soloBtn);
+      this.midiChannelList.appendChild(row);
+    }
+    this.syncMidiMixerButtons();
+  }
+
+  toggleMidiMute(ch) {
+    if (this._midiMuted.has(ch)) this._midiMuted.delete(ch);
+    else {
+      this._midiMuted.add(ch);
+      this.silenceMidiChannel(ch);
+    }
+    this.applyMutedChannelVolumes();
+    this.syncMidiMixerButtons();
+  }
+
+  toggleMidiSolo(ch) {
+    this._midiSolo = this._midiSolo === ch ? null : ch;
+    for (let i = 0; i < 16; i++) {
+      if (this.isMidiChannelMuted(i)) this.silenceMidiChannel(i);
+    }
+    this.applyMutedChannelVolumes();
+    this.syncMidiMixerButtons();
+  }
+
+  syncMidiMixerButtons() {
+    if (!this.midiChannelList) return;
+    for (const row of this.midiChannelList.querySelectorAll('.midi-ch-row')) {
+      const ch = Number(row.dataset.channel);
+      const muted = this.isMidiChannelMuted(ch);
+      row.classList.toggle('muted', muted);
+      const [muteBtn, soloBtn] = row.querySelectorAll('button');
+      if (muteBtn) {
+        muteBtn.classList.toggle('active', this._midiMuted.has(ch));
+        muteBtn.setAttribute('aria-pressed', this._midiMuted.has(ch) ? 'true' : 'false');
+      }
+      if (soloBtn) {
+        soloBtn.classList.toggle('active', this._midiSolo === ch);
+        soloBtn.setAttribute('aria-pressed', this._midiSolo === ch ? 'true' : 'false');
+      }
     }
   }
 
@@ -1039,22 +1184,41 @@ class MediaPlayer {
       const height = canvas.height;
 
       this.analyser.getByteFrequencyData(this.dataArray);
+      if (this.timeArray) this.analyser.getByteTimeDomainData(this.timeArray);
       ctx.clearRect(0, 0, width, height);
 
-      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      const barBand = Math.max(24, Math.floor(height * 0.28));
+      const gradient = ctx.createLinearGradient(0, height - barBand, 0, height);
       gradient.addColorStop(0, brandToken('--accent-blue', '#1a73e8'));
       gradient.addColorStop(1, brandToken('--accent-red', '#ea4335'));
       ctx.fillStyle = gradient;
+      ctx.globalAlpha = 0.45;
 
       const bufferLength = this.dataArray.length;
       const barWidth = (width / bufferLength) * 2.5;
       let x = 0;
 
       for (let i = 0; i < bufferLength; i++) {
-        const barHeight = (this.dataArray[i] / 255) * height;
+        const barHeight = (this.dataArray[i] / 255) * barBand;
         ctx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
         x += barWidth;
         if (x > width) break;
+      }
+
+      ctx.globalAlpha = 1;
+      if (this.timeArray && this.timeArray.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = brandToken('--accent-green', '#34a853');
+        ctx.lineWidth = 1.5;
+        ctx.lineJoin = 'round';
+        const n = this.timeArray.length;
+        for (let i = 0; i < n; i++) {
+          const px = (i / (n - 1)) * width;
+          const py = (this.timeArray[i] / 255) * height;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
       }
     };
 
