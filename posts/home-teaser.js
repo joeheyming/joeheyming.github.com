@@ -22,9 +22,7 @@ function renderTeaser(post, root) {
   const body = root.querySelector('[data-posts-body]');
   const view = root.querySelector('[data-posts-view]');
   const board = root.querySelector('[data-posts-board]');
-  const snippet =
-    truncate(previewText(post.text), TEASER_MAX) ||
-    (post.hasAttachment ? 'Shared an attachment' : 'New note on the board');
+  const snippet = truncate(previewText(post.text), TEASER_MAX) || 'New note on the board';
 
   if (when) when.textContent = formatWhen(post.ts);
   if (body) body.textContent = snippet;

@@ -2228,8 +2228,8 @@
     "id": "posts",
     "name": "Posts 📝",
     "shortName": "Posts",
-    "description": "Shared markdown + attachment posts — no accounts",
-    "detailedDescription": "A bare-bones shared message board. Write markdown, add attachments, optionally leave a name, and make notes from creative apps across the site. Posts are written through a Google Form and read from the linked Sheet — no server, no accounts.",
+    "description": "Shared markdown sticky notes — no accounts",
+    "detailedDescription": "A bare-bones shared message board. Write markdown, optionally leave a name, and pin notes from apps across the site. Text only — no image or audio posts. Writes go through a Google Form and read from the linked Sheet — no server, no accounts.",
     "icon": "📝",
     "path": "./posts/",
     "category": "entertainment",
@@ -2239,7 +2239,7 @@
     "taskbarText": "text-white",
     "defaultWidth": 720,
     "defaultHeight": 860,
-    "tags": ["posts", "social", "markdown", "attachments", "google-forms", "google-sheets"],
+    "tags": ["posts", "social", "markdown", "google-forms", "google-sheets"],
     "related": [
       "ascii",
       "meme",
@@ -2258,7 +2258,7 @@
     "featured": {
       "order": 1,
       "headline": "Leave a note",
-      "blurb": "A public sticky-note board for text, images, audio, drawings, and creations from apps across the site.",
+      "blurb": "A public sticky-note board for text and creations from apps across the site.",
       "tagsLine": "📝 Social • 📌 Creative",
       "preset": "posts",
       "analyticsLabel": "Posts"

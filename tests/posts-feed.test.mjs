@@ -91,7 +91,7 @@ test('parseBoardPosts reassembles chunks and applies moves/removes', () => {
   assert.equal(posts.length, 1);
   assert.equal(posts[0].id, 'post-1');
   assert.equal(posts[0].text, 'Hello');
-  assert.deepEqual(posts[0].attachments, ['data:image/png;base64,AABB']);
+  assert.deepEqual(posts[0].attachments, []);
   assert.equal(posts[0].x, 0.7);
   assert.equal(posts[0].y, 0.8);
 });

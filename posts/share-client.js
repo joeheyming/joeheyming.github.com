@@ -1,11 +1,10 @@
-// Cross-app share helper. Other apps call Posts.share({ text, attachments })
+// Cross-app share helper. Other apps call Posts.share({ text })
 // to stash a draft and open the Posts compose UI.
 //
 // Load with: <script type="module" src="/posts/share-client.js"></script>
 // Or: import { share } from '/posts/share-client.js'
 
 import { CONFIG } from './config.js';
-import { blobToDataUrl, compressAttachment } from './upload.js';
 
 const IDB_NAME = 'posts-share';
 const IDB_STORE = 'drafts';
@@ -20,7 +19,8 @@ const IDB_STORE = 'drafts';
  */
 
 /**
- * Stash a draft and navigate to Posts compose.
+ * Stash a text draft and navigate to Posts compose.
+ * Image/audio payloads are ignored (the board is text-only).
  * @param {PostSharePayload} payload
  * @returns {Promise<void>}
  */
@@ -32,68 +32,11 @@ export async function share(payload = {}) {
     (Array.isArray(payload.images) && payload.images) ||
     [];
 
-  const attachments = [];
-  for (const item of raw.slice(0, CONFIG.maxAttachmentsPerPost)) {
-    if (typeof item === 'string' && /^https?:\/\//i.test(item.trim())) {
-      attachments.push(item.trim());
-      continue;
-    }
-    if (item instanceof Blob && item.type.startsWith('audio/')) {
-      const encoded = await blobToDataUrl(item);
-      if (encoded.length <= CONFIG.maxAudioAttachmentFieldChars) {
-        attachments.push(encoded);
-      } else {
-        console.warn('[Posts] skipping oversized audio attachment');
-      }
-      continue;
-    }
-    if (typeof item === 'string' && item.startsWith('data:audio/')) {
-      if (item.length <= CONFIG.maxAudioAttachmentFieldChars) attachments.push(item);
-      continue;
-    }
-    if (
-      typeof item === 'string' &&
-      item.startsWith('data:image/') &&
-      item.length <= CONFIG.maxAttachmentFieldChars
-    ) {
-      attachments.push(item);
-      continue;
-    }
-    if (typeof item === 'string' && item.startsWith('data:')) {
-      // Don't stash huge drafts — compress first.
-      try {
-        const compressed = await compressAttachment(item, {
-          maxEdge: CONFIG.maxAttachmentEdge,
-          quality: CONFIG.jpegQuality
-        });
-        attachments.push(await blobToDataUrl(compressed));
-      } catch (err) {
-        console.warn('[Posts] skipping attachment', err);
-      }
-      continue;
-    }
-    if (item instanceof Blob && item.type.startsWith('image/')) {
-      const original = await blobToDataUrl(item);
-      if (original.length <= CONFIG.maxAttachmentFieldChars) {
-        attachments.push(original);
-        continue;
-      }
-    }
-    try {
-      const compressed = await compressAttachment(item, {
-        maxEdge: CONFIG.maxAttachmentEdge,
-        quality: CONFIG.jpegQuality
-      });
-      attachments.push(await blobToDataUrl(compressed));
-    } catch (err) {
-      console.warn('[Posts] skipping attachment', err);
-    }
-  }
-
   const draft = {
     text,
     email,
-    attachments,
+    attachments: [],
+    mediaDropped: raw.length > 0,
     createdAt: Date.now()
   };
 
@@ -118,18 +61,21 @@ export async function loadDraft() {
   } catch {
     /* fall through */
   }
+
   try {
-    const fromIdb = await idbGet(key);
-    if (fromIdb) {
-      await idbDelete(key);
-      return fromIdb;
-    }
+    const db = await openDb();
+    const rec = await idbGet(db, key);
+    if (rec) await idbDelete(db, key);
+    db.close();
+    return rec || null;
   } catch {
-    /* ignore */
+    return null;
   }
-  return null;
 }
 
+/**
+ * @param {object} draft
+ */
 async function persistDraft(draft) {
   const key = CONFIG.draftKey;
   const json = JSON.stringify(draft);
@@ -137,9 +83,15 @@ async function persistDraft(draft) {
     sessionStorage.setItem(key, json);
     return;
   } catch {
-    /* quota — use IndexedDB */
+    /* quota / private mode — IndexedDB next */
   }
-  await idbSet(key, draft);
+  try {
+    const db = await openDb();
+    await idbPut(db, key, draft);
+    db.close();
+  } catch (err) {
+    console.warn('[Posts] could not persist share draft', err);
+  }
 }
 
 function openDb() {
@@ -147,27 +99,18 @@ function openDb() {
     const req = indexedDB.open(IDB_NAME, 1);
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(IDB_STORE)) {
-        db.createObjectStore(IDB_STORE);
-      }
+      if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
 
-async function idbSet(key, value) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put(value, key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function idbGet(key) {
-  const db = await openDb();
+/**
+ * @param {IDBDatabase} db
+ * @param {string} key
+ */
+function idbGet(db, key) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(IDB_STORE, 'readonly');
     const req = tx.objectStore(IDB_STORE).get(key);
@@ -176,17 +119,29 @@ async function idbGet(key) {
   });
 }
 
-async function idbDelete(key) {
-  const db = await openDb();
+/**
+ * @param {IDBDatabase} db
+ * @param {string} key
+ * @param {object} value
+ */
+function idbPut(db, key, value) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).delete(key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    const req = tx.objectStore(IDB_STORE).put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
   });
 }
 
-const api = { share, loadDraft };
-window.Posts = api;
-
-export default api;
+/**
+ * @param {IDBDatabase} db
+ * @param {string} key
+ */
+function idbDelete(db, key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    const req = tx.objectStore(IDB_STORE).delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}

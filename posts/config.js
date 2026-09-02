@@ -2,10 +2,8 @@
 //
 // Writes — POST to a Google Form `formResponse` endpoint (CORS-blind).
 // Reads  — fetch the linked Sheet via the public gviz JSON endpoint.
-// Attachments — tiny WebP/JPEG data URLs (or pasted https URLs) in the Sheet.
-//
-// Binding limit is Google Forms POST size (413 Content Too Large), not
-// Sheets' 50k cell cap. Keep attachment payloads small.
+// Text-only notes. The Form still has an attachment field; clients leave it
+// empty and Apps Script quarantines any media that arrives anyway.
 //
 // Replace placeholders after one-time Google Form / Sheet wiring.
 
@@ -43,15 +41,7 @@ export const CONFIG = {
   sheetId: '12Jwsh6AMSOuozwjGAGinuSpfqJK02oYV0uorUNAZdRQ',
   responsesTab: 'Form Responses 1',
 
-  // Images are resized for the board, then split across Form rows when needed.
-  maxAttachmentEdge: 1600,
-  jpegQuality: 0.9,
-  maxAttachmentsPerPost: 1,
-  // Encoded attachment budgets; larger data URLs are split across Form responses.
-  maxAttachmentFieldChars: 350000,
-  maxAudioAttachmentFieldChars: 250000,
-  maxAttachmentChunkChars: 10000,
-  // Whole URL-encoded form body must stay under this (bytes).
+  // Whole URL-encoded form body must stay under Google Forms' 413 limit.
   maxFormBodyBytes: 16000,
 
   // sessionStorage / IndexedDB draft key used by share-client.js

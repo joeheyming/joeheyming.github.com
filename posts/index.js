@@ -1,6 +1,6 @@
 import { CONFIG, isConfigured } from './config.js';
-import { assertImagesSafe, assertTextSafe, isImageAttachment } from './moderate.js';
-import { encodeAttachments, formBodyByteLength } from './upload.js';
+import { assertTextSafe } from './moderate.js';
+import { formBodyByteLength } from './upload.js';
 import { loadDraft } from './share-client.js';
 import {
   fetchTab,
@@ -16,7 +16,6 @@ import { createTidy } from './tidy.js';
 import { createArchive } from './archive.js';
 
 const DEMO_KEY = 'posts-demo-v1';
-const ATTACHMENT_CHUNK_PREFIX = 'posts-attachment-chunk-v1';
 const NOTE_COLORS = ['#fff3a6', '#ffd6e7', '#cceeff', '#d9f7be', '#ffe0b5', '#e4d7ff'];
 
 /**
@@ -64,7 +63,6 @@ const els = {
   jumpNewest: document.getElementById('jump-newest-btn'),
   tidyBtn: document.getElementById('tidy-btn'),
   status: document.getElementById('board-status'),
-  file: document.getElementById('note-file'),
   honeypot: document.getElementById('note-honeypot'),
   lightbox: document.getElementById('lightbox'),
   lightboxImg: document.getElementById('lightbox-img')
@@ -126,8 +124,7 @@ archiveApi = createArchive({
   }
 });
 
-const { setupBoardCamera, applyCamera, resetCamera, pointInView, boardPointFromClient } =
-  boardCamera;
+const { setupBoardCamera, applyCamera, resetCamera, pointInView } = boardCamera;
 
 const { setLayoutMode, sizeBoardSurface, packTidyGrid, displayPosition, clearTidySlots } = tidy;
 
@@ -167,9 +164,7 @@ async function init() {
       setStatus('Board refreshed');
     }
   });
-  els.file?.addEventListener('change', onFilesPicked);
   document.addEventListener('paste', onPaste);
-  setupDropTargets();
   setupLightbox();
   window.addEventListener('resize', () => {
     // Tidy columns depend on viewport width, so the grid has to be recomputed.
@@ -195,10 +190,12 @@ async function init() {
     await createDraftNote({
       text: draft.text || '',
       email: draft.email || '',
-      attachments: draft.attachments || draft.images || [],
       ...(point || {}),
       avoidOverlap: true
     });
+    if (draft.mediaDropped) {
+      setStatus('Images and audio cannot be posted — text only', true);
+    }
   } else if (wantsCompose) {
     const point = pointInView();
     void createDraftNote(point ? { ...point, avoidOverlap: true } : { avoidOverlap: true });
@@ -221,7 +218,7 @@ async function init() {
 }
 
 /**
- * @param {{ text?: string, email?: string, attachments?: Array<string|Blob>, x?: number, y?: number, avoidOverlap?: boolean }} [seed]
+ * @param {{ text?: string, email?: string, x?: number, y?: number, avoidOverlap?: boolean }} [seed]
  */
 async function createDraftNote(seed = {}) {
   const placed = Number.isFinite(Number(seed.x)) || Number.isFinite(Number(seed.y));
@@ -239,11 +236,6 @@ async function createDraftNote(seed = {}) {
     y: metadata.y,
     draft: true
   };
-
-  const sources = Array.isArray(seed.attachments) ? seed.attachments : [];
-  for (const src of sources.slice(0, CONFIG.maxAttachmentsPerPost)) {
-    await addAttachmentToNote(note, src);
-  }
 
   posts = [note, ...posts.filter((p) => p.id !== note.id)];
   activeDraftId = note.id;
@@ -264,160 +256,8 @@ function focusDraft(id) {
   });
 }
 
-async function addAttachmentToNote(note, src) {
-  if (note.attachments.length >= CONFIG.maxAttachmentsPerPost) {
-    setStatus(`Max ${CONFIG.maxAttachmentsPerPost} attachment per note`, true);
-    return;
-  }
-  if (typeof src === 'string' && /^https?:\/\//i.test(src)) {
-    note.attachments.push({ url: src.trim() });
-    return;
-  }
-  if (typeof src === 'string' && src.startsWith('data:')) {
-    const blob = await (await fetch(src)).blob();
-    const url = URL.createObjectURL(blob);
-    note.attachments.push({ blob, url, revoke: true });
-    return;
-  }
-  if (src instanceof Blob) {
-    const url = URL.createObjectURL(src);
-    note.attachments.push({ blob: src, url, revoke: true });
-  }
-}
-
-function onFilesPicked() {
-  const note = posts.find((p) => p.id === activeDraftId && p.draft);
-  const files = [...(els.file?.files || [])];
-  if (els.file) els.file.value = '';
-  if (!note) return;
-  void addFilesToDraft(note, files);
-}
-
-async function addFilesToDraft(note, files) {
-  let added = 0;
-  for (const file of files) {
-    if (!file.type.startsWith('image/') && !file.type.startsWith('audio/')) continue;
-    const before = note.attachments.length;
-    await addAttachmentToNote(note, file);
-    if (note.attachments.length > before) added += 1;
-  }
-  renderBoard();
-  focusDraft(note.id);
-  if (added) setStatus(added === 1 ? 'Attachment added' : `${added} attachments added`);
-  else if (files.length) setStatus('Drop image or audio attachments only', true);
-}
-
-/**
- * @param {DataTransfer|null|undefined} dataTransfer
- * @returns {File[]}
- */
-function filesFromDataTransfer(dataTransfer) {
-  if (!dataTransfer) return [];
-  const listed = [...(dataTransfer.files || [])];
-  if (listed.length) return listed;
-  return [...(dataTransfer.items || [])]
-    .filter((item) => item.kind === 'file')
-    .map((item) => item.getAsFile())
-    .filter(Boolean);
-}
-
-function isAttachmentDrop(dataTransfer) {
-  if (!dataTransfer) return false;
-  if ([...(dataTransfer.files || [])].length > 0) return true;
-  return [...(dataTransfer.types || [])].some(
-    (type) => type === 'Files' || type.startsWith('image/') || type.startsWith('audio/')
-  );
-}
-
-function clearDropHighlights() {
-  els.board?.classList.remove('drop-target');
-  els.board?.querySelectorAll('.post.drop-target').forEach((el) => {
-    el.classList.remove('drop-target');
-  });
-}
-
-function setupDropTargets() {
-  if (!els.board) return;
-
-  els.board.addEventListener('dragenter', (event) => {
-    if (!isAttachmentDrop(event.dataTransfer)) return;
-    event.preventDefault();
-    highlightDropTarget(event);
-  });
-
-  els.board.addEventListener('dragover', (event) => {
-    if (!isAttachmentDrop(event.dataTransfer)) return;
-    event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
-    highlightDropTarget(event);
-  });
-
-  els.board.addEventListener('dragleave', (event) => {
-    if (!(event.target instanceof Element)) return;
-    if (event.target === els.board || event.target.classList.contains('board-surface')) {
-      clearDropHighlights();
-    }
-    const draft = event.target.closest?.('.post.draft');
-    if (draft && !draft.contains(/** @type {Node} */ (event.relatedTarget))) {
-      draft.classList.remove('drop-target');
-    }
-  });
-
-  els.board.addEventListener('drop', (event) => {
-    if (!isAttachmentDrop(event.dataTransfer)) return;
-    event.preventDefault();
-    clearDropHighlights();
-    const files = filesFromDataTransfer(event.dataTransfer);
-    if (!files.length) {
-      setStatus('Drop image or audio attachments only', true);
-      return;
-    }
-    void handleAttachmentDrop(event, files);
-  });
-
-  window.addEventListener('dragend', clearDropHighlights);
-}
-
-/**
- * @param {DragEvent} event
- */
-function highlightDropTarget(event) {
-  clearDropHighlights();
-  const draft = event.target instanceof Element ? event.target.closest('.post.draft') : null;
-  if (draft) {
-    draft.classList.add('drop-target');
-    return;
-  }
-  els.board?.classList.add('drop-target');
-}
-
-/**
- * @param {DragEvent} event
- * @param {File[]} files
- */
-async function handleAttachmentDrop(event, files) {
-  const draftEl = event.target instanceof Element ? event.target.closest('.post.draft') : null;
-  if (draftEl) {
-    const note = posts.find((p) => p.id === draftEl.dataset.postId && p.draft);
-    if (note) {
-      activeDraftId = note.id;
-      await addFilesToDraft(note, files);
-      return;
-    }
-  }
-
-  const point = boardPointFromClient(event.clientX, event.clientY) || undefined;
-  await createDraftNote({
-    x: point?.x,
-    y: point?.y,
-    attachments: files.slice(0, CONFIG.maxAttachmentsPerPost)
-  });
-  setStatus('Dropped onto a new note');
-}
-
 /**
  * True when paste belongs to some other page control (nav search, etc.).
- * Draft note fields are ours to handle for attachments.
  * @param {EventTarget|null} target
  */
 function isForeignEditable(target) {
@@ -434,27 +274,6 @@ function isForeignEditable(target) {
 async function onPaste(e) {
   if (!e.clipboardData) return;
   if (isForeignEditable(e.target)) return;
-
-  const files = filesFromDataTransfer(e.clipboardData).filter(
-    (file) => file.type.startsWith('image/') || file.type.startsWith('audio/')
-  );
-
-  if (files.length) {
-    e.preventDefault();
-    const note = posts.find((p) => p.id === activeDraftId && p.draft);
-    if (!note) {
-      const point = pointInView();
-      await createDraftNote({
-        attachments: files.slice(0, CONFIG.maxAttachmentsPerPost),
-        ...(point || {}),
-        avoidOverlap: true
-      });
-      setStatus('Pasted onto a new note');
-      return;
-    }
-    await addFilesToDraft(note, files);
-    return;
-  }
 
   // Native paste into the draft textarea/name field.
   if (e.target instanceof Element && e.target.closest('.post.draft textarea, .post.draft input')) {
@@ -484,11 +303,8 @@ async function onPaste(e) {
 
 function discardDraft(note) {
   if (note.pinning) {
-    setStatus('Still pinning — wait for moderation to finish', true);
+    setStatus('Still pinning — wait a moment', true);
     return;
-  }
-  for (const item of note.attachments) {
-    if (item && typeof item === 'object' && item.revoke) URL.revokeObjectURL(item.url);
   }
   posts = posts.filter((p) => p.id !== note.id);
   if (activeDraftId === note.id) activeDraftId = null;
@@ -503,8 +319,8 @@ async function pinDraft(note) {
     return;
   }
   const text = note.text.trim();
-  if (!text && note.attachments.length === 0) {
-    setStatus('Write something or add an attachment', true);
+  if (!text) {
+    setStatus('Write something first', true);
     return;
   }
 
@@ -512,47 +328,24 @@ async function pinDraft(note) {
   renderBoard();
 
   try {
-    if (text) {
-      setStatus('Checking text…');
-      await assertTextSafe(text);
-    }
+    setStatus('Checking text…');
+    await assertTextSafe(text);
 
-    setStatus(note.attachments.length ? 'Encoding attachments…' : 'Pinning…');
-    const rawInputs = note.attachments.map((item) =>
-      typeof item === 'string' ? item : item.blob || item.url
-    );
-    const hasAudio = rawInputs.some(
-      (item) =>
-        (item instanceof Blob && item.type.startsWith('audio/')) ||
-        (typeof item === 'string' && item.startsWith('data:audio/'))
-    );
-    const attachmentUrls = await encodeAttachments(rawInputs, {
-      maxEdge: CONFIG.maxAttachmentEdge,
-      quality: CONFIG.jpegQuality,
-      max: CONFIG.maxAttachmentsPerPost,
-      maxTotalChars: hasAudio ? CONFIG.maxAudioAttachmentFieldChars : CONFIG.maxAttachmentFieldChars
-    });
-
-    const imageUrls = attachmentUrls.filter(isImageAttachment);
-    if (imageUrls.length) {
-      setStatus('Checking image…');
-      await assertImagesSafe(imageUrls);
-    }
-
+    setStatus('Pinning…');
     const metadata = {
       id: note.id,
       action: 'post',
       x: note.x,
       y: note.y
     };
-    const formBodies = buildFormBodies(text, attachmentUrls, note.email.trim(), metadata);
-    for (const body of formBodies) assertFormBodyFits(body);
+    const body = buildFormBody(text, note.email.trim(), metadata);
+    assertFormBodyFits(body);
 
     const published = {
       id: note.id,
       ts: Date.now(),
       text,
-      attachments: attachmentUrls,
+      attachments: [],
       email: note.email.trim(),
       x: note.x,
       y: note.y,
@@ -560,20 +353,11 @@ async function pinDraft(note) {
     };
 
     if (configured) {
-      for (let i = 0; i < formBodies.length; i++) {
-        if (formBodies.length > 1) {
-          setStatus(`Pinning attachment chunk ${i + 1} of ${formBodies.length}…`);
-        }
-        await submitToForm(formBodies[i]);
-      }
+      await submitToForm(body);
     } else {
       const demo = loadDemoPosts();
       demo.unshift({ ...published, pending: false });
       saveDemoPosts(demo);
-    }
-
-    for (const item of note.attachments) {
-      if (item && typeof item === 'object' && item.revoke) URL.revokeObjectURL(item.url);
     }
 
     posts = [
@@ -589,7 +373,7 @@ async function pinDraft(note) {
     setStatus(
       configured ? 'Pinned — may take a few seconds for everyone' : 'Pinned (demo — local only)'
     );
-    window.trackEvent?.('posts_submit', 'Engagement', String(attachmentUrls.length));
+    window.trackEvent?.('posts_submit', 'Engagement', 'text');
     window.heymingAchievements?.unlockForCurrentApp('first-action');
   } catch (err) {
     console.error(err);
@@ -600,37 +384,14 @@ async function pinDraft(note) {
   }
 }
 
-function buildFormBody(text, attachmentUrls, email, metadata = null) {
+function buildFormBody(text, email, metadata = null) {
   const body = new URLSearchParams();
   body.set(CONFIG.entryIds.text, text);
-  body.set(CONFIG.entryIds.attachment, serializeAttachments(attachmentUrls));
+  body.set(CONFIG.entryIds.attachment, '');
   body.set(CONFIG.entryIds.email, email || '');
   body.set(CONFIG.entryIds.metadata, metadata ? JSON.stringify(metadata) : '');
   body.set(CONFIG.entryIds.honeypot, '');
   return body;
-}
-
-function buildFormBodies(text, attachmentUrls, email, metadata) {
-  const serialized = serializeAttachments(attachmentUrls);
-  if (!serialized.startsWith('data:') || serialized.length <= CONFIG.maxAttachmentChunkChars) {
-    return [buildFormBody(text, attachmentUrls, email, metadata)];
-  }
-
-  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  const chunks = [];
-  for (let offset = 0; offset < serialized.length; offset += CONFIG.maxAttachmentChunkChars) {
-    chunks.push(serialized.slice(offset, offset + CONFIG.maxAttachmentChunkChars));
-  }
-
-  return chunks.map((chunk, index) => {
-    const envelope = `${ATTACHMENT_CHUNK_PREFIX}|${id}|${index}|${chunks.length}|${chunk}`;
-    return buildFormBody(
-      index === 0 ? text : '',
-      [envelope],
-      index === 0 ? email : '',
-      index === 0 ? metadata : null
-    );
-  });
 }
 
 function createPostMetadata(x, y, { avoidOverlap = false } = {}) {
@@ -692,10 +453,6 @@ async function submitToForm(body) {
     mode: 'no-cors',
     body
   });
-}
-
-function serializeAttachments(urls) {
-  return urls.join('\n');
 }
 
 async function pollFeed() {
@@ -980,7 +737,7 @@ async function persistMove(post, previousPosition) {
   setStatus('Moving note…');
   try {
     if (configured) {
-      const body = buildFormBody('', [], '', {
+      const body = buildFormBody('', '', {
         action: 'move',
         targetId: post.id,
         x: post.x,
@@ -1037,10 +794,6 @@ function renderDraftNote(post) {
     activeDraftId = post.id;
   });
 
-  const thumbs = document.createElement('div');
-  thumbs.className = 'note-thumbs';
-  renderDraftThumbs(post, thumbs);
-
   const name = document.createElement('input');
   name.type = 'text';
   name.placeholder = 'Name or email (optional)';
@@ -1057,17 +810,6 @@ function renderDraftNote(post) {
   const actions = document.createElement('div');
   actions.className = 'note-actions';
 
-  const fileBtn = document.createElement('button');
-  fileBtn.type = 'button';
-  fileBtn.className = 'file-btn';
-  fileBtn.textContent = 'Attach';
-  fileBtn.title = 'Attach an image or audio file, or drop one on this note';
-  fileBtn.disabled = Boolean(post.pinning);
-  fileBtn.addEventListener('click', () => {
-    activeDraftId = post.id;
-    els.file?.click();
-  });
-
   const pin = document.createElement('button');
   pin.type = 'button';
   pin.className = 'btn primary sm';
@@ -1078,42 +820,10 @@ function renderDraftNote(post) {
     void pinDraft(post);
   });
 
-  actions.append(fileBtn, pin);
-  editor.append(text, thumbs, name, actions);
+  actions.append(pin);
+  editor.append(text, name, actions);
   article.append(discard, editor);
   return article;
-}
-
-function renderDraftThumbs(post, thumbs) {
-  thumbs.replaceChildren();
-  post.attachments.forEach((item, i) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'note-thumb';
-    const url = typeof item === 'string' ? item : item.url;
-    const isAudio =
-      (typeof item !== 'string' && item.blob?.type.startsWith('audio/')) ||
-      url.startsWith('data:audio/');
-    const preview = document.createElement(isAudio ? 'audio' : 'img');
-    preview.src = url;
-    if (isAudio) preview.controls = true;
-    else preview.alt = '';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.setAttribute('aria-label', 'Remove attachment');
-    btn.textContent = '×';
-    btn.disabled = Boolean(post.pinning);
-    btn.addEventListener('click', () => {
-      if (post.pinning) return;
-      const removed = post.attachments.splice(i, 1)[0];
-      if (removed && typeof removed === 'object' && removed.revoke) {
-        URL.revokeObjectURL(removed.url);
-      }
-      renderBoard();
-    });
-    wrap.classList.toggle('audio', isAudio);
-    wrap.append(preview, btn);
-    thumbs.append(wrap);
-  });
 }
 
 function renderPublishedNote(post) {
@@ -1154,34 +864,6 @@ function renderPublishedNote(post) {
 
   article.append(meta, body);
 
-  const urls = post.attachments.filter((item) => typeof item === 'string');
-  if (urls.length) {
-    const gallery = document.createElement('div');
-    gallery.className = 'post-attachments';
-    for (const src of urls) {
-      if (src.startsWith('data:audio/')) {
-        const audio = document.createElement('audio');
-        audio.controls = true;
-        audio.preload = 'metadata';
-        audio.src = src;
-        gallery.append(audio);
-        continue;
-      }
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'post-attachment-btn';
-      btn.setAttribute('aria-label', 'View larger attachment');
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = '';
-      img.loading = 'lazy';
-      btn.append(img);
-      btn.addEventListener('click', () => openLightbox(src));
-      gallery.append(btn);
-    }
-    article.append(gallery);
-  }
-
   return article;
 }
 
@@ -1197,7 +879,7 @@ async function onRemovePost(post, button) {
   button.disabled = true;
   try {
     if (configured) {
-      const body = buildFormBody('', [], '', {
+      const body = buildFormBody('', '', {
         action: 'remove',
         targetId: post.id
       });

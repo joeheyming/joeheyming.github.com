@@ -282,17 +282,16 @@ export function parseBoardPosts(cols, rows) {
       continue;
     }
 
-    const attachments = parseAttachments(rawAttachment);
-    if (!text && attachments.length === 0) continue;
+    if (!text) continue;
 
-    const fallbackId = `sheet-${ts}-${hashStr(text + '\n' + attachments.join(','))}`;
+    const fallbackId = `sheet-${ts}-${hashStr(text)}`;
     const id = typeof metadata?.id === 'string' && metadata.id ? metadata.id : fallbackId;
     const position = positionFor(id, metadata);
     remote.push({
       id,
       ts: ts || Date.now(),
       text,
-      attachments,
+      attachments: [],
       email,
       ...position,
       pending: false
@@ -301,8 +300,7 @@ export function parseBoardPosts(cols, rows) {
 
   for (const group of chunkGroups.values()) {
     if (group.chunks.filter((chunk) => typeof chunk === 'string').length !== group.total) continue;
-    const attachments = parseAttachments(group.chunks.join(''));
-    if (!group.text && attachments.length === 0) continue;
+    if (!group.text) continue;
     const fallbackId = `sheet-chunk-${group.id}`;
     const id =
       typeof group.metadata?.id === 'string' && group.metadata.id ? group.metadata.id : fallbackId;
@@ -311,7 +309,7 @@ export function parseBoardPosts(cols, rows) {
       id,
       ts: group.ts || Date.now(),
       text: group.text,
-      attachments,
+      attachments: [],
       email: group.email,
       ...position,
       pending: false
@@ -416,44 +414,32 @@ export async function fetchLatestPost() {
       continue;
     }
 
-    const attachments = parseAttachments(rawAttachment);
-    if (!text && attachments.length === 0) continue;
+    if (!text) continue;
 
-    const fallbackId = `sheet-${ts}-${hashStr(text + '\n' + attachments.join(','))}`;
+    const fallbackId = `sheet-${ts}-${hashStr(text)}`;
     const id = typeof metadata?.id === 'string' && metadata.id ? metadata.id : fallbackId;
     remote.push({
       id,
       ts: ts || Date.now(),
       text,
       email,
-      hasAttachment: attachments.length > 0
+      hasAttachment: false
     });
   }
 
   for (const group of chunkGroups.values()) {
-    if (group.seen < group.total && !group.text) continue;
-    if (!group.text && group.seen < 1) continue;
+    if (!group.text) continue;
     const fallbackId = `sheet-chunk-${group.id}`;
     const id =
       typeof group.metadata?.id === 'string' && group.metadata.id
         ? String(group.metadata.id)
         : fallbackId;
-    if (!group.text) {
-      remote.push({
-        id,
-        ts: group.ts || Date.now(),
-        text: '',
-        email: group.email,
-        hasAttachment: true
-      });
-      continue;
-    }
     remote.push({
       id,
       ts: group.ts || Date.now(),
       text: group.text,
       email: group.email,
-      hasAttachment: true
+      hasAttachment: false
     });
   }
 

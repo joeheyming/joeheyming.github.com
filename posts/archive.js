@@ -95,21 +95,8 @@ export function createArchive(deps) {
       btn.setAttribute('role', 'listitem');
 
       const thumb = document.createElement('div');
-      const first = post.attachments.find((item) => typeof item === 'string');
-      if (typeof first === 'string' && first.startsWith('data:audio/')) {
-        thumb.className = 'archive-thumb audio';
-        thumb.textContent = 'Audio';
-      } else if (typeof first === 'string') {
-        thumb.className = 'archive-thumb';
-        const img = document.createElement('img');
-        img.src = first;
-        img.alt = '';
-        img.loading = 'lazy';
-        thumb.append(img);
-      } else {
-        thumb.className = 'archive-thumb blank';
-        thumb.textContent = 'Note';
-      }
+      thumb.className = 'archive-thumb blank';
+      thumb.textContent = 'Note';
 
       const body = document.createElement('div');
       body.className = 'archive-item-body';
@@ -118,7 +105,7 @@ export function createArchive(deps) {
       when.textContent = formatWhen(post.ts);
       const text = document.createElement('p');
       text.className = 'archive-item-text';
-      text.textContent = previewText(post.text) || '(attachment only)';
+      text.textContent = previewText(post.text) || 'Note';
       body.append(when, text);
       if (post.email) {
         const author = document.createElement('span');
@@ -198,15 +185,12 @@ export function createArchive(deps) {
 
   /** @param {Post} post */
   function openArchiveReader(post) {
-    if (!deps.els.lightbox || !deps.els.lightboxImg) return;
-
-    const urls = post.attachments.filter((item) => typeof item === 'string');
-    const image = urls.find((src) => typeof src === 'string' && !src.startsWith('data:audio/'));
-    if (typeof image === 'string') {
-      deps.openLightbox(image);
-    }
-
     const snippet = previewText(post.text);
+    deps.setStatus(
+      snippet
+        ? `${formatWhen(post.ts)} — ${snippet.slice(0, 120)}${snippet.length > 120 ? '…' : ''}`
+        : `Archived note from ${formatWhen(post.ts)}`
+    );
     deps.setStatus(
       snippet
         ? `${formatWhen(post.ts)} — ${snippet.slice(0, 120)}${snippet.length > 120 ? '…' : ''}`
