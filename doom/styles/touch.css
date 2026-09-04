@@ -50,15 +50,15 @@ body.mobile #touch-ui.hidden {
   transform: scale(0.94);
 }
 .touch-btn.action {
-  width: 56px;
-  height: 56px;
-  font-size: 14px;
+  width: var(--action-size, 56px);
+  height: var(--action-size, 56px);
+  font-size: var(--action-font, 14px);
   letter-spacing: 1px;
 }
 .touch-btn.action.fire {
   background: var(--doom-touch-fire, rgba(200, 40, 40, 0.6));
-  width: 72px;
-  height: 72px;
+  width: var(--fire-size, 72px);
+  height: var(--fire-size, 72px);
   font-size: 22px;
 }
 .touch-btn.action.use {
@@ -79,34 +79,33 @@ body.mobile #touch-ui.hidden {
   font-size: 22px;
 }
 
+/* D-pad as a 3x3 grid: one cell size is the only knob, and the four
+   buttons never sit in adjacent cells so the circles keep their gaps at
+   any size. Corners and the center stay empty (dead zone). */
 #touch-move {
   position: absolute;
   left: calc(14px + env(safe-area-inset-left, 0px));
   bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-  width: 256px;
-  height: 256px;
+  display: grid;
+  grid-template-columns: repeat(3, var(--dpad-cell, 85px));
+  grid-template-rows: repeat(3, var(--dpad-cell, 85px));
 }
 #touch-move .touch-btn {
-  position: absolute;
-  width: 88px;
-  height: 88px;
-  font-size: 26px;
+  width: 100%;
+  height: 100%;
+  font-size: var(--dpad-font, 26px);
 }
 #touch-move .up {
-  top: 0;
-  left: 84px;
-}
-#touch-move .down {
-  bottom: 0;
-  left: 84px;
+  grid-area: 1 / 2;
 }
 #touch-move .left {
-  top: 84px;
-  left: 0;
+  grid-area: 2 / 1;
 }
 #touch-move .right {
-  top: 84px;
-  right: 0;
+  grid-area: 2 / 3;
+}
+#touch-move .down {
+  grid-area: 3 / 2;
 }
 
 #touch-actions {
@@ -115,55 +114,42 @@ body.mobile #touch-ui.hidden {
   bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--action-gap, 10px);
   align-items: flex-end;
-  /* Bumped from 160 to 220 to fit JUMP | USE | FIRE in the bottom row.
-     56 + 10 + 56 + 10 + 72 = 204px; the @media short-landscape rule
-     shrinks them to 48 + 10 + 48 + 10 + 60 = 176px. */
-  max-width: 220px;
 }
 #touch-actions .row {
   display: flex;
-  gap: 10px;
+  gap: var(--action-gap, 10px);
   align-items: center;
 }
 
 @media (max-height: 420px) {
   #touch-move {
-    width: 220px;
-    height: 220px;
+    --dpad-cell: 73px;
+    --dpad-font: 22px;
   }
-  #touch-move .up {
-    top: 0;
-    left: 74px;
+  #touch-actions {
+    --action-size: 48px;
+    --action-font: 12px;
+    --fire-size: 60px;
   }
-  #touch-move .down {
-    bottom: 0;
-    left: 74px;
-  }
-  #touch-move .left {
-    top: 74px;
-    left: 0;
-  }
-  #touch-move .right {
-    top: 74px;
-    right: 0;
-  }
-  #touch-move .touch-btn {
-    width: 72px;
-    height: 72px;
-    font-size: 22px;
-  }
-  .touch-btn.action {
-    width: 48px;
-    height: 48px;
-    font-size: 12px;
-  }
-  .touch-btn.action.fire {
-    width: 60px;
-    height: 60px;
-    font-size: 18px;
-  }
+}
+
+/* Portrait. The landscape sizes put the 256px D-pad and the 204px-wide
+   JUMP | USE | FIRE row in the same horizontal band, which needs 474px of
+   the ~362px a phone has across — so MENU landed on top of strafe-right
+   and the whole cluster read as one scrunched blob. Sizing both clusters
+   off the viewport keeps them clear of each other from 320px up, and the
+   extra vertical room portrait gives us pays for a wider row gap. */
+body.mobile.portrait #touch-move {
+  --dpad-cell: clamp(56px, 18vw, 76px);
+  --dpad-font: clamp(20px, 6vw, 26px);
+}
+body.mobile.portrait #touch-actions {
+  --action-size: clamp(44px, 13vw, 54px);
+  --action-font: clamp(11px, 3.2vw, 13px);
+  --fire-size: clamp(56px, 16vw, 68px);
+  --action-gap: 12px;
 }
 
 body.mobile .overlay {
@@ -176,6 +162,20 @@ body.mobile .brand h1 {
 body.mobile #cleanLaunchBtn {
   font-size: 14px;
   padding: 14px 24px;
+}
+
+/* Site chrome that collides with the touch overlay on phones. share.js's 🎯
+   related-projects toggle is fixed bottom-right, directly on top of FIRE in
+   #touch-actions; the "🔗 Share" pill from share-button.js is fixed
+   top-right over the in-game HUD; and the How to play card / Controls chip
+   sit bottom-left on the D-pad with WASD/mouse copy that does not apply.
+   All stay on desktop. `body.mobile` is set by touch-input.js before these
+   mount, so nothing flashes in first. */
+body.mobile .related-projects-container,
+body.mobile .doom-share-btn,
+body.mobile .play-help,
+body.mobile .play-help-open {
+  display: none;
 }
 
 #landscape-hint {
