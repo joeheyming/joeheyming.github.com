@@ -981,10 +981,11 @@ export async function mount(slot, ctx) {
     const primary = playbackQueue[0] || ep.url;
     if (video.src !== primary) {
       video.src = primary;
-      // Poster is the TVMaze still when available; we don't fall back
-      // to archive.org's `.thumbs/` JPGs because the CDN sometimes
-      // 403s those and a missing poster reads better than a broken one.
-      video.poster = ep.image || '';
+      // Poster is the TVMaze still when available, then the subject's
+      // own poster art. We never fall back to archive.org's `.thumbs/`
+      // JPGs because the CDN sometimes 403s those and a missing poster
+      // reads better than a broken one.
+      video.poster = ep.image || show.posterUrl || '';
     }
     video.load();
 

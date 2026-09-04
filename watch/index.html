@@ -19,7 +19,12 @@
       content="Browser smart-TV guide that organizes and plays Internet Archive TV and film items — animation, sitcoms, cartoons. Cast, resume, save offline. Files stay on archive.org."
     />
     <meta name="author" content="Joe Heyming" />
-    <meta name="robots" content="index, follow" />
+    <!-- max-video-preview:0 — Google reads this URL as a "watch page" (the
+         /watch/ path, the streaming copy), but the hub hosts no video and the
+         crawler landing mounts no player, so Video indexing can never find a
+         thumbnail here. Opting out of video previews keeps the page in normal
+         web results without a permanent "No thumbnail URL provided" report. -->
+    <meta name="robots" content="index, follow, max-video-preview:0" />
     <meta name="language" content="English" />
     <meta name="theme-color" content="#0b0b10" />
     <meta
