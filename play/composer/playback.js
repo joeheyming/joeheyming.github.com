@@ -1,7 +1,7 @@
 /**
  * Playback engine — PianoSynth + 16th-grid scheduler.
  */
-import { getCtx, resumeIfSuspended } from '../shared/audio.js';
+import { getCtx, getMaster, resumeIfSuspended } from '../shared/audio.js';
 import { MULTI_SAMPLE_TONE, PianoSynth } from '../shared/piano-synth.js';
 import {
   isTieContinue,
@@ -81,7 +81,7 @@ export function createPlayback({ onPlayhead, onStatus, onEnded }) {
     gain.gain.setValueAtTime(0.0001, atTime);
     gain.gain.exponentialRampToValueAtTime(peak, atTime + 0.001);
     gain.gain.exponentialRampToValueAtTime(0.0001, atTime + 0.05);
-    osc.connect(gain).connect(ctx.destination);
+    osc.connect(gain).connect(getMaster());
     osc.start(atTime);
     osc.stop(atTime + 0.06);
   }

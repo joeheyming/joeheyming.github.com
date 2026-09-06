@@ -38,7 +38,13 @@
  * users intuitively expect, and avoids needing a separate "rec level"
  * control.
  */
-import { getCtx, getMaster, midiToName } from '../shared/audio.js';
+import {
+  beginAudioCapture,
+  endAudioCapture,
+  getCtx,
+  getMaster,
+  midiToName
+} from '../shared/audio.js';
 import { onMidi } from './voice.js';
 import { getMidiRange } from './scale.js';
 
@@ -216,6 +222,9 @@ export const initRecorder = ({
   let micStream = null;
   let micSource = null;
   let micGain = null;
+  // Balances the beginAudioCapture() claim so stopMicTap() releases it once,
+  // including on the failure path (the catch below calls stopMicTap).
+  let captureHeld = false;
 
   const micWrap = () => micEl?.closest('label') ?? null;
 
@@ -244,6 +253,12 @@ export const initRecorder = ({
     if (micStream) return true;
     if (!navigator.mediaDevices?.getUserMedia) return false;
     try {
+      // Release the `playback` audio session before asking: iOS rejects mic
+      // capture while the page holds it, and the rejection looks exactly
+      // like a denied permission. Released here rather than after the await
+      // because the await is what fails.
+      beginAudioCapture();
+      captureHeld = true;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const ctx = getCtx();
       micStream = stream;
@@ -285,6 +300,10 @@ export const initRecorder = ({
     if (micStream) {
       for (const track of micStream.getTracks()) track.stop();
       micStream = null;
+    }
+    if (captureHeld) {
+      captureHeld = false;
+      endAudioCapture();
     }
   };
 

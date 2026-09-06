@@ -24,7 +24,14 @@
  * The two are crossed: AUTO carousel + AUTO dial, or LOCKED carousel +
  * LOCKED dial. State changes re-render the affected pieces only.
  */
-import { getCtx, getMaster, resumeIfSuspended, setMasterVolume } from '../shared/audio.js';
+import {
+  beginAudioCapture,
+  endAudioCapture,
+  getCtx,
+  getMaster,
+  resumeIfSuspended,
+  setMasterVolume
+} from '../shared/audio.js';
 import { makePrefs } from '../shared/prefs.js';
 import {
   PitchDetector,
@@ -193,6 +200,9 @@ let sourceNode = null;
 let detector = null;
 let rafId = null;
 let listening = false;
+// Tracks the beginAudioCapture() claim so it is released exactly once,
+// whether the mic request fails or the user stops listening.
+let captureHeld = false;
 let lastDetectionAt = 0;
 let lastRenderedMidi = null;
 // Tracked as a timestamp rather than a timeout: the render loop already
@@ -229,9 +239,10 @@ function hideFallback() {
 }
 
 function buildMicUnavailableCard() {
-  const isLocalHostLike = /^(localhost|127\.|::1$|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.)/.test(
-    location.hostname
-  );
+  const isLocalHostLike =
+    /^(localhost|127\.|::1$|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.)/.test(
+      location.hostname
+    );
   const insecure = !window.isSecureContext;
   if (insecure && isLocalHostLike) {
     return {
@@ -251,8 +262,15 @@ function buildMicUnavailableCard() {
   }
   return {
     title: "Microphone API isn't available here",
-    message: 'This browser blocks the mic API. Try Chrome on Android, Safari on iOS, or a desktop browser.'
+    message:
+      'This browser blocks the mic API. Try Chrome on Android, Safari on iOS, or a desktop browser.'
   };
+}
+
+function releaseCapture() {
+  if (!captureHeld) return;
+  captureHeld = false;
+  endAudioCapture();
 }
 
 async function startListening() {
@@ -267,6 +285,12 @@ async function startListening() {
   try {
     resumeIfSuspended();
     const ctx = getCtx();
+    // Hand back the `playback` audio session first: iOS rejects mic capture
+    // outright while the page holds it, and the rejection surfaces as a
+    // permission error the user cannot fix. Reference tones are muted by the
+    // ringer switch while we listen, which is the documented trade.
+    beginAudioCapture();
+    captureHeld = true;
     // Disable browser voice-call DSP — those flatten transients and shift
     // pitch; a tuner cannot tolerate them.
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -291,18 +315,21 @@ async function startListening() {
     micBtn.disabled = false;
     rafId = requestAnimationFrame(loop);
   } catch (err) {
+    releaseCapture();
     micBtn.disabled = false;
     updateMicButton();
     if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
       showFallback({
         title: 'Microphone blocked',
-        message: "The tuner needs mic access. Allow it in your browser's site settings, then tap Retry.",
+        message:
+          "The tuner needs mic access. Allow it in your browser's site settings, then tap Retry.",
         retry: true
       });
     } else if (err && err.name === 'NotFoundError') {
       showFallback({
         title: 'No microphone found',
-        message: "We couldn't find a microphone on this device. Reference pitches still work below.",
+        message:
+          "We couldn't find a microphone on this device. Reference pitches still work below.",
         retry: true
       });
     } else {
@@ -338,6 +365,7 @@ function stopListening() {
     for (const track of mediaStream.getTracks()) track.stop();
     mediaStream = null;
   }
+  releaseCapture();
   cardEl.dataset.state = 'idle';
   statusPillEl.dataset.status = 'idle';
   statusPillEl.textContent = 'Idle';

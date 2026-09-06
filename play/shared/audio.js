@@ -10,7 +10,9 @@
  *
  * Every instrument routes through getCtx() / resumeIfSuspended(), so the
  * WebKit unlock handling below is shared by Safari and other WebKit engines
- * that actually expose the Web Audio API.
+ * that actually expose the Web Audio API. This module also owns the page's
+ * iOS audio session, which is a document-level mode rather than a per-node
+ * setting — pages that capture audio must release it via beginAudioCapture().
  */
 
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -37,6 +39,100 @@ let master = null;
 let masterVolume = 0.65;
 let outputUnlocked = false;
 let gestureUnlockArmed = false;
+
+/**
+ * A maxed volume slider is unity gain, so the only way to get louder than
+ * "as loud as the samples were recorded" is to go over it. Touch devices
+ * need that headroom: a phone speaker is quieter than any desktop output
+ * for the same gain. The output stage below ends in a limiter because of
+ * this.
+ *
+ * The factor is in amplitude, where the ear is not linear: +20% is only
+ * +1.6 dB, which is around the threshold of noticeable and would not have
+ * fixed the report this came from. 1.6x is ~+4 dB, audible without being
+ * the kind of gain that leans on the limiter for ordinary playing. It is
+ * one number to turn if a phone still comes out quiet.
+ *
+ * Detection matches the accordion's: `(any-pointer: coarse)` catches phones
+ * and tablets (including an iPad with a trackpad attached, where
+ * `hover: none` would not), and `maxTouchPoints` is the UA-side backstop.
+ * A touchscreen laptop gets the boost too — under a limiter, that is not
+ * worth a more brittle check.
+ */
+const TOUCH_OUTPUT_BOOST = 1.6;
+
+const outputBoost = (() => {
+  if (typeof window === 'undefined') return 1;
+  const coarse = !!(window.matchMedia && window.matchMedia('(any-pointer: coarse)').matches);
+  const touch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints || 0) > 0;
+  return coarse || touch ? TOUCH_OUTPUT_BOOST : 1;
+})();
+
+/**
+ * Anything over 1.0 hard-clips at the destination, and the boost above puts
+ * a maxed slider with several voices stacked on it there. A fast,
+ * high-ratio compressor just below unity catches those peaks instead.
+ * Returns the node instruments should feed; the destination itself on
+ * engines without a compressor.
+ */
+function createOutputStage(target) {
+  try {
+    const limiter = target.createDynamicsCompressor();
+    limiter.threshold.value = -1;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.25;
+    limiter.connect(target.destination);
+    return limiter;
+  } catch (_) {
+    return target.destination;
+  }
+}
+
+/**
+ * iOS starts every page in the `ambient` audio session. Ambient is the
+ * category the ringer switch governs and it tracks the ringer volume, not
+ * the media volume — which is why an instrument can be quiet, or silent
+ * outright, on a phone whose media volume is maxed. `playback` is the
+ * output-only category the switch does not touch. Safari is the only engine
+ * that implements `navigator.audioSession`; everywhere else this is a no-op.
+ *
+ * The cost is that `playback` is exclusive: claiming it interrupts whatever
+ * the user was listening to and does not resume it afterwards. For an
+ * instrument the sound is the entire point, so we claim it.
+ *
+ * It is also incompatible with mic capture — WebKit rejects
+ * `getUserMedia({ audio })` with InvalidStateError while a page holds
+ * `playback`, and ends a capture track that is already live. The tuner and
+ * the theremin's recorder therefore hand the session back through
+ * beginAudioCapture() *before* requesting a stream; a release placed after
+ * the `await` would never run on the path that needs it. The count is there
+ * because two things on one page can each need the exemption.
+ */
+let liveCaptures = 0;
+
+function setSessionType(type) {
+  const session = typeof navigator !== 'undefined' ? navigator.audioSession : null;
+  if (!session) return;
+  try {
+    session.type = type;
+  } catch (_) {
+    /* engine without this session type — keep the default */
+  }
+}
+
+/** Call before `getUserMedia({ audio })`, never after. */
+export function beginAudioCapture() {
+  liveCaptures += 1;
+  setSessionType('auto');
+}
+
+/** Call once per beginAudioCapture(), when the capture is torn down. */
+export function endAudioCapture() {
+  liveCaptures = Math.max(0, liveCaptures - 1);
+  if (liveCaptures === 0 && ctx) setSessionType('playback');
+}
 
 /**
  * WebKit parks a context in `interrupted` (not `suspended`) when the audio
@@ -93,9 +189,10 @@ export function getCtx() {
   if (ctx) return ctx;
   const Ctx = window.AudioContext || window.webkitAudioContext;
   ctx = new Ctx();
+  if (liveCaptures === 0) setSessionType('playback');
   master = ctx.createGain();
-  master.gain.value = masterVolume;
-  master.connect(ctx.destination);
+  master.gain.value = masterVolume * outputBoost;
+  master.connect(createOutputStage(ctx));
   armGestureUnlock();
   return ctx;
 }
@@ -117,7 +214,7 @@ export function setMasterVolume(v) {
   if (!master) return;
   const now = ctx.currentTime;
   master.gain.cancelScheduledValues(now);
-  master.gain.setTargetAtTime(v, now, 0.02);
+  master.gain.setTargetAtTime(v * outputBoost, now, 0.02);
 }
 
 /**
