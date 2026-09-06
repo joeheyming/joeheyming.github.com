@@ -2,13 +2,6 @@
  * This file was intentionally vanilla js because I wanted a challenge
  */
 
-// Safe gtag wrapper - won't crash if analytics is blocked
-function safeGtag() {
-  if (typeof gtag === 'function') {
-    gtag.apply(null, arguments);
-  }
-}
-
 // `window.yieldToMain` is defined by /analytics.js (loaded sync in <head>).
 // Local ref keeps the callsite short and avoids a global lookup per await.
 var yieldToMain = window.yieldToMain;
@@ -105,10 +98,6 @@ async function guess(event) {
 
     results.removeAttribute('hidden');
     window.heymingAchievements?.unlockForCurrentApp('first-action');
-
-    safeGtag('event', 'submit', {
-      event_category: 'user action'
-    });
   } finally {
     if (submitBtn) submitBtn.disabled = wasDisabled;
     guessInFlight = false;
@@ -286,9 +275,6 @@ window.addEventListener('load', function () {
     initTabs();
     solverMode.onchange = function () {
       var mode = this.value;
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('wordle_mode_change', 'Wordle', mode);
-      }
       setMode(mode);
     };
     var wordleSource = document.getElementById('wordleSource');

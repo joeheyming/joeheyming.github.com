@@ -170,7 +170,6 @@ async function loadExampleById(id) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     loadSong(decodeSong(data), `Loaded “${opt.textContent}”`);
-    window.trackEvent?.('chiptune_load_example', 'Engagement', id);
   } catch (err) {
     console.warn(err);
     if (els.status) els.status.textContent = 'Could not load example';
@@ -463,7 +462,6 @@ function bind() {
   els.exportSong?.addEventListener('click', () => {
     downloadSongJson(song, 'chiptune-song.json');
     if (els.status) els.status.textContent = 'Exported JSON';
-    window.trackEvent?.('chiptune_export', 'Engagement', 'json');
   });
   els.importSong?.addEventListener('click', () => els.importFile?.click());
   els.importFile?.addEventListener('change', async () => {
@@ -472,7 +470,6 @@ function bind() {
     try {
       const text = await file.text();
       loadSong(decodeSong(text), `Imported “${file.name}”`);
-      window.trackEvent?.('chiptune_import', 'Engagement', 'json');
     } catch (err) {
       console.warn(err);
       if (els.status) els.status.textContent = 'Import failed';
@@ -503,7 +500,6 @@ function bind() {
         text: `Chiptune jam (${noteCount} notes @ ${song.tempo} BPM)\n${url}`,
         email: ''
       });
-      window.trackEvent?.('chiptune_share_post', 'Engagement', 'posts');
     } catch (err) {
       console.warn(err);
       if (els.status) els.status.textContent = 'Could not open Posts';

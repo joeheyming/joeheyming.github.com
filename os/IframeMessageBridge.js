@@ -14,7 +14,7 @@ export function bindIframeMessageListener(os) {
 
     const msg = data.message;
     if (msg?.type === IframeActions.LAUNCH) {
-      os.launchApp(msg.app, 'iframe_message');
+      os.launchApp(msg.app);
     } else if (msg?.type === IframeActions.OPEN_FILE) {
       os.openFileWithApp(msg.app, msg.path, msg.content, msg.fileName);
     } else if (msg?.type === IframeActions.SAVE) {

@@ -15,24 +15,6 @@
 //     paint, doom, …). The attribute is mirrored onto <html> so CSS
 //     can hook into it.
 //
-// GA events emitted (category = "Navigation"):
-//   nav_drawer_open    label = current app name (page id, capitalized).
-//                      Fired manually from openDrawer() so it works
-//                      identically in local dev (where analytics.js
-//                      skips its data-event capture delegate) and in
-//                      production.
-//   nav_drawer_close   label = "backdrop" | "escape" | "close_button"
-//                      Only fires when the user dismissed the drawer
-//                      WITHOUT navigating. Clicks on app rows navigate
-//                      away before closeDrawer runs, so an open→click
-//                      flow shows up as nav_app_click only.
-//   nav_drawer_search  label = visible-result count, value = query
-//                      length. Once per drawer open, debounced ~700ms
-//                      after the user stops typing. The query string
-//                      itself is intentionally not logged.
-//   nav_app_click      label = app id. From the registry rows.
-//   nav_home / nav_os / nav_brand_home — static rows.
-//
 // Keyboard:
 //   Esc         close the drawer
 //   ↓ / ↑       move focus through [search, item0, …, itemN] (wraps).
@@ -86,12 +68,6 @@
     return segments[0] || null;
   }
 
-  function getPageName() {
-    const id = getCurrentProject();
-    if (!id) return 'Home';
-    return id.charAt(0).toUpperCase() + id.slice(1);
-  }
-
   // ─── Toggle button ───────────────────────────────────────────────────
   const toggle = document.createElement('button');
   toggle.type = 'button';
@@ -99,9 +75,6 @@
   toggle.setAttribute('aria-label', 'Open navigation menu');
   toggle.setAttribute('aria-expanded', 'false');
   toggle.setAttribute('aria-controls', 'heyming-nav-drawer');
-  // GA event for opens is fired from openDrawer() — no data-event
-  // attribute, so analytics.js's capture delegate doesn't double-emit
-  // alongside the manual call in production.
   toggle.innerHTML = `
     <span class="heyming-nav-toggle-icon" aria-hidden="true">
       <span class="heyming-nav-bar"></span>
@@ -124,9 +97,7 @@
   drawer.setAttribute('aria-hidden', 'true');
   drawer.innerHTML = `
     <header class="heyming-nav-drawer-header">
-      <a href="/" class="heyming-nav-brand"
-         data-event="nav_brand_home"
-         data-event-category="Navigation">
+      <a href="/" class="heyming-nav-brand">
         <span class="heyming-nav-brand-icon" aria-hidden="true">🚀</span>
         <span class="heyming-nav-brand-text">Heyming OS</span>
       </a>
@@ -144,15 +115,11 @@
     </div>
     <nav class="heyming-nav-list" aria-label="Apps">
       <div class="heyming-nav-system">
-        <a href="/" class="heyming-nav-item"
-           data-event="nav_home"
-           data-event-category="Navigation">
+        <a href="/" class="heyming-nav-item">
           <span class="heyming-nav-item-icon" aria-hidden="true">🏠</span>
           <span class="heyming-nav-item-label">Home</span>
         </a>
-        <a href="/os/" class="heyming-nav-item"
-           data-event="nav_os"
-           data-event-category="Navigation">
+        <a href="/os/" class="heyming-nav-item">
           <span class="heyming-nav-item-icon" aria-hidden="true">🖥️</span>
           <span class="heyming-nav-item-label">Heyming OS</span>
         </a>
@@ -617,16 +584,11 @@
   // ─── Behavior ────────────────────────────────────────────────────────
   let isOpen = false;
   let lastFocus = null;
-  // One-shot per drawer open — flipped by the search input listener so
-  // we don't fire `nav_drawer_search` once per keystroke.
-  let searchFiredThisOpen = false;
-  let searchDebounce = null;
   let filterDebounce = null;
 
   function openDrawer() {
     if (isOpen) return;
     isOpen = true;
-    searchFiredThisOpen = false;
     lastFocus = document.activeElement;
     drawer.classList.add('open');
     backdrop.classList.add('open');
@@ -643,22 +605,11 @@
     if (searchInput) {
       setTimeout(() => searchInput.focus(), 80);
     }
-
-    if (window.trackEvent) {
-      window.trackEvent('nav_drawer_open', 'Navigation', getPageName());
-    }
   }
 
-  // `reason` is the close source: 'backdrop' | 'escape' | 'close_button'.
-  // App-row clicks navigate away before this runs, so a drawer-open
-  // followed by an app launch shows up as nav_app_click only.
-  function closeDrawer(reason) {
+  function closeDrawer() {
     if (!isOpen) return;
     isOpen = false;
-    if (searchDebounce) {
-      clearTimeout(searchDebounce);
-      searchDebounce = null;
-    }
     if (filterDebounce) {
       clearTimeout(filterDebounce);
       filterDebounce = null;
@@ -673,25 +624,20 @@
     if (lastFocus && typeof lastFocus.focus === 'function') {
       lastFocus.focus();
     }
-    if (window.trackEvent) {
-      window.trackEvent('nav_drawer_close', 'Navigation', reason || 'unknown');
-    }
   }
 
   toggle.addEventListener('click', (e) => {
     e.preventDefault();
     // The toggle is hidden via [hidden] while the drawer is open, so
     // the only way this listener runs with isOpen=true is via assistive
-    // tech / scripted clicks. Treat it as the "close button" affordance.
-    if (isOpen) closeDrawer('close_button');
+    // tech / scripted clicks.
+    if (isOpen) closeDrawer();
     else openDrawer();
   });
 
-  backdrop.addEventListener('click', () => closeDrawer('backdrop'));
+  backdrop.addEventListener('click', () => closeDrawer());
 
-  drawer
-    .querySelector('.heyming-nav-close')
-    .addEventListener('click', () => closeDrawer('close_button'));
+  drawer.querySelector('.heyming-nav-close').addEventListener('click', () => closeDrawer());
 
   document.addEventListener('keydown', (e) => {
     // Cmd/Ctrl+K — standard "command palette" shortcut. Opens the drawer
@@ -702,13 +648,13 @@
     if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault();
       e.stopPropagation();
-      if (isOpen) closeDrawer('cmd_k');
+      if (isOpen) closeDrawer();
       else openDrawer();
       return;
     }
     if (e.key === 'Escape' && isOpen) {
       e.stopPropagation();
-      closeDrawer('escape');
+      closeDrawer();
     }
   });
 
@@ -876,9 +822,6 @@
         ' ' +
         (Array.isArray(app.tags) ? app.tags.join(' ') : '')
       ).toLowerCase();
-      a.setAttribute('data-event', 'nav_app_click');
-      a.setAttribute('data-event-category', 'Navigation');
-      a.setAttribute('data-event-label', app.id);
       if (isCurrentApp(app)) {
         a.classList.add('is-active');
         a.setAttribute('aria-current', 'page');
@@ -984,43 +927,19 @@
             .querySelectorAll('.heyming-nav-item')
             .forEach((item) => (item.style.display = ''));
         });
-        if (searchDebounce) {
-          clearTimeout(searchDebounce);
-          searchDebounce = null;
-        }
         return;
       }
 
-      let visibleCount = 0;
       sections.forEach((section) => {
         let anyVisible = false;
         section.querySelectorAll('.heyming-nav-item').forEach((item) => {
           const haystack = item.dataset.search || '';
           const match = haystack.includes(q);
           item.style.display = match ? '' : 'none';
-          if (match) {
-            anyVisible = true;
-            visibleCount += 1;
-          }
+          if (match) anyVisible = true;
         });
         section.style.display = anyVisible ? '' : 'none';
       });
-
-      // Fire `nav_drawer_search` at most once per drawer-open, and only
-      // after the user pauses (so the count we report reflects the full
-      // query, not "what they had typed after one keystroke"). Query
-      // string is intentionally not logged — autofill / typo can pull
-      // in incidental PII; the length + result count are enough signal
-      // to know whether search is useful and where it falls down.
-      if (window.trackEvent && !searchFiredThisOpen) {
-        if (searchDebounce) clearTimeout(searchDebounce);
-        const queryLen = raw.trim().length;
-        searchDebounce = setTimeout(() => {
-          if (searchFiredThisOpen) return;
-          searchFiredThisOpen = true;
-          window.trackEvent('nav_drawer_search', 'Navigation', String(visibleCount), queryLen);
-        }, 700);
-      }
     }
 
     // Filtering rewrites the visibility of every app row. Move that work

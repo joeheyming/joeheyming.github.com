@@ -66,7 +66,6 @@ export function createTidy(deps) {
     deps.renderBoard();
     deps.resetCamera();
     deps.setStatus(layoutMode === 'tidy' ? 'Tidied — newest note first' : 'Back to the cork board');
-    window.trackEvent?.('posts_layout', 'Engagement', layoutMode);
   }
 
   /** Card width and column count for the tidy grid, derived from the viewport. */

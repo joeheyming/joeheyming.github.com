@@ -63,13 +63,8 @@ function renderGrid(gridEl, list) {
  * Load a template by id.
  *
  * @param {string} id
- * @param {{ silent?: boolean }} [options]
- *   silent: skip the analytics event. Use for first-visit defaults
- *   and share/?t= deep-link replay, which represent the URL telling
- *   us what to load — not a user picking a card.
  */
-export function selectTemplate(id, options = {}) {
-  const { silent = false } = options;
+export function selectTemplate(id) {
   const t = templates.find((x) => x.id === id);
   if (!t) return;
   // Load image to discover natural size (templates.json claims it but
@@ -82,9 +77,6 @@ export function selectTemplate(id, options = {}) {
       t.src,
       { w: img.naturalWidth, h: img.naturalHeight }
     );
-    if (!silent && typeof window.trackEvent === 'function') {
-      window.trackEvent('meme_template_selected', 'Meme', t.id);
-    }
     onSelectCb?.(img);
   };
   img.onerror = () => {

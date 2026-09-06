@@ -125,18 +125,11 @@ test('query-specific registry paths resolve before their base app', async () => 
 test('level 2 requires level 1 and a blocked action must be retried', async () => {
   const dom = loadRuntime();
   const service = dom.window.heymingAchievements;
-  const events = [];
-  dom.window.trackEvent = (...args) => events.push(args);
   await service.ready;
 
   assert.equal(await service.unlock('doom:map-cleared'), false);
   assert.equal(await service.unlock('doom:map-cleared'), false);
   assert.equal(service.isUnlocked('doom:map-cleared'), false);
-  assert.equal(
-    events.filter(([name]) => name === 'achievement_unlock_blocked').length,
-    1,
-    'blocked analytics should be deduplicated per page'
-  );
 
   assert.equal(await service.unlock('doom:first-action'), true);
   assert.equal(service.isUnlocked('doom:map-cleared'), false, 'blocked actions are not queued');

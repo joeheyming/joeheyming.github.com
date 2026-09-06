@@ -478,7 +478,6 @@ function bindChrome() {
   els.exportScore?.addEventListener('click', () => {
     downloadScoreJson(score, 'composer-score.json');
     setStatus('Exported');
-    window.trackEvent?.('composer_export', 'Engagement', 'json');
     if (soundedNoteCount(score) >= EXPORT_ACHIEVEMENT_MIN_NOTES) {
       window.heymingAchievements?.unlockForCurrentApp('score-exported');
     }
@@ -490,7 +489,6 @@ function bindChrome() {
     try {
       const text = await file.text();
       applyLoadedScore(decodeScore(text), `Imported “${file.name}”`);
-      window.trackEvent?.('composer_import', 'Engagement', 'json');
     } catch (err) {
       console.warn(err);
       setStatus('Import failed');
@@ -519,7 +517,6 @@ function bindChrome() {
         text: `Composer score (${score.notes.length} notes @ ${score.bpm} BPM)\n${url}`,
         url
       });
-      window.trackEvent?.('composer_share_post', 'Engagement', 'posts');
     } catch (err) {
       console.warn(err);
       setStatus('Share failed');
@@ -599,7 +596,6 @@ async function loadExampleById(id) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     applyLoadedScore(decodeScore(data), `Loaded “${opt.textContent}”`);
-    window.trackEvent?.('composer_load_example', 'Engagement', id);
   } catch (err) {
     console.warn(err);
     setStatus('Could not load example');

@@ -519,11 +519,6 @@ export class MainPageController {
   }
 
   async handleRetry() {
-    // Track retry attempt
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent('loading_retry', 'StepMania', 'Manual Retry');
-    }
-
     // Increment retry count for exponential backoff
     if (!this.retryCount) {
       this.retryCount = 0;
@@ -675,13 +670,6 @@ export class MainPageController {
     }
 
     LoadingOverlay.hide();
-
-    if (currentSong) {
-      const songTitle = currentSong.data?.title || 'Unknown Song';
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('song_play', 'StepMania', songTitle);
-      }
-    }
 
     audioManager.play();
   }

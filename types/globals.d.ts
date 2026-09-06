@@ -97,7 +97,6 @@ interface Window {
     eventLabel?: string,
     eventValue?: number
   ) => void;
-  trackProjectOpen?: (projectName: string) => void;
   trackConversion?: (conversionType: string, value?: number) => void;
   trackError?: (errorData: {
     type?: string;
@@ -107,7 +106,6 @@ interface Window {
     stack?: string;
     [k: string]: unknown;
   }) => void;
-  trackPerformance?: () => void;
 
   /** Untangle puzzle debug/preview API (`untangle/index.js`). */
   untangleGame?: {

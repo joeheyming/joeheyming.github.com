@@ -18,9 +18,8 @@
   var params = new URLSearchParams(window.location.search);
   if (params.get('manual') === '1') return;
 
-  // GA helper for the DOOM flavor funnel. We want to know which
-  // flavor users pick (Classic / Freedoom / Legend), how often the
-  // engine actually boots vs bails during the multi-MB load, and
+  // GA helper for the DOOM flavor funnel. We want to know how often
+  // the engine actually boots vs bails during the multi-MB load, and
   // which flavor + which entry path (picker click vs ?flavor=NAME
   // auto-launch). analytics.js exposes window.trackEvent globally;
   // it no-ops on localhost.
@@ -172,15 +171,6 @@
       return await fetchWithProgressOnce(url, onProgress);
     } catch (err) {
       if (!isRetryableFetchError(err)) throw err;
-      var hostHint = '';
-      try {
-        hostHint = new URL(url, location.href).host;
-      } catch (_) {
-        /* ignore URL parse errors */
-      }
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('doom_flavor_fetch_retry', 'Doom', hostHint);
-      }
       await new Promise(function (r) {
         setTimeout(r, 750);
       });
@@ -580,7 +570,6 @@
         if (card.disabled) return;
         var flavor = card.dataset.flavor;
         var tStart = Date.now();
-        trackDoomEvent('doom_flavor_pick', flavor + ':picker');
         cards.forEach(function (c) {
           c.disabled = true;
         });
@@ -660,7 +649,6 @@
   // Auto-launch path (?flavor=NAME): prime in the background, hero
   // button enables on `primed`, user clicks it to launch.
   async function autoLaunch(flavor) {
-    trackDoomEvent('doom_flavor_pick', flavor + ':autolaunch');
     applyFlavorBranding(flavor);
     var ui = wireHeroButton(flavor);
     if (ui) ui.set('Preparing…', null);
@@ -781,11 +769,6 @@
       var t = e.target.closest('button[data-switch]');
       if (!t || t.disabled) return;
       var f = t.dataset.switch;
-      // Track the in-app switch before the redirect — distinguishes
-      // "user changed flavor via the dropdown" from "user landed
-      // on a ?flavor= URL". GA4 uses sendBeacon so the event
-      // survives the navigation.
-      trackDoomEvent('doom_flavor_switch', f);
       // Reload the page with the chosen mode. Pure URL change +
       // reload is the simplest way to reuse the auto-launch /
       // manual paths without stitching together a partial engine

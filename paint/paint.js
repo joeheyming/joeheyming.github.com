@@ -1474,7 +1474,6 @@ function init() {
         text: 'Paint\n\nMade with [Paint](https://joeheyming.github.io/paint/).',
         attachments: [blob]
       });
-      window.trackEvent?.('posts_share', 'Engagement', 'paint');
     } catch (err) {
       console.warn('Could not share Paint as a post', err);
     }

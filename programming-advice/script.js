@@ -65,9 +65,6 @@ async function shareCurrentQuote() {
   try {
     const { share } = await import('/posts/share-client.js');
     await share({ text: formatQuoteMarkdown(currentAdvice) });
-    if (window.trackEvent) {
-      window.trackEvent('posts_share', 'Engagement', 'programming-advice');
-    }
   } catch (err) {
     console.error('Failed to share quote as a post:', err);
     setPostStatus('Could not prepare the post. Please try again.', true);
@@ -100,11 +97,6 @@ function showNewAdvice() {
 
     // Fade in
     adviceCard.style.opacity = '1';
-
-    // Track in analytics
-    if (window.trackEvent) {
-      window.trackEvent('advice_viewed', 'Engagement', currentAdvice.category);
-    }
   }, 200);
 }
 

@@ -208,18 +208,6 @@ class DifficultySelectorElement extends HTMLElement {
   handleDifficultySelection(chartIndex) {
     this.selectedDifficulty = chartIndex;
 
-    // Track analytics event
-    if (this.charts[chartIndex]) {
-      const chart = this.charts[chartIndex];
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent(
-          'difficulty_change',
-          'StepMania',
-          `${chart.difficulty} (${chart.rating})`
-        );
-      }
-    }
-
     // Call the onChange callback if provided
     if (this.onChangeCallback && typeof this.onChangeCallback === 'function') {
       this.onChangeCallback(chartIndex, this.charts[chartIndex]);

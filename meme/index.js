@@ -144,9 +144,6 @@ async function handleAction(action) {
       try {
         await downloadPng();
         window.heymingAchievements?.unlockForCurrentApp('first-action');
-        if (window.trackEvent) {
-          window.trackEvent('meme_download', 'Meme', store.get().template?.id || 'custom');
-        }
         showTip('Downloaded.', 'ok');
       } catch (err) {
         showTip(err.message, 'err');
@@ -155,9 +152,6 @@ async function handleAction(action) {
     case 'copy':
       try {
         await copyToClipboard();
-        if (window.trackEvent) {
-          window.trackEvent('meme_copy', 'Meme', store.get().template?.id || 'custom');
-        }
         showTip('Copied to clipboard. Paste anywhere.', 'ok');
       } catch (err) {
         showTip('Copy failed: ' + err.message, 'err');
@@ -171,9 +165,6 @@ async function handleAction(action) {
         history.replaceState(null, '', url);
       } catch {
         prompt('Copy this share link:', url);
-      }
-      if (window.trackEvent) {
-        window.trackEvent('meme_share', 'Meme', store.get().template?.id || 'custom');
       }
       break;
     }
@@ -189,9 +180,6 @@ async function handleAction(action) {
           text: 'Meme\n\nMade with [Meme Generator](https://joeheyming.github.io/meme/).',
           attachments: [blob]
         });
-        if (window.trackEvent) {
-          window.trackEvent('posts_share', 'Engagement', 'meme');
-        }
       } catch (err) {
         showTip(err instanceof Error ? err.message : 'Could not share as a post', 'err');
       }
@@ -224,10 +212,6 @@ window.addEventListener('keydown', (e) => {
 // ---------- Initial template ----------
 //
 // Priority: share-hash (#m=) > querystring (?t=) > default.
-// All three paths load silently (no `meme_template_selected` event) —
-// they describe what the URL is asking for, not what the user clicked.
-// `?t=` arrivals additionally fire a separate `meme_template_arrival`
-// event so we can tell tagged-link traffic apart from organic landings.
 
 const payload = readHashPayload();
 const queryTemplateId = new URLSearchParams(location.search).get('t');
@@ -236,7 +220,7 @@ if (payload) {
   if (payload.templateId) {
     // Wait for the chosen template's image to load, then overlay the
     // shared boxes/stickers on top of the (now-initialized) state.
-    templates.selectTemplate(payload.templateId, { silent: true });
+    templates.selectTemplate(payload.templateId);
     const off = store.subscribe(() => {
       const s = store.get();
       if (s.template?.id === payload.templateId && s.naturalSize.w > 0) {
@@ -253,13 +237,10 @@ if (payload) {
     });
   }
 } else if (queryTemplateId) {
-  templates.selectTemplate(queryTemplateId, { silent: true });
-  if (window.trackEvent) {
-    window.trackEvent('meme_template_arrival', 'Meme', queryTemplateId);
-  }
+  templates.selectTemplate(queryTemplateId);
 } else {
   // First-load delight: open with the most popular template loaded.
-  templates.selectTemplate('drake-hotline-bling', { silent: true });
+  templates.selectTemplate('drake-hotline-bling');
 }
 
 // ---------- Keep the URL in sync with the chosen template ----------

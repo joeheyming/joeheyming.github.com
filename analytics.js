@@ -1,24 +1,27 @@
 // =====================================================================
-// KEY EVENTS (GA4 conversions)
+// CUSTOM GA4 EVENTS
 //
-// GA4 reports "0 Key Events" until each conversion name is toggled in
-// GA4 Admin → Data display → Events → "Mark as key event". Apps fire
-// their own conversions via trackConversion(); this list is only the
-// site-wide ones owned by analytics.js / shared chrome:
+// Keep this list deliberately small. GA4 already supplies page_view,
+// acquisition, and user_engagement; custom events are reserved for product
+// outcomes and actionable health signals.
 //
-//   deep_engagement    2+ min engaged
-//   project_opened     Any project/app launched (trackProjectOpen)
-//   multi_app_session  ≥2 distinct apps in one tab
-//   pwa_install        Installed as standalone app
-//   engaged_session    30s+ engaged
-//   content_shared     Shared via share.js / share FAB
-//   hero_cta_launch    Home-page CTA (data-event-conversion)
+// Product outcomes (marked as Key Events in GA4):
+//   doom_engine_launched   Doom WASM actually started
+//   pacman_game_start      Pac-Man / Infinite play started
+//   song_complete          StepMania song finished
+//   watch_played           Watch playback succeeded (not every watch_play_start)
+//   speller_word_rendered  Periodic Speller produced a spelling
+//   content_shared         Shared via share.js / share FAB
 //
-// Exploration events (not Key Events unless marked in Admin later):
-//   hub_crosslink_click   Watch/Doom visible fan-out links (data-event)
-//   related_project_click share.js related cards
-//   wordle_mode_change    Wordle solverMode user switch (score|play|wordle)
-//   wordle_play_today     Play Wordle seeded from NYT WOTD
+// Actionable health:
+//   exception             JavaScript errors with a stack
+//   error_occurred        Resource/manual errors without a stack
+//   web_vital_inp         Slowest interaction on a page
+//   watch_playback_error  Watch exhausted its playback fallbacks
+//   doom_flavor_failed    Doom failed to launch a selected engine
+//
+// High-intent platform outcome:
+//   pwa_install           Site installed as a PWA
 // =====================================================================
 
 // =====================================================================
@@ -105,42 +108,6 @@ function isLocalDevHost() {
   // Headless test runners (Playwright / playwright-cli, Puppeteer)
   if (/HeadlessChrome|Playwright/i.test(navigator.userAgent)) return true;
   return false;
-}
-
-const CANONICAL_HOST = 'joeheyming.github.io';
-
-function getParentHost() {
-  try {
-    return window.top.location.hostname;
-  } catch (e) {
-    try {
-      if (document.referrer) return new URL(document.referrer).hostname;
-    } catch (_) {
-      /* malformed referrer */
-    }
-    return '(cross-origin)';
-  }
-}
-
-function trackOffsiteUsage() {
-  const path = normalizePagePath(window.location.pathname);
-  const currentHost = location.hostname;
-
-  if (currentHost !== CANONICAL_HOST) {
-    window.trackEvent('offsite_hostname', 'Embed', `${currentHost} | path=${path}`);
-  }
-
-  if (window.top !== window.self) {
-    const parentHost = getParentHost();
-    if (parentHost !== CANONICAL_HOST) {
-      const ref = document.referrer || 'none';
-      window.trackEvent(
-        'iframe_embed',
-        'Embed',
-        `parent=${parentHost} | host=${currentHost} | path=${path} | ref=${ref}`
-      );
-    }
-  }
 }
 
 // Error tracking functionality
@@ -254,6 +221,13 @@ const SUPPRESSED_ERROR_PATTERNS = [
     match: /user has exited the lock before/i,
     types: ['unhandled_promise_rejection', 'javascript_error']
   },
+  // Chrome's remaining Doom volume: NotAllowedError on
+  // canvas.requestPointerLock() (user-gesture / cooldown). Distinct from
+  // TypeError "is not a function", which is a missing API and stays visible.
+  {
+    match: /NotAllowedError.*requestPointerLock/i,
+    types: ['unhandled_promise_rejection', 'javascript_error']
+  },
   {
     match: /WrongDocumentError.*root document of this element/i,
     types: ['unhandled_promise_rejection', 'javascript_error']
@@ -261,6 +235,23 @@ const SUPPRESSED_ERROR_PATTERNS = [
   {
     match: /NotSupportedError.*options asked for in this request/i,
     types: ['unhandled_promise_rejection']
+  },
+  // Doom IDBFS: Emscripten flushes IndexedDB on tab close. Chrome throws
+  // InvalidStateError once the IDB connection is already closing. The
+  // loader in doom/uzdoom-loader-idbfs.js swallows most of these; leftovers
+  // still hit the global handler and were the bulk of sitewide `exception`.
+  // Keep RuntimeError / WASM abort unsuppressed — those are real crashes.
+  {
+    match: /database connection is closing/i,
+    types: ['javascript_error', 'unhandled_promise_rejection']
+  },
+  {
+    match: /transaction has finished/i,
+    types: ['javascript_error', 'unhandled_promise_rejection']
+  },
+  {
+    match: /InvalidStateError.*(?:IDBDatabase|IDBTransaction|indexedDB)/i,
+    types: ['javascript_error', 'unhandled_promise_rejection']
   },
   // proxy.js callers — `window.proxyService` rotates through a list of
   // free CORS proxies, all of which flake unpredictably. Per the
@@ -291,6 +282,20 @@ const SUPPRESSED_RESOURCE_HOSTS = [
   'cdn.emulatorjs.org'
 ];
 
+// Watch walks a playback URL queue (archive.org → .ia.mp4 → IA CDN).
+// Each failed <video> src fires a capture-phase resource_error before
+// watch_playback_error fires once at exhaustion. Poster <img> 404s from
+// TVMaze do the same. Match the whole IA / TVMaze host family so we
+// don't enumerate every iaNNNN.us.archive.org edge. StepMania empty-src
+// VIDEO errors stay visible (those are same-origin / data URLs).
+function isSuppressedResourceHost(host) {
+  if (!host) return false;
+  if (SUPPRESSED_RESOURCE_HOSTS.includes(host)) return true;
+  if (host === 'archive.org' || host.endsWith('.archive.org')) return true;
+  if (host === 'tvmaze.com' || host.endsWith('.tvmaze.com')) return true;
+  return false;
+}
+
 function shouldSuppressError(errorType, errorMessage, resource) {
   for (const entry of SUPPRESSED_ERROR_PATTERNS) {
     if (entry.types && !entry.types.includes(errorType)) continue;
@@ -303,13 +308,17 @@ function shouldSuppressError(errorType, errorMessage, resource) {
   if (resource && errorType === 'resource_error') {
     try {
       const host = new URL(resource, window.location.href).host;
-      if (SUPPRESSED_RESOURCE_HOSTS.includes(host)) return true;
+      if (isSuppressedResourceHost(host)) return true;
     } catch (_) {
       /* unparseable URL — fall through */
     }
   }
   return false;
 }
+
+// jsdom tests load this file and assert filter behavior without going
+// through GA. Not a public API.
+window.__analyticsShouldSuppressError = shouldSuppressError;
 
 // Function to manually track errors with enhanced context
 window.trackError = function (errorData) {
@@ -359,24 +368,6 @@ window.trackError = function (errorData) {
     }
   } catch (trackingError) {
     console.error('Failed to track error:', trackingError);
-  }
-};
-
-// Function to track performance issues
-window.trackPerformance = function () {
-  try {
-    if (!window.performance) return;
-
-    const perfData = window.performance.timing;
-    const loadTime = perfData.loadEventEnd - perfData.navigationStart;
-    window.trackEvent(
-      'page_load',
-      'Performance',
-      normalizePagePath(window.location.pathname),
-      loadTime
-    );
-  } catch (error) {
-    console.error('Failed to track performance:', error);
   }
 };
 
@@ -443,34 +434,6 @@ function initInpTracking() {
   window.addEventListener('pagehide', reportWorstInteraction);
 }
 
-// Track performance when page is fully loaded
-window.addEventListener('load', function () {
-  setTimeout(trackPerformance, 1000); // Wait a bit for everything to settle
-});
-
-// Track arrivals from shared URLs (someone clicked a shared link)
-function trackSharedLinkArrival() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const isSharedLink = searchParams.get('shared') === '1';
-  const referrer = document.referrer;
-  const pageName = getPageName();
-
-  // Track generic shared link arrivals (from share button)
-  if (isSharedLink) {
-    // share_source identifies which surface produced the link (e.g. stepmania_score,
-    // related_widget). Falls back to "unknown" so older shared URLs still report.
-    const source = searchParams.get('share_source') || 'unknown';
-    const path = normalizePagePath(window.location.pathname);
-    window.trackEvent('shared_link_arrival', pageName, `${source} | ${path}`);
-    console.log('Tracked shared link arrival:', pageName, 'source:', source, 'referrer:', referrer);
-
-    // Track referrer if present
-    if (referrer) {
-      window.trackEvent('shared_link_referrer', pageName, `${source} | ${referrer}`);
-    }
-  }
-}
-
 // Build a URL pointing at the current page tagged for shared-link attribution.
 // Sets ?shared=1 plus an optional share_source so GA can tell which surface
 // produced the link. Also sets the three GA-standard utm_* params so chat
@@ -514,16 +477,6 @@ window.buildSharedUrl = function (source) {
   }
 };
 
-// Helper to get page name from path
-function getPageName() {
-  const path = window.location.pathname;
-  const segments = path.split('/').filter((s) => s);
-  if (segments.length === 0) return 'Home';
-  // Capitalize first letter
-  const name = segments[segments.length - 1];
-  return name.charAt(0).toUpperCase() + name.slice(1);
-}
-
 // Yield control back to the browser so it can paint (and process other
 // input) before the next chunk of JS runs. Heavy click handlers should
 // paint a "working…" state, `await window.yieldToMain()`, and then do the
@@ -546,11 +499,6 @@ window.yieldToMain = function yieldToMain() {
     setTimeout(resolve, 0);
   });
 };
-
-// Run on page load
-window.addEventListener('load', function () {
-  setTimeout(trackSharedLinkArrival, 100);
-});
 
 // Helper function to track events (can be called from anywhere, including web components)
 window.trackEvent = function (eventName, eventCategory, eventLabel, eventValue) {
@@ -582,166 +530,6 @@ window.trackEvent = function (eventName, eventCategory, eventLabel, eventValue) 
   }
 };
 
-// Data-event click tracking functionality.
-//
-// Attributes:
-//   data-event              required, GA event name
-//   data-event-category     optional, defaults to "Interaction"
-//   data-event-label        optional, defaults to data-event
-//   data-event-value        optional numeric value
-//   data-event-conversion   optional — when present, ALSO fires
-//                           trackConversion(<attr value>, <data-event-value or 1>)
-//                           so high-intent CTAs can be marked as Key
-//                           Events in GA4 Admin without touching JS.
-function initDataEventTracking() {
-  // Listen for clicks on elements with data-event attribute
-  document.addEventListener(
-    'click',
-    function (event) {
-      // Find the nearest element with data-event attribute (including the clicked element itself)
-      const target = event.target.closest('[data-event]');
-
-      if (target) {
-        const dataEvent = target.getAttribute('data-event');
-        const dataEventCategory = target.getAttribute('data-event-category') || 'Interaction';
-        const dataEventLabel = target.getAttribute('data-event-label') || dataEvent;
-        const valueAttr = target.getAttribute('data-event-value');
-        const dataEventValue = valueAttr ? parseFloat(valueAttr) : undefined;
-
-        window.trackEvent(dataEvent, dataEventCategory, dataEventLabel, dataEventValue);
-
-        const conversionName = target.getAttribute('data-event-conversion');
-        if (conversionName) {
-          window.trackConversion(
-            conversionName,
-            dataEventValue !== undefined && !isNaN(dataEventValue) ? dataEventValue : 1
-          );
-        }
-      }
-    },
-    true
-  ); // Use capture phase to catch events early
-}
-
-// Engagement Time Tracking
-// Track how long users spend on each page. Final engaged time is captured
-// once on `pagehide` (mobile-reliable). Sessions ≥30s also fire the
-// `engaged_session` conversion on beforeunload, and sessions ≥120s
-// additionally fire the stronger `deep_engagement` Key Event.
-//
-// Note: we deliberately do NOT fire a periodic `engagement_ping` heartbeat.
-// GA4's automatic `user_engagement` event already powers the "Average
-// engagement time per page" metric in the standard Pages-and-screens
-// report, which is the input to our quality-minutes calculation. A custom
-// 30-second cumulative ping was redundant with that and dominated the
-// event-count rankings, drowning out the sparse-but-actionable custom
-// events (project_open, doom_flavor_pick, song_complete, etc.). If you
-// want a session-survival curve in the future, prefer querying GA4's
-// native engagement metrics instead of re-adding the ping here.
-//
-// The `deep_engagement` conversion at 120s is the exception: it fires
-// EXACTLY ONCE per page-load (not a heartbeat) and represents a much
-// stronger "got value" signal than the 30s `engaged_session` baseline.
-// It's the primary Key Event candidate for GA4 Admin (see KEY_EVENTS
-// block at top of file).
-(function initEngagementTracking() {
-  let lastVisibleAt = Date.now();
-  let isPageVisible = !document.hidden;
-  let totalEngagedTime = 0;
-
-  const PAGE_NAME = getPageName();
-  const MIN_ENGAGEMENT_TIME = 10000; // Min 10 seconds before tracking
-  const DEEP_ENGAGEMENT_MS = 120000; // 2 minutes engaged → strong Key Event
-
-  let deepEngagementFired = false;
-  let deepEngagementTimer = null;
-
-  function currentEngagedMs() {
-    return isPageVisible ? totalEngagedTime + (Date.now() - lastVisibleAt) : totalEngagedTime;
-  }
-
-  // Fire `deep_engagement` exactly once per page-load when cumulative
-  // engaged time (visibility-aware) crosses DEEP_ENGAGEMENT_MS. Scheduled
-  // via setTimeout — when the tab goes hidden we cancel the pending fire
-  // and reschedule on visible with the remaining time, so background tabs
-  // don't accrue toward the threshold.
-  function scheduleDeepEngagementCheck() {
-    if (deepEngagementFired || !isPageVisible) return;
-    if (deepEngagementTimer) clearTimeout(deepEngagementTimer);
-    const remaining = DEEP_ENGAGEMENT_MS - currentEngagedMs();
-    if (remaining <= 0) {
-      fireDeepEngagement();
-      return;
-    }
-    deepEngagementTimer = setTimeout(() => {
-      if (currentEngagedMs() >= DEEP_ENGAGEMENT_MS) fireDeepEngagement();
-      else scheduleDeepEngagementCheck();
-    }, remaining);
-  }
-
-  function fireDeepEngagement() {
-    if (deepEngagementFired) return;
-    deepEngagementFired = true;
-    if (deepEngagementTimer) {
-      clearTimeout(deepEngagementTimer);
-      deepEngagementTimer = null;
-    }
-    window.trackConversion('deep_engagement', Math.max(120, Math.round(currentEngagedMs() / 1000)));
-  }
-
-  if (!document.hidden) scheduleDeepEngagementCheck();
-
-  // Track visibility changes — going hidden flushes the current visible
-  // window into `totalEngagedTime`; coming back resets the start anchor.
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) {
-      const engagedDuration = Date.now() - lastVisibleAt;
-      totalEngagedTime += engagedDuration;
-      isPageVisible = false;
-      if (deepEngagementTimer) {
-        clearTimeout(deepEngagementTimer);
-        deepEngagementTimer = null;
-      }
-    } else {
-      isPageVisible = true;
-      lastVisibleAt = Date.now();
-      scheduleDeepEngagementCheck();
-    }
-  });
-
-  // Track total time on page when user leaves. Prefer pagehide for the
-  // engaged-time event (mobile-reliable); beforeunload only keeps the
-  // conversion backstops that must still fire on desktop unload.
-  window.addEventListener('beforeunload', function () {
-    const finalEngagedTime = currentEngagedMs();
-
-    if (finalEngagedTime >= MIN_ENGAGEMENT_TIME) {
-      // Track as conversion if user was engaged for 30+ seconds
-      if (finalEngagedTime >= 30000) {
-        window.trackConversion('engaged_session', 1);
-      }
-      // Backstop: if the user blew past 120s without our timer firing
-      // (e.g. they were continuously visible but the tab was throttled),
-      // emit deep_engagement at unload so we don't undercount.
-      if (finalEngagedTime >= DEEP_ENGAGEMENT_MS && !deepEngagementFired) {
-        fireDeepEngagement();
-      }
-    }
-  });
-
-  // Track pagehide event for better mobile support
-  window.addEventListener('pagehide', function () {
-    const finalEngagedTime = currentEngagedMs();
-
-    if (finalEngagedTime >= MIN_ENGAGEMENT_TIME) {
-      window.trackEvent('page_hide', 'Engagement', PAGE_NAME, Math.round(finalEngagedTime / 1000));
-    }
-    if (finalEngagedTime >= DEEP_ENGAGEMENT_MS && !deepEngagementFired) {
-      fireDeepEngagement();
-    }
-  });
-})();
-
 // Conversion Tracking
 // Fires the conversionType as its own GA event under the Conversion category.
 // Previously this funneled every call through a single `conversion` event with
@@ -764,44 +552,6 @@ window.trackConversion = function (conversionType, value) {
     console.log('Conversion tracked:', conversionType, value);
   }
 };
-
-// Track when users open/interact with projects. Also drives the
-// `multi_app_session` Key Event below — when a single tab-session opens
-// 2+ DISTINCT projects, that's a much stronger "explored the suite"
-// signal than a single project_opened.
-window.trackProjectOpen = function (projectName) {
-  const name = projectName || 'unknown';
-  window.trackEvent('project_open', 'Projects', name);
-  window.trackConversion('project_opened', 1);
-  trackMultiAppSession(name);
-};
-
-// sessionStorage-backed counter of distinct project names opened in
-// this tab session. Fires `multi_app_session` exactly once, when the
-// 2nd distinct project opens. We cap stored payload size to a handful
-// of names to keep the JSON small; once we've fired the conversion
-// the only thing we care about is the boolean "fired" flag.
-const MULTI_APP_KEY = 'hos-session-projects';
-const MULTI_APP_FIRED_KEY = 'hos-session-multi-fired';
-function trackMultiAppSession(projectName) {
-  try {
-    if (sessionStorage.getItem(MULTI_APP_FIRED_KEY) === '1') return;
-    const raw = sessionStorage.getItem(MULTI_APP_KEY);
-    /** @type {string[]} */
-    const prev = raw ? JSON.parse(raw) : [];
-    if (prev.includes(projectName)) return;
-    prev.push(projectName);
-    // Cap at 8 names — we only need to know "have we seen ≥2 distinct".
-    const trimmed = prev.slice(-8);
-    sessionStorage.setItem(MULTI_APP_KEY, JSON.stringify(trimmed));
-    if (trimmed.length >= 2) {
-      sessionStorage.setItem(MULTI_APP_FIRED_KEY, '1');
-      window.trackConversion('multi_app_session', trimmed.length);
-    }
-  } catch (_) {
-    /* sessionStorage unavailable (private mode, sandboxed iframe) — skip */
-  }
-}
 
 // PWA install — fires when the browser (Chrome/Edge/iOS Safari "Add to
 // Home Screen") finishes installing the site as a standalone app. This
@@ -826,7 +576,7 @@ window.addEventListener('appinstalled', function () {
 // point — calls queue in the array and the gtag library drains them when
 // it finishes loading. This block sits at the bottom of the file so every
 // helper it transitively touches (window.trackEvent etc.) is already
-// defined when trackOffsiteUsage runs.
+// defined.
 // =====================================================================
 window.dataLayer = window.dataLayer || [];
 
@@ -848,10 +598,5 @@ if (isLocalDevHost()) {
   });
 
   initErrorTracking();
-  initDataEventTracking();
   initInpTracking();
-
-  // Track if the site is being served from an unexpected hostname
-  // or embedded in an iframe outside of joeheyming.github.io.
-  trackOffsiteUsage();
 }

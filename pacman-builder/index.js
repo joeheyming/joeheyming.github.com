@@ -111,7 +111,6 @@ let lastPaintedKey = '';
 let keyboardCursor = { x: 1, y: 1 };
 let saveTimer;
 let toastTimer;
-let designStarted = false;
 let playtestUrl = '';
 
 function createStarterLevel() {
@@ -178,12 +177,6 @@ function levelFingerprint(value = level) {
   return JSON.stringify(value);
 }
 
-function track(action) {
-  if (typeof window.trackEvent === 'function') {
-    window.trackEvent('pacman_builder_action', 'Pacman Builder', action);
-  }
-}
-
 function showToast(message) {
   window.clearTimeout(toastTimer);
   elements.toast.textContent = message;
@@ -191,23 +184,19 @@ function showToast(message) {
   toastTimer = window.setTimeout(() => elements.toast.classList.remove('show'), 2600);
 }
 
-function commit(previous, action) {
+function commit(previous) {
   if (levelFingerprint(previous) === levelFingerprint()) return false;
   undoStack.push(previous);
   if (undoStack.length > HISTORY_LIMIT) undoStack.shift();
   redoStack = [];
-  if (!designStarted && action) {
-    designStarted = true;
-    track('design_started');
-  }
   afterChange();
   return true;
 }
 
-function changeLevel(mutator, action) {
+function changeLevel(mutator) {
   const previous = cloneLevel();
   mutator();
-  commit(previous, action);
+  commit(previous);
 }
 
 function afterChange() {
@@ -245,8 +234,7 @@ async function loadTemplate() {
     level = cloneLevel(template);
     selectedTeleportGroup = null;
     keyboardCursor = { x: 1, y: 1 };
-    if (!commit(previous, `load_template:${templateName}`)) render();
-    track(`template_loaded:${templateName}`);
+    if (!commit(previous)) render();
     showToast('Template loaded. Every tile is ready to edit.');
   } catch (error) {
     console.error('Could not load Pac-Man template:', error);
@@ -307,7 +295,6 @@ function loadHashLevel() {
   try {
     level = decodeLevelData(match[1]);
     showToast('Shared level loaded.');
-    track('load_share_link');
     return true;
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'The shared level could not be loaded.');
@@ -686,7 +673,7 @@ function finishPainting(event) {
   if (elements.grid.hasPointerCapture(event.pointerId)) {
     elements.grid.releasePointerCapture(event.pointerId);
   }
-  if (paintSnapshot) commit(paintSnapshot, 'paint');
+  if (paintSnapshot) commit(paintSnapshot);
   paintSnapshot = null;
 }
 
@@ -724,7 +711,7 @@ function resizeMap() {
     level.teleports.forEach((group) => {
       group.endpoints = group.endpoints.filter((point) => point.x < width && point.y < height);
     });
-  }, 'resize');
+  });
   showToast(`Map resized to ${width} × ${height}.`);
 }
 
@@ -735,7 +722,7 @@ function clearMap() {
     level.ramps = [];
     level.teleports = [];
     selectedTeleportGroup = null;
-  }, 'clear');
+  });
   showToast('Map cleared. Add a Pac-Man start when you are ready.');
 }
 
@@ -743,7 +730,7 @@ function resetMap() {
   const previous = cloneLevel();
   level = createStarterLevel();
   selectedTeleportGroup = null;
-  commit(previous, 'reset');
+  commit(previous);
   showToast('Starter map restored.');
 }
 
@@ -769,7 +756,7 @@ function addTeleportGroup() {
     selectedTeleportGroup = level.teleports.length - 1;
     selectedToolCategory = 'tiles';
     selectedTile = TILE.TELEPORT;
-  }, 'add_teleport_group');
+  });
   showToast('Teleport group added. Paint two endpoints.');
 }
 
@@ -784,7 +771,7 @@ function deleteTeleportGroup() {
       level.teleports.length === 0
         ? null
         : Math.min(selectedTeleportGroup, level.teleports.length - 1);
-  }, 'delete_teleport_group');
+  });
   showToast('Teleport group deleted.');
 }
 
@@ -800,13 +787,12 @@ function changeTeleportMode() {
       });
       showToast('Extra cycle endpoints were changed back to floor.');
     }
-  }, 'change_teleport_mode');
+  });
 }
 
 function getCanonicalLevel() {
   const validation = validateLevelData(level);
   if (validation.errors.length > 0) {
-    track(`validation_failure:${validation.errors[0].code}`);
     showToast('Fix validation errors first.');
     return null;
   }
@@ -831,7 +817,6 @@ async function copyShareLink() {
     input.remove();
   }
   window.history.replaceState(null, '', `#level=${code}`);
-  track('copy_share_link');
   showToast('Share link copied.');
 }
 
@@ -846,7 +831,6 @@ function downloadJson() {
   link.download = 'pacman-custom-level.json';
   link.click();
   URL.revokeObjectURL(link.href);
-  track('download_json');
   showToast('Level JSON downloaded.');
 }
 
@@ -858,8 +842,7 @@ async function importJson(file) {
     const previous = cloneLevel();
     level = canonical;
     selectedTeleportGroup = null;
-    commit(previous, 'import_json');
-    track('import_json');
+    commit(previous);
     showToast('Level imported.');
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'That JSON file is not a valid level.');
@@ -877,7 +860,6 @@ function openPlaytest() {
   document.body.classList.add('playtesting');
   elements.exitPlaytestButton.focus();
   window.heymingAchievements?.unlockForCurrentApp('first-action');
-  track('playtest_start');
 }
 
 function closePlaytest() {
@@ -886,7 +868,6 @@ function closePlaytest() {
   elements.playtestFrame.src = 'about:blank';
   document.body.classList.remove('playtesting');
   elements.playButton.focus();
-  track('playtest_exit');
 }
 
 function restartPlaytest() {
@@ -895,7 +876,6 @@ function restartPlaytest() {
   window.requestAnimationFrame(() => {
     elements.playtestFrame.src = playtestUrl;
   });
-  track('playtest_restart');
 }
 
 function changePlaytestView() {
@@ -906,7 +886,6 @@ function changePlaytestView() {
     return;
   }
   game.controls.cycleCamera();
-  track('playtest_change_view');
 }
 
 function handleGridKeyboard(event) {
@@ -927,7 +906,7 @@ function handleGridKeyboard(event) {
     }`;
   } else if (event.key === ' ' || event.key === 'Enter') {
     event.preventDefault();
-    changeLevel(() => paintTile(keyboardCursor.x, keyboardCursor.y), 'keyboard_paint');
+    changeLevel(() => paintTile(keyboardCursor.x, keyboardCursor.y));
   }
 }
 
@@ -974,7 +953,7 @@ function bindEvents() {
   elements.ghostCount.addEventListener('change', () => {
     changeLevel(() => {
       level.numGhosts = Math.max(0, Math.min(4, Number(elements.ghostCount.value)));
-    }, 'change_ghost_count');
+    });
   });
   elements.copyLinkButton.addEventListener('click', copyShareLink);
   elements.downloadButton.addEventListener('click', downloadJson);
@@ -989,7 +968,6 @@ function initialize() {
   bindEvents();
   render();
   scheduleAutosave();
-  track('opened');
 }
 
 initialize();

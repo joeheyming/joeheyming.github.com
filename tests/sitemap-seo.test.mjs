@@ -80,3 +80,38 @@ test('Game Boy lander is not hidden-text / VideoGame spam', () => {
   assert.equal(types.includes('VideoGame'), false);
   assert.equal(types.includes('SoftwareApplication'), true);
 });
+
+test('search opportunity pages use intent-led snippets without hidden SEO copy', () => {
+  const expectations = [
+    {
+      page: '/wordle-finder/',
+      title: 'Wordle Finder — Answer Finder & Best Next Guess 🔤'
+    },
+    {
+      page: '/periodic-speller/',
+      title: 'Periodic Speller — Spell Your Name with Chem Symbols ⚛️'
+    }
+  ];
+
+  for (const { page, title } of expectations) {
+    const loaded = readPage(page);
+    assert.ok(loaded, `${page} should have an index.html`);
+    assert.equal(loaded.document.title, title);
+    assert.equal(loaded.document.querySelector('.seo-intro[hidden]'), null);
+  }
+});
+
+test('Pac-Man games visibly recommend the level builder', () => {
+  for (const page of ['/pacman/', '/pacman-infinite/']) {
+    const loaded = readPage(page);
+    assert.ok(loaded, `${page} should have an index.html`);
+    const link = loaded.document.querySelector('a[href="/pacman-builder/"]:not([hidden] *)');
+    assert.ok(link, `${page} should visibly link to /pacman-builder/`);
+  }
+
+  const registry = JSON.parse(readFileSync(path.join(ROOT, 'apps-registry.json'), 'utf8'));
+  for (const id of ['pacman', 'pacman-infinite']) {
+    const app = registry.find((entry) => entry.id === id);
+    assert.ok(app?.related?.includes('pacman-builder'), `${id} should recommend pacman-builder`);
+  }
+});

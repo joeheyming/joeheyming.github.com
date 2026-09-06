@@ -29,9 +29,9 @@ export class HeymingOS {
     // Initialize subsystems
     this.windowManager = new WindowManager();
     this.taskbar = new Taskbar(this.windowManager);
-    this.launcher = new Launcher((appId) => this.launchApp(appId, 'launcher'));
+    this.launcher = new Launcher((appId) => this.launchApp(appId));
     this.desktop = new Desktop(
-      (appId) => this.launchApp(appId, 'desktop'),
+      (appId) => this.launchApp(appId),
       (file) => {
         void this.openDesktopFile(file).catch((err) => {
           console.error('[HeymingOS] openDesktopFile failed', err);
@@ -193,7 +193,7 @@ export class HeymingOS {
     }
   }
 
-  launchApp(appId, source = 'unknown') {
+  launchApp(appId) {
     // Check AppModule for app
     if (window.AppModule) {
       const apps = window.AppModule.getAllApps();
@@ -204,18 +204,6 @@ export class HeymingOS {
         // Ensure the new window is active and on top
         this.windowManager.makeWindowActive(win.id);
         this.taskbar.update();
-        // Single chokepoint for "user opened an app inside the OS".
-        // `source` distinguishes the start menu, desktop double-click,
-        // right-click "Open with", cross-app launch (iframe message),
-        // file association, and the file-open fallback below. This is
-        // separate from the home page `gallery_app_click` event — that
-        // one fires before navigation, this one fires inside the OS.
-        if (typeof window.trackEvent === 'function') {
-          window.trackEvent('os_app_launch', 'OS', `${appId}:${source}`);
-        }
-        if (typeof window.trackProjectOpen === 'function') {
-          window.trackProjectOpen(app.shortName || app.name || appId);
-        }
         return win;
       }
     }
@@ -618,7 +606,7 @@ export class HeymingOS {
     };
 
     // Launch a NEW instance of the app and get the window reference
-    const newWindow = this.launchApp(appId, 'file_open');
+    const newWindow = this.launchApp(appId);
     if (!newWindow) {
       this.pendingFileOpen = null;
       return;

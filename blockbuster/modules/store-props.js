@@ -313,9 +313,6 @@ export function createStoreProps({ scene, inventory, catalog, hud }) {
         'Nice eye, member.'
       );
       hud.clearChallenge?.();
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('blockbuster_challenge', 'entertainment', challengeGoal.tag);
-      }
     }
   }
 

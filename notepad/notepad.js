@@ -531,9 +531,6 @@ class RichNotepad {
       const text = this.htmlToMarkdown(htmlContent);
       const { share } = await import('/posts/share-client.js');
       await share({ text });
-      if (window.trackEvent) {
-        window.trackEvent('posts_share', 'Engagement', 'notepad');
-      }
     } catch (err) {
       console.error('Failed to share note as a post:', err);
       this.showNotification('Could not prepare the post. Please try again.', 'error');

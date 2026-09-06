@@ -30,7 +30,7 @@ test('Watch has stable indexability signals and visible static content', () => {
   const canonical = document.querySelector('link[rel="canonical"]');
   const about = document.querySelector('.tv-about');
 
-  assert.equal(robots?.getAttribute('content'), 'index, follow');
+  assert.equal(robots?.getAttribute('content'), 'index, follow, max-video-preview:0');
   assert.equal(canonical?.getAttribute('href'), 'https://joeheyming.github.io/watch/');
   assert.ok(about, 'Watch should include descriptive content outside the JS mount');
   assert.equal(

@@ -81,9 +81,6 @@ pickup = createPickup({
   getStoreProps: () => storeProps,
   onRent(item) {
     window.heymingAchievements?.unlockForCurrentApp('first-action');
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent('blockbuster_rent', 'entertainment', `${item.kind}:${item.id}`);
-    }
     const param = item.kind === 'show' ? 'show' : 'movie';
     window.location.href = `/watch/?${param}=${encodeURIComponent(item.id)}&from=blockbuster`;
   },
@@ -161,9 +158,6 @@ async function boot() {
   wallTv.tvScreen?.setFeaturedPool(catalog);
   staticFrameDirty = true;
   loadStatus.hidden = true;
-  if (typeof window.trackEvent === 'function') {
-    window.trackEvent('blockbuster_enter', 'entertainment', String(catalog.length));
-  }
 }
 
 function onResize() {

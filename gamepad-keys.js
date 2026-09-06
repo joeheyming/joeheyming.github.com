@@ -174,12 +174,7 @@
     delete document.documentElement.dataset.gamepadKeys;
   }
 
-  window.addEventListener('gamepadconnected', () => {
-    if (window.trackEvent) {
-      window.trackEvent('gamepad_keys_connected', 'Gamepad', navigator.userAgent.slice(0, 80), 0);
-    }
-    start();
-  });
+  window.addEventListener('gamepadconnected', start);
   window.addEventListener('gamepaddisconnected', () => {
     if (!hasGamepad()) stop();
   });

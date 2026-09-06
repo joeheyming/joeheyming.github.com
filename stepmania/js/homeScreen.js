@@ -63,9 +63,6 @@ export function bindHomeScreen() {
   const browse = document.getElementById('sm-home-browse');
   if (browse) {
     browse.addEventListener('click', () => {
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('song_browser_open', 'StepMania', 'Home');
-      }
       const browser = document.querySelector('zenius-browser');
       if (browser && typeof browser.showBrowser === 'function') {
         browser.showBrowser();

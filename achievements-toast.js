@@ -18,12 +18,6 @@
     );
   }
 
-  function track(eventName, label, value) {
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent(eventName, 'Achievements', label, value);
-    }
-  }
-
   function ensureToastHost() {
     let host = document.querySelector('heyming-achievement-toasts');
     if (host) return host;
@@ -173,11 +167,7 @@
     cta.textContent = 'Open achievements ↗';
     copy.append(eyebrow, title, cta);
     toast.append(icon, copy);
-    toast.addEventListener('click', () => {
-      track('achievement_toast_click', definition.id);
-    });
     stack.appendChild(toast);
-    track('achievement_toast_shown', definition.id);
 
     let dismissTimer = null;
     let dismissed = false;

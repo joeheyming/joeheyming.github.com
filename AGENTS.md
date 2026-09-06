@@ -44,36 +44,36 @@ Copy the `<head>` from a recent app and adapt the title, description, canonical 
 
 Add an object to the top-level array. Required fields:
 
-| Field | Example | Notes |
-|-------|---------|-------|
-| `id` | `"my-app"` | Unique slug, matches folder name |
-| `name` | `"My App 🎉"` | Full display name with emoji |
-| `shortName` | `"My App"` | Compact label for menus |
-| `description` | `"One-line blurb"` | Gallery card, share widget |
-| `detailedDescription` | `"Longer text…"` | Launcher menu, search |
-| `icon` | `"🎉"` | Emoji for OS launcher / home cards |
-| `path` | `"./my-app/"` | Always `./` prefix, trailing slash |
-| `category` | `"utility"` | `"game"`, `"utility"`, or `"entertainment"` |
-| `gradient` | `"from-blue-500/20 to-indigo-500/20"` | Tailwind tokens for home gallery |
-| `border` | `"border-blue-600/30 hover:border-blue-500/50"` | Launcher card border |
-| `taskbarGradient` | `"from-blue-700 to-indigo-900"` | Heyming OS taskbar |
-| `taskbarText` | `"text-white"` | Taskbar text color |
-| `defaultWidth` | `900` | Heyming OS window width |
-| `defaultHeight` | `700` | Heyming OS window height |
-| `tags` | `["tag1", "tag2"]` | Home page search |
-| `related` | `["notepad", "terminal"]` | Cross-links via `share.js` |
-| `shareCategory` | `"utility"` | Grouping in share widget (usually mirrors `category`) |
+| Field                 | Example                                         | Notes                                                 |
+| --------------------- | ----------------------------------------------- | ----------------------------------------------------- |
+| `id`                  | `"my-app"`                                      | Unique slug, matches folder name                      |
+| `name`                | `"My App 🎉"`                                   | Full display name with emoji                          |
+| `shortName`           | `"My App"`                                      | Compact label for menus                               |
+| `description`         | `"One-line blurb"`                              | Gallery card, share widget                            |
+| `detailedDescription` | `"Longer text…"`                                | Launcher menu, search                                 |
+| `icon`                | `"🎉"`                                          | Emoji for OS launcher / home cards                    |
+| `path`                | `"./my-app/"`                                   | Always `./` prefix, trailing slash                    |
+| `category`            | `"utility"`                                     | `"game"`, `"utility"`, or `"entertainment"`           |
+| `gradient`            | `"from-blue-500/20 to-indigo-500/20"`           | Tailwind tokens for home gallery                      |
+| `border`              | `"border-blue-600/30 hover:border-blue-500/50"` | Launcher card border                                  |
+| `taskbarGradient`     | `"from-blue-700 to-indigo-900"`                 | Heyming OS taskbar                                    |
+| `taskbarText`         | `"text-white"`                                  | Taskbar text color                                    |
+| `defaultWidth`        | `900`                                           | Heyming OS window width                               |
+| `defaultHeight`       | `700`                                           | Heyming OS window height                              |
+| `tags`                | `["tag1", "tag2"]`                              | Home page search                                      |
+| `related`             | `["notepad", "terminal"]`                       | Cross-links via `share.js`                            |
+| `shareCategory`       | `"utility"`                                     | Grouping in share widget (usually mirrors `category`) |
 
 Optional fields:
 
-| Field | Purpose |
-|-------|---------|
-| `system` | `true` → pinned to OS start menu |
-| `desktopIcon` | `true` → shortcut on Heyming OS desktop |
-| `desktopPosition` | `{ "x": 30, "y": 130 }` for fixed placement |
-| `handles` | `["text/*", "image/png"]` for OS "Open with" routing |
-| `pwaShortcut` | `{ name, short_name, description }` → included when you run `npm run sync:catalog` |
-| `featured` | `{ order, headline, blurb, tagsLine, preset, analyticsLabel }` → home featured grid |
+| Field             | Purpose                                                                             |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| `system`          | `true` → pinned to OS start menu                                                    |
+| `desktopIcon`     | `true` → shortcut on Heyming OS desktop                                             |
+| `desktopPosition` | `{ "x": 30, "y": 130 }` for fixed placement                                         |
+| `handles`         | `["text/*", "image/png"]` for OS "Open with" routing                                |
+| `pwaShortcut`     | `{ name, short_name, description }` → included when you run `npm run sync:catalog`  |
+| `featured`        | `{ order, headline, blurb, tagsLine, preset, analyticsLabel }` → home featured grid |
 
 ### 4. Sync discovery projections + generate the SEO preview
 
@@ -110,15 +110,15 @@ Every public app page should be **crawlable and explicitly indexable**. Google S
 
 These are what GSC looks for on the live test. Missing them is a common reason pages fail indexing or show up as "unknown to Google."
 
-| Tag | Purpose |
-|-----|---------|
-| `<meta name="robots" content="index, follow" />` | **Explicit allow.** Without this (or with `noindex`), GSC may report "Indexing allowed: No." Default browser behavior is indexable, but always set this on pages you want in Search. |
-| `<meta name="description" … />` | Snippet text for Search results and social previews. |
-| `<link rel="canonical" href="https://joeheyming.github.io/my-app/" />` | Preferred URL. Use the trailing-slash directory form, not `index.html`. Consolidates `/my-app/` and `/my-app/index.html`. |
-| `<meta property="og:url" … />` | Should match the canonical URL. |
-| `<meta property="og:title" />`, `og:description`, `og:image` | Open Graph — used by Google and link unfurlers. |
-| `<meta name="twitter:card" />`, `twitter:title`, `twitter:description`, `twitter:image` | Twitter/X cards; mirror OG content. |
-| JSON-LD `SoftwareApplication` | Structured data; optional breadcrumb `BreadcrumbList` is good practice. |
+| Tag                                                                                     | Purpose                                                                                                                                                                              |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `<meta name="robots" content="index, follow" />`                                        | **Explicit allow.** Without this (or with `noindex`), GSC may report "Indexing allowed: No." Default browser behavior is indexable, but always set this on pages you want in Search. |
+| `<meta name="description" … />`                                                         | Snippet text for Search results and social previews.                                                                                                                                 |
+| `<link rel="canonical" href="https://joeheyming.github.io/my-app/" />`                  | Preferred URL. Use the trailing-slash directory form, not `index.html`. Consolidates `/my-app/` and `/my-app/index.html`.                                                            |
+| `<meta property="og:url" … />`                                                          | Should match the canonical URL.                                                                                                                                                      |
+| `<meta property="og:title" />`, `og:description`, `og:image`                            | Open Graph — used by Google and link unfurlers.                                                                                                                                      |
+| `<meta name="twitter:card" />`, `twitter:title`, `twitter:description`, `twitter:image` | Twitter/X cards; mirror OG content.                                                                                                                                                  |
+| JSON-LD `SoftwareApplication`                                                           | Structured data; optional breadcrumb `BreadcrumbList` is good practice.                                                                                                              |
 
 Also load the shared scripts listed in step 2 (`analytics.js`, `nav.js`, etc.). OS apps loaded in iframes still need a full `<head>` on their standalone `index.html` — the iframe context does not replace crawl metadata.
 
@@ -146,25 +146,25 @@ When adding or fixing an app for Search:
 
 ### Common live-test failures
 
-| GSC report | Typical fix |
-|------------|-------------|
-| `noindex` detected | Add or fix `<meta name="robots" content="index, follow" />`; remove accidental `noindex`. |
-| URL is unknown to Google | Page never crawled — request indexing after live test passes; ensure URL is in `sitemap.xml`. |
-| Duplicate without user-selected canonical | Add `<link rel="canonical">`; prefer `/my-app/` over `/my-app/index.html`. |
-| Redirect page in sitemap | Remove from sitemap; use `noindex` on the stub; index the destination instead. |
-| Bare OS utility `<head>` | Add full SEO head even for `system: true` apps (see `media-player/` fix). |
+| GSC report                                | Typical fix                                                                                   |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `noindex` detected                        | Add or fix `<meta name="robots" content="index, follow" />`; remove accidental `noindex`.     |
+| URL is unknown to Google                  | Page never crawled — request indexing after live test passes; ensure URL is in `sitemap.xml`. |
+| Duplicate without user-selected canonical | Add `<link rel="canonical">`; prefer `/my-app/` over `/my-app/index.html`.                    |
+| Redirect page in sitemap                  | Remove from sitemap; use `noindex` on the stub; index the destination instead.                |
+| Bare OS utility `<head>`                  | Add full SEO head even for `system: true` apps (see `media-player/` fix).                     |
 
 ---
 
 ## Shared utilities
 
-| File | What it does | When to load |
-|------|-------------|--------------|
-| `/analytics.js` | GA init, `trackEvent`, engagement pings, shared-link tracking | Almost always (with the async gtag loader) |
-| `/nav.js` | Hamburger toggle (top-left) + left-rail drawer with all apps from `apps-registry.json`; hides itself inside iframes and standalone PWA | All standalone pages |
-| `/feedback.js` | `<feedback-button>` web component → Google Form | Most apps |
-| `/share.js` | Related-projects panel from `apps-registry.json` `related` field | Apps with `related` entries |
-| `/proxy.js` | `window.proxyService` — CORS-safe fetch with fallback proxies, caching, circuit breaker | Only when fetching cross-origin resources (ROMs, APIs, etc.) |
+| File               | What it does                                                                                                                                   | When to load                                                                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `/analytics.js`    | GA init, product outcomes, error tracking, INP, and shared-link UTM generation                                                                 | Almost always (with the async gtag loader)                                                                                                |
+| `/nav.js`          | Hamburger toggle (top-left) + left-rail drawer with all apps from `apps-registry.json`; hides itself inside iframes and standalone PWA         | All standalone pages                                                                                                                      |
+| `/feedback.js`     | `<feedback-button>` web component → Google Form                                                                                                | Most apps                                                                                                                                 |
+| `/share.js`        | Related-projects panel from `apps-registry.json` `related` field                                                                               | Apps with `related` entries                                                                                                               |
+| `/proxy.js`        | `window.proxyService` — CORS-safe fetch with fallback proxies, caching, circuit breaker                                                        | Only when fetching cross-origin resources (ROMs, APIs, etc.)                                                                              |
 | `/gamepad-keys.js` | Polls the Gamepad API and synthesizes arrow / Enter / Escape when a browser exposes a pad but no keyboard events; no-op when the API is absent | Opt-in: keyboard-driven games (see `2048/`). **Never** on pages that read the Gamepad API themselves (`emulator/`, `stepmania/`, `doom/`) |
 
 ### Nav toggle clearance
@@ -191,15 +191,15 @@ The PS5 has no browser app. You reach its hidden WebKit view via Settings → Us
 
 Measured on retail PS5 firmware in August 2026, via `/diag/`:
 
-| Capability | Result |
-|---|---|
-| ES modules, Pointer Events, `new KeyboardEvent()` | **yes** |
-| WebAssembly | **missing entirely** — not just `SharedArrayBuffer` |
-| WebGL 1 and WebGL 2 | **both false** |
-| `AudioContext` / `webkitAudioContext` | **neither exists** |
-| `navigator.getGamepads` | **not a function** |
-| Touch Events | false |
-| Viewport / DPR | 1540 × 700, ratio 1 |
+| Capability                                        | Result                                              |
+| ------------------------------------------------- | --------------------------------------------------- |
+| ES modules, Pointer Events, `new KeyboardEvent()` | **yes**                                             |
+| WebAssembly                                       | **missing entirely** — not just `SharedArrayBuffer` |
+| WebGL 1 and WebGL 2                               | **both false**                                      |
+| `AudioContext` / `webkitAudioContext`             | **neither exists**                                  |
+| `navigator.getGamepads`                           | **not a function**                                  |
+| Touch Events                                      | false                                               |
+| Viewport / DPR                                    | 1540 × 700, ratio 1                                 |
 
 **Input model:** the controller drives a mouse cursor. X is a left click, arriving as `pointerdown` / `mousedown` / `click` with `pointerType=mouse`. The D-pad **does** emit `keydown` / `keyup` in addition to moving the pointer, so keyboard-driven games are reachable — but not through `/gamepad-keys.js`, which correctly no-ops because the Gamepad API is absent. The exact `key` / `code` / `keyCode` values have not yet been recorded. `2048/index.js` defensively resolves all three forms pending a device retest; do not claim a specific field mismatch as the root cause without that log evidence.
 
@@ -207,7 +207,7 @@ What this rules out on that device: everything under `/emulator/` plus `/doom/` 
 
 Two consequences for code:
 
-- A host callback that throws must not corrupt shared state. `play/shared/pointer-surface.js` records its pointer tracking *before* invoking `onEnter` / `onLeave` precisely because a throwing synth would otherwise strand keys in a pressed state on this device.
+- A host callback that throws must not corrupt shared state. `play/shared/pointer-surface.js` records its pointer tracking _before_ invoking `onEnter` / `onLeave` precisely because a throwing synth would otherwise strand keys in a pressed state on this device.
 - Feature-detect before promising a platform works. Re-verify with `/diag/` rather than assuming; it is dependency-free (classic script, no imports, no shared site scripts) so it still reports on engines where the normal machinery is what's broken.
 
 ---
@@ -250,14 +250,16 @@ Do not `npm install` Tailwind or add a build step — CDN only.
 No build step, no bundler, no `node_modules` at runtime. Three patterns for pulling in a library:
 
 1. **CDN `<script>` tag** (non-module, sets a global): pinned to an exact version on `cdn.jsdelivr.net` or `unpkg.com`. Good for libraries that ship a UMD/IIFE build (`marked`, `DOMPurify`, emulator cores, etc.).
+
    ```html
    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
    ```
 
 2. **Import map + ESM imports**: for libraries that ship proper ES modules, declare the map in a `<script type="importmap">` and import normally in your module script. Used by `stock/` (Chart.js + Luxon) and `model-viewer/` (Three.js).
+
    ```html
    <script type="importmap">
-   { "imports": { "chart.js/auto": "https://esm.sh/chart.js@4.4.4/auto" } }
+     { "imports": { "chart.js/auto": "https://esm.sh/chart.js@4.4.4/auto" } }
    </script>
    ```
 
@@ -323,12 +325,12 @@ Only add a browser test if the user explicitly requests one in the current task.
 
 ## Files touched when adding a new app
 
-| File | Change |
-|------|--------|
-| `<app>/index.html` | New |
-| `<app>/index.css` | New (if non-trivial styles) |
-| `<app>/index.js` | New (if non-trivial logic) |
-| `<app>/<app>-preview.png` | New — generated by `generate-previews.js` |
-| `apps-registry.json` | Add one registry entry |
+| File                         | Change                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `<app>/index.html`           | New                                                                    |
+| `<app>/index.css`            | New (if non-trivial styles)                                            |
+| `<app>/index.js`             | New (if non-trivial logic)                                             |
+| `<app>/<app>-preview.png`    | New — generated by `generate-previews.js`                              |
+| `apps-registry.json`         | Add one registry entry                                                 |
 | (via `npm run sync:catalog`) | `sitemap.xml`, `generate-previews.js` PAGES, `manifest.json` shortcuts |
-| `manifest.json` | Auto-updated by sync when `pwaShortcut` is set |
+| `manifest.json`              | Auto-updated by sync when `pwaShortcut` is set                         |

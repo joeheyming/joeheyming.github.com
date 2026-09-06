@@ -7,12 +7,6 @@ import {
 import { fetchTopSimfilesFromListUrl } from './zeniusFetch.js';
 import { SPOTLIGHT_TOP_N } from './zeniusParsers.js';
 
-function trackZeniusBrowserEvent(eventName, label, value) {
-  if (typeof window.trackEvent === 'function') {
-    window.trackEvent(eventName, 'StepMania', label, value);
-  }
-}
-
 function resetZeniusMainScroll(browser) {
   const pane = browser.shadowRoot.getElementById('zenius-main-scroll');
   if (pane) {
@@ -262,11 +256,6 @@ export function createZeniusContentCard(browser, item, currentPath) {
     }
 
     mainLink.addEventListener('click', () => {
-      if (currentPath === 'spotlight') {
-        trackZeniusBrowserEvent('zenius_spotlight_song_click', item.name);
-      } else {
-        trackZeniusBrowserEvent('song_browser_song_select', item.name);
-      }
       if (browser.currentPath.startsWith('categoryid=')) {
         browser.lastBrowsedCategoryId = browser.currentPath.replace('categoryid=', '');
         browser.lastBrowsedCategoryName = browser.currentCategoryName;
@@ -317,10 +306,6 @@ export function createZeniusContentCard(browser, item, currentPath) {
 
     itemEl.addEventListener('click', () => {
       if (item.type === 'directory') {
-        if (typeof window.trackEvent === 'function') {
-          window.trackEvent('song_browser_category_click', 'StepMania', item.name);
-        }
-
         itemEl.classList.add('loading');
         itemEl.innerHTML = `
         <div class="content-icon">⏳</div>
@@ -388,9 +373,6 @@ export async function runZeniusSpotlight(browser, sourceLinks) {
       link.rel = 'noopener noreferrer';
       link.className = 'zenius-spotlight-title-link';
       link.textContent = label;
-      link.addEventListener('click', () => {
-        trackZeniusBrowserEvent('zenius_spotlight_link_click', label);
-      });
       h.appendChild(link);
       sec.appendChild(h);
       if (items.length === 0) {
@@ -415,7 +397,6 @@ export async function runZeniusSpotlight(browser, sourceLinks) {
         sec.appendChild(grid);
       }
       sections.appendChild(sec);
-      trackZeniusBrowserEvent('zenius_spotlight_list', label);
     }
   } catch (e) {
     if (e && /** @type {Error} */ (e).name === 'AbortError') {
@@ -668,7 +649,6 @@ export function renderZeniusRecentChips(browser) {
       a.setAttribute('role', 'listitem');
       a.title = r.title;
       a.addEventListener('click', (ev) => {
-        trackZeniusBrowserEvent('zenius_recent_click', r.title);
         ev.stopPropagation();
       });
       wrap.appendChild(a);

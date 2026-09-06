@@ -113,10 +113,6 @@ async function loadSwfBlob(blob, name) {
   await playerEl.ruffle().load(objectUrl);
   setPlayingUi(name);
   window.heymingAchievements?.unlockForCurrentApp('first-action');
-
-  if (window.trackEvent) {
-    window.trackEvent('flash_swf_loaded', 'Flash', name.slice(0, 80), 0);
-  }
 }
 
 /**
@@ -267,10 +263,6 @@ async function loadFromArchive(swf) {
 
     closeBrowser(false);
     await loadSwfBlob(file, filename);
-
-    if (window.trackEvent) {
-      window.trackEvent('flash_ia_loaded', 'Flash', title.slice(0, 80), 0);
-    }
   } catch (error) {
     console.error('Failed to load SWF from Archive:', error);
     const detail =

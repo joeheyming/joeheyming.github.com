@@ -35,43 +35,6 @@ const HERO_APP_IDS = ['doom', 'stepmania', 'nes'];
 // attention with the apps that retain users.
 const LOW_ENGAGEMENT_APP_IDS = new Set(['awesome', 'sadtrombone', 'farm', 'badapple']);
 
-// Debounced GA4-standard `view_search_results` tracker, factored out so
-// the home gallery filter and the hamburger filter share one
-// implementation. Fires ~600 ms after the user pauses typing, skips
-// empty queries, and ignores repeats of the same term so a fast typist
-// who clears and retypes only generates one event per distinct query.
-// `location` becomes the GA event_category so dashboards can split
-// "home_gallery" from "hamburger_menu" usage.
-function makeSearchTracker(location) {
-  /** @type {ReturnType<typeof setTimeout> | null} */
-  let timer = null;
-  let lastTerm = '';
-  return function trackSearch(term, resultCount) {
-    if (timer) {
-      clearTimeout(timer);
-      timer = null;
-    }
-    const trimmed = (term || '').trim();
-    if (!trimmed) {
-      lastTerm = '';
-      return;
-    }
-    if (trimmed === lastTerm) return;
-    timer = setTimeout(() => {
-      timer = null;
-      lastTerm = trimmed;
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent(
-          'view_search_results',
-          location,
-          trimmed.slice(0, 40),
-          Number.isFinite(resultCount) ? resultCount : 0
-        );
-      }
-    }, 600);
-  };
-}
-
 // Apps that map to the highest-value search queries get an explicit "Featured"
 // pin on the home page. Hero apps (HERO_APP_IDS) are rendered separately above
 // by renderFeaturedHeroes() and filtered out of this strip by
@@ -120,41 +83,6 @@ function featuredHrefFromPath(path) {
   return '/' + base + '/' + suffix;
 }
 
-// One shared IntersectionObserver for hero + strip impression tracking.
-// Without this we count tile *opens* but not tile *views*, so we can't
-// compute the actual CTR that justifies the dual-tile hero promotion vs
-// the strip layout. 50% threshold = "saw at least half the card" — a
-// stricter definition of "viewed" than just scrolled-past-the-top.
-let _impressionObserver = null;
-function getImpressionObserver() {
-  if (_impressionObserver || typeof IntersectionObserver === 'undefined') {
-    return _impressionObserver;
-  }
-  _impressionObserver = new IntersectionObserver(
-    (entries, obs) => {
-      entries.forEach((e) => {
-        if (!e.isIntersecting) return;
-        const ev = e.target.dataset.impressionEvent;
-        const label = e.target.dataset.impressionLabel || '';
-        if (ev && typeof window.trackEvent === 'function') {
-          window.trackEvent(ev, 'Engagement', label);
-        }
-        obs.unobserve(e.target);
-      });
-    },
-    { threshold: 0.5 }
-  );
-  return _impressionObserver;
-}
-
-function observeImpression(el, eventName, label) {
-  if (!el || !eventName) return;
-  el.dataset.impressionEvent = eventName;
-  el.dataset.impressionLabel = label || '';
-  const obs = getImpressionObserver();
-  if (obs) obs.observe(el);
-}
-
 // Hero tiles: Doom + Stepmania, oversized dual layout. Same data shape as the
 // Featured strip cards but bigger and ahead of the strip on the page.
 function renderFeaturedHeroes() {
@@ -174,16 +102,6 @@ function renderFeaturedHeroes() {
     link.className = 'hos-featured-hero';
     link.dataset.appId = app.id;
     if (app.category) link.setAttribute('data-category', app.category);
-    const labelBase = (f && f.analyticsLabel) || app.shortName || app.name;
-    const positionLabel = labelBase + ':featured-hero';
-    link.setAttribute('data-event', 'featured_project_click');
-    link.setAttribute('data-event-category', 'Engagement');
-    link.setAttribute('data-event-label', positionLabel);
-    link.addEventListener('click', () => {
-      if (typeof window.trackProjectOpen === 'function') {
-        window.trackProjectOpen(positionLabel);
-      }
-    });
 
     const headline = (f && f.headline) || app.shortName || app.name;
     const blurb = (f && f.blurb) || app.description || '';
@@ -207,7 +125,6 @@ function renderFeaturedHeroes() {
       '<span class="hos-featured-hero-cta" aria-hidden="true">Play now →</span>';
 
     grid.appendChild(link);
-    observeImpression(link, 'featured_hero_visible', positionLabel);
   });
 }
 
@@ -232,20 +149,6 @@ function renderFeaturedProjects() {
     link.href = featuredHrefFromPath(app.path);
     link.className = 'hos-featured-card';
     if (app.category) link.setAttribute('data-category', app.category);
-    const labelBase = (f && f.analyticsLabel) || app.shortName || app.name;
-    const positionLabel = labelBase + ':featured-strip';
-    link.setAttribute('data-event', 'featured_project_click');
-    link.setAttribute('data-event-category', 'Engagement');
-    link.setAttribute('data-event-label', positionLabel);
-    // Also fire the project_opened conversion so we can finally measure the
-    // home-to-app CTR per tile position. Until now, only the hamburger menu
-    // fired this conversion, which made the real Featured + gallery CTR
-    // invisible in GA4.
-    link.addEventListener('click', () => {
-      if (typeof window.trackProjectOpen === 'function') {
-        window.trackProjectOpen(positionLabel);
-      }
-    });
 
     const headline = (f && f.headline) || app.shortName || app.name;
     const blurb = (f && f.blurb) || app.description || '';
@@ -262,7 +165,6 @@ function renderFeaturedProjects() {
       '</p>';
 
     grid.appendChild(link);
-    observeImpression(link, 'featured_strip_visible', positionLabel);
   });
 }
 
@@ -339,21 +241,6 @@ function renderAppGallery() {
         .toLowerCase();
       card.setAttribute('data-search', searchText);
 
-      card.setAttribute('data-event', 'gallery_app_click');
-      card.setAttribute('data-event-category', 'Engagement');
-      // Label format: "<app>:gallery-<section>" so GA reporting can tell us
-      // which section is dead weight vs. where users actually discover apps,
-      // and so the prefix groups cleanly with featured-hero / featured-strip.
-      const galleryLabel = (app.shortName || app.name) + ':gallery-' + section.id;
-      card.setAttribute('data-event-label', galleryLabel);
-      // Mirror Featured: also fire the project_opened conversion so home-to-app
-      // CTR is measurable from this surface (not just the hamburger menu).
-      card.addEventListener('click', () => {
-        if (typeof window.trackProjectOpen === 'function') {
-          window.trackProjectOpen(galleryLabel);
-        }
-      });
-
       const tierLabel = tier === 'system' ? 'system' : tier === 'experience' ? 'experience' : '';
       const tierMarkup = tierLabel
         ? '<span class="hos-app-card-tier" aria-label="Tier: ' +
@@ -393,7 +280,6 @@ function bindGalleryFilter() {
   if (!input || !root || typeof AppFilter === 'undefined') return;
 
   const popularSection = document.getElementById('popular-section');
-  const trackGallerySearch = makeSearchTracker('home_gallery');
 
   const ctrl = AppFilter.create({
     container: root,
@@ -401,7 +287,7 @@ function bindGalleryFilter() {
     noResultsEl: noResults,
     clearButton: clearBtn,
     getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase(),
-    onFilter: ({ searchTerm, visibleCount }) => {
+    onFilter: ({ searchTerm }) => {
       root.querySelectorAll('.hos-gallery-section').forEach((sec) => {
         const visible = Array.from(sec.querySelectorAll('.hos-app-card')).some(
           (card) => card.style.display !== 'none'
@@ -415,33 +301,9 @@ function bindGalleryFilter() {
       if (popularSection) {
         popularSection.style.display = searchTerm ? 'none' : '';
       }
-
-      trackGallerySearch(searchTerm, visibleCount);
     }
   });
   ctrl.bindKeyboardShortcuts({});
-
-  // Secondary tracking: the card already fires gallery_app_click via
-  // data-event; this event captures the search term so we can see which
-  // queries actually surface useful apps.
-  root.addEventListener(
-    'click',
-    (e) => {
-      const card = e.target.closest('.hos-app-card');
-      if (!card) return;
-      const term = (input.value || '').trim().toLowerCase();
-      if (!term) return;
-      const label =
-        card.getAttribute('data-event-label') ||
-        (card.querySelector('.hos-app-card-title') &&
-          card.querySelector('.hos-app-card-title').textContent.trim()) ||
-        '';
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('gallery_search_click', 'Engagement', term.slice(0, 40) + ' → ' + label);
-      }
-    },
-    true
-  );
 
   // Pressing "/" focuses the filter input (skipped when the user is
   // already typing somewhere else). Mirrors GitHub/GitLab's affordance.
@@ -514,15 +376,12 @@ function initHamburgerMenu() {
 
   let isMenuOpen = false;
 
-  const trackHamburgerSearch = makeSearchTracker('hamburger_menu');
-
   const filterController = AppFilter.create({
     container: menuContainer,
     filterInput: filterInput,
     noResultsEl: noResults,
     clearButton: filterClear,
-    getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase(),
-    onFilter: ({ searchTerm, visibleCount }) => trackHamburgerSearch(searchTerm, visibleCount)
+    getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase()
   });
 
   filterController.bindKeyboardShortcuts({
@@ -533,10 +392,6 @@ function initHamburgerMenu() {
     isMenuOpen = !isMenuOpen;
 
     if (isMenuOpen) {
-      if (window.trackEvent) {
-        window.trackEvent('hamburger_menu_open', 'Navigation', 'Main Menu');
-      }
-
       hamburgerToggle.classList.add('active');
       hamburgerPanel.classList.add('show');
       filterController.reset();
@@ -545,10 +400,6 @@ function initHamburgerMenu() {
         filterInput.focus();
       }, 300);
     } else {
-      if (window.trackEvent) {
-        window.trackEvent('hamburger_menu_close', 'Navigation', 'Main Menu');
-      }
-
       hamburgerToggle.classList.remove('active');
       hamburgerPanel.classList.remove('show');
       filterController.reset();
@@ -563,18 +414,6 @@ function initHamburgerMenu() {
     const appLinks = hamburgerPanel.querySelectorAll('.hamburger-app-link');
     appLinks.forEach((link) => {
       link.addEventListener('click', () => {
-        // First inner div holds the project name now (was .text-green-400
-        // before the brand refactor); look it up by structure.
-        const nameEl = link.querySelector('div > div:first-child');
-        const projectName = nameEl ? nameEl.textContent.trim() : '';
-
-        if (window.trackEvent && projectName) {
-          window.trackEvent('hamburger_menu_click', 'Navigation', projectName);
-        }
-        if (window.trackProjectOpen && projectName) {
-          window.trackProjectOpen(projectName);
-        }
-
         link.style.transform = 'scale(0.95)';
         setTimeout(() => {
           link.style.transform = '';
@@ -637,9 +476,6 @@ function renderFooterSocial() {
     a.rel = 'noopener noreferrer';
     a.className = 'hos-social-link';
     a.setAttribute('aria-label', l.label);
-    a.setAttribute('data-event', 'footer_social_click');
-    a.setAttribute('data-event-category', 'Engagement');
-    a.setAttribute('data-event-label', l.label);
     a.innerHTML = window.brandIcon(l.icon);
     root.appendChild(a);
   });
@@ -917,12 +753,7 @@ function renderMOTD() {
 
   pick();
 
-  el.addEventListener('click', () => {
-    pick();
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent('motd_click', 'Engagement', 'Hero splash');
-    }
-  });
+  el.addEventListener('click', () => pick());
 
   el.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {

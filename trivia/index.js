@@ -638,9 +638,6 @@ function startRoundFlow() {
   } else {
     beginWaiting_();
   }
-  if (typeof window.trackEvent === 'function') {
-    window.trackEvent('trivia_start', { mode: 'opt_in' });
-  }
   schedulePoll();
   kickBurst(10000);
   refresh({ force: true }).catch(() => {});
@@ -726,9 +723,6 @@ async function submitAnswer(questionId, answer) {
     saveLocalAnswer(roundId, questionId, answer);
     window.heymingAchievements?.unlockForCurrentApp('first-action');
     delete state.estimateDrafts[questionId];
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent('trivia_answer', { question_id: questionId, mode: 'submit' });
-    }
   } catch (err) {
     console.warn('Trivia submit failed', err);
     showBanner('Couldn’t send your answer. Try again in a moment.');

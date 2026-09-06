@@ -172,13 +172,6 @@ export function createPickup({
     hud.setBusy(true);
     clearKeys?.();
     hud.showStatus(vacated.item.name, vacated.item.tagline || '', 'Picking up…');
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent(
-        'blockbuster_pickup',
-        'entertainment',
-        `${vacated.item.kind}:${vacated.item.id}`
-      );
-    }
   }
 
   function startPlace() {
@@ -193,9 +186,6 @@ export function createPickup({
     hud.setBusy(true);
     clearKeys?.();
     hud.showStatus(heldItem.name, '', 'Shelving…');
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent('blockbuster_place', 'entertainment', `${heldItem.kind}:${heldItem.id}`);
-    }
   }
 
   function startInsertTv() {
@@ -210,13 +200,6 @@ export function createPickup({
     clearKeys?.();
     aimedTv = false;
     hud.showStatus(heldItem.name, '', 'Inserting…');
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent(
-        'blockbuster_tv_insert',
-        'entertainment',
-        `${heldItem.kind}:${heldItem.id}`
-      );
-    }
   }
 
   /** Finish insert: optional rewind gag → CRT preview → rent CTA (no auto-navigate). */
@@ -253,9 +236,6 @@ export function createPickup({
 
     const wantRewind = Math.random() < REWIND_CHANCE;
     if (wantRewind) {
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('blockbuster_rewind', 'entertainment', `${item.kind}:${item.id}`);
-      }
       hud.showStatus(item.name, 'Be kind — rewind', 'Tape is a little tangled…');
       tvScreen.playRewind(item, doPreview);
       onDirty?.();
@@ -281,7 +261,6 @@ export function createPickup({
 
   function startReturn() {
     if (pickupState !== 'holding' || !heldItem || !heldGroup) return;
-    const item = heldItem;
     disposeHeldMesh();
     heldItem = null;
     flipTarget = 0;
@@ -294,9 +273,6 @@ export function createPickup({
     hud.setBusy(false);
     resetAim();
     hud.showStatus('Returned', 'Thanks, member #0001.', 'Be kind — rewind.');
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent('blockbuster_return', 'entertainment', `${item.kind}:${item.id}`);
-    }
     onDirty?.();
   }
 

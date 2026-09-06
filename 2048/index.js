@@ -21,11 +21,6 @@ const SIZE = 4;
 const STORAGE_KEY = 'g2048.state.v1';
 const BEST_KEY = 'g2048.best.v1';
 
-const trackEvent =
-  typeof window !== 'undefined' && typeof window.trackEvent === 'function'
-    ? window.trackEvent
-    : () => {};
-
 /** @typedef {{ id: number, value: number, row: number, col: number }} Tile */
 
 let nextTileId = 1;
@@ -464,17 +459,9 @@ function move(dir) {
       if (!continueAfterWin) {
         showOverlay({ kind: 'win' });
       }
-      trackEvent('2048_win', { value: 2048 });
-      // Reaching 2048 is the canonical "won the game" signal — roll up
-      // into the shared `game_completed` Key Event used by StepMania and
-      // Pac-Man as well, so GA4 sees one cross-app conversion.
-      if (typeof window !== 'undefined' && typeof window.trackConversion === 'function') {
-        window.trackConversion('game_completed', score);
-      }
     } else if (!hasMoves()) {
       clearPersistedState();
       showOverlay({ kind: 'lose' });
-      trackEvent('2048_game_over', { score });
     }
   }, 180);
 }
@@ -569,7 +556,6 @@ function undo() {
   if (nextTileId <= maxId) nextTileId = maxId + 1;
   renderAll();
   persistState();
-  trackEvent('2048_undo', {});
 }
 
 /* ── Persistence ──────────────────────────────────────────────────── */
@@ -658,7 +644,6 @@ function newGame() {
   spawnTile();
   updateScore();
   persistState();
-  trackEvent('2048_new_game', {});
 }
 
 /* ── Input ────────────────────────────────────────────────────────── */

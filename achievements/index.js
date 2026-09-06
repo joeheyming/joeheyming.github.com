@@ -123,12 +123,6 @@ function renderRegions() {
   });
 }
 
-function track(eventName, label, value) {
-  if (typeof window.trackEvent === 'function') {
-    window.trackEvent(eventName, 'Achievements', label, value);
-  }
-}
-
 function positionHoverCard(node) {
   if (!node || hoverCard.hidden) return;
 
@@ -190,7 +184,6 @@ function showHoverCard(achievement, node) {
 
   if (!inspectedNodeIds.has(achievement.id)) {
     inspectedNodeIds.add(achievement.id);
-    track('achievement_node_inspected', achievement.id);
   }
 
   if (!hasInspectedNode) {
@@ -382,7 +375,6 @@ function renderTree() {
   const unlockedCount = achievements.filter((achievement) =>
     unlockedIds.has(achievement.id)
   ).length;
-  track('achievement_tree_viewed', `${unlockedCount}/${achievements.length}`, unlockedCount);
 }
 
 function validAchievement(item) {

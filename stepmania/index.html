@@ -450,15 +450,7 @@
     </div>
 
     <!-- Score Toggle Button for Mobile -->
-    <button
-      class="score-toggle"
-      id="scoreToggle"
-      data-event="score_toggle"
-      data-event-category="StepMania"
-      data-event-label="Score Toggle"
-    >
-      📊 Score
-    </button>
+    <button class="score-toggle" id="scoreToggle">📊 Score</button>
 
     <!-- Main Game Container - Fixed Layout.
          `lg:items-stretch` (not items-start) so the side score panel gets
@@ -478,57 +470,27 @@
         <!-- Song Library Browser, Share Button, and Difficulty Selector Row -->
         <div class="w-full flex flex-row items-center justify-center gap-2 pr-3 md:pr-6 mb-2">
           <!-- Song Library Browser Web Component -->
-          <zenius-browser
-            data-event="song_browser_open"
-            data-event-category="StepMania"
-            data-event-label="Song Browser"
-          ></zenius-browser>
+          <zenius-browser></zenius-browser>
 
           <!-- Share Button -->
-          <share-button
-            label="📤 Share"
-            theme="gradient"
-            data-event="share_button_click"
-            data-event-category="StepMania"
-            data-event-label="Share Button"
-          ></share-button>
+          <share-button label="📤 Share" theme="gradient"></share-button>
 
           <!-- Feedback Button -->
           <feedback-button label="💬 Feedback" theme="gradient"></feedback-button>
 
           <!-- Restart Button -->
-          <button
-            id="restart-btn"
-            class="restart-btn"
-            title="Restart Song (R)"
-            data-event="restart_song"
-            data-event-category="StepMania"
-            data-event-label="Restart Button"
-          >
+          <button id="restart-btn" class="restart-btn" title="Restart Song (R)">
             <span class="restart-icon-only">🔄</span>
             <span class="restart-text-label">Restart</span>
           </button>
 
-          <button
-            id="settings-btn"
-            class="restart-btn"
-            title="Keybinds"
-            type="button"
-            data-event="open_settings"
-            data-event-category="StepMania"
-            data-event-label="Settings Button"
-          >
+          <button id="settings-btn" class="restart-btn" title="Keybinds" type="button">
             <span class="restart-icon-only">⌨️</span>
             <span class="restart-text-label">Keys</span>
           </button>
 
           <!-- Main Difficulty Selector -->
-          <difficulty-selector
-            id="main-difficulty-selector"
-            data-event="difficulty_change"
-            data-event-category="StepMania"
-            data-event-label="Difficulty Selector"
-          ></difficulty-selector>
+          <difficulty-selector id="main-difficulty-selector"></difficulty-selector>
 
           <!-- Gamepad Status Indicator -->
           <div
@@ -607,9 +569,6 @@
             id="fullscreen-toggle"
             class="fullscreen-toggle-btn"
             title="Toggle Fullscreen (F)"
-            data-event="fullscreen_toggle"
-            data-event-category="StepMania"
-            data-event-label="Fullscreen Toggle"
           >
             <span class="fullscreen-icon">⛶</span>
             <span class="exit-fullscreen-icon" style="display: none">✕</span>

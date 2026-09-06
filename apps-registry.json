@@ -292,7 +292,7 @@
     "defaultWidth": 900,
     "defaultHeight": 700,
     "tags": ["arcade", "retro", "3d", "endless", "procedural"],
-    "related": ["pacman", "doom", "nes", "minesweeper"],
+    "related": ["pacman-builder", "pacman", "doom", "nes"],
     "shareCategory": "game",
     "featured": {
       "order": 11,

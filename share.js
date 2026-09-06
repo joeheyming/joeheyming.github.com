@@ -236,9 +236,6 @@ class ShareButtonElement extends HTMLElement {
   }
 
   async handleShare() {
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent('share', 'share_button', window.location.pathname);
-    }
     if (typeof window.trackConversion === 'function') {
       window.trackConversion('content_shared', 1);
     }
@@ -470,10 +467,7 @@ window.ShareButton = ShareButtonElement;
             .map(
               (project) => `
             <a href="${project.href || `/${project.id}/`}" 
-               class="related-project-card"
-               data-event="related_project_click"
-               data-event-category="Engagement"
-               data-event-label="${project.name}">
+               class="related-project-card">
               <div class="related-project-icon">${project.icon}</div>
               <div class="related-project-info">
                 <div class="related-project-name">${project.name}</div>
@@ -485,10 +479,7 @@ window.ShareButton = ShareButtonElement;
             .join('')}
         </div>
         <div class="related-projects-footer">
-          <a href="/" 
-             data-event="view_all_from_related"
-             data-event-category="Engagement"
-             data-event-label="${currentProject}">
+          <a href="/">
             View all projects →
           </a>
           <button class="share-btn-mini" id="share-url-btn-mini" title="Copy link to clipboard">
@@ -543,10 +534,6 @@ window.ShareButton = ShareButtonElement;
         closePanel();
       } else {
         openPanel();
-        // Track opening
-        if (window.trackEvent) {
-          window.trackEvent('related_projects_opened', 'Engagement', currentProject);
-        }
       }
     });
 
@@ -592,13 +579,6 @@ window.ShareButton = ShareButtonElement;
               shareBtn.innerHTML = '🔗 Share';
             }, 2000);
           });
-        if (window.trackEvent) {
-          window.trackEvent('share_url_click', 'Engagement', currentProject);
-          // GA4-standard `share` event in parallel with the custom one so
-          // GA4's built-in share reporting picks it up too. Label encodes
-          // surface + page so the standard event is still triagable.
-          window.trackEvent('share', 'related_widget', currentProject);
-        }
         if (window.trackConversion) {
           window.trackConversion('content_shared', 1);
         }
@@ -611,11 +591,6 @@ window.ShareButton = ShareButtonElement;
       feedbackBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-
-        // Track feedback click
-        if (window.trackEvent) {
-          window.trackEvent('feedback_opened_from_related', 'Engagement', currentProject);
-        }
 
         // Close the related-projects panel first so it doesn’t cover the modal
         closePanel();
@@ -996,12 +971,6 @@ window.ShareButton = ShareButtonElement;
           ? window.buildSharedUrl('share_fab')
           : window.location.href;
 
-      if (window.trackEvent) {
-        window.trackEvent('share_fab_click', 'Engagement', window.location.pathname);
-        // GA4-standard `share` event in parallel — see comment in the
-        // related-widget share handler above.
-        window.trackEvent('share', 'share_fab', window.location.pathname);
-      }
       if (window.trackConversion) {
         window.trackConversion('content_shared', 1);
       }

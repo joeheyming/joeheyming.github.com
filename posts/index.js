@@ -373,7 +373,6 @@ async function pinDraft(note) {
     setStatus(
       configured ? 'Pinned — may take a few seconds for everyone' : 'Pinned (demo — local only)'
     );
-    window.trackEvent?.('posts_submit', 'Engagement', 'text');
     window.heymingAchievements?.unlockForCurrentApp('first-action');
   } catch (err) {
     console.error(err);
@@ -752,7 +751,6 @@ async function persistMove(post, previousPosition) {
       saveDemoPosts(demo);
     }
     setStatus('Note moved');
-    window.trackEvent?.('posts_move', 'Engagement', post.id);
   } catch (err) {
     console.error(err);
     post.x = previousPosition.x;
@@ -892,7 +890,6 @@ async function onRemovePost(post, button) {
     posts = posts.filter((item) => item.id !== post.id);
     renderBoard();
     setStatus('Note taken down');
-    window.trackEvent?.('posts_remove', 'Engagement', post.id);
   } catch (err) {
     console.error(err);
     button.disabled = false;

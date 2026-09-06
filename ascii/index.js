@@ -603,7 +603,6 @@ async function shareAsPost() {
     text: 'ASCII Art\n\nMade with [ASCII Art](https://joeheyming.github.io/ascii/).',
     attachments: [blob]
   });
-  window.trackEvent?.('posts_share', 'Engagement', 'ascii');
 }
 
 // ── Take On Me mode ───────────────────────────────────────────

@@ -67,14 +67,6 @@ export class GamepadManager {
   init() {
     if (!navigator.getGamepads) {
       console.warn('Gamepad API not supported in this browser');
-      // Track that gamepad API is not supported
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent(
-          'gamepad_api_not_supported',
-          'Gamepad',
-          'Browser does not support Gamepad API'
-        );
-      }
       return;
     }
 
@@ -82,31 +74,11 @@ export class GamepadManager {
       console.log('Gamepad connected:', e.gamepad);
       this.addGamepad(e.gamepad);
       this.startPolling();
-
-      // Track gamepad connection
-      if (typeof window.trackEvent === 'function') {
-        const gamepadInfo = {
-          id: e.gamepad.id || 'unknown',
-          mapping: e.gamepad.mapping || 'standard',
-          buttons: e.gamepad.buttons?.length || 0,
-          axes: e.gamepad.axes?.length || 0
-        };
-        window.trackEvent(
-          'gamepad_connected',
-          'Gamepad',
-          `${gamepadInfo.id} (${this.currentMapping})`
-        );
-      }
     });
 
     window.addEventListener('gamepaddisconnected', (e) => {
       console.log('Gamepad disconnected:', e.gamepad);
       this.removeGamepad(e.gamepad.index);
-
-      // Track gamepad disconnection
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('gamepad_disconnected', 'Gamepad', e.gamepad.id || 'unknown');
-      }
     });
 
     this.checkExistingGamepads();
@@ -117,19 +89,6 @@ export class GamepadManager {
     for (let i = 0; i < gamepads.length; i++) {
       if (gamepads[i]) {
         this.addGamepad(gamepads[i]);
-
-        // Track gamepad detected on page load
-        if (typeof window.trackEvent === 'function') {
-          const gamepadInfo = {
-            id: gamepads[i].id || 'unknown',
-            mapping: gamepads[i].mapping || 'standard'
-          };
-          window.trackEvent(
-            'gamepad_detected',
-            'Gamepad',
-            `${gamepadInfo.id} (${this.currentMapping})`
-          );
-        }
       }
     }
 
@@ -146,11 +105,6 @@ export class GamepadManager {
     this.isEnabled = true;
 
     this.autoDetectController(gamepad);
-
-    // Track gamepad type/mapping
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent('gamepad_mapping_detected', 'Gamepad', this.currentMapping);
-    }
   }
 
   removeGamepad(index) {

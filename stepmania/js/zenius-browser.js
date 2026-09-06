@@ -112,10 +112,6 @@ class ZeniusBrowserElement extends HTMLElement {
   bindEvents() {
     // Open browser
     this.shadowRoot.getElementById('open-zenius-browser').addEventListener('click', () => {
-      // Track analytics event
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('song_browser_open', 'StepMania', 'Song Browser Open');
-      }
       // Changing the host to a fixed full-screen element also hides this
       // button. Do that after click dispatch so the browser can finish the
       // button's activation/focus work against a stable event target.
@@ -216,25 +212,12 @@ class ZeniusBrowserElement extends HTMLElement {
     });
 
     this.shadowRoot.getElementById('zenius-saved-btn').addEventListener('click', () => {
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('zenius_saved_click', 'StepMania', 'Saved');
-      }
       this.displayFavoritesList();
     });
 
     this.shadowRoot
       .getElementById('zenius-browse-categories-btn')
       ?.addEventListener('click', () => {
-        if (typeof window.trackEvent === 'function') {
-          const content = this.cache.get(this.getCurrentUrl());
-          const count = content?.items?.length ?? 0;
-          window.trackEvent(
-            'zenius_browse_categories_click',
-            'StepMania',
-            'Browse all collections',
-            count > 0 ? count : undefined
-          );
-        }
         this.setSearchMode('local');
       });
 
@@ -544,16 +527,6 @@ class ZeniusBrowserElement extends HTMLElement {
         this.shadowRoot.getElementById('current-path').textContent = `Search: “${
           songTitle || songArtist
         }”`;
-      }
-
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('zenius_search', 'StepMania', `${songTitle} | ${songArtist}`);
-        // GA4-standard `view_search_results` fires in parallel with our
-        // custom event so GA4's built-in site-search reports pick it up.
-        // Label = search term (clipped to ~40 chars to fit GA's label cap),
-        // value = number of results returned.
-        const term = `${songTitle} ${songArtist}`.trim().slice(0, 40);
-        window.trackEvent('view_search_results', 'zenius_browser', term, results.length);
       }
     } catch (error) {
       if (error && error.name === 'AbortError') {

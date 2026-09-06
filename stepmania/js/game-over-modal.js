@@ -240,14 +240,13 @@ class GameOverModalElement extends HTMLElement {
         </div>
 
         <div class="buttons">
-          <!-- No data-event here: _shareScore() fires game_over_share_score with a richer label (song title). Previously both the data-event delegate and _shareScore fired, double-counting taps. -->
           <button class="share-btn">
             🎉 Share Your Score!
           </button>
-          <button class="restart-btn" data-event="game_over_restart" data-event-category="StepMania" data-event-label="Play Again">
+          <button class="restart-btn">
             🔄 Play Again
           </button>
-          <button class="close-btn" data-event="game_over_close" data-event-category="StepMania" data-event-label="Close Game Over">
+          <button class="close-btn">
             ✕ Close
           </button>
         </div>
@@ -328,11 +327,6 @@ class GameOverModalElement extends HTMLElement {
     const songInfo = getCurrentSongInfo();
     const message = createScoreMessage(scoreData, songInfo);
     const shareBtn = this.shadowRoot.querySelector('.share-btn');
-
-    // Track share attempt
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent('game_over_share_score', 'StepMania', `Share Score - ${songInfo.title}`);
-    }
 
     // Try Web Share API first (mobile-friendly and more prominent)
     if (navigator.share && window.isSecureContext) {
@@ -497,24 +491,6 @@ class GameOverModalElement extends HTMLElement {
     if (typeof window.trackEvent === 'function') {
       const status = this._failed ? 'Failed' : 'Complete';
       window.trackEvent('song_complete', 'StepMania', `Song ${status} - ${percentage}`, totalNotes);
-
-      // Successful completions are a strong "got value" signal — fire the
-      // shared `game_completed` Key Event so StepMania, 2048, and Pac-Man
-      // all roll up into one conversion in GA4. Failed runs are excluded
-      // intentionally (they're the inverse signal).
-      if (!this._failed && typeof window.trackConversion === 'function') {
-        window.trackConversion('game_completed', totalNotes);
-      }
-
-      if (this._pbResult?.isNewPB) {
-        const songInfo = getCurrentSongInfo();
-        window.trackEvent(
-          'game_over_new_pb',
-          'StepMania',
-          `New PB - ${songInfo.title}`,
-          Math.round(parseFloat(percentage))
-        );
-      }
     }
 
     this._visible = true;

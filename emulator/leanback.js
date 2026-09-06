@@ -258,15 +258,4 @@
   };
 
   window.emulatorLeanback = api;
-
-  if (MODE.isTv && typeof window.trackEvent === 'function') {
-    window.trackEvent('emulator_tv_mode', 'Emulator', MODE.source || 'unknown', 0);
-  } else if (MODE.isTv) {
-    // analytics.js may still be loading; retry once after a tick
-    setTimeout(() => {
-      if (window.trackEvent) {
-        window.trackEvent('emulator_tv_mode', 'Emulator', MODE.source || 'unknown', 0);
-      }
-    }, 0);
-  }
 })();

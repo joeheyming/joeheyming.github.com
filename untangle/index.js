@@ -327,14 +327,6 @@ function checkWin() {
   if (grade === 'A' && state.level >= 3) {
     window.heymingAchievements?.unlockForCurrentApp('a-rank');
   }
-  if (typeof window.trackEvent === 'function') {
-    window.trackEvent(
-      'untangle_level_clear',
-      'Game',
-      `level ${state.level} grade ${grade}`,
-      state.moves
-    );
-  }
 }
 
 function resize() {

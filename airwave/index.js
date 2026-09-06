@@ -51,16 +51,6 @@ function fmtTime(seconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function trackEvent(name, params) {
-  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-    try {
-      window.gtag('event', name, params || {});
-    } catch {
-      /* analytics is best-effort */
-    }
-  }
-}
-
 class App {
   constructor() {
     this.player = new AirwavePlayer({ elementId: 'aw-yt-player' });
@@ -450,7 +440,6 @@ class App {
         });
         await this.player.loadVideo(meta.id);
         this.setSearchStatus('');
-        trackEvent('airwave_play_url', { id: meta.id, has_playlist: !!playlistId });
       } catch (err) {
         this.setSearchStatus(err?.message || 'Could not load that video.', true);
       }
@@ -461,7 +450,6 @@ class App {
       // Pure playlist URL — let YouTube drive next-track itself.
       this.player.loadPlaylist(playlistId);
       this.setSearchStatus(`Playing playlist ${playlistId}…`);
-      trackEvent('airwave_play_playlist', { id: playlistId });
       return;
     }
 
@@ -481,7 +469,6 @@ class App {
       this.setSearchStatus(
         results.length ? `${results.length} result${results.length === 1 ? '' : 's'}` : ''
       );
-      trackEvent('airwave_search', { query_length: raw.length, results: results.length });
     } catch (err) {
       if (err && err.name === 'AbortError') return;
       this.setSearchStatus(err?.message || 'Search failed.', true);
@@ -573,7 +560,6 @@ class App {
     } catch (err) {
       this.setSearchStatus(err?.message || 'Could not start playback.', true);
     }
-    trackEvent('airwave_play_search', { id: r.id });
   }
 
   setSearchStatus(message, isError = false) {
@@ -834,10 +820,6 @@ class App {
       return;
     }
     this.setSearchStatus(result.replaced ? `Updated playlist "${name}".` : `Saved "${name}".`);
-    trackEvent('airwave_playlist_save', {
-      replaced: !!result.replaced,
-      tracks: items.length
-    });
   }
 
   loadPlaylistFlow(id) {
@@ -849,7 +831,6 @@ class App {
     }
     this.queue.replaceAll(p.tracks, { startIndex: 0 });
     this.setSearchStatus(`Loaded "${p.name}" (${p.tracks.length} tracks).`);
-    trackEvent('airwave_playlist_load', { id, tracks: p.tracks.length });
     // Cue the new current track so a Play tap starts immediately.
     const current = this.queue.snapshot().current;
     if (current) {

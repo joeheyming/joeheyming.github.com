@@ -670,7 +670,6 @@ export async function mount(slot, ctx) {
     if (playStartTracked || !current) return;
     playStartTracked = true;
     window.heymingAchievements?.unlockForCurrentApp('first-action');
-    trackWatch('watch_play_start', mediaLabel(isMovie ? 'movie' : 'show', show.id, current));
     trackWatchConversion('watch_played', 1);
   });
 
@@ -970,8 +969,6 @@ export async function mount(slot, ctx) {
 
     if (urlSync) updateDeepLink(ep);
     saveLastEpisode(show.id, ep.season, ep.episode);
-
-    trackWatch('watch_episode_open', mediaLabel(isMovie ? 'movie' : 'show', show.id, ep));
 
     // Build the soft-fallback queue once per episode. Offline controller
     // may still swap to a Blob URL after this; network retries only run

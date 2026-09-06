@@ -6,7 +6,6 @@
 
   const STORAGE_KEY = 'heyming.achievements.v1';
   const listeners = new Set();
-  const blockedAnalyticsIds = new Set();
   let catalog = [];
   let registry = [];
 
@@ -116,12 +115,6 @@
     return catalog.find((achievement) => achievement.id === id) || null;
   }
 
-  function track(eventName, label, value) {
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent(eventName, 'Achievements', label, value);
-    }
-  }
-
   function notifySubscribers(id, source) {
     const detail = { id, source, unlocked: getUnlocked() };
     for (const listener of listeners) {
@@ -151,10 +144,6 @@
       return false;
     }
     if (definition.requiresId && !isUnlocked(definition.requiresId)) {
-      if (!blockedAnalyticsIds.has(id)) {
-        blockedAnalyticsIds.add(id);
-        track('achievement_unlock_blocked', id);
-      }
       return false;
     }
 
@@ -168,7 +157,6 @@
     };
     writeState();
     notifySubscribers(id, 'local');
-    track('achievement_unlocked', id);
     return true;
   }
 

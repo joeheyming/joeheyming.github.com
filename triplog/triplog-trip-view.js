@@ -848,9 +848,6 @@ export function createTripView(deps) {
         text: formatTripShareMarkdown(trip, state.unit),
         attachments
       });
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('posts_share', 'Engagement', 'triplog');
-      }
     } catch (err) {
       console.error('[triplog] sharePost', err);
       setStatus(dom.statusEl, err instanceof Error ? err.message : String(err), true);

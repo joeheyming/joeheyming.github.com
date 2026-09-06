@@ -108,9 +108,6 @@
       var word = String(data.solution).toLowerCase();
       window.startWordleGame(word);
       setStatusMessage("Today's Wordle");
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('wordle_play_today', 'Wordle', data.print_date || nytDateString());
-      }
     } catch (err) {
       console.warn('[wordle] WOTD fetch failed', err);
       setStatusMessage("Couldn't load today's puzzle — using random");

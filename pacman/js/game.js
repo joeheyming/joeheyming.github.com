@@ -750,27 +750,6 @@ class Game {
       this.highScore = this.score;
       localStorage.setItem('pacman-high-score', this.highScore.toString());
     }
-
-    if (typeof window !== 'undefined' && window.trackEvent) {
-      // Score → value so GA4 can compute avg/median. Label is a coarse
-      // bucket so "Top event labels" gives a quick distribution without
-      // exploding cardinality.
-      const s = this.score;
-      let bucket = '0';
-      if (s >= 5000) bucket = '5000+';
-      else if (s >= 2000) bucket = '2000-4999';
-      else if (s >= 1000) bucket = '1000-1999';
-      else if (s >= 500) bucket = '500-999';
-      else if (s >= 100) bucket = '100-499';
-      else if (s > 0) bucket = '1-99';
-      window.trackEvent('pacman_game_over', 'Pacman', bucket, s);
-      // Only count non-zero runs as completions — score=0 means the
-      // player died on dot 0/1 and tells us nothing about engagement.
-      // Rolls up into the shared `game_completed` Key Event.
-      if (s > 0 && typeof window.trackConversion === 'function') {
-        window.trackConversion('game_completed', s);
-      }
-    }
   }
 
   win() {
@@ -779,16 +758,6 @@ class Game {
     this.winScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
     window.heymingAchievements?.unlockForCurrentApp('maze-cleared');
-
-    // Clearing the maze is the strongest completion signal Pac-Man emits.
-    // Mirror game_over's conversion call but with a `_win` event so the
-    // win/loss split is queryable in GA.
-    if (typeof window.trackEvent === 'function') {
-      window.trackEvent('pacman_win', 'Pacman', 'maze_cleared', this.score);
-    }
-    if (typeof window.trackConversion === 'function') {
-      window.trackConversion('game_completed', this.score);
-    }
 
     // Release pointer lock so user can click buttons
     if (document.pointerLockElement) {
@@ -1316,8 +1285,7 @@ class Game {
     // changed. Rendering every rAF on the start/intro screens was the
     // main presentation-delay tax on START GAME INP — READY! is a DOM
     // overlay and does not need continuous Three.js frames.
-    const activeGameplay =
-      this.state === GAME_STATES.PLAYING || this.state === GAME_STATES.DEATH;
+    const activeGameplay = this.state === GAME_STATES.PLAYING || this.state === GAME_STATES.DEATH;
     if (!activeGameplay) {
       if (!this._staticFrameDirty) return;
       this._staticFrameDirty = false;

@@ -163,9 +163,6 @@ document.getElementById('postBtn').addEventListener('click', function () {
         attachments: [blob]
       });
     });
-    if (window.trackEvent) {
-      window.trackEvent('posts_share', 'Engagement', 'periodic-speller');
-    }
   }, 'image/png');
 });
 

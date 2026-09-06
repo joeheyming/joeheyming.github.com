@@ -170,7 +170,6 @@ export function createArchive(deps) {
     if (deps.els.archiveBtn) deps.els.archiveBtn.setAttribute('aria-expanded', 'true');
     const all = deps.partitionPosts().all;
     renderArchiveList(all);
-    window.trackEvent?.('posts_browse_open', 'Engagement', String(all.length));
   }
 
   function closeArchive() {
@@ -200,7 +199,6 @@ export function createArchive(deps) {
     const url = new URL(window.location.href);
     url.searchParams.set('post', post.id);
     history.replaceState({}, '', `${url.pathname}?post=${encodeURIComponent(post.id)}`);
-    window.trackEvent?.('posts_browse_read', 'Engagement', post.id);
   }
 
   function jumpToNewest() {

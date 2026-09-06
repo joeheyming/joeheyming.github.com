@@ -968,15 +968,46 @@ select:focus {
   margin: auto;
 }
 
-footer {
-  display: none;
+.solver-guide {
+  width: min(100% - 24px, 760px);
+  margin: 16px auto 32px;
+  color: var(--text-2);
 }
 
-/* SEO copy: stays in the DOM for crawlers but hidden from view (the
- * markup uses `hidden` already; this guarantees it even if [hidden] is
- * overridden by ancestor display rules). */
-.seo-intro[hidden] {
-  display: none !important;
+.solver-guide details {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+}
+
+.solver-guide summary {
+  padding: 14px 16px;
+  color: var(--text-1);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.solver-guide-content {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--hairline);
+  line-height: 1.6;
+}
+
+.solver-guide-content h2 {
+  margin: 18px 0 4px;
+  font-size: var(--text-body);
+  color: var(--text-1);
+}
+
+.solver-guide-content p {
+  margin: 8px 0;
+}
+
+.solver-guide-content nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 18px;
 }
 
 #todays-wordle {

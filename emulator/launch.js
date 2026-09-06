@@ -10,8 +10,7 @@
 // local-file picker calls — ROM binaries are never fetched into the page
 // (policy note in emulator/rom-acquire.js). Mounting (EJS_* globals,
 // loader.js, SOCD) lives in emulator/ejs-mount.js; BIOS in emulator/bios.js.
-// This file keeps chrome, analytics, achievements, and boot-card
-// orchestration.
+// This file keeps chrome, achievements, and boot-card orchestration.
 //
 // Lean-back (TV / console): hides the file picker, resolves `?rom=<name>`
 // deep links to a download handoff, and wires D-pad focus via
@@ -23,7 +22,6 @@
 (function () {
   'use strict';
 
-  const SHELL_LOADED_AT = Date.now();
   let runtimeBlocked = false;
   /** True when we booted a core without cross-origin isolation (no threads). */
   let singleThreadMode = false;
@@ -621,10 +619,6 @@
     if (runtimeBlocked) return;
     runtimeBlocked = true;
     renderRuntimeUnavailable();
-    if (window.trackEvent) {
-      const ua = (navigator.userAgent || '').slice(0, 80);
-      window.trackEvent('emulator_wasm_unavailable', 'Emulator', ua, 0);
-    }
   }
 
   ready(() => {
@@ -683,9 +677,6 @@
         }
         // Playable single-threaded: boot anyway and say so on the card.
         singleThreadMode = true;
-        if (window.trackEvent) {
-          window.trackEvent('emulator_single_thread', 'Emulator', cfg.id, 0);
-        }
       }
       bootUi();
     });
@@ -702,7 +693,7 @@
 
   // Public entry point: handed a File from the local picker — the only way
   // a game enters the emulator (emulator/rom-acquire.js policy). Thin
-  // wrapper: BIOS gate + chrome/analytics/achievements, then
+  // wrapper: BIOS gate + chrome/achievements, then
   // emulatorEjsMount.mount for EJS_* + loader + SOCD.
   window.launchEmulator = async function launchEmulator(romSource, romName) {
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
@@ -735,14 +726,6 @@
     if (bootEl) bootEl.classList.add('hidden');
     if (gameContainer) gameContainer.classList.add('visible');
     if (emuHeader) emuHeader.classList.add('is-playing');
-
-    if (window.trackEvent) {
-      const gameName =
-        romName || (romSource && typeof romSource === 'object' && romSource.name) || 'unknown';
-      const raw = gameName.toString().slice(0, 80);
-      const timeOnPage = Math.round((Date.now() - SHELL_LOADED_AT) / 1000);
-      window.trackEvent(`${cfg.id}_rom_loaded`, 'Emulator', raw, timeOnPage);
-    }
 
     // Unlock once per console lander app id (derived from the registry).
     if (Object.keys(window.EMULATOR_CONSOLES || {}).includes(cfg.id)) {

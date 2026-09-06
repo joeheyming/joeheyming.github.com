@@ -32,12 +32,6 @@
     messageTimer: null
   };
 
-  function safeGtag() {
-    if (typeof gtag === 'function') {
-      gtag.apply(null, arguments);
-    }
-  }
-
   function pickRandomAnswer() {
     var pool = window.wordleAnswers;
     if (!pool || typeof pool.size !== 'number' || pool.size === 0) {
@@ -299,11 +293,6 @@
       if (window.heymingAchievements) {
         window.heymingAchievements.unlockForCurrentApp('word-guessed');
       }
-      safeGtag('event', 'wordle_clone_win', {
-        event_category: 'play',
-        event_label: cloneSourceLabel(),
-        value: state.guesses.length
-      });
       showMessage(
         ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][
           state.guesses.length - 1
@@ -312,10 +301,6 @@
       );
     } else if (state.guesses.length >= WORDLE_MAX_GUESSES) {
       state.status = 'lost';
-      safeGtag('event', 'wordle_clone_loss', {
-        event_category: 'play',
-        event_label: cloneSourceLabel()
-      });
     }
 
     renderBoard();
@@ -378,11 +363,6 @@
     }
   }
 
-  function cloneSourceLabel() {
-    var sel = document.getElementById('wordleSource');
-    return sel && sel.value === 'today' ? 'today' : 'random';
-  }
-
   function startNewGame(forcedAnswer) {
     var answer =
       typeof forcedAnswer === 'string' && forcedAnswer.length === WORDLE_WORD_LEN
@@ -399,10 +379,6 @@
     renderKeyboard();
     renderStatus();
     if (newGameBtn) newGameBtn.textContent = 'New Game';
-    safeGtag('event', 'wordle_clone_new_game', {
-      event_category: 'play',
-      event_label: forcedAnswer ? 'today' : cloneSourceLabel()
-    });
   }
 
   /** Wipe the board without starting a playable game (e.g. while WOTD loads). */
