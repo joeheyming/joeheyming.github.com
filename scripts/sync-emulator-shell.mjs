@@ -84,7 +84,7 @@ function syncPickerGrid(consoles) {
 
 function defaultSeoDescription(cfg) {
   const exts = cfg.fileExtsLabel || cfg.fileAccept || 'ROM';
-  return `Free ${cfg.title} emulator online — ${cfg.subtitle}. Save states, gamepad support — bring your own ${exts} ROM. Powered by EmulatorJS.`;
+  return `Browser ${cfg.title} emulator (${cfg.subtitle}). Load your own ${exts} dump; save states and gamepads stay on this device. Powered by EmulatorJS.`;
 }
 
 function landerHtml(cfg) {
@@ -93,9 +93,8 @@ function landerHtml(cfg) {
   const subtitle = cfg.subtitle;
   const emoji = cfg.emoji;
   const desc = cfg.seoDescription || defaultSeoDescription(cfg);
-  const keywords = `${title} emulator online, play ${title} in browser, EmulatorJS, free ${title} emulator`;
   const pageTitle = `${title} Emulator — ${subtitle} ${emoji}`;
-  const socialTitle = `${title} Emulator — ${subtitle}`;
+  const socialTitle = `${title} Emulator — ${subtitle} ${emoji}`;
   const canonical = `https://joeheyming.github.io/emulator/${id}/`;
   const preview = `https://joeheyming.github.io/emulator/${id}/${id}-preview.png`;
   const fileAccept = cfg.fileAccept || '.zip,.7z';
@@ -105,10 +104,9 @@ function landerHtml(cfg) {
     '@context': 'https://schema.org',
     '@graph': [
       {
-        '@type': ['SoftwareApplication', 'VideoGame'],
-        name: `${title} Emulator Online`,
-        alternateName: [`${title} Emulator`, `Play ${title} in Browser`],
-        applicationCategory: 'GameApplication',
+        '@type': 'SoftwareApplication',
+        name: `${title} Emulator`,
+        applicationCategory: 'WebApplication',
         operatingSystem: 'Web Browser',
         description: desc,
         url: canonical,
@@ -118,9 +116,7 @@ function landerHtml(cfg) {
           url: 'https://joeheyming.github.io/about/'
         },
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-        keywords,
-        inLanguage: 'en',
-        gamePlatform: ['Web Browser', 'HTML5']
+        inLanguage: 'en'
       },
       {
         '@type': 'BreadcrumbList',
@@ -163,7 +159,6 @@ function landerHtml(cfg) {
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
     <meta name="description" content="${escapeAttr(desc)}" />
-    <meta name="keywords" content="${escapeAttr(keywords)}" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Retro Emulator" />
@@ -255,9 +250,10 @@ function landerHtml(cfg) {
       <div class="boot-card" id="boot-card">
         <h2>${emoji} ${escapeHtml(title)} Emulator</h2>
         <p class="picker-help">
-          Free ${escapeHtml(title)} emulator in your browser. No install, no ads. Bring your own
+          Load your own
           <code>${escapeHtml(extsLabel)}</code>
-          ROM or browse the built-in collection. Powered by EmulatorJS.
+          dump. Search results open on Internet Archive so you can download
+          there, then choose the saved file here. Powered by EmulatorJS.
         </p>
         <p class="picker-help">
           <a href="/emulator/">All consoles</a>
@@ -269,21 +265,6 @@ function landerHtml(cfg) {
           <a href="/about/">About</a>
         </p>
       </div>
-
-      <footer class="seo-intro" hidden>
-        <h2>${escapeHtml(socialTitle)}</h2>
-        <p>${escapeHtml(desc)}</p>
-        <nav aria-label="More retro games">
-          <strong>More retro games:</strong>
-          <a href="/emulator/">All emulators</a>
-          &middot;
-          <a href="/doom/">DOOM</a>
-          &middot;
-          <a href="/pacman/">3D Pac-Man</a>
-          &middot;
-          <a href="/stepmania/">StepMania</a>
-        </nav>
-      </footer>
     </div>
 
     <div id="game-container">
