@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const MIN_DESCRIPTION = 120;
+const MIN_DESCRIPTION = 150;
 
 function sitemapPages() {
   const xml = readFileSync(path.join(ROOT, 'sitemap.xml'), 'utf8');
