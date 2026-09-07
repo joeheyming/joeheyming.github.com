@@ -1,76 +1,12 @@
-import {
-  midiToFreq,
-  midiToName,
-  getCtx,
-  getMaster,
-  setMasterVolume,
-  resumeIfSuspended
-} from '../shared/audio.js';
+import { midiToName, setMasterVolume } from '../shared/audio.js';
 import { Keyboard } from '../shared/keyboard.js';
 import { setupMidi } from '../shared/midi.js';
 import { makePrefs } from '../shared/prefs.js';
 import { attachKeyboardInput } from '../shared/input.js';
-import { fillPreset, paintLine, samplesToFourier, TABLE_SIZE } from './wave-table.js';
+import { paintLine, fillPreset, TABLE_SIZE } from './wave-table.js';
+import { WavetableSynth } from './wave-synth.js';
 
 const Prefs = makePrefs('play.wave-draw.prefs.v1');
-
-class WavetableSynth {
-  constructor() {
-    this.samples = fillPreset('sine');
-    this.voices = new Map();
-    this.wave = null;
-  }
-
-  rebuildWave() {
-    const ctx = getCtx();
-    const { real, imag } = samplesToFourier(this.samples);
-    this.wave = ctx.createPeriodicWave(real, imag);
-    for (const voice of this.voices.values()) {
-      voice.osc.setPeriodicWave(this.wave);
-    }
-  }
-
-  noteOn(midi) {
-    const ctx = getCtx();
-    resumeIfSuspended();
-    if (this.voices.has(midi)) this.noteOff(midi, true);
-    if (!this.wave) this.rebuildWave();
-
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    osc.setPeriodicWave(this.wave);
-    osc.frequency.value = midiToFreq(midi);
-
-    const amp = ctx.createGain();
-    amp.gain.setValueAtTime(0, now);
-    amp.gain.linearRampToValueAtTime(0.55, now + 0.01);
-    osc.connect(amp);
-    amp.connect(getMaster());
-    osc.start(now);
-    this.voices.set(midi, { osc, amp });
-  }
-
-  noteOff(midi, instant = false) {
-    const voice = this.voices.get(midi);
-    if (!voice) return;
-    this.voices.delete(midi);
-    const ctx = getCtx();
-    const now = ctx.currentTime;
-    const releaseTime = instant ? 0.02 : 0.18;
-    try {
-      voice.amp.gain.cancelScheduledValues(now);
-      voice.amp.gain.setValueAtTime(Math.max(0.0001, voice.amp.gain.value), now);
-      voice.amp.gain.exponentialRampToValueAtTime(0.0001, now + releaseTime);
-    } catch {
-      /* ignore */
-    }
-    voice.osc.stop(now + releaseTime + 0.05);
-  }
-
-  allOff() {
-    for (const midi of Array.from(this.voices.keys())) this.noteOff(midi, true);
-  }
-}
 
 const canvas = document.getElementById('wave-canvas');
 const keyboardEl = document.getElementById('piano-keyboard');
@@ -198,6 +134,10 @@ canvas.addEventListener('pointerdown', (event) => {
   canvas.setPointerCapture(event.pointerId);
   drawing = true;
   lastPt = null;
+  // Sound the shape while it is being drawn. The table is silent on its own,
+  // so without this the strip gives no sign it did anything.
+  synth.auditionOn(startMidi);
+  announceNote(startMidi);
   applyDraw(event);
 });
 canvas.addEventListener('pointermove', (event) => {
@@ -208,6 +148,7 @@ const endDraw = (event) => {
   if (!drawing) return;
   drawing = false;
   lastPt = null;
+  synth.auditionOff();
   try {
     canvas.releasePointerCapture(event.pointerId);
   } catch {
@@ -217,6 +158,9 @@ const endDraw = (event) => {
 };
 canvas.addEventListener('pointerup', endDraw);
 canvas.addEventListener('pointercancel', endDraw);
+// Backstop for a capture lost without a pointerup — system UI swallowing the
+// touch, say. Without it the audition tone would drone on.
+canvas.addEventListener('lostpointercapture', endDraw);
 
 document.querySelectorAll('[data-preset]').forEach((btn) => {
   btn.addEventListener('click', () => {
