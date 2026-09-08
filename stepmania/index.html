@@ -204,6 +204,7 @@
          `tailwind.config` object before <body> parses. -->
     <script src="/stepmania/stepmania-tailwind.js"></script>
     <link href="css/screen.css" media="all" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="/live-chat/live-chat.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <script>
       /* Append StepMania's rhythm-game palette to the brand config.
@@ -767,6 +768,10 @@
     <!-- ES Module entry point - imports all other modules -->
     <script src="/achievements.js"></script>
     <script type="module" src="./js/main.js"></script>
+    <script type="module">
+      import { mountLiveChat } from '/live-chat/index.js';
+      mountLiveChat({ room: 'stepmania' });
+    </script>
     <!-- Main page loading overlay for URL initialization -->
     <loading-overlay id="loading-overlay"></loading-overlay>
 
