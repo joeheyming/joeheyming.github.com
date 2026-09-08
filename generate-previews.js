@@ -1321,6 +1321,18 @@ const PAGES = [
     url: `${BASE_URL}/play/wave-draw/`,
     output: 'play/wave-draw/wave-draw-preview.png',
     title: 'Wave Draw'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/emulator/nds/`,
+    output: 'emulator/nds/nds-preview.png',
+    title: 'Nintendo DS'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/emulator/saturn/`,
+    output: 'emulator/saturn/saturn-preview.png',
+    title: 'Saturn'
   }
 ];
 

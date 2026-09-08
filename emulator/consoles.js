@@ -9,7 +9,7 @@
 //
 // Shared shell files (rom-browser, launch, internet-archive) read from this
 // object and reconfigure themselves automatically.
-// Consoles that need a system BIOS (Neo Geo, PS1) set `biosRequired` +
+// Consoles that need a system BIOS (Neo Geo, Sega CD, Saturn, PS1) set `biosRequired` +
 // `biosFileName`; launch.js persists the upload in IndexedDB.
 // Optional `biosIaBaseUrl` fetches BIOS from a different IA item than
 // the game library (PS1: games are local-only, BIOS still auto-loads).
@@ -213,6 +213,68 @@
       ]
     },
 
+    saturn: {
+      id: 'saturn',
+      title: 'Sega Saturn',
+      subtitle: 'Sega 32-bit disc console',
+      emoji: '🪐',
+      // EmulatorJS core: yabause. Software-rendered (no WebGL dependency),
+      // but two SH-2s plus VDP1/VDP2 in WASM make this the slowest console
+      // in the shell — see the howto warning.
+      ejsCore: 'segaSaturn',
+      fileAccept: '.chd,.iso,.cue,.bin,.ccd,.mds,.zip',
+      fileExtsLabel: '.chd / .iso',
+      seoDescription:
+        'Browser Sega Saturn emulator. Search the 1G1R disc collection on Internet Archive, download a game, then load the saved .chd here — the BIOS auto-loads once and stays on this device. Powered by EmulatorJS and Yabause.',
+      // Emerald — the last hue the other consoles had not claimed.
+      accentHex: '#059669',
+      accentGoldHex: '#065f46',
+      // 1G1R CHD set: flat, single-file discs, no regional duplicates.
+      // Same shape as the PS1 CHD item, so the disc handoff flow applies.
+      iaBaseUrl: 'https://archive.org/download/sega-saturn-1g1r-chd-perfect-collection_202306',
+      iaDescriptionPrefix: 'Sega Saturn game',
+      iaFileExtensions: ['.chd'],
+      iaPreferMetadata: true,
+      iaExternalDownload: true,
+      biosRequired: true,
+      // Canonical name yabause looks for; the IA dump is renamed on fetch.
+      biosFileName: 'saturn_bios.bin',
+      biosStorageKey: 'saturn',
+      // Every Saturn BIOS dump is exactly 512 KiB.
+      biosMinBytes: 512 * 1024,
+      // JP v1.00 — the one dump yabause_libretro.info blesses by md5
+      // (af5828fdff51384f99b3c4926be27762). Yabause does not enforce the
+      // region lock, so it boots the US/EU discs in the collection too.
+      biosIaBaseUrl:
+        'https://archive.org/download/saturnbios/Sega%20Saturn%20Bios%20%28All%20Regions%29.zip',
+      biosIaFileName:
+        'Sega%20Saturn%20Bios%20%28All%20Regions%29%2FSega%20Saturn%20BIOS%20v1.00%20%28JAP%29.bin',
+      biosHelp:
+        'BIOS auto-loads once from Internet Archive, then stays in this browser. Without it yabause falls back to an HLE BIOS that breaks many games.',
+      howto: [
+        'Wait until BIOS says ready.',
+        'Browse the disc collection, download the .chd from Internet Archive, then Load local disc.',
+        'Saturn is the heaviest console here — expect slowdown on Chromebooks and low-end laptops.',
+        'Gamepad recommended.'
+      ],
+      romHelp:
+        'Discs are never streamed into the page. Download from Internet Archive, then load the saved .chd here. Games run 30–400 MB, so a Chromebook with a tiny disk may not have room.',
+      showSaveStates: true,
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'A button', key: 'S' },
+        { label: 'B button', key: 'X' },
+        { label: 'C button', key: 'Z' },
+        { label: 'X button', key: 'A' },
+        { label: 'Y button', key: 'Q' },
+        { label: 'Z button', key: 'E' },
+        { label: 'L / R', key: 'Tab / R' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
     gb: {
       id: 'gb',
       title: 'Game Boy',
@@ -277,6 +339,52 @@
         { label: 'A button', key: 'Z' },
         { label: 'B button', key: 'X' },
         { label: 'L / R', key: 'Q / W' },
+        { label: 'Select', key: 'V' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
+    nds: {
+      id: 'nds',
+      title: 'Nintendo DS',
+      subtitle: 'Dual-screen handheld',
+      emoji: '🖊️',
+      // EmulatorJS resolves `nds` to melonDS. No BIOS panel here on purpose:
+      // bios7/bios9/firmware are optional for all three DS cores, and melonDS
+      // logs "Missing bios/firmware in system directory. Using FreeBIOS."
+      // rather than failing, so gating launch on an upload would be a lie.
+      // DeSmuME / DeSmuME 2015 are reachable from the in-player Core setting.
+      ejsCore: 'nds',
+      fileAccept: '.nds,.zip,.7z',
+      fileExtsLabel: '.nds',
+      seoDescription:
+        'Browser Nintendo DS emulator. Both screens stack in one window and the mouse doubles as the stylus, with no BIOS upload to hunt down. Load your own .nds dump; saves and save states stay on this device. Powered by EmulatorJS and melonDS.',
+      // Coral rose — the one family the other twelve consoles left alone.
+      accentHex: '#e11d48',
+      accentGoldHex: '#9f1239',
+      // Flat per-game .zip from the same uploader as the N64 pack, so the
+      // metadata listing works without the nested-directory special case.
+      iaBaseUrl: 'https://archive.org/download/pack-roms-nintendo-ds-eu-usa-jap-rabbits-games',
+      iaDescriptionPrefix: 'Nintendo DS game',
+      iaPreferMetadata: true,
+      howto: [
+        'Both screens stack inside the one window. The lower screen is the touch screen.',
+        'Click or drag on the lower screen to use the stylus.',
+        'Tap a game to get its Internet Archive download link, then load the saved .zip.',
+        'If a game refuses to boot, switch from melonDS to DeSmuME under the settings gear.'
+      ],
+      romHelp:
+        'Bring your own .nds dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here. Most games are 10–60 MB. Click the lower screen to use the stylus.',
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'A button', key: 'Z' },
+        { label: 'B button', key: 'X' },
+        { label: 'X button', key: 'A' },
+        { label: 'Y button', key: 'S' },
+        { label: 'L / R', key: 'Q / E' },
+        { label: 'Touch screen', key: 'Mouse' },
         { label: 'Select', key: 'V' },
         { label: 'Start', key: 'Enter' },
         { label: 'Save state', key: 'F5' },

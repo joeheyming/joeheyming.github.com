@@ -139,6 +139,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/emulator/nds/</loc>
+    <lastmod>2026-09-08T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/emulator/neogeo/</loc>
     <lastmod>2026-08-13T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
@@ -161,6 +167,12 @@
     <lastmod>2026-08-13T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/emulator/saturn/</loc>
+    <lastmod>2026-09-08T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://joeheyming.github.io/emulator/sega/</loc>

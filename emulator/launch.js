@@ -328,7 +328,7 @@
 
     const controlsSummary = tv ? 'Controls' : 'Keyboard Controls';
     const gamepadHint =
-      tv || cfg.id === 'ps1' || cfg.id === 'n64' || cfg.id === 'segacd'
+      tv || cfg.id === 'ps1' || cfg.id === 'n64' || cfg.id === 'segacd' || cfg.id === 'saturn'
         ? hasGamepadApi()
           ? `<p class="controls-gamepad-hint">A gamepad works best if you have one plugged in.</p>`
           : `<p class="controls-gamepad-hint">Use the keyboard or on-screen controls; this browser does not support gamepads.</p>`
