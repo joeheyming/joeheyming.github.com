@@ -185,6 +185,12 @@
       "short_name": "Books",
       "description": "Free public-domain e-books",
       "url": "/read/"
+    },
+    {
+      "name": "Let Me Ask That For You",
+      "short_name": "LMATFY",
+      "description": "LMGTFY-style links for ChatGPT, Gemini, and Ask Brave",
+      "url": "/lmatfy/"
     }
   ]
 }

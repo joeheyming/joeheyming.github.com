@@ -2357,6 +2357,32 @@
     "geo": true
   },
   {
+    "id": "lmatfy",
+    "name": "Let Me Ask That For You 🤷",
+    "shortName": "LMATFY",
+    "description": "LMGTFY for ChatGPT, Gemini, and Ask Brave",
+    "detailedDescription": "Type a question, pick ChatGPT, Gemini, Ask Brave, or all three, and send a sarcastic link that types the prompt for them — then asks “was it that hard?”",
+    "icon": "🤷",
+    "path": "./lmatfy/",
+    "category": "entertainment",
+    "gradient": "from-sky-500/20 to-emerald-500/20",
+    "border": "border-sky-500/30 hover:border-sky-400/50",
+    "taskbarGradient": "from-sky-600 to-emerald-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 760,
+    "defaultHeight": 780,
+    "tags": ["lmgtfy", "chatgpt", "gemini", "brave", "ai", "joke", "share"],
+    "related": ["chat", "meme", "sadtrombone", "sayhello"],
+    "shareCategory": "entertainment",
+    "pwaShortcut": {
+      "name": "Let Me Ask That For You",
+      "short_name": "LMATFY",
+      "description": "LMGTFY-style links for ChatGPT, Gemini, and Ask Brave"
+    },
+    "appTier": "experience",
+    "geo": true
+  },
+  {
     "id": "achievements",
     "name": "Achievements 🏆",
     "shortName": "Achievements",

@@ -1333,6 +1333,15 @@ const PAGES = [
     url: `${BASE_URL}/emulator/saturn/`,
     output: 'emulator/saturn/saturn-preview.png',
     title: 'Saturn'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/lmatfy/`,
+    output: 'lmatfy/lmatfy-preview.png',
+    title: 'Let Me Ask That For You',
+    setup: async (page) => {
+      await page.fill('#prompt', 'what is the air speed velocity of an unladen swallow?');
+    }
   }
 ];
 

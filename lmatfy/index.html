@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Let Me Ask That For You — ChatGPT, Gemini &amp; Brave 🤷</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤷</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="Let Me Ask That For You is LMGTFY for AI chat. Type a question, pick ChatGPT, Gemini, or Ask Brave, and send a link that types the prompt for them, asks “was that really so hard?”, then opens the chat. Free, no ads, no signup."
+    />
+    <meta name="theme-color" content="#FAFAFA" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="Let Me Ask That For You — ChatGPT, Gemini &amp; Brave 🤷" />
+    <meta
+      property="og:description"
+      content="Send a sarcastic ChatGPT, Gemini, or Ask Brave link that types the question for them, then opens the chat. Free, no ads."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/lmatfy/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://joeheyming.github.io/lmatfy/lmatfy-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="Let Me Ask That For You — ChatGPT, Gemini &amp; Brave 🤷" />
+    <meta
+      name="twitter:description"
+      content="Send a sarcastic ChatGPT, Gemini, or Ask Brave link that types the question for them, then opens the chat. Free, no ads."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/lmatfy/lmatfy-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/lmatfy/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="index.css" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Let Me Ask That For You",
+            "applicationCategory": "EntertainmentApplication",
+            "operatingSystem": "Web Browser",
+            "description": "LMGTFY-style share links for ChatGPT, Gemini, and Ask Brave. Recipients watch a cursor type the question, then get sent to the chat.",
+            "url": "https://joeheyming.github.io/lmatfy/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "ChatGPT destination links",
+              "Gemini destination links",
+              "Ask Brave destination links",
+              "Animated typing cursor",
+              "Shareable URLs"
+            ],
+            "keywords": "lmgtfy, chatgpt, gemini, brave, ask brave, let me google that for you, share link"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "Let Me Ask That For You" }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body data-engine="chatgpt">
+    <main class="page">
+      <div class="stage" id="stage">
+        <form class="fake" id="compose">
+          <header class="fake-bar">
+            <span class="fake-brand" id="brand">ChatGPT</span>
+            <span class="fake-dots" aria-hidden="true">
+              <span></span>
+              <span></span>
+            </span>
+          </header>
+
+          <div class="fake-body">
+            <h1 class="greeting" id="greeting">Let me ChatGPT that for you</h1>
+
+            <div class="prompt-box" id="prompt-box">
+              <label class="sr-only" for="prompt">The question</label>
+              <textarea
+                id="prompt"
+                name="q"
+                rows="1"
+                maxlength="1500"
+                placeholder="Ask anything"
+                autocomplete="off"
+              ></textarea>
+              <button type="submit" id="send" aria-label="Send">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 19V5m0 0-6.5 6.5M12 5l6.5 6.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <p class="narrator" id="narrator" role="status">Type a question, click the button.</p>
+
+            <div class="destinations" id="destinations" hidden></div>
+            <p class="opening" id="opening"></p>
+
+            <div class="authoring" id="authoring">
+              <fieldset class="engines">
+                <legend class="sr-only">Send them to</legend>
+                <label>
+                  <input type="radio" name="engine" value="chatgpt" checked />
+                  ChatGPT
+                </label>
+                <label>
+                  <input type="radio" name="engine" value="gemini" />
+                  Gemini
+                </label>
+                <label>
+                  <input type="radio" name="engine" value="brave" />
+                  Ask Brave
+                </label>
+                <label>
+                  <input type="radio" name="engine" value="all" />
+                  All three
+                </label>
+              </fieldset>
+
+              <div class="share" id="share" hidden>
+                <input id="share-url" readonly aria-label="Shareable link" />
+                <p class="share-actions">
+                  <button type="button" class="link-button" id="copy">Copy URL</button>
+                  <em>or</em>
+                  <button type="button" class="link-button" id="preview">Preview</button>
+                </p>
+              </div>
+            </div>
+
+            <div class="playback-bar" id="playback-bar" hidden>
+              <button type="button" class="link-button" id="skip">Skip</button>
+              <button type="button" class="link-button" id="restart">Make your own</button>
+            </div>
+          </div>
+        </form>
+
+        <div id="cursor" hidden aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path
+              fill="#111"
+              stroke="#fff"
+              stroke-width="1.2"
+              d="M4 3.2 18.8 12.1l-6.2 1.3 3.6 7.1-2.7 1.3-3.6-7.2-4.3 4.1z"
+            />
+          </svg>
+        </div>
+      </div>
+
+      <footer class="fine-print">
+        <p>
+          <strong>What is this?</strong>
+          They asked you. You send them this. They ask the robot.
+        </p>
+        <p>
+          Not associated with OpenAI, Google, or Brave in any way. ChatGPT, Gemini, and Brave are
+          trademarks of their respective owners.
+        </p>
+        <p>
+          2026 © joeheyming.github.io - Made with sarcasm 😄 -
+          <a href="https://letmegooglethat.com/">the original</a>
+        </p>
+      </footer>
+    </main>
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>
