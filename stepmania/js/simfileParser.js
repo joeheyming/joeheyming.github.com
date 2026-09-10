@@ -37,8 +37,36 @@
  * @property {Chart[]} charts - Available charts
  * @property {BGChange[]} bgChanges - Background changes
  * @property {BPMChange[]} bpmChanges - BPM changes
+ * @property {import('./timingData.js').TimingData} timing - Beat/time model
  * @property {Object} metadata - Raw metadata tags
  */
+
+import { buildTimingData } from './timingData.js';
+
+/**
+ * Parse a `beat=value,beat=value` timing tag into pairs.
+ *
+ * Entries with a zero value are dropped, matching SM's loader: a zero BPM or
+ * a zero-length freeze is meaningless and would divide by zero downstream.
+ *
+ * @param {string} content - Cleaned simfile content
+ * @param {string} tag - Tag name without the leading `#`
+ * @returns {Array<{beat: number, value: number}>}
+ */
+function parseTimingTag(content, tag) {
+  const match = content.match(new RegExp(`#${tag}:([^;]*);`));
+  if (!match) return [];
+
+  return match[1]
+    .split(',')
+    .map((pair) => {
+      const [beat, value] = pair.split('=').map((s) => parseFloat(s.trim()));
+      return { beat, value };
+    })
+    .filter(
+      (pair) => Number.isFinite(pair.beat) && Number.isFinite(pair.value) && pair.value !== 0
+    );
+}
 
 /**
  * Parser for StepMania .sm simfile format
@@ -60,6 +88,8 @@ export class SimfileParser {
     this.bpmChanges = [];
     /** @type {BGChange[]} */
     this.bgChanges = [];
+    /** Raw timing tags, kept separate from the derived model */
+    this.timingTags = { bpms: [], stops: [], delays: [], warps: [] };
   }
 
   /**
@@ -97,6 +127,7 @@ export class SimfileParser {
       charts: this.charts,
       bgChanges: this.bgChanges,
       bpmChanges: this.bpmChanges,
+      timing: buildTimingData(this.timingTags),
       metadata: this.metadata
     };
   }
@@ -118,23 +149,22 @@ export class SimfileParser {
   }
 
   /**
-   * Parse BPM changes from simfile content
+   * Parse the timing tags: #BPMS plus the freeze/skip tags that decide where
+   * every note actually lands in the music.
+   *
    * @param {string} content - Cleaned simfile content
    */
   parseBPMs(content) {
-    const bpmMatch = content.match(/#BPMS:([^;]+);/);
-    if (bpmMatch) {
-      const bpmString = bpmMatch[1];
-      const bpmPairs = bpmString.split(',');
+    this.timingTags = {
+      bpms: parseTimingTag(content, 'BPMS'),
+      stops: parseTimingTag(content, 'STOPS'),
+      delays: parseTimingTag(content, 'DELAYS'),
+      warps: parseTimingTag(content, 'WARPS')
+    };
 
-      this.bpmChanges = bpmPairs.map((pair) => {
-        const [beat, bpm] = pair.split('=').map((s) => parseFloat(s.trim()));
-        return { beat, bpm };
-      });
-    }
-
-    // Sort by beat
-    this.bpmChanges.sort((a, b) => a.beat - b.beat);
+    this.bpmChanges = this.timingTags.bpms
+      .map(({ beat, value }) => ({ beat, bpm: value }))
+      .sort((a, b) => a.beat - b.beat);
   }
 
   /**
@@ -362,13 +392,16 @@ export class SimfileParser {
    */
   getDisplayBPM() {
     if (this.metadata.DISPLAYBPM) {
+      // May be a single value, a `min:max` range, or `*` for random.
       const bpm = parseFloat(this.metadata.DISPLAYBPM);
-      if (!isNaN(bpm)) return bpm;
+      if (!isNaN(bpm) && bpm > 0) return bpm;
     }
 
-    // Fall back to first BPM change
-    if (this.bpmChanges.length > 0) {
-      return this.bpmChanges[0].bpm;
+    // Fall back to the first real BPM. Negative entries are warp markers,
+    // not speeds, so they would make a nonsense scroll baseline.
+    const firstPositive = this.bpmChanges.find((change) => change.bpm > 0);
+    if (firstPositive) {
+      return firstPositive.bpm;
     }
 
     return 120; // Default
@@ -379,40 +412,8 @@ export class SimfileParser {
    * @returns {number} Offset in seconds
    */
   parseOffset() {
-    if (this.metadata.OFFSET) {
-      return parseFloat(this.metadata.OFFSET);
-    }
-    return 0;
-  }
-
-  /**
-   * Convert a beat number to seconds, accounting for BPM changes
-   * @param {number} beat - Beat number to convert
-   * @returns {number} Time in seconds
-   */
-  beatToSeconds(beat) {
-    let seconds = 0;
-    let currentBeat = 0;
-    let currentBPM = this.bpmChanges[0]?.bpm || 120;
-
-    for (const bpmChange of this.bpmChanges) {
-      if (bpmChange.beat <= beat) {
-        // Add time for the segment with the previous BPM
-        const segmentBeats = bpmChange.beat - currentBeat;
-        seconds += (segmentBeats / currentBPM) * 60;
-
-        currentBeat = bpmChange.beat;
-        currentBPM = bpmChange.bpm;
-      } else {
-        break;
-      }
-    }
-
-    // Add remaining time with current BPM
-    const remainingBeats = beat - currentBeat;
-    seconds += (remainingBeats / currentBPM) * 60;
-
-    return seconds;
+    const offset = parseFloat(this.metadata.OFFSET);
+    return Number.isFinite(offset) ? offset : 0;
   }
 }
 

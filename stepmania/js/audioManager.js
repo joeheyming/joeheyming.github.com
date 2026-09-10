@@ -1,8 +1,6 @@
 // AudioManager - Singleton for managing audio playback
 // Centralizes audio element access, blob URL lifecycle, and event handling
 
-import gameState from './gameState.js';
-
 /**
  * Hard cap on playbackRate. Browsers technically accept up to 16, but the
  * built-in time-stretching algorithm artifacts badly past ~2× when
@@ -204,15 +202,6 @@ class AudioManager {
    */
   get duration() {
     return this.element?.duration || 0;
-  }
-
-  /**
-   * Get current time with music offset applied (for game timing)
-   * @returns {number}
-   */
-  get currentTimeWithOffset() {
-    const offset = gameState.getMusicOffset();
-    return this.currentTime + offset;
   }
 
   // ===========================================================================

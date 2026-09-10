@@ -6,6 +6,7 @@ import { secondsToBeats, beatsToSeconds, getBPMAtBeat } from '../js/timing.js';
 import { TAP_NOTE_POINTS } from '../js/judgmentPolicy.js';
 import { adjudicateColumnPress } from '../js/columnPressAdjudication.js';
 import { calculateDancePoints, calculateGrade } from '../js/score-panel.js';
+import { calculateNoteY } from '../js/noteRenderer.js';
 
 // ==========================================================================
 // GameState
@@ -126,7 +127,16 @@ describe('GameState', () => {
         [2, 1, holdProps]
       ]);
 
-      adjudicateColumnPress(1, 0, gameState.getNoteData(), {}, 0);
+      // Beat 1 at the default 148 BPM.
+      const press = {
+        songSeconds: 60 / 148,
+        col: 0,
+        noteData: gameState.getNoteData(),
+        activeHolds: {},
+        beatToSeconds: (beat) => (beat * 60) / 148
+      };
+
+      adjudicateColumnPress(press);
       holdProps.holdCompleted = true;
       assert.equal('tapNoteScore' in tapProps, true);
       assert.equal(holdProps.holdCompleted, true);
@@ -136,7 +146,7 @@ describe('GameState', () => {
       assert.equal('tapNoteScore' in tapProps, false);
       assert.equal('holdCompleted' in holdProps, false);
 
-      const after = adjudicateColumnPress(1, 0, gameState.getNoteData(), {}, 0);
+      const after = adjudicateColumnPress(press);
       assert.equal(after.hit, true);
       assert.equal(after.tapNoteScore, 0);
     });
@@ -481,10 +491,19 @@ M000
 // ==========================================================================
 
 describe('Freeze arrow scoring (regression)', () => {
+  /** 120 BPM, so a beat is half a second. */
+  const beatToSeconds = (beat) => beat / 2;
+
   /** Uses production adjudicateColumnPress (same module as stepmania.js step()). */
   function simulateStep(noteData, col, songBeats) {
     const activeHolds = {};
-    const { hit, tapNoteScore } = adjudicateColumnPress(songBeats, col, noteData, activeHolds, 0);
+    const { hit, tapNoteScore } = adjudicateColumnPress({
+      songSeconds: beatToSeconds(songBeats),
+      col,
+      noteData,
+      activeHolds,
+      beatToSeconds
+    });
     return { hit, tapNoteScore, activeHolds };
   }
 
@@ -524,6 +543,96 @@ describe('Freeze arrow scoring (regression)', () => {
     // Press col 0 (the hold)
     const result = simulateStep(noteData, 0, 4.0);
     assert.equal(result.hit, false, 'hold head on col 0 should not score as tap');
+  });
+});
+
+// ==========================================================================
+// Column press resolution — one press, one note (SM Player::GetClosestNote)
+// ==========================================================================
+
+describe('Column press resolution', () => {
+  /** 120 BPM, so a beat is half a second and a 16th is 0.125s. */
+  const beatToSeconds = (beat) => beat / 2;
+
+  function press(noteData, col, songBeats) {
+    return adjudicateColumnPress({
+      songSeconds: beatToSeconds(songBeats),
+      col,
+      noteData,
+      activeHolds: {},
+      beatToSeconds
+    });
+  }
+
+  const graded = (noteData) => noteData.map((note) => note[2].tapNoteScore);
+
+  it('grades only the note it landed on, not the stream behind it', () => {
+    const noteData = [
+      [4.0, 0, {}],
+      [4.25, 0, {}],
+      [4.5, 0, {}]
+    ];
+
+    const result = press(noteData, 0, 4.0);
+
+    assert.equal(result.hit, true);
+    assert.equal(result.tapNoteScore, 0);
+    // The 16ths behind it are 0.125s and 0.25s away — inside the 0.3s miss
+    // window, so grading by window alone would consume them too.
+    assert.deepStrictEqual(graded(noteData), [0, undefined, undefined]);
+  });
+
+  it('picks the closest note rather than the first one in the chart', () => {
+    const noteData = [
+      [4.0, 0, {}],
+      [4.25, 0, {}]
+    ];
+
+    const result = press(noteData, 0, 4.25);
+
+    assert.equal(result.tapNoteScore, 0);
+    assert.deepStrictEqual(graded(noteData), [undefined, 0]);
+  });
+
+  it('leaves a mine alone when the press was aimed at a nearby arrow', () => {
+    const noteData = [
+      [4.0, 0, {}],
+      [4.4, 0, { Type: 'M' }]
+    ];
+
+    const result = press(noteData, 0, 4.0);
+
+    assert.equal(result.mineHitCount, 0);
+    assert.equal(result.hit, true);
+    assert.deepStrictEqual(graded(noteData), [0, undefined]);
+  });
+
+  it('does not set off a mine the press only came near', () => {
+    const noteData = [[4.0, 0, { Type: 'M' }]];
+
+    const result = press(noteData, 0, 4.4); // 0.2s away, outside the mine window
+
+    assert.equal(result.mineHitCount, 0);
+    assert.deepStrictEqual(graded(noteData), [undefined]);
+  });
+
+  it('sets off a mine the press lands on', () => {
+    const noteData = [[4.0, 0, { Type: 'M' }]];
+
+    const result = press(noteData, 0, 4.1); // 0.05s away
+
+    assert.equal(result.mineHitCount, 1);
+    assert.equal(result.hit, false);
+    assert.deepStrictEqual(graded(noteData), [5]);
+  });
+
+  it('reports nothing when the press lands in empty space', () => {
+    const noteData = [[4.0, 0, {}]];
+
+    const result = press(noteData, 0, 8.0);
+
+    assert.deepStrictEqual(result, { mineHitCount: 0, hit: false, tapNoteScore: 0 });
+    assert.deepStrictEqual(graded(noteData), [undefined]);
   });
 });
 
@@ -606,9 +715,13 @@ describe('CMod note positioning', () => {
     gameState.resetState();
   });
 
-  function xmodY(beatUntilNote, scrollSpeed, currentBPM, baseBPM) {
-    const effectiveSpeed = scrollSpeed * (currentBPM / baseBPM);
-    return TARGETS_Y + beatUntilNote * ARROW_SIZE * effectiveSpeed;
+  /**
+   * XMod spacing depends only on the beat distance, matching SM's
+   * ArrowEffects::GetYOffset. Speed through a section comes from how fast
+   * beats pass there, not from rescaling the field.
+   */
+  function xmodY(beatUntilNote, scrollSpeed) {
+    return calculateNoteY(beatUntilNote, ARROW_SIZE, scrollSpeed);
   }
 
   function cmodY(noteBeat, musicBeat, scrollBPM) {
@@ -626,7 +739,7 @@ describe('CMod note positioning', () => {
 
     it('note at receptor has Y = TARGETS_Y', () => {
       assert.equal(cmodY(4, 4, 300), TARGETS_Y);
-      assert.equal(xmodY(0, 2, 120, 120), TARGETS_Y);
+      assert.equal(xmodY(0, 2), TARGETS_Y);
     });
 
     it('future note is below receptor (positive Y offset)', () => {
@@ -660,11 +773,28 @@ describe('CMod note positioning', () => {
       });
     });
 
-    it('XMod changes effective speed with BPM', () => {
-      const yBefore = xmodY(2, 2, 120, 120);
-      const yAfter = xmodY(2, 2, 240, 120);
-      assert.ok(yAfter > yBefore, 'higher BPM should produce larger Y offset in XMod');
-      assert.ok(Math.abs(yAfter - yBefore * 2 + TARGETS_Y) < 0.01, 'double BPM = double offset');
+    it('XMod scrolls faster after a BPM change without moving the arrows', () => {
+      // A note at beat 12 watched across the 120 -> 240 change at beat 8,
+      // which lands at 4 seconds.
+      const noteY = (seconds) => xmodY(12 - secondsToBeats(seconds), 2);
+      const pixelsPerSecond = (from, to) => (noteY(from) - noteY(to)) / (to - from);
+
+      // Scaling the field by the live BPM teleported every arrow the instant
+      // the BPM changed. Nothing may travel further in 10ms than the fast
+      // section's own scroll rate allows: 4 beats/sec * 64px * speed 2.
+      const maxStep = 4 * ARROW_SIZE * 2 * 0.01;
+      for (let i = 0; i < 20; i++) {
+        const t = 3.9 + i * 0.01;
+        const step = Math.abs(noteY(t) - noteY(t + 0.01));
+        assert.ok(step <= maxStep + 0.01, `field jumped ${step.toFixed(1)}px at ${t.toFixed(2)}s`);
+      }
+
+      const before = pixelsPerSecond(3.9, 4.0);
+      const after = pixelsPerSecond(4.0, 4.1);
+      assert.ok(
+        Math.abs(after / before - 2) < 0.01,
+        `expected 2x scroll rate, got ${after / before}`
+      );
     });
 
     it('CMod gives equal spacing for equal time intervals across BPM change', () => {

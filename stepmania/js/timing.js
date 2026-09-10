@@ -1,7 +1,21 @@
 // Timing Module - ES Module
-// BPM and beat timing calculations
+// Beat/second conversions for the loaded chart.
+//
+// The math lives in timingData.js (a port of StepMania's TimingData); this
+// module is the thin binding to whichever chart gameState currently holds.
+//
+// Two clocks to keep straight:
+//   - chart seconds: beat 0 is at 0. What secondsToBeats/beatsToSeconds use.
+//   - music seconds: `audio.currentTime`. Converted with getMusicBeat /
+//     getMusicSeconds, which apply the simfile's #OFFSET.
 
 import gameState from './gameState.js';
+import {
+  getBeatFromElapsedTime,
+  getElapsedTimeFromBeat,
+  getBpmAtBeat,
+  isJudgableAtBeat
+} from './timingData.js';
 
 /**
  * Get the BPM at a specific beat, accounting for BPM changes
@@ -9,89 +23,45 @@ import gameState from './gameState.js';
  * @returns {number} BPM at that beat
  */
 export function getBPMAtBeat(beat) {
-  const bpmChanges = gameState.getBpmChanges();
-  const baseBpm = gameState.getBpm();
-
-  if (bpmChanges.length === 0) {
-    return baseBpm;
-  }
-
-  let currentBPM = baseBpm;
-  for (let i = 0; i < bpmChanges.length; i++) {
-    if (bpmChanges[i].beat <= beat) {
-      currentBPM = bpmChanges[i].bpm;
-    } else {
-      break;
-    }
-  }
-
-  return currentBPM;
+  return getBpmAtBeat(gameState.getTiming(), beat);
 }
 
 /**
- * Convert seconds to beats, accounting for BPM changes
- * @param {number} seconds - Time in seconds
+ * Convert chart seconds to beats, accounting for BPM changes, freezes, and warps
+ * @param {number} seconds - Time in chart seconds
  * @returns {number} Equivalent beat number
  */
 export function secondsToBeats(seconds) {
-  const bpmChanges = gameState.getBpmChanges();
-  const baseBpm = gameState.getBpm();
-  const beatsPerSec = baseBpm / 60;
-
-  if (bpmChanges.length === 0) {
-    return seconds * beatsPerSec;
-  }
-
-  let currentTime = 0;
-  let currentBeat = 0;
-  let currentBPM = baseBpm;
-
-  for (let i = 0; i < bpmChanges.length; i++) {
-    const bpmChange = bpmChanges[i];
-    const nextTime = currentTime + ((bpmChange.beat - currentBeat) / currentBPM) * 60;
-
-    if (seconds <= nextTime) {
-      return currentBeat + (seconds - currentTime) * (currentBPM / 60);
-    }
-
-    currentTime = nextTime;
-    currentBeat = bpmChange.beat;
-    currentBPM = bpmChange.bpm;
-  }
-
-  return currentBeat + (seconds - currentTime) * (currentBPM / 60);
+  return getBeatFromElapsedTime(gameState.getTiming(), seconds).beat;
 }
 
 /**
- * Convert beats to seconds, accounting for BPM changes
+ * Convert beats to chart seconds, accounting for BPM changes, freezes, and warps
  * @param {number} beats - The beat number
- * @returns {number} Equivalent time in seconds
+ * @returns {number} Equivalent time in chart seconds
  */
 export function beatsToSeconds(beats) {
-  const bpmChanges = gameState.getBpmChanges();
-  const baseBpm = gameState.getBpm();
+  return getElapsedTimeFromBeat(gameState.getTiming(), beats);
+}
 
-  if (bpmChanges.length === 0) {
-    return (beats / baseBpm) * 60;
-  }
+/**
+ * Whether the chart is paused on a freeze at this moment
+ * @param {number} seconds - Time in chart seconds
+ * @returns {boolean}
+ */
+export function isFrozenAt(seconds) {
+  const result = getBeatFromElapsedTime(gameState.getTiming(), seconds);
+  return result.freeze || result.delay;
+}
 
-  let currentTime = 0;
-  let currentBeat = 0;
-  let currentBPM = baseBpm;
-
-  for (let i = 0; i < bpmChanges.length; i++) {
-    const bpmChange = bpmChanges[i];
-
-    if (beats <= bpmChange.beat) {
-      return currentTime + ((beats - currentBeat) / currentBPM) * 60;
-    }
-
-    currentTime += ((bpmChange.beat - currentBeat) / currentBPM) * 60;
-    currentBeat = bpmChange.beat;
-    currentBPM = bpmChange.bpm;
-  }
-
-  return currentTime + ((beats - currentBeat) / currentBPM) * 60;
+/**
+ * Whether a note at this beat can be hit. Notes inside a warp are skipped by
+ * the song, so they never reach the receptors.
+ * @param {number} beat
+ * @returns {boolean}
+ */
+export function isJudgable(beat) {
+  return isJudgableAtBeat(gameState.getTiming(), beat);
 }
 
 /**
@@ -100,6 +70,14 @@ export function beatsToSeconds(beats) {
  * @returns {number} Current beat
  */
 export function getMusicBeat(musicSec) {
-  const offset = gameState.getMusicOffset();
-  return secondsToBeats(musicSec + offset);
+  return secondsToBeats(musicSec + gameState.getMusicOffset());
+}
+
+/**
+ * Get the audio time at which a beat is heard
+ * @param {number} beat
+ * @returns {number} Time in audio seconds
+ */
+export function getMusicSeconds(beat) {
+  return beatsToSeconds(beat) - gameState.getMusicOffset();
 }

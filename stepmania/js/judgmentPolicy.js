@@ -24,6 +24,13 @@ export const TIMING_WINDOWS = [
 export const MISS_TIMING_INDEX = TIMING_WINDOWS.length - 1;
 
 /**
+ * Window a press must land in to set off a mine. Much tighter than the miss
+ * window: brushing past a mine on the way to a nearby arrow should not cost
+ * points. SM ties its mine window to the great window, so this does too.
+ */
+export const MINE_TIMING_INDEX = 1;
+
+/**
  * Points awarded for each judgment type (tap row; mine uses MINE_HIT).
  *
  * Values mirror StepMania `_fallback` theme's `PercentScoreWeight*`

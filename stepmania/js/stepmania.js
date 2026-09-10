@@ -11,7 +11,8 @@ import { TAP_NOTE_POINTS, TIMING_WINDOWS, MISS_TIMING_INDEX } from './judgmentPo
 import { adjudicateColumnPress } from './columnPressAdjudication.js';
 import { ScorePanel } from './score-panel.js';
 import { LoadingOverlay } from './loading-overlay.js';
-import { getBPMAtBeat, secondsToBeats, beatsToSeconds, getMusicBeat } from './timing.js';
+import { secondsToBeats, beatsToSeconds } from './timing.js';
+import { songClock } from './songClock.js';
 import { GameOverModal } from './game-over-modal.js';
 import {
   drawMine,
@@ -25,14 +26,14 @@ import { videoManager } from './videoManager.js';
 import { audioManager } from './audioManager.js';
 import { inputManager } from './inputManager.js';
 
-/** Target frames per second */
-const TARGET_FPS = 90;
-
 // ============================================================================
 // LOCAL STATE (rendering-specific, not shared)
 // ============================================================================
 
-/** Current playback time */
+/**
+ * Current chart position in seconds, from songClock. Chart-relative: the
+ * simfile #OFFSET is already applied, so this feeds secondsToBeats directly.
+ */
 let currentTime = 0;
 
 /** Speed overlay display timer (seconds remaining to show) */
@@ -44,7 +45,7 @@ const SPEED_OVERLAY_DURATION = 1.5;
 // ============================================================================
 
 // Frame timing
-let lastDate = new Date();
+let lastFrameWallSeconds = 0;
 let uptimeSeconds = 0;
 let framesInCurrentSecond = 0;
 
@@ -150,22 +151,32 @@ function getBrowserAlertText() {
 // Canvas is managed by CanvasManager
 
 /**
+ * Chart position in seconds, extrapolated to this instant instead of the
+ * last rendered frame. Input arrives between frames, and judging it against
+ * a stale frame time costs up to a frame of accuracy.
+ *
+ * @returns {number}
+ */
+function chartSecondsNow() {
+  return songClock.timeAt(performance.now() / 1000) + gameState.getMusicOffset();
+}
+
+/**
  * Process player input for a column
  * @param {number} col - Column index (0=left, 1=down, 2=up, 3=right)
  */
 function step(col) {
-  const offset = gameState.getMusicOffset();
-  const songSeconds = audioManager.currentTime + offset;
+  const songSeconds = chartSecondsNow();
   const songBeats = secondsToBeats(songSeconds);
   const noteData = gameState.getNoteData();
 
-  const { mineHitCount, hit, tapNoteScore } = adjudicateColumnPress(
-    songBeats,
+  const { mineHitCount, hit, tapNoteScore } = adjudicateColumnPress({
+    songSeconds,
     col,
     noteData,
     activeHolds,
-    songSeconds
-  );
+    beatToSeconds: beatsToSeconds
+  });
 
   for (let m = 0; m < mineHitCount; m++) {
     gameState.incrementMineHits();
@@ -206,7 +217,6 @@ function step(col) {
     const target = targets[col];
     target.stop().set({ scaleX: 0.5, scaleY: 0.5 }).animate({ scaleX: 1, scaleY: 1 }, 0.2);
 
-    const songBeatsLocal = secondsToBeats(songSeconds);
     let mineNearby = false;
     noteData.forEach(function (note) {
       const noteBeat = note[0];
@@ -214,7 +224,7 @@ function step(col) {
       const noteProps = note[2];
 
       if (noteProps.Type === 'M' && noteCol === col) {
-        const diff = Math.abs(noteBeat - songBeatsLocal);
+        const diff = Math.abs(noteBeat - songBeats);
         if (diff < 1.0 && diff > 0.1) {
           mineNearby = true;
         }
@@ -244,8 +254,7 @@ function addButtonFeedback(buttonId) {
 function releaseHold(col) {
   if (activeHolds[col]) {
     const hold = activeHolds[col];
-    const offset = gameState.getMusicOffset();
-    const songSeconds = audioManager.currentTime + offset;
+    const songSeconds = chartSecondsNow();
     const songBeats = secondsToBeats(songSeconds);
     const holdEndBeat = hold.endBeat;
 
@@ -289,8 +298,7 @@ function showJudgment(judgmentText, scoreIndex) {
  * Update active hold notes (called each frame)
  */
 function updateHolds() {
-  const offset = gameState.getMusicOffset();
-  const songSeconds = audioManager.currentTime + offset;
+  const songSeconds = currentTime;
   const songBeats = secondsToBeats(songSeconds);
   const noteData = gameState.getNoteData();
 
@@ -349,49 +357,23 @@ function updateHolds() {
 
       hold.note[2].holdCompleted = true;
       delete activeHolds[col];
-    } else if (songBeats > hold.endBeat + TIMING_WINDOWS[MISS_TIMING_INDEX]) {
-      const missScore = MISS_TIMING_INDEX;
-      gameState.incrementScore(missScore);
-      gameState.addPoints(TAP_NOTE_POINTS[missScore]);
-
-      // Apply judgment for combo and gamified score
-      const { combo, multiplier } = gameState.applyJudgment(missScore);
-
-      // Apply health change for missed hold
-      gameState.applyHealthChange(missScore);
-
-      const scores = gameState.getTapNoteScores();
-      ScorePanel.update(missScore, scores, gameState.getActualPoints(), noteData.length, {
-        combo,
-        multiplier,
-        score: gameState.getScore(),
-        maxCombo: gameState.getMaxCombo()
-      });
-
-      showJudgment('Miss', missScore);
-
-      hold.note[2].holdCompleted = true;
-      delete activeHolds[col];
     }
   }
 }
 
-let lastSeenCurrentTime = 0;
-
 /**
  * Main update loop - called each frame
  * @param {number} deltaSeconds - Time since last frame
+ * @param {number} wallSeconds - Monotonic frame timestamp in seconds
  */
-function update(deltaSeconds) {
-  if (lastSeenCurrentTime != audioManager.currentTime) {
-    lastSeenCurrentTime = audioManager.currentTime;
-    currentTime = lastSeenCurrentTime;
-  } else {
-    // Extrapolation path (almost never taken since audio.currentTime
-    // updates faster than our 90fps loop). Scale by playbackRate so a
-    // 1.5× rate mod still advances the chart at song-time.
-    if (!audioManager.paused) currentTime += deltaSeconds * audioManager.playbackRate;
-  }
+function update(deltaSeconds, wallSeconds) {
+  const audioSeconds = songClock.update({
+    audioTime: audioManager.currentTime,
+    wallSeconds,
+    paused: audioManager.paused,
+    rate: audioManager.playbackRate
+  });
+  currentTime = audioSeconds + gameState.getMusicOffset();
 
   updateBackgroundChanges();
 
@@ -415,7 +397,7 @@ function update(deltaSeconds) {
   // Auto-miss notes that have passed (skip in autoplay mode)
   if (!gameState.isAutoplay()) {
     const missIfOlderThanSeconds = currentTime - TIMING_WINDOWS[MISS_TIMING_INDEX];
-    const missIfOlderThanBeat = getMusicBeat(missIfOlderThanSeconds);
+    const missIfOlderThanBeat = secondsToBeats(missIfOlderThanSeconds);
     const noteData = gameState.getNoteData();
 
     noteData.forEach(function (note) {
@@ -439,9 +421,7 @@ function update(deltaSeconds) {
  * Process autoplay - auto-hit notes at perfect timing
  */
 function processAutoplay() {
-  const offset = gameState.getMusicOffset();
-  const songSeconds = audioManager.currentTime + offset;
-  const songBeats = secondsToBeats(songSeconds);
+  const songSeconds = currentTime;
   const noteData = gameState.getNoteData();
 
   noteData.forEach(function (note) {
@@ -455,9 +435,10 @@ function processAutoplay() {
     // Skip mines in autoplay (don't hit them!)
     if (noteProps.Type === 'M') return;
 
-    // Check if note is within autoplay hit window (slightly before perfect timing)
-    const diff = songBeats - noteBeat;
-    if (diff >= -0.02 && diff <= 0.05) {
+    // Hit anything that has come due. Bounding this to a narrow window
+    // would drop notes whenever a frame runs long, which turns a hitch
+    // into a wall of misses.
+    if (songSeconds >= beatsToSeconds(noteBeat)) {
       // Auto-hit with perfect timing
       noteProps.tapNoteScore = 0; // Perfect
 
@@ -555,7 +536,7 @@ function updateBackgroundChanges() {
   const bgChanges = gameState.getBgChanges();
   if (!bgChanges || bgChanges.length === 0) return;
 
-  const musicBeat = getMusicBeat(currentTime);
+  const musicBeat = secondsToBeats(currentTime);
 
   for (let i = 0; i < bgChanges.length; i++) {
     const bgChange = bgChanges[i];
@@ -646,7 +627,10 @@ function drawSpeedOverlay(deltaSeconds) {
   ctx.restore();
 }
 
-function draw() {
+/**
+ * @param {number} deltaSeconds - Time since the previous frame
+ */
+function draw(deltaSeconds) {
   if (!CanvasManager.ctx) return;
 
   CanvasManager.clear();
@@ -674,18 +658,14 @@ function draw() {
   CanvasManager.drawCombo(gameState.getCombo(), gameState.getComboMultiplier());
 
   // Draw speed overlay (fades out after speed change)
-  const now = new Date();
-  const frameDelta = (now - lastDate) / 1000;
-  drawSpeedOverlay(frameDelta);
+  drawSpeedOverlay(deltaSeconds);
 }
 
 /**
  * Draw the note field with all notes
  */
 function drawNoteField() {
-  const musicBeat = getMusicBeat(currentTime);
-  const currentBPM = getBPMAtBeat(musicBeat);
-  const baseBpm = gameState.getBpm();
+  const musicBeat = secondsToBeats(currentTime);
   const scrollSpeed = gameState.getScrollSpeed();
   const scrollMode = gameState.getScrollMode();
   const noteData = gameState.getNoteData();
@@ -694,7 +674,11 @@ function drawNoteField() {
 
   let musicSeconds, cmodPxPerSec;
   if (isCmod) {
-    musicSeconds = beatsToSeconds(musicBeat);
+    // CMod spaces notes by clock time, so it reads the position directly
+    // rather than converting through the beat. Going via the beat would
+    // freeze the field for the length of every stop, because every moment
+    // inside a stop maps back to the beat the stop began on.
+    musicSeconds = currentTime;
     cmodPxPerSec = (gameState.getScrollBPM() / 60) * arrowSize;
   }
 
@@ -739,7 +723,12 @@ function drawNoteField() {
       currentScrollSpeed = 0;
       cmodInfo = { musicSeconds, pxPerSec: cmodPxPerSec };
     } else {
-      currentScrollSpeed = scrollSpeed * (currentBPM / baseBpm);
+      // XMod spacing is measured in beats and nothing else. The field
+      // already scrolls faster through a fast section because beats pass
+      // faster there; scaling the spacing by the live BPM on top of that
+      // double-counts it and teleports every arrow on screen the instant
+      // the BPM changes.
+      currentScrollSpeed = scrollSpeed;
       if (!isNoteOnScreen(beatUntilNote, beatUntilNoteEnd, currentScrollSpeed)) continue;
       y = calculateNoteY(beatUntilNote, arrowSize, currentScrollSpeed);
       cmodInfo = null;
@@ -874,7 +863,7 @@ function resetGame() {
   videoManager.reset();
 
   currentTime = 0;
-  lastSeenCurrentTime = 0;
+  songClock.reset(0);
   audioManager.reset();
 
   Judgment.reset();
@@ -984,12 +973,31 @@ function initStepmaniaDomAndLoop() {
 
   window.CanvasManager = CanvasManager;
 
-  setInterval(function () {
-    const thisDate = new Date();
-    const deltaSeconds = (thisDate.getTime() - lastDate.getTime()) / 1000;
-    update(deltaSeconds);
-    draw();
-    lastDate = thisDate;
+  startRenderLoop();
+}
+
+/**
+ * Drive the game from the display's own frame callback.
+ *
+ * A fixed-rate timer cannot line up with the refresh rate: at 90 ticks per
+ * second against a 60Hz display, some frames get two updates and some get
+ * none, which reads as stutter no matter how accurate the note timing is.
+ */
+function startRenderLoop() {
+  lastFrameWallSeconds = performance.now() / 1000;
+
+  function frame(timestampMs) {
+    requestAnimationFrame(frame);
+
+    const wallSeconds = timestampMs / 1000;
+    // Clamp so a backgrounded tab (which pauses rAF) doesn't come back with
+    // a multi-second delta and fast-forward every animation at once.
+    const deltaSeconds = Math.min(0.25, Math.max(0, wallSeconds - lastFrameWallSeconds));
+    lastFrameWallSeconds = wallSeconds;
+
+    update(deltaSeconds, wallSeconds);
+    draw(deltaSeconds);
+
     framesInCurrentSecond++;
     const oldSec = Math.floor(uptimeSeconds);
     const newSec = Math.floor(uptimeSeconds + deltaSeconds);
@@ -1000,7 +1008,9 @@ function initStepmaniaDomAndLoop() {
       framesInCurrentSecond = 0;
     }
     uptimeSeconds += deltaSeconds;
-  }, 1000 / TARGET_FPS);
+  }
+
+  requestAnimationFrame(frame);
 }
 
 /**

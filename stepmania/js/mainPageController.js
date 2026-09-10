@@ -23,6 +23,7 @@ import {
   MIN_VALID_AUDIO_SIZE,
   binaryPayloadByteLength
 } from './songProxyTransport.js';
+import { buildTimingData, filterUnjudgableNotes } from './timingData.js';
 import { recordRecentPlay } from './zeniusLibraryStorage.js';
 import { bindHomeScreen, hideHomeScreen, showHomeScreen } from './homeScreen.js';
 import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
@@ -370,24 +371,29 @@ export class MainPageController {
       LoadingOverlay.updateProgress('Setting up game data...', startProgress);
     }
 
-    // Update game state via gameState module
+    // The chart's timing model owns freezes and warps; #OFFSET stays
+    // separate because it shifts the whole chart against the audio file.
+    const timing = parsedData.timing || buildTimingData({});
+    const offset = Number.isFinite(parsedData.offset) ? parsedData.offset : -0.03;
+
+    // Notes the song warps past can never reach the receptors, so drop them
+    // rather than let them all miss at once when the warp fires.
+    const noteData = filterUnjudgableNotes(timing, chart.noteData);
+
     gameState.setSong({
       bpm: parsedData.bpm,
-      addToMusicPosition: parsedData.offset || -0.03,
-      bpmChanges: parsedData.bpmChanges || []
+      addToMusicPosition: offset + timing.beat0OffsetDelta,
+      bpmChanges: parsedData.bpmChanges || [],
+      timing
     });
 
-    gameState.setSteps({
-      noteData: chart.noteData
-    });
+    gameState.setSteps({ noteData });
 
     // Set up background changes (injects Zenius video URL if available)
     const bgChanges = songManager.prepareBgChanges(parsedData.bgChanges || []);
 
     gameState.setBgChanges(bgChanges);
-    gameState.setNoteData(chart.noteData);
-    gameState.setBpm(parsedData.bpm);
-    gameState.setBpmChanges(parsedData.bpmChanges || []);
+    gameState.setNoteData(noteData);
 
     const audioProgress = startProgress + 20;
     if (useMainLoading) {
@@ -660,10 +666,13 @@ export class MainPageController {
       const selectedChart = parsedData.charts[currentDifficulty];
 
       if (selectedChart) {
-        gameState.setSteps({
-          noteData: selectedChart.noteData
-        });
-        gameState.setNoteData(selectedChart.noteData);
+        // The difficulty picker can land on a different chart than the one
+        // loaded, so re-drop the notes this song warps past.
+        const timing = parsedData.timing || gameState.getTiming();
+        const noteData = filterUnjudgableNotes(timing, selectedChart.noteData);
+
+        gameState.setSteps({ noteData });
+        gameState.setNoteData(noteData);
 
         resetGame();
       }

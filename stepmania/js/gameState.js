@@ -2,6 +2,8 @@
 // Manages gameplay state: scores, combos, health, active song config (BPM, notes)
 // Note: Song metadata (what song is loaded) is managed by songManager
 
+import { buildTimingData, constantTimingData } from './timingData.js';
+
 /** Default song configuration */
 const DEFAULT_SONG = {
   BPM: 148,
@@ -91,6 +93,7 @@ class GameState {
     this.song = {
       bpm: DEFAULT_SONG.BPM,
       bpmChanges: [],
+      timing: constantTimingData(DEFAULT_SONG.BPM),
       addToMusicPosition: DEFAULT_SONG.OFFSET
     };
 
@@ -204,7 +207,12 @@ class GameState {
   }
 
   /**
-   * Set the song configuration
+   * Set the song configuration.
+   *
+   * When no timing model is supplied, one is derived from `bpmChanges` (or
+   * the flat BPM) so callers that only know about BPMs still get a usable
+   * chart clock.
+   *
    * @param {Object} song - Song data to merge
    */
   setSong(song) {
@@ -213,6 +221,40 @@ class GameState {
       ...song,
       bpmChanges: song.bpmChanges || this.song.bpmChanges || []
     };
+
+    if (!song.timing) {
+      this.song.timing = this._timingFromBpmChanges();
+    }
+  }
+
+  /**
+   * Build a timing model from plain BPM changes, falling back to the flat
+   * display BPM when the chart has none.
+   */
+  _timingFromBpmChanges() {
+    const bpmChanges = this.song.bpmChanges;
+    if (!bpmChanges || bpmChanges.length === 0) {
+      return constantTimingData(this.song.bpm);
+    }
+    return buildTimingData({
+      bpms: bpmChanges.map((change) => ({ beat: change.beat, value: change.bpm }))
+    });
+  }
+
+  /**
+   * Get the beat/time model for the loaded chart
+   * @returns {import('./timingData.js').TimingData}
+   */
+  getTiming() {
+    return this.song.timing;
+  }
+
+  /**
+   * Set the beat/time model (parsed from the simfile's timing tags)
+   * @param {import('./timingData.js').TimingData} timing
+   */
+  setTiming(timing) {
+    this.song.timing = timing;
   }
 
   /**
@@ -229,6 +271,9 @@ class GameState {
    */
   setBpm(bpm) {
     this.song.bpm = bpm;
+    if (this.song.bpmChanges.length === 0) {
+      this.song.timing = constantTimingData(bpm);
+    }
   }
 
   /**
@@ -245,6 +290,7 @@ class GameState {
    */
   setBpmChanges(bpmChanges) {
     this.song.bpmChanges = bpmChanges || [];
+    this.song.timing = this._timingFromBpmChanges();
   }
 
   /**
@@ -645,6 +691,7 @@ class GameState {
     this.song = {
       bpm: DEFAULT_SONG.BPM,
       bpmChanges: [],
+      timing: constantTimingData(DEFAULT_SONG.BPM),
       addToMusicPosition: DEFAULT_SONG.OFFSET
     };
     this.steps = { noteData: [] };
@@ -695,35 +742,18 @@ class GameState {
   }
 
   /**
-   * Load song data from a parsed simfile
-   * @param {Object} parsedData - Parsed simfile data
-   * @param {Object} chart - Selected chart/difficulty
-   */
-  loadSongData(parsedData, chart) {
-    this.song = {
-      bpm: parsedData.bpm,
-      bpmChanges: parsedData.bpmChanges || [],
-      addToMusicPosition: parsedData.offset ? -parsedData.offset : DEFAULT_SONG.OFFSET
-    };
-
-    this.steps = {
-      noteData: chart.noteData
-    };
-
-    this.bgChanges = parsedData.bgChanges || [];
-
-    // Reset scores when loading new song
-    this.resetScores();
-  }
-
-  /**
    * Get a snapshot of gameplay state (useful for debugging)
    * Note: For song metadata, use songManager directly
    * @returns {Object}
    */
   getStateSnapshot() {
+    const { timing, ...song } = this.song;
     return {
-      song: { ...this.song },
+      song: {
+        ...song,
+        stops: timing.stops.length,
+        warps: timing.warps.length
+      },
       steps: { noteData: this.steps.noteData.length },
       bgChanges: this.bgChanges.length,
       scores: [...this.tapNoteScores],
