@@ -20,6 +20,7 @@ import { makePrefs } from '../shared/prefs.js';
 import { LoopTrack } from '../shared/loop-track.js';
 import { createLoopTrackController } from '../shared/loop-track-ui.js';
 import { createPointerSurface } from '../shared/pointer-surface.js';
+import { LOOP_PARAM, decodeDrumLoop, encodeDrumLoop, withLoopToken } from './loop-url.js';
 
 const Prefs = makePrefs('play.drums.prefs.v1');
 
@@ -121,15 +122,6 @@ const SAMPLE_KIT_GAINS = {
 };
 
 const SAMPLED_KITS = new Set(Object.keys(SAMPLED_KIT_CATALOGS));
-const AUDIO_MIME_CANDIDATES = [
-  'audio/webm;codecs=opus',
-  'audio/webm',
-  'audio/mp4;codecs=mp4a.40.2',
-  'audio/mp4'
-];
-const RECORDING_TAIL_MS = 1500;
-const POSTS_AUDIO_BITS_PER_SECOND = 12000;
-const POSTS_AUDIO_MAX_BYTES = 180000;
 
 class DrumKit {
   constructor() {
@@ -485,82 +477,6 @@ class DrumKit {
   }
 }
 
-const pickAudioMimeType = () => {
-  if (typeof MediaRecorder === 'undefined') return null;
-  return AUDIO_MIME_CANDIDATES.find((mime) => MediaRecorder.isTypeSupported?.(mime)) || '';
-};
-
-/**
- * Capture one deliberate pass of the loop into an isolated Web Audio output.
- * This does not stop, restart, or otherwise disturb the live LoopTrack.
- */
-async function renderLoopAudio(loopTrack, drumKit) {
-  if (!loopTrack.hasLoop()) throw new Error('Record a loop before making a post.');
-
-  const mimeType = pickAudioMimeType();
-  if (mimeType == null) throw new Error("This browser can't create an audio attachment.");
-
-  const ctx = getCtx();
-  await ctx.resume();
-  const recordDestination = ctx.createMediaStreamDestination();
-  const recordGain = ctx.createGain();
-  recordGain.gain.value = Number(volumeEl.value) / 100;
-  recordGain.connect(recordDestination);
-
-  const chunks = [];
-  let recorder;
-  try {
-    recorder = new MediaRecorder(recordDestination.stream, {
-      ...(mimeType ? { mimeType } : {}),
-      audioBitsPerSecond: POSTS_AUDIO_BITS_PER_SECOND
-    });
-  } catch (error) {
-    recordGain.disconnect();
-    recordDestination.stream.getTracks().forEach((track) => track.stop());
-    throw new Error("This browser can't create an audio attachment.", { cause: error });
-  }
-
-  const recording = new Promise((resolve, reject) => {
-    recorder.ondataavailable = (event) => {
-      if (event.data?.size) chunks.push(event.data);
-    };
-    recorder.onerror = () => reject(recorder.error || new Error('Audio recording failed.'));
-    recorder.onstop = () => {
-      const type = recorder.mimeType || mimeType || 'audio/webm';
-      const blob = new Blob(chunks, { type: type.split(';')[0] });
-      if (blob.size === 0) reject(new Error('The browser produced an empty audio recording.'));
-      else resolve(blob);
-    };
-  });
-
-  const leadSeconds = 0.05;
-  recorder.start();
-  const startAt = ctx.currentTime + leadSeconds;
-  for (const event of loopTrack.events.slice().sort((a, b) => a.time - b.time)) {
-    drumKit.hit(event.id, recordGain, startAt + event.time / 1000);
-  }
-
-  const stopDelay = leadSeconds * 1000 + loopTrack.loopLength + RECORDING_TAIL_MS;
-  const stopTimer = window.setTimeout(() => {
-    if (recorder.state !== 'inactive') recorder.stop();
-  }, stopDelay);
-
-  try {
-    return await recording;
-  } finally {
-    window.clearTimeout(stopTimer);
-    if (recorder.state !== 'inactive') {
-      try {
-        recorder.stop();
-      } catch {
-        /* already stopping */
-      }
-    }
-    recordGain.disconnect();
-    recordDestination.stream.getTracks().forEach((track) => track.stop());
-  }
-}
-
 // ---------- Page wiring ----------
 
 const padsContainer = document.getElementById('drum-pads');
@@ -728,22 +644,51 @@ const updatePostButton = () => {
 looper.on(updatePostButton);
 updatePostButton();
 
+const currentLoopToken = () =>
+  encodeDrumLoop({ loopLength: looper.loopLength, kit: kitEl.value, events: looper.events });
+
+// The Share button and share FAB copy whatever is in the address bar, so the
+// recorded loop has to live there too — not just in the post text.
+let urlToken = null;
+const syncLoopUrl = () => {
+  let token = null;
+  if (looper.hasLoop()) {
+    try {
+      token = currentLoopToken();
+    } catch {
+      // Too long or too busy to encode; a bare Drums link still works.
+    }
+  }
+  if (token === urlToken) return;
+  urlToken = token;
+  history.replaceState(history.state, '', withLoopToken(window.location.href, token));
+};
+looper.on(syncLoopUrl);
+kitEl.addEventListener('change', syncLoopUrl);
+
+const sharedLoop = decodeDrumLoop(
+  new URLSearchParams(window.location.search).get(LOOP_PARAM) || ''
+);
+if (sharedLoop) {
+  kitEl.value = sharedLoop.kit;
+  kit.setKit(sharedLoop.kit);
+  updateKitStatus();
+  looper.load(sharedLoop.events, sharedLoop.loopLength);
+  postStatusEl.textContent = 'Shared loop loaded — press Play';
+}
+
 postBtn.addEventListener('click', async () => {
   if (postBusy || !looper.hasLoop()) return;
   postBusy = true;
   updatePostButton();
   postStatusEl.classList.remove('error');
-  postStatusEl.textContent = 'Preparing audio…';
+  postStatusEl.textContent = 'Preparing link…';
   try {
-    const audio = await renderLoopAudio(looper, kit);
-    if (audio.size > POSTS_AUDIO_MAX_BYTES) {
-      throw new Error('This loop is too long to attach. Record a shorter loop and try again.');
-    }
+    const token = currentLoopToken();
     postStatusEl.textContent = 'Opening Posts…';
     const { share } = await import('/posts/share-client.js');
     await share({
-      text: '🥁 Drum loop\n\nMade with [Drums](/play/drums/)',
-      attachments: [audio]
+      text: `🥁 Drum loop\n\n▶ [Play this loop](/play/drums/?loop=${token})\n\nMade with [Drums](/play/drums/)`
     });
     window.heymingAchievements?.unlockForCurrentApp('loop-posted');
   } catch (error) {

@@ -132,6 +132,19 @@ export class LoopTrack {
     this._emit();
   }
 
+  /**
+   * Replace the current track with a previously recorded loop.
+   * @param {Array<{ time: number, id: string }>} events
+   * @param {number} loopLength
+   */
+  load(events, loopLength) {
+    this._stopPlayback();
+    this.events = events.map((event) => ({ time: event.time, id: event.id }));
+    this.loopLength = loopLength;
+    this.state = 'idle';
+    this._emit();
+  }
+
   /** Called when the user triggers an event live (keyboard/pointer/etc.). */
   noteHit(id) {
     if (this.state === 'armed') {
