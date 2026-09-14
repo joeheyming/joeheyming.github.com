@@ -3,7 +3,7 @@
 
 /**
  * Get all URL parameters as an object
- * @returns {{song: string|null, difficulty: string|null, zenius: string|null, autoplay: boolean}}
+ * @returns {{song: string|null, difficulty: string|null, zenius: string|null, local: string|null, autoplay: boolean}}
  */
 export function getURLParams() {
   const params = new URLSearchParams(window.location.search);
@@ -11,6 +11,7 @@ export function getURLParams() {
     song: params.get('song'),
     difficulty: params.get('difficulty'),
     zenius: params.get('zenius'),
+    local: params.get('local'),
     autoplay: params.get('autoplay') !== 'false' && params.get('autoplay') !== null
   };
 }
@@ -56,5 +57,6 @@ export function clearURLParams() {
   url.searchParams.delete('zenius');
   url.searchParams.delete('song');
   url.searchParams.delete('difficulty');
+  url.searchParams.delete('local');
   window.history.pushState({}, '', url);
 }

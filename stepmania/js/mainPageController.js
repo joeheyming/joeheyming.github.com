@@ -27,6 +27,9 @@ import { buildTimingData, filterUnjudgableNotes } from './timingData.js';
 import { recordRecentPlay } from './zeniusLibraryStorage.js';
 import { bindHomeScreen, hideHomeScreen, showHomeScreen } from './homeScreen.js';
 import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
+import { unpackZip, readZipFiles, packFromFilesPlayable, packFromSimfileText } from './packIo.js';
+import { songFromPack, playTimingForChart, revokePackObjectUrls } from './songFromPack.js';
+import { loadDraft } from './localPackStore.js';
 
 /**
  * Main Page Controller
@@ -40,6 +43,8 @@ export class MainPageController {
     this.lastDifficulty = null;
     /** @type {string|null} Last song key */
     this.lastSongKey = null;
+    /** @type {string|null} Last IndexedDB draft id */
+    this.lastLocalId = null;
     /** @type {boolean} Flag to prevent onChange loops during programmatic updates */
     this.isUpdatingDifficulty = false;
     this.init();
@@ -47,7 +52,11 @@ export class MainPageController {
 
   async init() {
     this.bindEvents();
-    bindHomeScreen();
+    bindHomeScreen({
+      onOpenFile: (file) => {
+        void this.loadFromLocalFile(file);
+      }
+    });
 
     const hasURLParams = await this.initByURL();
 
@@ -126,10 +135,14 @@ export class MainPageController {
   }
 
   async initByURL() {
-    const { difficulty, zenius: zeniusUrl, autoplay } = getURLParams();
+    const { difficulty, zenius: zeniusUrl, local: localId, autoplay } = getURLParams();
 
     if (autoplay) {
       gameState.setAutoplay(true);
+    }
+
+    if (localId) {
+      return await this.loadFromLocalDraft(localId, difficulty);
     }
 
     if (zeniusUrl) {
@@ -213,10 +226,95 @@ export class MainPageController {
     }
   }
 
+  /**
+   * @param {File} file
+   */
+  async loadFromLocalFile(file) {
+    hideHomeScreen();
+    this.lastZeniusUrl = null;
+    try {
+      LoadingOverlay.showLoading(file.name, 'Reading pack...', 10);
+      const name = file.name.toLowerCase();
+      let pack;
+      if (name.endsWith('.sm') || name.endsWith('.ssc')) {
+        const text = await file.text();
+        pack = packFromSimfileText(file.name, text);
+      } else {
+        const files = await readZipFiles(await file.arrayBuffer());
+        pack = packFromFilesPlayable(files);
+      }
+      await this.playLoadedPack(pack, `file_${file.name}`, { localId: null });
+      return true;
+    } catch (error) {
+      LoadingOverlay.hide();
+      console.error('Error loading local pack:', error);
+      LoadingOverlay.showError('Could not load pack', formatLoadError(error) || String(error));
+      showHomeScreen();
+      return false;
+    }
+  }
+
+  /**
+   * @param {string} localId
+   * @param {string|number|null} difficulty
+   */
+  async loadFromLocalDraft(localId, difficulty) {
+    hideHomeScreen();
+    this.lastZeniusUrl = null;
+    this.lastLocalId = localId;
+    try {
+      LoadingOverlay.showLoading('local pack', 'Opening saved draft...', 10);
+      const draft = await loadDraft(localId);
+      if (!draft?.zipBlob) {
+        throw new Error('That editor draft was not found on this device.');
+      }
+      const pack = await unpackZip(draft.zipBlob);
+      await this.playLoadedPack(pack, `local_${localId}`, { localId, difficulty });
+      return true;
+    } catch (error) {
+      LoadingOverlay.hide();
+      console.error('Error loading local draft:', error);
+      LoadingOverlay.showError('Could not load draft', formatLoadError(error) || String(error));
+      showHomeScreen();
+      return false;
+    }
+  }
+
+  /**
+   * @param {import('./packIo.js').SongPack} pack
+   * @param {string} songKey
+   * @param {{ localId?: string|null, difficulty?: string|number|null }} [opts]
+   */
+  async playLoadedPack(pack, songKey, opts = {}) {
+    revokePackObjectUrls();
+    LoadingOverlay.updateProgress('Parsing charts...', 40);
+    const { songData, parsedData } = songFromPack(pack, songKey);
+    if (!parsedData.charts.length) {
+      throw new Error('This pack has no dance-single charts to play.');
+    }
+    if (!songData.audioBlob && !songData.url) {
+      throw new Error('This pack has no music file. Add an ogg/mp3 in the editor.');
+    }
+    songManager.cacheParsedData(songKey, parsedData);
+    this.setCurrentSong(songKey, songData);
+    this.setCurrentDifficulty(opts.difficulty || 0);
+    this.lastLocalId = opts.localId || null;
+    updateURLParams({
+      zenius: null,
+      local: opts.localId || null,
+      difficulty: opts.difficulty || 0
+    });
+    const subTitle = document.getElementById('sub-title');
+    if (subTitle) subTitle.textContent = parsedData.title;
+    LoadingOverlay.updateProgress('Starting game...', 70);
+    await this.startSelectedSong(true, true);
+  }
+
   enterHome() {
     this.lastZeniusUrl = null;
     this.lastSongKey = null;
     this.lastDifficulty = null;
+    this.lastLocalId = null;
     songManager.clearCurrentSong();
     DifficultySelector.setCharts([]);
     audioManager.reset();
@@ -373,17 +471,16 @@ export class MainPageController {
 
     // The chart's timing model owns freezes and warps; #OFFSET stays
     // separate because it shifts the whole chart against the audio file.
-    const timing = parsedData.timing || buildTimingData({});
-    const offset = Number.isFinite(parsedData.offset) ? parsedData.offset : -0.03;
+    const playTiming = playTimingForChart(parsedData, chart);
+    const timing = playTiming.timing || buildTimingData({});
+    const offset = Number.isFinite(playTiming.offset) ? playTiming.offset : -0.03;
 
-    // Notes the song warps past can never reach the receptors, so drop them
-    // rather than let them all miss at once when the warp fires.
     const noteData = filterUnjudgableNotes(timing, chart.noteData);
 
     gameState.setSong({
       bpm: parsedData.bpm,
       addToMusicPosition: offset + timing.beat0OffsetDelta,
-      bpmChanges: parsedData.bpmChanges || [],
+      bpmChanges: playTiming.bpmChanges || parsedData.bpmChanges || [],
       timing
     });
 
@@ -402,11 +499,20 @@ export class MainPageController {
 
     const currentSongData = songManager.getCurrentSongData();
     const currentSongKey = songManager.getCurrentSongKey();
-    let audioUrl = currentSongData.url;
-    const mimeType = audioUrl.endsWith('.ogg') ? 'audio/ogg' : 'audio/mpeg';
+    let audioUrl = currentSongData.url || '';
+    const mimeType =
+      currentSongData.audioType ||
+      (audioUrl.toLowerCase().includes('.ogg') ? 'audio/ogg' : 'audio/mpeg');
 
-    // Proxy audio files from zenius-i-vanisher.com to avoid 403/404 errors
-    if (audioUrl.includes('zenius-i-vanisher.com')) {
+    if (currentSongData.audioBlob) {
+      try {
+        await audioManager.loadBlob(currentSongData.audioBlob, mimeType);
+      } catch (error) {
+        console.error('Audio failed to load:', error);
+        LoadingOverlay.showError('Could not load audio', formatLoadError(error));
+        throw error;
+      }
+    } else if (audioUrl.includes('zenius-i-vanisher.com')) {
       // AudioManager handles blob URL cleanup automatically in loadBlob()
       let audioLoaded = false;
       /** @type {unknown} */
@@ -538,7 +644,9 @@ export class MainPageController {
       await new Promise((resolve) => setTimeout(resolve, backoffDelay));
     }
 
-    if (this.lastZeniusUrl) {
+    if (this.lastLocalId) {
+      await this.loadFromLocalDraft(this.lastLocalId, this.lastDifficulty);
+    } else if (this.lastZeniusUrl) {
       await this.loadFromZeniusURL(this.lastZeniusUrl, this.lastDifficulty);
     } else {
       LoadingOverlay.hide();

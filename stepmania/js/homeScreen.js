@@ -59,7 +59,7 @@ export function refreshHomeLists() {
   }
 }
 
-export function bindHomeScreen() {
+export function bindHomeScreen(handlers = {}) {
   const browse = document.getElementById('sm-home-browse');
   if (browse) {
     browse.addEventListener('click', () => {
@@ -67,6 +67,32 @@ export function bindHomeScreen() {
       if (browser && typeof browser.showBrowser === 'function') {
         browser.showBrowser();
       }
+    });
+  }
+
+  const openPack = document.getElementById('sm-home-open-pack');
+  const packInput = document.getElementById('sm-home-pack-input');
+  if (openPack && packInput) {
+    openPack.addEventListener('click', () => packInput.click());
+    packInput.addEventListener('change', () => {
+      const file = packInput.files && packInput.files[0];
+      packInput.value = '';
+      if (file && handlers.onOpenFile) handlers.onOpenFile(file);
+    });
+  }
+
+  const dropTarget = document.getElementById('sm-home');
+  if (dropTarget && handlers.onOpenFile) {
+    dropTarget.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropTarget.classList.add('is-drop');
+    });
+    dropTarget.addEventListener('dragleave', () => dropTarget.classList.remove('is-drop'));
+    dropTarget.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropTarget.classList.remove('is-drop');
+      const file = e.dataTransfer?.files?.[0];
+      if (file) handlers.onOpenFile(file);
     });
   }
 }

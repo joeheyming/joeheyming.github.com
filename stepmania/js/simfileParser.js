@@ -1,84 +1,157 @@
 // Simfile Parser - ES Module
-// Parses StepMania .sm simfile format
+// Parses StepMania .sm and .ssc simfile formats
 
 /**
  * @typedef {Object} BPMChange
- * @property {number} beat - Beat number where change occurs
- * @property {number} bpm - New BPM value
+ * @property {number} beat
+ * @property {number} bpm
  */
 
 /**
  * @typedef {Object} BGChange
- * @property {number} beat - Beat number where change occurs
- * @property {string} file - Background filename
- * @property {string} effect - Effect type
- * @property {number} x - X offset
- * @property {number} y - Y offset
- * @property {boolean} isVideo - Whether this is a video file
- * @property {boolean} isNoBackground - Whether this removes background
+ * @property {number} beat
+ * @property {string} file
+ * @property {string} effect
+ * @property {number} x
+ * @property {number} y
+ * @property {boolean} isVideo
+ * @property {boolean} isNoBackground
  */
 
 /**
  * @typedef {Object} Chart
- * @property {string} type - Chart type (e.g., 'dance-single')
- * @property {string} description - Chart description
- * @property {string} difficulty - Difficulty name (Beginner, Easy, Medium, Hard, Challenge)
- * @property {number} rating - Numeric difficulty rating
- * @property {string} radarValues - Radar values string
- * @property {Array<Array>} noteData - Array of [beat, column, properties]
+ * @property {string} type
+ * @property {string} description
+ * @property {string} difficulty
+ * @property {number} rating
+ * @property {string} radarValues
+ * @property {Array<Array>} noteData
+ * @property {string} [chartName]
+ * @property {string} [credit]
+ * @property {boolean} [hasSplitTiming]
+ * @property {number} [offset]
+ * @property {import('./timingData.js').TimingData} [timing]
+ * @property {object} [timingTags]
+ * @property {Object<string, string>} [timingExtras]
  */
 
 /**
  * @typedef {Object} ParsedSimfile
- * @property {string} title - Song title
- * @property {string} artist - Song artist
- * @property {number} bpm - Display BPM
- * @property {number} offset - Music offset in seconds
- * @property {Chart[]} charts - Available charts
- * @property {BGChange[]} bgChanges - Background changes
- * @property {BPMChange[]} bpmChanges - BPM changes
- * @property {import('./timingData.js').TimingData} timing - Beat/time model
- * @property {Object} metadata - Raw metadata tags
+ * @property {string} title
+ * @property {string} artist
+ * @property {number} bpm
+ * @property {number} offset
+ * @property {Chart[]} charts
+ * @property {BGChange[]} bgChanges
+ * @property {BPMChange[]} bpmChanges
+ * @property {import('./timingData.js').TimingData} timing
+ * @property {Object<string, string>} metadata
+ * @property {object} timingTags
+ * @property {Object<string, string>} timingExtras
  */
 
 import { buildTimingData } from './timingData.js';
+import { parseMsd, parseTimingPairs, splitSmNotesValue } from './msd.js';
+import { parseNoteField, DANCE_SINGLE_COLS } from './noteGrid.js';
+
+const VIDEO_EXT = /\.(avi|mp4|webm|mov)$/i;
+const SPLIT_TIMING_TAGS = [
+  'OFFSET',
+  'BPMS',
+  'STOPS',
+  'DELAYS',
+  'WARPS',
+  'SPEEDS',
+  'SCROLLS',
+  'FAKES',
+  'LABELS',
+  'TIMESIGNATURES',
+  'TICKCOUNTS',
+  'COMBOS'
+];
+const TIMING_EXTRA_TAGS = [
+  'SPEEDS',
+  'SCROLLS',
+  'FAKES',
+  'LABELS',
+  'TIMESIGNATURES',
+  'TICKCOUNTS',
+  'COMBOS'
+];
 
 /**
- * Parse a `beat=value,beat=value` timing tag into pairs.
- *
- * Entries with a zero value are dropped, matching SM's loader: a zero BPM or
- * a zero-length freeze is meaningless and would divide by zero downstream.
- *
- * @param {string} content - Cleaned simfile content
- * @param {string} tag - Tag name without the leading `#`
- * @returns {Array<{beat: number, value: number}>}
+ * @param {string} file
  */
-function parseTimingTag(content, tag) {
-  const match = content.match(new RegExp(`#${tag}:([^;]*);`));
-  if (!match) return [];
-
-  return match[1]
-    .split(',')
-    .map((pair) => {
-      const [beat, value] = pair.split('=').map((s) => parseFloat(s.trim()));
-      return { beat, value };
-    })
-    .filter(
-      (pair) => Number.isFinite(pair.beat) && Number.isFinite(pair.value) && pair.value !== 0
-    );
+export function isVideoFileName(file) {
+  return VIDEO_EXT.test(String(file || ''));
 }
 
 /**
- * Parser for StepMania .sm simfile format
+ * @param {Chart[]} charts
+ */
+export function danceSingleCharts(charts) {
+  return (charts || []).filter((chart) => chart.type === 'dance-single');
+}
+
+/**
+ * @param {string} value
+ * @returns {BGChange[]}
+ */
+export function parseBgChangesValue(value) {
+  if (!value || !String(value).trim()) return [];
+  return String(value)
+    .split(',')
+    .map((pair) => {
+      const parts = pair.split('=').map((s) => s.trim());
+      if (parts.length < 2 || !parts[1]) return null;
+      const beat = parseFloat(parts[0]);
+      const file = parts[1];
+      if (!Number.isFinite(beat)) return null;
+      return {
+        beat,
+        file,
+        effect: parts[2] || '',
+        x: parseFloat(parts[3]) || 0,
+        y: parseFloat(parts[4]) || 0,
+        isVideo: isVideoFileName(file),
+        isNoBackground: file === '-nosongbg-'
+      };
+    })
+    .filter((bg) => bg !== null)
+    .sort((a, b) => a.beat - b.beat);
+}
+
+/**
+ * @param {Object<string, string>} tags
+ */
+export function timingFromTags(tags) {
+  const timingTags = {
+    bpms: parseTimingPairs(tags.BPMS),
+    stops: parseTimingPairs(tags.STOPS || tags.FREEZES),
+    delays: parseTimingPairs(tags.DELAYS),
+    warps: parseTimingPairs(tags.WARPS)
+  };
+  /** @type {Object<string, string>} */
+  const timingExtras = {};
+  for (const name of TIMING_EXTRA_TAGS) {
+    if (tags[name]) timingExtras[name] = tags[name];
+  }
+  return { timingTags, timingExtras, timing: buildTimingData(timingTags) };
+}
+
+function columnCountForType(type) {
+  if (type === 'dance-double' || type === 'dance-couple') return 8;
+  return DANCE_SINGLE_COLS;
+}
+
+/**
+ * Parser for StepMania .sm / .ssc simfile format
  */
 export class SimfileParser {
   constructor() {
     this.reset();
   }
 
-  /**
-   * Reset parser state
-   */
   reset() {
     /** @type {Object<string, string>} */
     this.metadata = {};
@@ -88,36 +161,58 @@ export class SimfileParser {
     this.bpmChanges = [];
     /** @type {BGChange[]} */
     this.bgChanges = [];
-    /** Raw timing tags, kept separate from the derived model */
     this.timingTags = { bpms: [], stops: [], delays: [], warps: [] };
+    /** @type {Object<string, string>} */
+    this.timingExtras = {};
   }
 
   /**
-   * Parse a simfile string into structured data
-   * @param {string} simfileContent - Raw simfile content
-   * @returns {ParsedSimfile} Parsed simfile data
+   * @param {string} simfileContent
+   * @returns {ParsedSimfile}
    */
   parse(simfileContent) {
     this.reset();
+    const tags = parseMsd(simfileContent);
+    /** @type {Object<string, string>} */
+    const songTags = {};
 
-    // Remove comments and normalize line endings
-    const cleanContent = simfileContent
-      .replace(/\/\/.*$/gm, '') // Remove line comments
-      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n');
+    for (let i = 0; i < tags.length; i++) {
+      const { tag, value } = tags[i];
+      if (tag === 'NOTEDATA') {
+        /** @type {Object<string, string>} */
+        const chartTags = {};
+        i += 1;
+        while (i < tags.length && tags[i].tag !== 'NOTEDATA') {
+          chartTags[tags[i].tag] = tags[i].value;
+          if (tags[i].tag === 'NOTES') {
+            i += 1;
+            break;
+          }
+          i += 1;
+        }
+        i -= 1;
+        const chart = this.chartFromSsc(chartTags);
+        if (chart) this.charts.push(chart);
+        continue;
+      }
+      if (tag === 'NOTES') {
+        const chart = this.chartFromSmNotes(value);
+        if (chart) this.charts.push(chart);
+        continue;
+      }
+      songTags[tag] = value;
+      this.metadata[tag] = value;
+    }
 
-    // Parse metadata
-    this.parseMetadata(cleanContent);
+    const songTiming = timingFromTags(songTags);
+    this.timingTags = songTiming.timingTags;
+    this.timingExtras = songTiming.timingExtras;
+    this.bpmChanges = this.timingTags.bpms
+      .map(({ beat, value }) => ({ beat, bpm: value }))
+      .sort((a, b) => a.beat - b.beat);
+    this.bgChanges = parseBgChangesValue(songTags.BGCHANGES || '');
 
-    // Parse BPM changes
-    this.parseBPMs(cleanContent);
-
-    // Parse background changes
-    this.parseBGChanges(cleanContent);
-
-    // Parse charts
-    this.parseCharts(cleanContent);
+    this.charts.sort((a, b) => a.rating - b.rating);
 
     return {
       title: this.metadata.TITLE || 'Unknown',
@@ -127,295 +222,91 @@ export class SimfileParser {
       charts: this.charts,
       bgChanges: this.bgChanges,
       bpmChanges: this.bpmChanges,
-      timing: buildTimingData(this.timingTags),
+      timing: songTiming.timing,
+      timingTags: this.timingTags,
+      timingExtras: this.timingExtras,
       metadata: this.metadata
     };
   }
 
   /**
-   * Parse metadata tags from simfile content
-   * @param {string} content - Cleaned simfile content
+   * @param {string} value
+   * @returns {Chart | null}
    */
-  parseMetadata(content) {
-    // Match #TAG:VALUE; patterns
-    const metadataRegex = /#([A-Z]+):([^;]+);/g;
-    let match;
-
-    while ((match = metadataRegex.exec(content)) !== null) {
-      const tag = match[1];
-      const value = match[2].trim();
-      this.metadata[tag] = value;
-    }
-  }
-
-  /**
-   * Parse the timing tags: #BPMS plus the freeze/skip tags that decide where
-   * every note actually lands in the music.
-   *
-   * @param {string} content - Cleaned simfile content
-   */
-  parseBPMs(content) {
-    this.timingTags = {
-      bpms: parseTimingTag(content, 'BPMS'),
-      stops: parseTimingTag(content, 'STOPS'),
-      delays: parseTimingTag(content, 'DELAYS'),
-      warps: parseTimingTag(content, 'WARPS')
+  chartFromSmNotes(value) {
+    const [type, description, difficulty, ratingRaw, radarValues, stepData] =
+      splitSmNotesValue(value);
+    if (!type) return null;
+    const columnCount = columnCountForType(type);
+    return {
+      type,
+      description: description || '',
+      difficulty: difficulty || 'Beginner',
+      rating: parseInt(ratingRaw, 10) || 1,
+      radarValues: radarValues || '',
+      noteData: parseNoteField(stepData, columnCount),
+      chartName: description || '',
+      credit: '',
+      hasSplitTiming: false
     };
-
-    this.bpmChanges = this.timingTags.bpms
-      .map(({ beat, value }) => ({ beat, bpm: value }))
-      .sort((a, b) => a.beat - b.beat);
   }
 
   /**
-   * Parse background changes from simfile content
-   * @param {string} content - Cleaned simfile content
+   * @param {Object<string, string>} chartTags
+   * @returns {Chart | null}
    */
-  parseBGChanges(content) {
-    const bgMatch = content.match(/#BGCHANGES:([^;]+);/);
-    if (bgMatch) {
-      const bgString = bgMatch[1];
-      const bgPairs = bgString.split(',');
-
-      this.bgChanges = bgPairs
-        .map((pair) => {
-          const parts = pair.split('=').map((s) => s.trim());
-          if (parts.length >= 4) {
-            const beat = parseFloat(parts[0]);
-            const file = parts[1];
-            const effect = parts[2];
-            const x = parseFloat(parts[3]) || 0;
-            const y = parseFloat(parts[4]) || 0;
-
-            return {
-              beat,
-              file,
-              effect,
-              x,
-              y,
-              // Determine if this is a video file
-              isVideo:
-                file.toLowerCase().endsWith('.avi') ||
-                file.toLowerCase().endsWith('.mp4') ||
-                file.toLowerCase().endsWith('.webm') ||
-                file.toLowerCase().endsWith('.mov'),
-              // Determine if this is a "no background" command
-              isNoBackground: file === '-nosongbg-'
-            };
-          }
-          return null;
-        })
-        .filter((bg) => bg !== null);
+  chartFromSsc(chartTags) {
+    const type = (chartTags.STEPSTYPE || '').trim();
+    if (!type) return null;
+    const columnCount = columnCountForType(type);
+    const split = SPLIT_TIMING_TAGS.some(
+      (name) => chartTags[name] != null && chartTags[name] !== ''
+    );
+    /** @type {Chart} */
+    const chart = {
+      type,
+      description: chartTags.DESCRIPTION || '',
+      difficulty: chartTags.DIFFICULTY || 'Beginner',
+      rating: parseInt(chartTags.METER, 10) || 1,
+      radarValues: chartTags.RADARVALUES || '',
+      noteData: parseNoteField(chartTags.NOTES || '', columnCount),
+      chartName: chartTags.CHARTNAME || chartTags.DESCRIPTION || '',
+      credit: chartTags.CREDIT || '',
+      hasSplitTiming: split
+    };
+    if (split) {
+      const derived = timingFromTags(chartTags);
+      chart.timingTags = derived.timingTags;
+      chart.timingExtras = derived.timingExtras;
+      chart.timing = derived.timing;
+      const offset = parseFloat(chartTags.OFFSET);
+      if (Number.isFinite(offset)) chart.offset = offset;
     }
-
-    // Sort by beat
-    this.bgChanges.sort((a, b) => a.beat - b.beat);
+    return chart;
   }
 
   /**
-   * Parse chart (NOTES) blocks from simfile content
-   * @param {string} content - Cleaned simfile content
-   */
-  parseCharts(content) {
-    // Find all #NOTES blocks
-    const notesRegex =
-      /#NOTES:\s*([^:]+):\s*([^:]*):\s*([^:]+):\s*([^:]+):\s*([^:]*):?\s*([\s\S]*?)(?=#NOTES:|$)/g;
-    let match;
-
-    while ((match = notesRegex.exec(content)) !== null) {
-      const chartType = match[1].trim();
-      const description = match[2].trim();
-      const difficulty = match[3].trim();
-      const rating = parseInt(match[4].trim());
-      const radarValues = match[5].trim();
-      const stepData = match[6].trim();
-
-      // Only process dance-single charts for now
-      if (chartType === 'dance-single') {
-        const noteData = this.parseStepData(stepData);
-
-        this.charts.push({
-          type: chartType,
-          description,
-          difficulty,
-          rating,
-          radarValues,
-          noteData
-        });
-      }
-    }
-
-    // Sort charts by rating (easiest first) so index 0 is always the easiest
-    this.charts.sort((a, b) => a.rating - b.rating);
-  }
-
-  /**
-   * Parse step data into note array
-   * @param {string} stepData - Raw step data string
-   * @returns {Array<Array>} Array of [beat, column, properties] tuples
+   * @param {string} stepData
+   * @returns {Array<Array>}
    */
   parseStepData(stepData) {
-    const notes = [];
-
-    // Split into measures (separated by commas)
-    const measures = stepData
-      .split(',')
-      .map((m) => m.trim())
-      .filter((m) => m.length > 0);
-
-    let currentBeat = 0;
-
-    for (const measure of measures) {
-      const lines = measure.split(/\s+/).filter((line) => line.length === 4);
-
-      if (lines.length === 0) {
-        currentBeat += 4; // Empty measure
-        continue;
-      }
-
-      const beatsPerLine = 4 / lines.length;
-
-      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-        const line = lines[lineIndex];
-        const lineBeat = currentBeat + lineIndex * beatsPerLine;
-
-        // Process each column (Left, Down, Up, Right in simfile = 0,1,2,3)
-        // Convert to our format: 0=left, 1=down, 2=up, 3=right
-        for (let col = 0; col < 4; col++) {
-          const noteType = line[col];
-
-          if (noteType !== '0') {
-            const noteProps = {};
-
-            // Handle different note types
-            switch (noteType) {
-              case '1': // Tap note
-                break;
-              case '2': {
-                // Hold start
-                noteProps.Type = 2;
-                noteProps.SubType = 0;
-                // Try to find hold end
-                const holdEnd = this.findHoldEnd(
-                  measures,
-                  measure,
-                  lineIndex,
-                  lines.length,
-                  col,
-                  currentBeat
-                );
-                if (holdEnd > lineBeat) {
-                  noteProps.Duration = Math.round((holdEnd - lineBeat) * 48); // Convert to ticks
-                }
-                break;
-              }
-              case '3': // Hold end (handled by hold start)
-                continue;
-              case '4': // Roll start
-                noteProps.Type = 4;
-                noteProps.SubType = 0;
-                break;
-              case 'M': // Mine
-                noteProps.Type = 'M';
-                break;
-              default:
-                break;
-            }
-
-            notes.push([lineBeat, col, noteProps]);
-          }
-        }
-      }
-
-      currentBeat += 4; // Move to next measure
-    }
-
-    return notes;
+    return parseNoteField(stepData, DANCE_SINGLE_COLS);
   }
 
-  /**
-   * Find the end beat of a hold note
-   * @param {string[]} measures - All measures in the chart
-   * @param {string} currentMeasure - Current measure being processed
-   * @param {number} startLineIndex - Line index within measure
-   * @param {number} linesPerMeasure - Number of lines in current measure
-   * @param {number} column - Column index (0-3)
-   * @param {number} measureStartBeat - Beat at start of current measure
-   * @returns {number} Beat where hold ends
-   */
-  findHoldEnd(measures, currentMeasure, startLineIndex, linesPerMeasure, column, measureStartBeat) {
-    const allLines = [];
-    let beatOffset = 0;
-
-    // Collect all lines from all measures
-    for (const measure of measures) {
-      const lines = measure.split(/\s+/).filter((line) => line.length === 4);
-      if (lines.length > 0) {
-        const beatsPerLine = 4 / lines.length;
-        for (let i = 0; i < lines.length; i++) {
-          allLines.push({
-            line: lines[i],
-            beat: beatOffset + i * beatsPerLine
-          });
-        }
-      }
-      beatOffset += 4;
-    }
-
-    // Find the starting position
-    const startBeat = measureStartBeat + startLineIndex * (4 / linesPerMeasure);
-    let startIndex = -1;
-
-    for (let i = 0; i < allLines.length; i++) {
-      if (Math.abs(allLines[i].beat - startBeat) < 0.001) {
-        startIndex = i;
-        break;
-      }
-    }
-
-    if (startIndex === -1) return startBeat;
-
-    // Look for hold end (3) in the same column
-    for (let i = startIndex + 1; i < allLines.length; i++) {
-      const line = allLines[i];
-      if (line.line[column] === '3') {
-        return line.beat;
-      }
-    }
-
-    return startBeat;
-  }
-
-  /**
-   * Get the display BPM for the song
-   * @returns {number} Display BPM value
-   */
   getDisplayBPM() {
     if (this.metadata.DISPLAYBPM) {
-      // May be a single value, a `min:max` range, or `*` for random.
       const bpm = parseFloat(this.metadata.DISPLAYBPM);
       if (!isNaN(bpm) && bpm > 0) return bpm;
     }
-
-    // Fall back to the first real BPM. Negative entries are warp markers,
-    // not speeds, so they would make a nonsense scroll baseline.
     const firstPositive = this.bpmChanges.find((change) => change.bpm > 0);
-    if (firstPositive) {
-      return firstPositive.bpm;
-    }
-
-    return 120; // Default
+    if (firstPositive) return firstPositive.bpm;
+    return 120;
   }
 
-  /**
-   * Parse the music offset from metadata
-   * @returns {number} Offset in seconds
-   */
   parseOffset() {
     const offset = parseFloat(this.metadata.OFFSET);
     return Number.isFinite(offset) ? offset : 0;
   }
 }
 
-// Default export
 export default SimfileParser;

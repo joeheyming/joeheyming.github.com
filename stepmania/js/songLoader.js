@@ -1,7 +1,7 @@
 // Song Loader - ES Module
 // Handles loading songs from Zenius-I-Vanisher
 
-import { SimfileParser } from './simfileParser.js';
+import { SimfileParser, danceSingleCharts } from './simfileParser.js';
 import {
   createDefaultSongProxyTransport,
   ZIP_DOWNLOAD_TIMEOUT,
@@ -187,6 +187,7 @@ export async function fetchZeniusSimfile(simfileId, transport) {
 export function parseZeniusSimfile(simfileData, simfileId) {
   const parser = new SimfileParser();
   const parsedData = parser.parse(simfileData.simfileText);
+  parsedData.charts = danceSingleCharts(parsedData.charts);
 
   const songKey = `zenius_${simfileId}`;
   const songData = {

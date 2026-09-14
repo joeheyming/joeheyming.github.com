@@ -40,12 +40,15 @@ class VideoManager {
 
   /**
    * Initialize the video manager (gets DOM elements internally)
+   * @param {{videoElement?: HTMLVideoElement|null, gameArea?: HTMLElement|null, statusElement?: HTMLElement|null, statusTextElement?: HTMLElement|null}} [options]
    */
-  init() {
-    this.videoElement = document.getElementById('background-video');
-    this.gameArea = document.getElementById('sm-micro');
-    this.statusElement = document.getElementById('video-conversion-status');
-    this.statusTextElement = document.getElementById('video-status-text');
+  init(options = {}) {
+    this.videoElement = options.videoElement || document.getElementById('background-video');
+    this.gameArea = options.gameArea || document.getElementById('sm-micro');
+    this.statusElement =
+      options.statusElement || document.getElementById('video-conversion-status');
+    this.statusTextElement =
+      options.statusTextElement || document.getElementById('video-status-text');
 
     if (!this.videoElement || !this.gameArea) {
       console.warn('VideoManager: Required elements not found');
@@ -201,9 +204,10 @@ class VideoManager {
    * Play a video URL (handles AVI conversion if needed)
    * @param {string} videoUrl - URL of the video to play
    * @param {boolean} [isAvi=false] - Whether this is an AVI file needing conversion
+   * @param {number} [startAudioTime] - Audio time where this BGCHANGE begins
    * @returns {Promise<boolean>} - Whether video started successfully
    */
-  async play(videoUrl, isAvi = false) {
+  async play(videoUrl, isAvi = false, startAudioTime = audioManager.currentTime) {
     if (!this.videoElement || !this.gameArea) {
       logVideoLoad('play.aborted', { reason: 'VideoManager not initialized' });
       console.warn('VideoManager not initialized');
@@ -233,9 +237,10 @@ class VideoManager {
       return true; // Already loading this URL
     }
 
-    // Record when video was triggered (for sync calculation)
-    // This is the audio time at which the video SHOULD have started
-    this.videoStartAudioTime = audioManager.currentTime;
+    // A seek can trigger a BGCHANGE long after its declared beat. Preserve the
+    // declared start so the video seeks forward with the music instead of
+    // incorrectly restarting from frame zero.
+    this.videoStartAudioTime = startAudioTime;
 
     // Set loading state
     this.loadingUrl = videoUrl;
@@ -259,7 +264,9 @@ class VideoManager {
 
       try {
         const convertedUrl = await videoConverter.getPlayableUrl(videoUrl, (progress) => {
-          this.showStatus(`🎬 Converting video... ${progress}%`, 'loading');
+          if (this.loadingUrl === videoUrl) {
+            this.showStatus(`🎬 Converting video... ${progress}%`, 'loading');
+          }
         });
 
         // Check if we're still supposed to load this video

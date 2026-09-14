@@ -28,6 +28,8 @@ describe('bundled Lost song is gone', () => {
     const html = readFileSync(path.join(root, 'index.html'), 'utf8');
     assert.match(html, /id="sm-home"/);
     assert.match(html, /id="sm-home-browse"/);
+    assert.match(html, /id="sm-home-open-pack"/);
+    assert.match(html, /stepmania-editor/);
     assert.doesNotMatch(html, /songs\/Lost/);
   });
 });

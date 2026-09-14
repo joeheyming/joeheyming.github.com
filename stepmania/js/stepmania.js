@@ -375,7 +375,10 @@ function update(deltaSeconds, wallSeconds) {
   });
   currentTime = audioSeconds + gameState.getMusicOffset();
 
-  updateBackgroundChanges();
+  // Do not trigger video BGCHANGES while the ready overlay is paused. Loading
+  // and resetting the chart can otherwise start the same conversion multiple
+  // times before gameplay begins.
+  if (!audioManager.paused) updateBackgroundChanges();
 
   // Process autoplay if enabled
   if (gameState.isAutoplay()) {
@@ -486,12 +489,12 @@ function processAutoplay() {
 /**
  * Initialize managers (called once on startup)
  */
-function initManagers() {
+function initManagers(audioElement = null, video = {}) {
   // Initialize AudioManager first (VideoManager depends on it)
-  audioManager.init();
+  audioManager.init(audioElement);
 
   // Initialize VideoManager (subscribes to AudioManager events)
-  videoManager.init();
+  videoManager.init(video);
 
   // Initialize InputManager and wire up game callbacks
   inputManager.init();
@@ -547,6 +550,22 @@ function updateBackgroundChanges() {
   }
 }
 
+/**
+ * Resolve a BGCHANGES filename against the song's music URL. Local packs hand
+ * us blob: URLs that are already complete — appending them to a blob: base
+ * yields an unfetchable URL.
+ * @param {string} file
+ * @returns {string}
+ */
+function resolveBgChangeUrl(file) {
+  if (/^(https?:|blob:|data:)/i.test(file)) return file;
+  const currentSongData = songManager.getCurrentSongData();
+  if (!currentSongData || !currentSongData.url) return file;
+  if (/^blob:/i.test(currentSongData.url)) return file;
+  const baseUrl = currentSongData.url.substring(0, currentSongData.url.lastIndexOf('/') + 1);
+  return baseUrl + file;
+}
+
 async function applyBackgroundChange(bgChange) {
   const gameArea = document.getElementById('sm-micro');
 
@@ -554,27 +573,11 @@ async function applyBackgroundChange(bgChange) {
     gameArea.style.backgroundImage = 'none';
     videoManager.stop();
   } else if (bgChange.isVideo) {
-    let videoUrl = bgChange.file;
-    if (!videoUrl.startsWith('http')) {
-      const currentSongData = songManager.getCurrentSongData();
-      if (currentSongData && currentSongData.url) {
-        const baseUrl = currentSongData.url.substring(0, currentSongData.url.lastIndexOf('/') + 1);
-        videoUrl = baseUrl + bgChange.file;
-      }
-    }
-
     // VideoManager handles AVI conversion internally
-    videoManager.play(videoUrl);
+    const videoStartAudioTime = beatsToSeconds(bgChange.beat) - gameState.getMusicOffset();
+    videoManager.play(resolveBgChangeUrl(bgChange.file), false, videoStartAudioTime);
   } else {
-    let imageUrl = bgChange.file;
-    if (!imageUrl.startsWith('http')) {
-      const currentSongData = songManager.getCurrentSongData();
-      if (currentSongData && currentSongData.url) {
-        const baseUrl = currentSongData.url.substring(0, currentSongData.url.lastIndexOf('/') + 1);
-        imageUrl = baseUrl + bgChange.file;
-      }
-    }
-
+    const imageUrl = resolveBgChangeUrl(bgChange.file);
     gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${imageUrl})`;
     videoManager.stop();
   }
@@ -875,6 +878,8 @@ function resetGame() {
 
 let stepmaniaDomInitDone = false;
 let stepmaniaStartRequested = false;
+let gameplayActive = true;
+let stepmaniaInitOptions = {};
 
 function applyBrowserCapabilityAlert() {
   const text = getBrowserAlertText();
@@ -899,27 +904,40 @@ function initStepmaniaDomAndLoop() {
   if (stepmaniaDomInitDone) return;
   stepmaniaDomInitDone = true;
 
-  applyBrowserCapabilityAlert();
+  const {
+    containerId = 'sm-micro',
+    audioElement = null,
+    video = {},
+    embedded = false,
+    active = true,
+    onEnded = null
+  } = stepmaniaInitOptions;
+  gameplayActive = active;
+
+  if (!embedded) applyBrowserCapabilityAlert();
 
   function isMobile() {
     return window.innerWidth <= 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   }
 
-  if (isMobile()) {
+  if (!embedded && isMobile()) {
     document.body.classList.add('mobile');
   }
 
   window.addEventListener('resize', function () {
-    if (isMobile()) {
+    if (!embedded && isMobile()) {
       document.body.classList.add('mobile');
-    } else {
+    } else if (!embedded) {
       document.body.classList.remove('mobile');
     }
-    setTimeout(initializeCanvas, 100);
+    setTimeout(() => {
+      if (embedded) CanvasManager.resize(containerId);
+      else initializeCanvas();
+    }, 100);
   });
 
   function initializeCanvas() {
-    CanvasManager.init('sm-micro');
+    CanvasManager.init(containerId);
     initializeActors();
   }
 
@@ -932,7 +950,7 @@ function initStepmaniaDomAndLoop() {
   // container after the next paint — `resize` only updates dimensions
   // and does not recreate the canvas or reset actors.
   requestAnimationFrame(() => {
-    setTimeout(() => CanvasManager.resize('sm-micro'), 50);
+    setTimeout(() => CanvasManager.resize(containerId), 50);
   });
 
   const scoreToggle = document.getElementById('scoreToggle');
@@ -947,14 +965,21 @@ function initStepmaniaDomAndLoop() {
     });
   }
 
-  initManagers();
+  initManagers(audioElement, video);
+  if (embedded) inputManager.disable();
 
   audioManager.onPlay(() => {
-    LoadingOverlay.hide();
-    window.heymingAchievements?.unlockForCurrentApp('first-action');
+    if (!embedded) {
+      LoadingOverlay.hide();
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
+    }
   });
 
   audioManager.onEnded(() => {
+    if (embedded) {
+      if (typeof onEnded === 'function') onEnded();
+      return;
+    }
     if (!gameState.hasFailed() && !gameState.isAutoplay()) {
       window.heymingAchievements?.unlockForCurrentApp('chart-cleared');
     }
@@ -995,8 +1020,10 @@ function startRenderLoop() {
     const deltaSeconds = Math.min(0.25, Math.max(0, wallSeconds - lastFrameWallSeconds));
     lastFrameWallSeconds = wallSeconds;
 
-    update(deltaSeconds, wallSeconds);
-    draw(deltaSeconds);
+    if (gameplayActive) {
+      update(deltaSeconds, wallSeconds);
+      draw(deltaSeconds);
+    }
 
     framesInCurrentSecond++;
     const oldSec = Math.floor(uptimeSeconds);
@@ -1017,16 +1044,24 @@ function startRenderLoop() {
  * Start canvas, input/audio managers, and the render loop.
  * Call once from main.js after modules that stepmania depends on (e.g. mainPageController for same-document order).
  * Safe if DOM is still loading.
+ * @param {{containerId?: string, audioElement?: HTMLAudioElement|null, video?: Object, embedded?: boolean, active?: boolean, onEnded?: (() => void)|null}} [options]
  */
-export function startStepmania() {
+export function startStepmania(options = {}) {
   if (stepmaniaStartRequested) return;
   stepmaniaStartRequested = true;
+  stepmaniaInitOptions = options;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initStepmaniaDomAndLoop, { once: true });
   } else {
     initStepmaniaDomAndLoop();
   }
+}
+
+/** Pause or resume the portable renderer without destroying its canvas. */
+export function setGameplayActive(active) {
+  gameplayActive = !!active;
+  if (!gameplayActive) inputManager.disable();
 }
 
 // ============================================================================

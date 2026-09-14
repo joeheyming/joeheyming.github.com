@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StepMania Editor — Make a Simfile Pack 📝</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="Create a StepMania simfile in the browser: attach music, banner, background, and optional video, chart dance-single notes, then download a zip or play it in StepMania."
+    />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="StepMania Editor — Make a Simfile Pack 📝" />
+    <meta
+      property="og:description"
+      content="Author .ssc/.sm packs with audio, art, video, and charts. Everything stays on this device; export a zip and play it in browser StepMania."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/stepmania-editor/" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/stepmania-editor/stepmania-editor-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="StepMania Editor — Make a Simfile Pack 📝" />
+    <meta
+      name="twitter:description"
+      content="Author .ssc/.sm packs with audio, art, video, and charts. Export a zip and play it locally."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/stepmania-editor/stepmania-editor-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/stepmania-editor/" />
+
+    <!-- The embedded gameplay preview converts AVI backgrounds with FFmpeg.
+         Cross-origin isolation must belong to the top-level editor page;
+         enabling it only inside the player iframe is too late. -->
+    <script src="/coi-serviceworker.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "StepMania Editor",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Browser simfile editor for StepMania packs: music, graphics, video, charts, and zip export.",
+            "url": "https://joeheyming.github.io/stepmania-editor/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Create .ssc simfiles",
+              "Attach music, banner, background, video",
+              "Dance-single chart editor",
+              "Export zip / play in StepMania"
+            ],
+            "keywords": "stepmania, simfile, ssc, sm, chart editor, ddr"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "StepMania Editor",
+                "item": "https://joeheyming.github.io/stepmania-editor/"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <header class="ed-header">
+      <div>
+        <p class="ed-kicker">StepMania</p>
+        <h1>Simfile editor</h1>
+      </div>
+      <div class="ed-header-actions">
+        <button type="button" id="btn-song-panel" aria-controls="song-panel" aria-expanded="false">
+          Song setup
+        </button>
+        <button
+          type="button"
+          id="btn-timing-panel"
+          aria-controls="timing-panel"
+          aria-expanded="false"
+        >
+          Timing
+        </button>
+        <button type="button" id="btn-new">New song</button>
+        <button type="button" id="btn-import">Import</button>
+        <button type="button" id="btn-download">Download zip</button>
+        <button type="button" class="ed-play" id="btn-play-sm">Play chart from cursor</button>
+        <input id="import-file" type="file" accept=".zip,.smzip,.sm,.ssc,application/zip" hidden />
+      </div>
+    </header>
+
+    <main class="ed-layout">
+      <aside class="ed-panel ed-drawer ed-left" id="song-panel" aria-label="Song setup">
+        <div class="ed-panel-heading">
+          <h2>Song setup</h2>
+          <button type="button" id="btn-close-song" aria-label="Close song setup">×</button>
+        </div>
+        <label id="song-in-pack-row" hidden>
+          <span id="song-in-pack-label">Song in pack</span>
+          <select id="song-in-pack"></select>
+        </label>
+        <label>
+          Title
+          <input id="f-title" type="text" />
+        </label>
+        <label>
+          Artist
+          <input id="f-artist" type="text" />
+        </label>
+        <label>
+          Credit
+          <input id="f-credit" type="text" />
+        </label>
+        <label>
+          Genre
+          <input id="f-genre" type="text" />
+        </label>
+        <label>
+          Offset (s)
+          <input id="f-offset" type="number" step="0.001" />
+        </label>
+        <label>
+          Display BPM
+          <input id="f-bpm" type="number" step="0.001" />
+        </label>
+        <label>
+          Sample start
+          <input id="f-sample-start" type="number" step="0.001" />
+        </label>
+        <label>
+          Sample length
+          <input id="f-sample-length" type="number" step="0.001" />
+        </label>
+
+        <h2>Assets</h2>
+        <div class="ed-assets">
+          <label class="ed-drop">
+            Music
+            <input id="a-music" type="file" accept="audio/*,.ogg,.mp3,.wav" />
+          </label>
+          <label class="ed-drop">
+            Banner
+            <input id="a-banner" type="file" accept="image/*" />
+          </label>
+          <label class="ed-drop">
+            Background
+            <input id="a-bg" type="file" accept="image/*" />
+          </label>
+          <label class="ed-drop">
+            Jacket
+            <input id="a-jacket" type="file" accept="image/*" />
+          </label>
+          <label class="ed-drop">
+            Video
+            <input id="a-video" type="file" accept="video/*,.mp4,.webm,.avi" />
+          </label>
+        </div>
+        <ul id="asset-status" class="ed-status"></ul>
+      </aside>
+
+      <aside class="ed-guide" aria-label="Editor controls">
+        <h2>Navigating</h2>
+        <dl>
+          <dt>Up/Down</dt>
+          <dd>Move one snap</dd>
+          <dt>Left/Right</dt>
+          <dd>Change note snap</dd>
+          <dt>PgUp/PgDn</dt>
+          <dd>Move one measure</dd>
+          <dt>, / .</dt>
+          <dd>Previous/next note</dd>
+          <dt>Home/End</dt>
+          <dd>Start/end of steps</dd>
+        </dl>
+        <h2>Writing notes</h2>
+        <dl>
+          <dt>1–4</dt>
+          <dd>Create/remove note</dd>
+          <dt>Shift + 1–4</dt>
+          <dd>Create roll note</dd>
+          <dt>N / M</dt>
+          <dd>Toggle note types</dd>
+          <dt>U</dt>
+          <dd>Undo</dd>
+        </dl>
+        <h2>Selection & play</h2>
+        <dl>
+          <dt>Space</dt>
+          <dd>Set area marker</dd>
+          <dt>P</dt>
+          <dd>Play selection</dd>
+          <dt>Shift + P</dt>
+          <dd>Play from cursor</dd>
+          <dt>Ctrl + P</dt>
+          <dd>Play from start</dd>
+          <dt>Enter/Esc</dt>
+          <dd>Return to edit</dd>
+        </dl>
+        <h2>Menus</h2>
+        <dl>
+          <dt>F1</dt>
+          <dd>All key mappings</dd>
+          <dt>F5 / F6</dt>
+          <dd>Previous/next chart</dd>
+          <dt>T</dt>
+          <dd>Song/chart timing</dd>
+        </dl>
+      </aside>
+
+      <section class="ed-center">
+        <canvas id="notefield" aria-label="Notefield" tabindex="0"></canvas>
+        <div class="ed-transport">
+          <button type="button" id="btn-play">Preview audio</button>
+          <span id="cursor-readout"></span>
+          <label>
+            Snap
+            <select id="snap">
+              <option value="4">4th</option>
+              <option value="8">8th</option>
+              <option value="12">12th</option>
+              <option value="16" selected>16th</option>
+              <option value="24">24th</option>
+              <option value="32">32nd</option>
+              <option value="48">48th</option>
+              <option value="64">64th</option>
+              <option value="192">192nd</option>
+            </select>
+          </label>
+          <div class="ed-tools" role="group" aria-label="Note type">
+            <button type="button" data-tool="tap" class="is-on">Tap</button>
+            <button type="button" data-tool="hold">Hold</button>
+            <button type="button" data-tool="roll">Roll</button>
+            <button type="button" data-tool="mine">Mine</button>
+            <button type="button" data-tool="lift">Lift</button>
+            <button type="button" data-tool="fake">Fake</button>
+          </div>
+        </div>
+        <details class="ed-keys" id="ed-keys">
+          <summary>Keyboard (StepMania edit mode) — F1</summary>
+          <dl>
+            <dt>1 2 3 4</dt>
+            <dd>Lay a note in that column. Hold Shift for a roll.</dd>
+            <dt>N / M</dt>
+            <dd>Cycle the tap type: tap, mine, lift, fake.</dd>
+            <dt>Space</dt>
+            <dd>Lay an area marker. Press twice to mark a region.</dd>
+            <dt>P</dt>
+            <dd>
+              Play the marked area, or from the cursor. Shift+P from the cursor, Ctrl+P from the
+              start.
+            </dd>
+            <dt>Enter / Escape</dt>
+            <dd>Stop playing and return to editing.</dd>
+            <dt>Up / Down</dt>
+            <dd>Move one snap line. Hold Ctrl to zoom the notefield.</dd>
+            <dt>Left / Right</dt>
+            <dd>Coarser or finer snap.</dd>
+            <dt>PgUp / PgDn, ; / '</dt>
+            <dd>Move four beats.</dd>
+            <dt>, / .</dt>
+            <dd>Jump to the previous or next row that has a note.</dd>
+            <dt>Home / End</dt>
+            <dd>Jump to the start, or to the last note.</dd>
+            <dt>F5 / F6</dt>
+            <dd>Switch to the previous or next chart of the same step type.</dd>
+            <dt>F7 / F8</dt>
+            <dd>BPM at the cursor, down or up.</dd>
+            <dt>F9 / F10</dt>
+            <dd>Stop at the cursor. Hold Shift for a delay.</dd>
+            <dt>F11 / F12</dt>
+            <dd>Music offset.</dd>
+            <dt>[ / ]</dt>
+            <dd>Sample start. Hold Shift for sample length. L previews the sample.</dd>
+            <dt>Alt</dt>
+            <dd>Hold while adjusting for fine steps (a twentieth of the normal amount).</dd>
+            <dt>U, Ctrl+Z</dt>
+            <dd>Undo. Ctrl+Shift+Z redoes.</dd>
+            <dt>T</dt>
+            <dd>Toggle split timing on this chart.</dd>
+            <dt>Ctrl+S</dt>
+            <dd>Save the draft now.</dd>
+          </dl>
+        </details>
+        <audio id="ed-audio" hidden></audio>
+        <section id="game-preview" class="ed-game-preview" hidden aria-label="Gameplay preview">
+          <div id="editor-gameplay-surface">
+            <div class="ed-game-video">
+              <video id="editor-gameplay-video" muted loop playsinline></video>
+            </div>
+            <div id="editor-video-status" class="ed-video-status" hidden>
+              <span id="editor-video-status-text">Preparing video…</span>
+            </div>
+          </div>
+          <audio id="editor-gameplay-audio" hidden></audio>
+          <score-panel id="score-panel" hidden></score-panel>
+          <button type="button" id="btn-return-to-edit">Return to editor (Enter / Esc)</button>
+        </section>
+      </section>
+
+      <aside class="ed-info" aria-label="Chart information">
+        <h2>Info</h2>
+        <dl class="ed-live-info">
+          <dt>Current beat</dt>
+          <dd id="info-beat">0.000</dd>
+          <dt>Current second</dt>
+          <dd id="info-second">0.000000</dd>
+          <dt>Snap to</dt>
+          <dd id="info-snap">16th notes</dd>
+          <dt>Selection</dt>
+          <dd id="info-selection">none</dd>
+        </dl>
+
+        <h2>Chart</h2>
+        <label class="ed-chart-picker">
+          Steps
+          <select id="chart-select"></select>
+        </label>
+        <label class="ed-chart-picker">
+          Difficulty
+          <select id="chart-diff">
+            <option>Beginner</option>
+            <option>Easy</option>
+            <option>Medium</option>
+            <option>Hard</option>
+            <option>Challenge</option>
+            <option>Edit</option>
+          </select>
+        </label>
+        <label class="ed-chart-picker">
+          Meter
+          <input id="chart-meter" type="number" min="1" max="20" />
+        </label>
+        <button type="button" id="btn-add-chart">Add chart</button>
+        <dl class="ed-live-info">
+          <dt>Song title</dt>
+          <dd id="info-title">New Song</dd>
+          <dt>Tap steps</dt>
+          <dd id="info-taps">0</dd>
+          <dt>Holds</dt>
+          <dd id="info-holds">0</dd>
+          <dt>Rolls</dt>
+          <dd id="info-rolls">0</dd>
+          <dt>Mines</dt>
+          <dd id="info-mines">0</dd>
+          <dt>Lifts</dt>
+          <dd id="info-lifts">0</dd>
+          <dt>Fakes</dt>
+          <dd id="info-fakes">0</dd>
+          <dt>Timing mode</dt>
+          <dd id="info-timing-mode">Song timing</dd>
+          <dt>Beat 0 offset</dt>
+          <dd id="info-offset">0.000 secs</dd>
+        </dl>
+      </aside>
+
+      <aside class="ed-panel ed-drawer ed-right" id="timing-panel" aria-label="Timing setup">
+        <div class="ed-panel-heading">
+          <h2>Timing setup</h2>
+          <button type="button" id="btn-close-timing" aria-label="Close timing setup">×</button>
+        </div>
+        <label class="ed-check">
+          <input id="split-timing" type="checkbox" />
+          Split timing on this chart
+        </label>
+        <label>
+          BPMS
+          <textarea id="t-bpms" rows="3"></textarea>
+        </label>
+        <label>
+          STOPS
+          <textarea id="t-stops" rows="2"></textarea>
+        </label>
+        <label>
+          DELAYS
+          <textarea id="t-delays" rows="2"></textarea>
+        </label>
+        <label>
+          WARPS
+          <textarea id="t-warps" rows="2"></textarea>
+        </label>
+        <label>
+          SPEEDS
+          <textarea id="t-speeds" rows="2"></textarea>
+        </label>
+        <label>
+          SCROLLS
+          <textarea id="t-scrolls" rows="2"></textarea>
+        </label>
+        <label>
+          FAKES
+          <textarea id="t-fakes" rows="2"></textarea>
+        </label>
+        <label>
+          LABELS
+          <textarea id="t-labels" rows="2"></textarea>
+        </label>
+        <label>
+          TIMESIGNATURES
+          <textarea id="t-timesig" rows="2"></textarea>
+        </label>
+        <h2>BGCHANGES</h2>
+        <textarea id="t-bgchanges" rows="3" placeholder="0.000=file.avi=1.000=0=0"></textarea>
+        <p class="ed-help">
+          Keys follow StepMania edit mode: 1–4 place notes, P plays, Space marks an area, U undoes.
+          Press F1 for the full list. Click-drag lays holds and rolls.
+        </p>
+        <p id="ed-msg" class="ed-msg" hidden></p>
+      </aside>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

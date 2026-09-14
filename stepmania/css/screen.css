@@ -165,8 +165,9 @@ body {
   text-align: center;
 }
 
-.sm-home[hidden] {
-  display: none;
+.sm-home.is-drop {
+  outline: 2px dashed var(--accent-primary);
+  outline-offset: -8px;
 }
 
 .sm-home-kicker {
@@ -192,9 +193,17 @@ body {
   color: var(--text-2);
 }
 
+.sm-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.15rem 0 0.35rem;
+}
+
 .sm-home-browse {
   align-self: center;
-  margin: 0.15rem 0 0.35rem;
+  margin: 0;
   padding: 0.55rem 1.25rem;
   border: 1px solid var(--hairline-accent);
   border-radius: 0.6rem;
@@ -202,6 +211,11 @@ body {
   color: var(--text-on-accent);
   font-weight: 600;
   cursor: pointer;
+}
+
+.sm-home-browse-secondary {
+  background: transparent;
+  color: var(--text-1);
 }
 
 .sm-home-browse:hover {

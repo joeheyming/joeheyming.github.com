@@ -67,6 +67,12 @@
       "url": "/stepmania/"
     },
     {
+      "name": "StepMania Editor",
+      "short_name": "SM Editor",
+      "description": "Create StepMania simfile packs in the browser",
+      "url": "/stepmania-editor/"
+    },
+    {
       "name": "Wordle Finder",
       "short_name": "Wordle",
       "description": "Find Wordle solutions",

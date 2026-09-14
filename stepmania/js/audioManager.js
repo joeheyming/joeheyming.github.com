@@ -389,8 +389,13 @@ class AudioManager {
       this.element.addEventListener('canplay', onCanPlay, { once: true });
       this.element.addEventListener('error', onError, { once: true });
 
-      // Load the audio
-      this.element.innerHTML = `<source src="${url}" type="${type}" />`;
+      // Load the audio. A <source> with an explicit type the browser can't
+      // claim is skipped outright, so only state the type when we trust it;
+      // otherwise let the element sniff the container.
+      const trusted = typeof type === 'string' && type.startsWith('audio/');
+      this.element.innerHTML = trusted
+        ? `<source src="${url}" type="${type}" />`
+        : `<source src="${url}" />`;
       this.element.load();
     });
   }

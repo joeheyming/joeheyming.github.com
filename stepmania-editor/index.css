@@ -1,0 +1,439 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #070a14;
+  color: #e8eefc;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* The notefield is the workspace, so the shell is pinned to the viewport and
+   each panel scrolls on its own. Letting the grid grow to the tallest panel
+   pushed the transport below the fold. */
+body {
+  padding-top: 12px;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ed-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.9rem 0.55rem 7.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ed-kicker {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f472b6;
+}
+
+.ed-header h1 {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+}
+
+.ed-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+button,
+.ed-play,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+button,
+.ed-play {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #161b2e;
+  color: inherit;
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.ed-play,
+#btn-download {
+  background: linear-gradient(135deg, #db2777, #7c3aed);
+  border-color: transparent;
+}
+
+button.is-on {
+  outline: 2px solid #f472b6;
+}
+
+.ed-layout {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(22rem, 2fr) minmax(12rem, 1fr);
+  flex: 1;
+  width: 100%;
+  max-width: 74rem;
+  margin-inline: auto;
+  min-height: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(37, 99, 235, 0.08), transparent 42%), #03050a;
+}
+
+.ed-panel {
+  padding: 0.85rem 1rem 2rem;
+  overflow: auto;
+  min-height: 0;
+  border-color: rgba(255, 255, 255, 0.08);
+  border-style: solid;
+  border-width: 0;
+}
+
+.ed-drawer {
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  bottom: 0;
+  width: min(24rem, 92vw);
+  background: #090d18;
+  box-shadow: 0 0 3rem rgba(0, 0, 0, 0.65);
+  transition: transform 160ms ease;
+}
+
+.ed-left {
+  left: 0;
+  border-right-width: 1px;
+  transform: translateX(-105%);
+}
+
+.ed-right {
+  right: 0;
+  border-left-width: 1px;
+  transform: translateX(105%);
+}
+
+.ed-drawer.is-open {
+  transform: translateX(0);
+}
+
+.ed-panel-heading {
+  position: sticky;
+  z-index: 1;
+  top: -0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -0.85rem -1rem 0.5rem;
+  padding: 0.85rem 1rem 0.6rem;
+  background: #090d18;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ed-panel-heading h2 {
+  margin: 0;
+}
+
+.ed-panel-heading button {
+  padding: 0.1rem 0.55rem;
+  font-size: 1.3rem;
+}
+
+.ed-panel h2 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.ed-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.35rem 0;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+}
+
+.ed-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  background: #0f1424;
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.35rem;
+  padding: 0.35rem 0.45rem;
+}
+
+.ed-assets {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ed-drop {
+  border: 1px dashed rgba(244, 114, 182, 0.4);
+  border-radius: 0.45rem;
+  padding: 0.45rem;
+}
+
+.ed-drop input {
+  margin-top: 0.25rem;
+}
+
+.ed-status {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.ed-center {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-inline: 1px solid rgba(255, 255, 255, 0.1);
+  background: #080c18;
+}
+
+#notefield {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: block;
+}
+
+.ed-transport {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #070a12;
+}
+
+.ed-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.ed-tools button {
+  padding: 0.25rem 0.45rem;
+  font-size: 0.8rem;
+}
+
+.ed-keys {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.5rem 0.75rem 0.75rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  max-height: 40vh;
+  overflow: auto;
+}
+
+.ed-keys summary {
+  cursor: pointer;
+  color: #cbd5f5;
+}
+
+.ed-keys dl {
+  display: grid;
+  grid-template-columns: minmax(7rem, max-content) 1fr;
+  gap: 0.2rem 0.9rem;
+  margin: 0.6rem 0 0;
+}
+
+.ed-keys dt {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #e2e8f0;
+}
+
+.ed-keys dd {
+  margin: 0;
+}
+
+.ed-help,
+.ed-msg {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
+.ed-msg {
+  color: #fda4af;
+}
+
+.ed-guide,
+.ed-info {
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem 0.85rem;
+  color: #d1d5db;
+  background: #03050a;
+}
+
+.ed-guide h2,
+.ed-info h2 {
+  margin: 0.7rem 0 0.35rem;
+  color: #34d399;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ed-guide h2:first-child,
+.ed-info h2:first-child {
+  margin-top: 0;
+}
+
+.ed-guide dl,
+.ed-live-info {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, auto) 1fr;
+  gap: 0.15rem 0.55rem;
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.ed-guide dt,
+.ed-live-info dt {
+  color: #f3f4f6;
+}
+
+.ed-guide dd,
+.ed-live-info dd {
+  margin: 0;
+  color: #9ca3af;
+}
+
+.ed-live-info dd {
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #e5e7eb;
+  overflow-wrap: anywhere;
+}
+
+.ed-chart-picker {
+  display: block;
+  margin: 0.4rem 0;
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+.ed-chart-picker select,
+.ed-chart-picker input {
+  margin-top: 0.15rem;
+}
+
+.ed-game-preview {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  background: #000;
+}
+
+.ed-game-preview[hidden] {
+  display: none;
+}
+
+#editor-gameplay-surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-position: center;
+  background-size: cover;
+}
+
+#editor-gameplay-surface canvas {
+  position: relative;
+  z-index: 2;
+  display: block;
+  margin-inline: auto;
+}
+
+.ed-game-video {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+}
+
+.ed-game-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+.ed-video-status {
+  position: absolute;
+  z-index: 3;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.35rem;
+  background: rgba(0, 0, 0, 0.75);
+  font-size: 0.75rem;
+}
+
+/* ScreenEdit keeps its PlayRecordHelp text on screen for the whole of
+   STATE_PLAYING. This is that hint, and it doubles as the exit control, so it
+   sits below the receptors where nothing overlaps it. */
+#btn-return-to-edit {
+  position: absolute;
+  z-index: 4;
+  bottom: 1rem;
+  left: 50%;
+  translate: -50% 0;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(10, 13, 24, 0.85);
+}
+
+#btn-return-to-edit:hover,
+#btn-return-to-edit:focus-visible {
+  border-color: #f472b6;
+}
+
+@media (max-width: 960px) {
+  .ed-header {
+    padding-left: 6.5rem;
+  }
+
+  .ed-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ed-guide,
+  .ed-info {
+    display: none;
+  }
+
+  #notefield {
+    min-height: 28rem;
+  }
+}

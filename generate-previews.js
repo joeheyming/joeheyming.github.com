@@ -1342,6 +1342,12 @@ const PAGES = [
     setup: async (page) => {
       await page.fill('#prompt', 'what is the air speed velocity of an unladen swallow?');
     }
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/stepmania-editor/`,
+    output: 'stepmania-editor/stepmania-editor-preview.png',
+    title: 'SM Editor'
   }
 ];
 

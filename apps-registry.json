@@ -419,7 +419,7 @@
     "taskbarGradient": "from-pink-500 to-rose-500",
     "taskbarText": "text-white",
     "tags": ["rhythm", "music", "dance", "popular"],
-    "related": ["piano-hero", "accordion-hero", "play", "awesome", "doom", "nes"],
+    "related": ["stepmania-editor", "piano-hero", "accordion-hero", "play", "awesome", "doom", "nes"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "StepMania",
@@ -435,6 +435,32 @@
       "analyticsLabel": "StepMania"
     },
     "appTier": "experience",
+    "geo": true
+  },
+  {
+    "id": "stepmania-editor",
+    "name": "StepMania Editor 📝",
+    "shortName": "SM Editor",
+    "description": "Make a simfile pack in the browser",
+    "detailedDescription": "Create a StepMania song pack: music, optional banner, background, and video, plus dance-single charts. Download a zip or open it in browser StepMania. Nothing is uploaded.",
+    "icon": "📝",
+    "path": "./stepmania-editor/",
+    "category": "utility",
+    "defaultWidth": 1100,
+    "defaultHeight": 760,
+    "gradient": "from-pink-500/20 to-violet-500/20",
+    "border": "border-pink-500/30 hover:border-violet-400/50",
+    "taskbarGradient": "from-pink-600 to-violet-700",
+    "taskbarText": "text-white",
+    "tags": ["rhythm", "music", "stepmania", "simfile", "editor"],
+    "related": ["stepmania", "piano-hero", "play", "ascii"],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "StepMania Editor",
+      "short_name": "SM Editor",
+      "description": "Create StepMania simfile packs in the browser"
+    },
+    "appTier": "tool",
     "geo": true
   },
   {
