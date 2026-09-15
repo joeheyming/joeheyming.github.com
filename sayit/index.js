@@ -50,7 +50,6 @@ function initSayit() {
   S.clearCanvasBtn = document.getElementById('clearCanvas');
   S.penSizeSlider = document.getElementById('penSize');
   S.readDrawingBtn = document.getElementById('readDrawing');
-  S.postDrawingBtn = document.getElementById('postDrawing');
   S.canvasStatus = document.getElementById('canvasStatus');
   S.penToolBtn = document.getElementById('penTool');
   S.eraserToolBtn = document.getElementById('eraserTool');

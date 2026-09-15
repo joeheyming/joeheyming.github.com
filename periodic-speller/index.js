@@ -148,24 +148,6 @@ clearBtn.addEventListener('click', function () {
 
 document.getElementById('exportBtn').addEventListener('click', exportPNG);
 
-document.getElementById('postBtn').addEventListener('click', function () {
-  var canvas = renderToCanvas();
-  if (!canvas) return;
-  var rawText = input.value.replace(/[^a-zA-Z\s]/g, '').trim();
-  canvas.toBlob(function (blob) {
-    if (!blob) return;
-    import('/posts/share-client.js').then(function (mod) {
-      return mod.share({
-        text:
-          'Periodic Speller' +
-          (rawText ? ': **' + rawText + '**' : '') +
-          '\n\nMade with [Periodic Speller](https://joeheyming.github.io/periodic-speller/).',
-        attachments: [blob]
-      });
-    });
-  }, 'image/png');
-});
-
 // --- Theme popover ---
 
 var themeBtn = document.getElementById('themeBtn');

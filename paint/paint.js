@@ -1465,20 +1465,6 @@ function init() {
     });
   });
 
-  document.getElementById('btn-post')?.addEventListener('click', async () => {
-    try {
-      const blob = await exportPNGBlob(state, canvasW(), canvasH());
-      if (!blob) throw new Error('Could not export drawing');
-      const { share } = await import('/posts/share-client.js');
-      await share({
-        text: 'Paint\n\nMade with [Paint](https://joeheyming.github.io/paint/).',
-        attachments: [blob]
-      });
-    } catch (err) {
-      console.warn('Could not share Paint as a post', err);
-    }
-  });
-
   // Filename modal
   document.getElementById('filename-ok')?.addEventListener('click', confirmFilenameModal);
   document.getElementById('filename-cancel')?.addEventListener('click', closeFilenameModal);

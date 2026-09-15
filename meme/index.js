@@ -11,7 +11,7 @@ import * as store from './modules/state.js';
 import * as templates from './modules/templates.js';
 import * as editor from './modules/editor.js';
 import { initPalette } from './modules/stickers.js';
-import { downloadPng, copyToClipboard, renderToCanvas } from './modules/export.js';
+import { downloadPng, copyToClipboard } from './modules/export.js';
 import { buildShareUrl, readHashPayload } from './modules/share.js';
 
 const els = {
@@ -165,23 +165,6 @@ async function handleAction(action) {
         history.replaceState(null, '', url);
       } catch {
         prompt('Copy this share link:', url);
-      }
-      break;
-    }
-    case 'post': {
-      try {
-        const canvas = await renderToCanvas();
-        const blob = await new Promise((resolve) => {
-          canvas.toBlob((b) => resolve(b), 'image/png');
-        });
-        if (!blob) throw new Error('Could not export meme');
-        const { share } = await import('/posts/share-client.js');
-        await share({
-          text: 'Meme\n\nMade with [Meme Generator](https://joeheyming.github.io/meme/).',
-          attachments: [blob]
-        });
-      } catch (err) {
-        showTip(err instanceof Error ? err.message : 'Could not share as a post', 'err');
       }
       break;
     }

@@ -206,10 +206,6 @@ function main() {
   const btnTripViewCrop = $('btn-trip-view-crop');
   /** @type {HTMLButtonElement} */
   const btnTripViewPost = $('btn-trip-view-post');
-  /** @type {HTMLInputElement} */
-  const tripViewPostMap = $('trip-view-post-map');
-  /** @type {HTMLElement} */
-  const tripViewPostMapOption = $('trip-view-post-map-option');
   /** @type {HTMLElement} */
   const cropBar = $('crop-bar');
   /** @type {HTMLInputElement} */
@@ -414,8 +410,6 @@ function main() {
       btnTripViewCrop,
       btnTripViewDelete,
       btnTripViewPost,
-      tripViewPostMap,
-      tripViewPostMapOption,
       cropBar,
       cropSlider,
       cropKeepSummary,

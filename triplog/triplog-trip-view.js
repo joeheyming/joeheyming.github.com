@@ -68,8 +68,6 @@ import {
  *     btnTripViewCrop: HTMLButtonElement,
  *     btnTripViewDelete: HTMLButtonElement,
  *     btnTripViewPost: HTMLButtonElement,
- *     tripViewPostMap: HTMLInputElement,
- *     tripViewPostMapOption: HTMLElement,
  *     cropBar: HTMLElement,
  *     cropSlider: HTMLInputElement,
  *     cropKeepSummary: HTMLElement,
@@ -116,9 +114,6 @@ export function createTripView(deps) {
     const canPost = trip.status === TRIP_STATUS.COMPLETE;
     dom.btnTripViewPost.hidden = !canPost;
     dom.btnTripViewPost.disabled = !canPost;
-    dom.tripViewPostMapOption.hidden = !canPost;
-    dom.tripViewPostMap.checked = false;
-    dom.tripViewPostMap.disabled = true;
 
     if (state.replayMap) {
       state.replayMap.destroy();
@@ -147,10 +142,6 @@ export function createTripView(deps) {
       const points = await state.db.listPoints(trip.id);
       state.replayPoints = points;
       renderTripViewDetails(trip, points);
-      dom.tripViewPostMap.disabled = points.length === 0;
-      dom.tripViewPostMapOption.title = points.length
-        ? 'Include the visible route map as an image attachment'
-        : 'This trip has no route points to map';
       // Crop is only meaningful on completed trips with at least 2 points
       // (anything less can be deleted, not cropped).
       dom.btnTripViewCrop.disabled = points.length < 2 || trip.status === TRIP_STATUS.RECORDING;
@@ -785,44 +776,7 @@ export function createTripView(deps) {
   }
 
   /**
-   * Capture the visible replay map. The route image is only produced
-   * after the user explicitly opts in because it reveals location.
-   * @returns {Promise<Blob>}
-   */
-  async function captureMapImage() {
-    const capture = /** @type {Window & {
-     *   html2canvas?: (
-     *     element: HTMLElement,
-     *     options?: {
-     *       useCORS?: boolean,
-     *       allowTaint?: boolean,
-     *       backgroundColor?: string,
-     *       logging?: boolean,
-     *       scale?: number
-     *     }
-     *   ) => Promise<HTMLCanvasElement>
-     * }} */ (window).html2canvas;
-    if (typeof capture !== 'function') {
-      throw new Error('Map image capture is unavailable.');
-    }
-    const canvas = await capture(dom.tripViewMap, {
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: '#e5e7eb',
-      logging: false,
-      scale: Math.min(2, window.devicePixelRatio || 1)
-    });
-    return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error('Could not capture the map image.'));
-      }, 'image/png');
-    });
-  }
-
-  /**
-   * Share a privacy-safe aggregate summary of the open trip to Posts,
-   * optionally with the visible route map when the user opts in.
+   * Share a privacy-safe aggregate summary of the open trip to Posts.
    */
   async function sharePost() {
     if (!state.db || !state.currentReplayTripId || dom.btnTripViewPost.hidden) {
@@ -835,18 +789,9 @@ export function createTripView(deps) {
     }
     dom.btnTripViewPost.disabled = true;
     try {
-      const attachments = [];
-      if (dom.tripViewPostMap.checked) {
-        if (state.replayPoints.length === 0) {
-          throw new Error('This trip has no route points to map.');
-        }
-        setStatus(dom.statusEl, 'Capturing map…');
-        attachments.push(await captureMapImage());
-      }
       const { share } = await import('/posts/share-client.js');
       await share({
-        text: formatTripShareMarkdown(trip, state.unit),
-        attachments
+        text: formatTripShareMarkdown(trip, state.unit)
       });
     } catch (err) {
       console.error('[triplog] sharePost', err);

@@ -24,7 +24,6 @@ export const S = {
   clearCanvasBtn: null,
   penSizeSlider: null,
   readDrawingBtn: null,
-  postDrawingBtn: null,
   canvasStatus: null,
   penToolBtn: null,
   eraserToolBtn: null,

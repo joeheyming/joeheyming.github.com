@@ -391,30 +391,6 @@ body {
   transform: none;
 }
 
-.post-button {
-  background: var(--accent-primary);
-  color: var(--text-on-accent);
-  border: none;
-  padding: 12px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  transition: all 0.2s ease;
-}
-
-.post-button:hover {
-  background: var(--accent-primary-bg-hover);
-  transform: translateY(-1px);
-}
-
-.post-button:disabled {
-  background: var(--si-disabled-bg);
-  color: var(--si-disabled-text);
-  cursor: not-allowed;
-  transform: none;
-}
-
 .canvas-wrapper {
   display: flex;
   justify-content: center;
@@ -487,7 +463,6 @@ body {
   .history-button,
   .control-button,
   .read-button,
-  .post-button,
   .play-button {
     min-height: 44px;
     min-width: 44px;
@@ -534,11 +509,6 @@ body {
   }
 
   .read-button {
-    padding: 14px 20px;
-    font-size: 16px;
-  }
-
-  .post-button {
     padding: 14px 20px;
     font-size: 16px;
   }
@@ -602,8 +572,7 @@ body {
     min-width: 0;
   }
 
-  .read-button,
-  .post-button {
+  .read-button {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
