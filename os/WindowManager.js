@@ -147,13 +147,15 @@ export class WindowManager {
   /**
    * Create an iframe-based window for an app
    * @param {Object} app - App configuration object
+   * @param {string} [hash] - optional location hash (e.g. appearance)
    * @returns {Object} Window object
    */
-  createIframeWindow(app) {
+  createIframeWindow(app, hash) {
+    const src = hash ? `${app.path}#${String(hash).replace(/^#/, '')}` : app.path;
     const content = `
       <div class="iframe-content">
         <iframe 
-          src="${app.path}" 
+          src="${src}" 
           style="width: 100%; height: 100%; border: none; margin: 0; padding: 0; display: block;"
           title="${app.name}"
           allow="autoplay; microphone; camera; midi; encrypted-media; fullscreen"

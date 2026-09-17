@@ -3,6 +3,8 @@
  * Right-click menu for desktop and files
  */
 
+import { patchPrefs } from './prefs.js';
+
 export class ContextMenu {
   /** @param {unknown} s */
   static _escapeHtmlAttr(s) {
@@ -65,6 +67,12 @@ export class ContextMenu {
     }
 
     this._populateOpenWithMenu(file);
+
+    const wallpaperItem = this.fileMenu.querySelector('[data-action="file-wallpaper"]');
+    if (wallpaperItem) {
+      const mime = window.FileSystemDB ? window.FileSystemDB.mimeTypeForOpen(file) : '';
+      wallpaperItem.classList.toggle('hidden', !String(mime).startsWith('image/'));
+    }
 
     this._positionAndShow(this.fileMenu, x, y);
     this.visible = true;
@@ -253,23 +261,33 @@ export class ContextMenu {
 
     this.menu.innerHTML = `
       <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="refresh">
-        🔄 Refresh Desktop
+        Refresh Desktop
       </div>
       <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="arrange">
-        📐 Arrange Icons
+        Arrange Icons
+      </div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="change-background">
+        Change Background…
       </div>
       <div class="context-menu-item paste-item" role="menuitem" tabindex="-1" data-action="paste">
-        📋 Paste
+        Paste
+      </div>
+      <div class="context-menu-divider" role="separator"></div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="new-folder">
+        New Folder
+      </div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="new-file">
+        New File
       </div>
       <div class="context-menu-divider" role="separator"></div>
       ${systemAppsHtml}
       <div class="context-menu-divider" role="separator"></div>
       <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="bring-windows">
-        🪟 Bring All Windows to View
+        Bring All Windows to View
       </div>
       <div class="context-menu-divider" role="separator"></div>
       <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="about">
-        🦄 About Heyming OS
+        About Heyming OS
       </div>
     `;
 
@@ -291,6 +309,9 @@ export class ContextMenu {
         📂 Open
       </div>
       <div id="file-open-with-dynamic"></div>
+      <div class="context-menu-item hidden" role="menuitem" tabindex="-1" data-action="file-wallpaper">
+        Set as desktop background
+      </div>
       <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-download">
         📥 Download
       </div>
@@ -302,7 +323,13 @@ export class ContextMenu {
         📋 Copy
       </div>
       <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-cut">
-        ✂️ Cut
+        Cut
+      </div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-rename">
+        Rename
+      </div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-properties">
+        Properties
       </div>
       <div class="context-menu-divider" role="separator"></div>
       <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-delete">
@@ -394,7 +421,18 @@ export class ContextMenu {
         this.os.notifications.system('Desktop refreshed');
         break;
       case 'arrange':
-        this.os.notifications.system('Icons arranged');
+        void this.os.desktop.arrangeIcons().then(() => {
+          this.os.notifications.system('Icons arranged');
+        });
+        break;
+      case 'change-background':
+        this.os.launchApp('settings', { hash: 'appearance' });
+        break;
+      case 'new-folder':
+        void this._newFolder();
+        break;
+      case 'new-file':
+        void this._newFile();
         break;
       case 'paste':
         this._pasteToDesktop();
@@ -408,7 +446,7 @@ export class ContextMenu {
         this.os.bringAllWindowsIntoView();
         break;
       case 'about':
-        this._showAbout();
+        this.os.openAboutDialog();
         break;
     }
   }
@@ -468,6 +506,18 @@ export class ContextMenu {
 
       case 'file-delete':
         await this._deleteFile(file);
+        break;
+
+      case 'file-rename':
+        await this._renameFile(file);
+        break;
+
+      case 'file-properties':
+        await this._showProperties(file);
+        break;
+
+      case 'file-wallpaper':
+        await this._setWallpaper(file);
         break;
     }
   }
@@ -587,7 +637,53 @@ export class ContextMenu {
     }
   }
 
-  _showAbout() {
-    this.os.notifications.system('Heyming OS v1.0 🦄 Built with love by Joe Heyming');
+  async _newFolder() {
+    const result = await this.os.desktop.createNewFolder();
+    if (result.message) {
+      this.os.notifications[result.success ? 'system' : 'error'](result.message);
+    }
+  }
+
+  async _newFile() {
+    const result = await this.os.desktop.createNewFile();
+    if (result.message) {
+      this.os.notifications[result.success ? 'system' : 'error'](result.message);
+    }
+  }
+
+  async _renameFile(file) {
+    const FileOps = window.HeymingOS?.FileOperationService;
+    if (!FileOps) return;
+    const result = await FileOps.rename(this.os.fileSystemDB, file.path);
+    if (result.message) {
+      this.os.notifications[result.success ? 'system' : 'error'](result.message);
+    }
+  }
+
+  async _showProperties(file) {
+    let item = file;
+    try {
+      const full = await this.os.fileSystemDB?.getItem(file.path);
+      if (full) item = full;
+    } catch {
+      /* shallow payload */
+    }
+    const name = this.os.fileSystemDB?.getFileName(item.path) || item.path;
+    const size = item.type === 'file' ? `${item.size || 0} bytes` : 'N/A';
+    const created = item.created ? new Date(item.created).toLocaleString() : 'Unknown';
+    const modified = item.modified ? new Date(item.modified).toLocaleString() : 'Unknown';
+    window.alert(
+      `Name: ${name}\nType: ${item.type || 'file'}\nPath: ${
+        item.path
+      }\nSize: ${size}\nCreated: ${created}\nModified: ${modified}`
+    );
+  }
+
+  async _setWallpaper(file) {
+    patchPrefs({
+      wallpaper: { source: 'vfs', path: file.path, fit: 'cover' }
+    });
+    await this.os.applyPrefs();
+    this.os.notifications.system('Desktop background updated');
   }
 }

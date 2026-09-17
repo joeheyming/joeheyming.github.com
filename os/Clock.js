@@ -3,6 +3,8 @@
  * Shows current time in the taskbar
  */
 
+import { patchPrefs, loadPrefs } from './prefs.js';
+
 export class Clock {
   constructor() {
     this.element = null;
@@ -17,6 +19,9 @@ export class Clock {
     this.element = document.getElementById('taskbar-clock');
     if (!this.element) return;
 
+    const prefs = loadPrefs();
+    this.showSeconds = Boolean(prefs.clockShowSeconds);
+
     this.element.addEventListener('click', () => this.toggleSeconds());
     this.element.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -30,9 +35,17 @@ export class Clock {
     this.intervalId = setInterval(() => this.update(), 1000);
   }
 
-  toggleSeconds() {
-    this.showSeconds = !this.showSeconds;
+  /**
+   * @param {boolean} show
+   */
+  setShowSeconds(show) {
+    this.showSeconds = Boolean(show);
     this.update();
+  }
+
+  toggleSeconds() {
+    this.setShowSeconds(!this.showSeconds);
+    patchPrefs({ clockShowSeconds: this.showSeconds });
   }
 
   /**

@@ -2,6 +2,8 @@
  * Central window.postMessage listener for iframe apps talking to Heyming OS.
  */
 import { MessageTypes, IframeActions } from './constants.js';
+import { Config, saveHostname } from './config.js';
+import { loadPrefs, patchPrefs } from './prefs.js';
 
 /**
  * @param {object} os — HeymingOS instance (launchApp, openFileWithApp, saveFileToFilesystem, …)
@@ -28,6 +30,23 @@ export function bindIframeMessageListener(os) {
       });
     } else if (msg?.type === IframeActions.FILESYSTEM_CHANGED) {
       os.desktop.refresh();
+    } else if (msg?.type === IframeActions.SET_OS_PREFS) {
+      const patch = msg.patch && typeof msg.patch === 'object' ? msg.patch : {};
+      if (typeof patch.hostname === 'string') {
+        saveHostname(patch.hostname);
+        delete patch.hostname;
+      }
+      if (Object.keys(patch).length) {
+        patchPrefs(patch);
+      }
+      void os.applyPrefs();
+      _replyPrefs(e.source);
+    } else if (msg?.type === IframeActions.GET_OS_PREFS) {
+      _replyPrefs(e.source);
+    } else if (msg?.type === IframeActions.OPEN_ABOUT) {
+      os.openAboutDialog();
+    } else if (msg?.type === IframeActions.RESET_OS) {
+      os.resetOs();
     } else if (msg?.type === MessageTypes.REQUEST_PENDING_FILE) {
       if (os.pendingFileOpen && os.pendingFileOpen.app === msg.app) {
         e.source.postMessage(
@@ -48,4 +67,21 @@ export function bindIframeMessageListener(os) {
 
   window.addEventListener('message', handler);
   return () => window.removeEventListener('message', handler);
+}
+
+function _replyPrefs(source) {
+  if (!source || typeof source.postMessage !== 'function') return;
+  const prefs = loadPrefs();
+  source.postMessage(
+    {
+      type: MessageTypes.OS_PREFS,
+      prefs,
+      username: Config.USER,
+      hostname: Config.HOSTNAME,
+      version: Config.OS_VERSION,
+      osName: Config.OS_NAME,
+      tagline: Config.OS_TAGLINE
+    },
+    { targetOrigin: '*' }
+  );
 }

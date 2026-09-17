@@ -5,6 +5,7 @@
 
 import { Config, debug, isFirstRun } from './config.js';
 import { Constants, MessageTypes } from './constants.js';
+import { loadPrefs, clearOsLocalStorage, applyDocumentTheme } from './prefs.js';
 import { SetupWizardController } from './SetupWizardController.js';
 import { bindIframeMessageListener } from './IframeMessageBridge.js';
 import { InputHandler } from './InputHandler.js';
@@ -16,6 +17,7 @@ import { NotificationService } from './NotificationService.js';
 import { Clock } from './Clock.js';
 import { ContextMenu } from './ContextMenu.js';
 import { FileDialog } from './FileDialog.js';
+import { Screensaver } from './Screensaver.js';
 import { FileSystemDB } from './filesystem-db.js';
 
 export class HeymingOS {
@@ -43,6 +45,7 @@ export class HeymingOS {
     this.clock = new Clock();
     this.contextMenu = new ContextMenu(this);
     this.fileDialog = new FileDialog(this);
+    this.screensaver = new Screensaver();
     this.setupWizard = new SetupWizardController(this);
 
     // Initialize when DOM is ready
@@ -68,6 +71,8 @@ export class HeymingOS {
     this.clock.init();
     this.contextMenu.init();
     this.fileDialog.init();
+    this.screensaver.init();
+    await this.applyPrefs();
 
     // Initialize keyboard tracking
     InputHandler.initKeyboardTracking();
@@ -193,15 +198,30 @@ export class HeymingOS {
     }
   }
 
-  launchApp(appId) {
-    // Check AppModule for app
+  /**
+   * @param {string} appId
+   * @param {{ hash?: string }} [options]
+   */
+  launchApp(appId, options) {
     if (window.AppModule) {
       const apps = window.AppModule.getAllApps();
       const app = apps.find((a) => a.id === appId);
       if (app) {
-        const win = this.windowManager.createIframeWindow(app);
+        const existing = this.windowManager.windows?.find((w) => w.appId === appId);
+        if (existing && appId === 'settings') {
+          if (existing.minimized) {
+            this.windowManager.restoreWindow(existing.id);
+          }
+          this.windowManager.makeWindowActive(existing.id);
+          this.taskbar.update();
+          const iframe = existing.element?.querySelector('iframe');
+          if (options?.hash && iframe?.contentWindow) {
+            iframe.contentWindow.location.hash = options.hash.replace(/^#/, '');
+          }
+          return existing;
+        }
+        const win = this.windowManager.createIframeWindow(app, options?.hash);
         this.taskbar.createButton(win.id, win.title);
-        // Ensure the new window is active and on top
         this.windowManager.makeWindowActive(win.id);
         this.taskbar.update();
         return win;
@@ -210,6 +230,34 @@ export class HeymingOS {
 
     this.notifications.error(`App "${appId}" not found`);
     return null;
+  }
+
+  openAboutDialog() {
+    const dialog = document.getElementById('about-os-dialog');
+    if (!dialog) return;
+    dialog.classList.remove('hidden');
+    dialog.setAttribute('aria-hidden', 'false');
+    document.getElementById('about-os-close')?.focus();
+  }
+
+  async applyPrefs() {
+    const prefs = loadPrefs();
+    applyDocumentTheme(prefs.theme);
+    this.clock?.setShowSeconds?.(prefs.clockShowSeconds);
+    this.screensaver?.apply(prefs.screensaver);
+    await this.desktop?.applyAppearance?.(prefs);
+  }
+
+  resetOs() {
+    if (
+      !window.confirm(
+        'Reset Heyming OS? This clears your username, hostname, and desktop preferences. Files in IndexedDB are kept.'
+      )
+    ) {
+      return;
+    }
+    clearOsLocalStorage();
+    window.location.reload();
   }
 
   // Expose for external use (e.g., terminal command)

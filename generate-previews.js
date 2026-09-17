@@ -1348,6 +1348,12 @@ const PAGES = [
     url: `${BASE_URL}/stepmania-editor/`,
     output: 'stepmania-editor/stepmania-editor-preview.png',
     title: 'SM Editor'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/settings/`,
+    output: 'settings/settings-preview.png',
+    title: 'Settings'
   }
 ];
 

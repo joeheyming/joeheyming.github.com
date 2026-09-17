@@ -415,6 +415,10 @@
   cursor: default;
 }
 
+.context-menu-item.hidden {
+  display: none;
+}
+
 .context-menu-divider {
   height: 1px;
   background: var(--os-dialogs-c11, #4a5568);

@@ -9,6 +9,7 @@ import { InputHandler } from './InputHandler.js';
 import { DragService } from './DragService.js';
 import { FileOperationService } from './FileOperationService.js';
 import { QuickLookPreview } from './QuickLookPreview.js';
+import { wallpaperStyleFor } from './prefs.js';
 
 export class Desktop {
   constructor(onLaunchApp, onOpenFile) {
@@ -33,6 +34,8 @@ export class Desktop {
 
     // Quick Look preview
     this.quickLook = null;
+    this.iconSize = 'm';
+    this._wallpaperBlobUrl = null;
   }
 
   /**
@@ -61,12 +64,116 @@ export class Desktop {
     this.quickLook = new QuickLookPreview(this.desktop, {
       onOpenFile: (item) => this.onOpenFile(item)
     });
+
+    this.desktop.style.removeProperty('background');
+  }
+
+  /**
+   * @param {import('./prefs.js').OsPrefs} prefs
+   */
+  async applyAppearance(prefs) {
+    if (!this.desktop) return;
+    const previousSize = this.iconSize;
+    this.applyIconSize(prefs.iconSize);
+    await this.applyWallpaper(prefs.wallpaper);
+    if (previousSize !== this.iconSize) {
+      await this.arrangeIcons();
+    }
+  }
+
+  /**
+   * @param {string} size
+   */
+  applyIconSize(size) {
+    this.iconSize = this.C.ICON_SIZE_LAYOUT[size] ? size : 'm';
+    const layout = this._iconLayout();
+    this.desktop.dataset.iconSize = this.iconSize;
+    this.desktop.style.setProperty('--os-icon-tile', `${layout.tile}px`);
+    this.desktop.style.setProperty('--os-icon-font', `${layout.font}px`);
+    this.desktop.style.setProperty('--os-icon-label', `${layout.label}px`);
+  }
+
+  _iconLayout() {
+    return this.C.ICON_SIZE_LAYOUT[this.iconSize] || this.C.ICON_SIZE_LAYOUT.m;
+  }
+
+  /**
+   * @param {import('./prefs.js').WallpaperPref} wallpaper
+   */
+  async applyWallpaper(wallpaper) {
+    if (!this.desktop) return;
+    this.desktop.style.removeProperty('background');
+    if (this._wallpaperBlobUrl) {
+      URL.revokeObjectURL(this._wallpaperBlobUrl);
+      this._wallpaperBlobUrl = null;
+    }
+
+    let imageUrl = '';
+    if (wallpaper?.source === 'vfs' && wallpaper.path && this.fs && window.FileSystemDB) {
+      try {
+        const item = await this.fs.getItem(wallpaper.path);
+        if (item && item.type === 'file') {
+          const content = window.FileSystemDB.getContentForApp(item);
+          const url = this._objectUrlFromContent(content, item.mimeType);
+          if (url.startsWith('blob:')) {
+            this._wallpaperBlobUrl = url;
+          }
+          imageUrl = url;
+        }
+      } catch (err) {
+        console.warn('[Desktop] wallpaper file unavailable', err);
+      }
+    }
+
+    const style = wallpaperStyleFor(wallpaper, imageUrl);
+    this.desktop.style.backgroundImage = style.backgroundImage;
+    this.desktop.style.backgroundColor = style.backgroundColor;
+    this.desktop.style.backgroundSize = style.backgroundSize;
+    this.desktop.style.backgroundRepeat = style.backgroundRepeat;
+    this.desktop.style.backgroundPosition = style.backgroundPosition;
+    this.desktop.style.backgroundAttachment = style.backgroundAttachment;
+  }
+
+  _objectUrlFromContent(content, mime) {
+    if (content instanceof ArrayBuffer) {
+      return URL.createObjectURL(new Blob([content], { type: mime || 'image/png' }));
+    }
+    if (ArrayBuffer.isView(content)) {
+      const copy = content.buffer.slice(
+        content.byteOffset,
+        content.byteOffset + content.byteLength
+      );
+      return URL.createObjectURL(
+        new Blob([/** @type {ArrayBuffer} */ (copy)], { type: mime || 'image/png' })
+      );
+    }
+    if (typeof content === 'string') {
+      const trimmed = content.trim();
+      if (
+        trimmed.startsWith('blob:') ||
+        trimmed.startsWith('http') ||
+        trimmed.startsWith('data:')
+      ) {
+        return trimmed;
+      }
+      if (trimmed.startsWith('<')) {
+        return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(content);
+      }
+    }
+    return '';
+  }
+
+  arrangeIcons() {
+    this.desktop?.querySelectorAll('.desktop-icon:not(.file-icon)').forEach((el) => el.remove());
+    this._createDesktopIcons();
+    return this._loadDesktopFiles();
   }
 
   /**
    * Refresh desktop file icons
    */
   async refresh() {
+    this.desktopPath = Config.DESKTOP;
     await this._loadDesktopFiles();
   }
 
@@ -92,14 +199,17 @@ export class Desktop {
     const desktopApps = window.AppModule.getDesktopApps();
     if (this.Input.isMobile()) {
       // On mobile: all apps in a responsive grid (ignore fixed positions)
-      const iconSpacingX = this.C.MOBILE_ICON_SPACING_X;
-      const iconSpacingY = this.C.MOBILE_ICON_SPACING_Y;
-      const startX = this.C.MOBILE_ICON_START_X;
-      const startY = this.C.MOBILE_ICON_START_Y;
-      const iconsPerRow = Math.max(
-        this.C.MOBILE_MIN_ICONS_PER_ROW,
-        Math.floor((window.innerWidth - this.C.MOBILE_ICON_MARGIN) / iconSpacingX)
-      );
+      const layout = this._iconLayout();
+      const iconSpacingX = this.Input.isMobile() ? this.C.MOBILE_ICON_SPACING_X : layout.spacingX;
+      const iconSpacingY = this.Input.isMobile() ? this.C.MOBILE_ICON_SPACING_Y : layout.spacingY;
+      const startX = this.Input.isMobile() ? this.C.MOBILE_ICON_START_X : this.C.ICON_START_X;
+      const startY = this.Input.isMobile() ? this.C.MOBILE_ICON_START_Y : this.C.ICON_START_Y;
+      const iconsPerRow = this.Input.isMobile()
+        ? Math.max(
+            this.C.MOBILE_MIN_ICONS_PER_ROW,
+            Math.floor((window.innerWidth - this.C.MOBILE_ICON_MARGIN) / iconSpacingX)
+          )
+        : this.C.ICONS_PER_ROW;
 
       desktopApps.forEach((app, index) => {
         const row = Math.floor(index / iconsPerRow);
@@ -115,6 +225,7 @@ export class Desktop {
       });
     } else {
       // On desktop: system apps at fixed positions, others in grid
+      const layout = this._iconLayout();
       const systemApps = desktopApps.filter((app) => app.system && app.desktopPosition);
       const regularApps = desktopApps.filter((app) => !app.system || !app.desktopPosition);
 
@@ -137,8 +248,8 @@ export class Desktop {
         this._createAppIcon({
           name: app.shortName,
           icon: app.icon,
-          x: this.C.ICON_START_X + col * this.C.ICON_SPACING_X,
-          y: this.C.ICON_START_Y + row * this.C.ICON_SPACING_Y,
+          x: this.C.ICON_START_X + col * layout.spacingX,
+          y: this.C.ICON_START_Y + row * layout.spacingY,
           app: app.id
         });
       });
@@ -188,9 +299,10 @@ export class Desktop {
         });
       } else {
         // On desktop, place files on the right side
-        const startX = window.innerWidth - this.C.FILE_ICON_RIGHT_OFFSET;
+        const layout = this._iconLayout();
+        const startX = window.innerWidth - layout.rightOffset;
         const startY = this.C.FILE_ICON_START_Y;
-        const spacing = this.C.FILE_ICON_SPACING;
+        const spacing = layout.fileSpacing;
 
         files.forEach((file, index) => {
           const fileName = this.fs.getFileName(file.path);
@@ -594,6 +706,32 @@ export class Desktop {
     }
     if (result.success) {
       this._clearSelection();
+    }
+  }
+
+  async createNewFolder() {
+    if (!this.fs) return { success: false, message: '' };
+    const name = window.prompt('Folder name:', 'New Folder');
+    if (!name) return { success: false, message: '' };
+    try {
+      const dest = await this.fs.getUniquePath(`${this.desktopPath}/${name}`);
+      await this.fs.mkdir(dest);
+      return { success: true, message: `📁 Created folder: ${this.fs.getFileName(dest)}` };
+    } catch (error) {
+      return { success: false, message: `❌ ${error.message}` };
+    }
+  }
+
+  async createNewFile() {
+    if (!this.fs) return { success: false, message: '' };
+    const name = window.prompt('File name:', 'untitled.txt');
+    if (!name) return { success: false, message: '' };
+    try {
+      const dest = await this.fs.getUniquePath(`${this.desktopPath}/${name}`);
+      await this.fs.createFile(dest, '', false);
+      return { success: true, message: `📄 Created: ${this.fs.getFileName(dest)}` };
+    } catch (error) {
+      return { success: false, message: `❌ ${error.message}` };
     }
   }
 

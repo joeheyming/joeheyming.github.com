@@ -38,6 +38,8 @@ interface HeymingOSNamespace {
   Clock?: typeof import('../os/Clock').Clock;
   ContextMenu?: typeof import('../os/ContextMenu').ContextMenu;
   FileDialog?: typeof import('../os/FileDialog').FileDialog;
+  Screensaver?: typeof import('../os/Screensaver').Screensaver;
+  Prefs?: typeof import('../os/prefs.js').Prefs;
   HeymingOS?: typeof import('../os/HeymingOS').HeymingOS;
   instance?: import('../terminal/core/heyming-os').HeymingOS;
   debug?: (...args: unknown[]) => void;

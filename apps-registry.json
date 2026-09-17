@@ -207,6 +207,38 @@
     "geo": true
   },
   {
+    "id": "settings",
+    "name": "Settings ⚙️",
+    "shortName": "Settings",
+    "description": "Wallpaper, theme, and desktop preferences",
+    "detailedDescription": "Change the Heyming OS desktop background, light and dark theme, icon size, screensaver, and hostname. Preferences stay in this browser.",
+    "icon": "⚙️",
+    "path": "./settings/",
+    "category": "utility",
+    "gradient": "from-violet-500/20 to-indigo-500/20",
+    "border": "border-violet-500/30 hover:border-violet-400/50",
+    "taskbarGradient": "from-violet-500 to-indigo-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 780,
+    "defaultHeight": 640,
+    "system": true,
+    "desktopIcon": true,
+    "desktopPosition": {
+      "x": 30,
+      "y": 430
+    },
+    "tags": ["settings", "wallpaper", "theme", "desktop"],
+    "related": ["filemanager", "image-viewer", "notepad"],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Heyming OS appearance and desktop settings"
+    },
+    "appTier": "system",
+    "geo": true
+  },
+  {
     "id": "surf",
     "name": "Surf 🌊",
     "shortName": "Surf",

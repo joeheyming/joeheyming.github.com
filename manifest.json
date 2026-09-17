@@ -55,6 +55,12 @@
       "url": "/notepad/"
     },
     {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Heyming OS appearance and desktop settings",
+      "url": "/settings/"
+    },
+    {
       "name": "Say It OCR",
       "short_name": "Say It",
       "description": "OCR text recognition tool",

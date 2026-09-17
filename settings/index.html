@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" class="hos-page">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings — Wallpaper, Theme, and Desktop ⚙️</title>
+
+    <meta
+      name="description"
+      content="Change the Heyming OS desktop background, theme, icon size, screensaver, and hostname. Preferences stay in this browser."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#FAFAFA" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Heyming OS" />
+    <meta property="og:title" content="Settings — Wallpaper, Theme, and Desktop ⚙️" />
+    <meta
+      property="og:description"
+      content="Change the Heyming OS desktop background, theme, icon size, screensaver, and hostname. Preferences stay in this browser."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/settings/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/settings/settings-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Heyming OS Settings" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="Settings — Wallpaper, Theme, and Desktop ⚙️" />
+    <meta
+      name="twitter:description"
+      content="Change the Heyming OS desktop background, theme, icon size, and screensaver."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/settings/settings-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/settings/" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/heyming-shell.css" />
+    <link rel="stylesheet" href="index.css" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <script src="/heyming-shell.js"></script>
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Heyming OS Settings",
+            "alternateName": ["Desktop Settings", "Appearance Settings"],
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Change wallpaper, theme, icon size, screensaver, and hostname for Heyming OS.",
+            "url": "https://joeheyming.github.io/settings/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Settings",
+                "item": "https://joeheyming.github.io/settings/"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div class="settings-app">
+      <header class="settings-header">
+        <h1>Settings</h1>
+        <p>Personalize Heyming OS. Changes stay on this device.</p>
+      </header>
+      <nav class="settings-nav" aria-label="Settings sections">
+        <a href="#appearance">Appearance</a>
+        <a href="#theme">Theme</a>
+        <a href="#desktop">Desktop</a>
+        <a href="#account">Account</a>
+        <a href="#about">About</a>
+      </nav>
+
+      <section id="appearance" class="settings-section">
+        <h2>Appearance</h2>
+        <p class="settings-hint">
+          Desktop background. Images are referenced from the virtual filesystem — bytes are not
+          stored in preferences.
+        </p>
+        <div
+          id="wallpaper-presets"
+          class="wallpaper-grid"
+          role="listbox"
+          aria-label="Wallpaper presets"
+        ></div>
+        <div class="settings-row">
+          <label for="wallpaper-fit">Fit</label>
+          <select id="wallpaper-fit">
+            <option value="cover">Fill</option>
+            <option value="contain">Fit</option>
+            <option value="center">Center</option>
+            <option value="tile">Tile</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <button type="button" id="choose-image">Choose image…</button>
+          <span id="wallpaper-path" class="settings-muted"></span>
+        </div>
+      </section>
+
+      <section id="theme" class="settings-section">
+        <h2>Theme</h2>
+        <div class="choice-row" role="radiogroup" aria-label="Theme">
+          <button type="button" class="choice" data-theme-value="auto">Auto</button>
+          <button type="button" class="choice" data-theme-value="light">Light</button>
+          <button type="button" class="choice" data-theme-value="dark">Dark</button>
+        </div>
+      </section>
+
+      <section id="desktop" class="settings-section">
+        <h2>Desktop</h2>
+        <div class="settings-row">
+          <span>Icon size</span>
+          <div class="choice-row" role="radiogroup" aria-label="Icon size">
+            <button type="button" class="choice" data-icon-size="s">Small</button>
+            <button type="button" class="choice" data-icon-size="m">Medium</button>
+            <button type="button" class="choice" data-icon-size="l">Large</button>
+          </div>
+        </div>
+        <label class="settings-check">
+          <input type="checkbox" id="clock-seconds" />
+          Show seconds on the taskbar clock
+        </label>
+        <label class="settings-check">
+          <input type="checkbox" id="screensaver-enabled" />
+          Enable screensaver
+        </label>
+        <div class="settings-row">
+          <label for="screensaver-timeout">Idle timeout</label>
+          <select id="screensaver-timeout">
+            <option value="15000">15 seconds</option>
+            <option value="60000">1 minute</option>
+            <option value="120000">2 minutes</option>
+            <option value="300000">5 minutes</option>
+            <option value="600000">10 minutes</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <label for="screensaver-style">Screensaver style</label>
+          <select id="screensaver-style">
+            <option value="clock">Clock</option>
+            <option value="blank">Blank</option>
+          </select>
+        </div>
+      </section>
+
+      <section id="account" class="settings-section">
+        <h2>Account</h2>
+        <div class="settings-row">
+          <span>Username</span>
+          <strong id="account-username"></strong>
+        </div>
+        <p class="settings-hint">
+          Username is set during first run and cannot change here because home is
+          <code>/home/&lt;user&gt;</code>
+          .
+        </p>
+        <div class="settings-row">
+          <label for="account-hostname">Computer name</label>
+          <input id="account-hostname" type="text" autocomplete="off" spellcheck="false" />
+        </div>
+        <button type="button" id="save-hostname">Save hostname</button>
+        <button type="button" id="reset-os" class="danger">Reset Heyming OS…</button>
+      </section>
+
+      <section id="about" class="settings-section">
+        <h2>About</h2>
+        <p id="about-copy"></p>
+        <button type="button" id="open-about">About Heyming OS</button>
+      </section>
+    </div>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

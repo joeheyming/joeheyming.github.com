@@ -37,6 +37,8 @@ import { Desktop } from './Desktop.js';
 import { Clock } from './Clock.js';
 import { ContextMenu } from './ContextMenu.js';
 import { FileDialog } from './FileDialog.js';
+import { Screensaver } from './Screensaver.js';
+import { Prefs } from './prefs.js';
 
 // Main orchestrator
 import { HeymingOS } from './HeymingOS.js';
@@ -62,11 +64,18 @@ const OS = {
   Clock,
   ContextMenu,
   FileDialog,
+  Screensaver,
+  Prefs,
   HeymingOS,
 
   // Utilities
   debug,
-  getConfig
+  getConfig,
+  saveUsername,
+  saveHostname,
+  getSavedUsername,
+  getSavedHostname,
+  isFirstRun
 };
 
 // Expose on window for:
@@ -102,6 +111,8 @@ export {
   Clock,
   ContextMenu,
   FileDialog,
+  Screensaver,
+  Prefs,
   HeymingOS,
   debug,
   getConfig,

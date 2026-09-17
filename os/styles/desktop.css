@@ -1,14 +1,14 @@
 /* Heyming OS — desktop surface: icons, file drag, selection box, wallpaper, drop zone.
  *
- * Color literals migrated to brand tokens. The Ghostscript tiger SVG stays
- * (it's a wallpaper, not chrome). Selection/drop accents are now brand violet.
+ * Color literals migrated to brand tokens. Wallpaper is applied in JS from
+ * user prefs (Desktop.applyWallpaper). Selection/drop accents are brand violet.
  */
 
 /* Desktop Icons */
 .desktop-icon {
   position: absolute;
-  width: 64px;
-  height: 80px;
+  width: var(--os-icon-tile, 64px);
+  height: calc(var(--os-icon-tile, 64px) + 16px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -30,20 +30,20 @@
 }
 
 .desktop-icon .icon {
-  font-size: 48px;
+  font-size: var(--os-icon-font, 48px);
   margin-bottom: 4px;
   transition: transform var(--motion-hover);
   text-shadow: 1px 1px 2px color-mix(in srgb, var(--pure-black) 30%, transparent);
 }
 
 .desktop-icon .label {
-  font-size: 11px;
+  font-size: var(--os-icon-label, 11px);
   font-weight: 500;
   color: var(--text-on-accent);
   text-shadow: 1px 1px 2px color-mix(in srgb, var(--pure-black) 80%, transparent);
   text-align: center;
   line-height: 1.2;
-  max-width: 64px;
+  max-width: var(--os-icon-tile, 64px);
   word-wrap: break-word;
   padding: 1px 3px;
   border-radius: 2px;
@@ -94,13 +94,9 @@
   z-index: 100;
 }
 
-/* Desktop Background with Famous Ghostscript Tiger SVG */
+/* Desktop background is applied by Desktop.applyWallpaper (prefs). */
 #os-desktop {
-  background-image: url('../../assets/ghostscript_tiger.svg');
-  background-size: 25%;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-color: var(--surface-0);
 }
 
 /* Vignette overlay deliberately removed for the heyming-engineering brand
@@ -155,4 +151,30 @@
   #os-desktop.drop-active::after {
     animation: none;
   }
+}
+
+.os-screensaver {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #05070a;
+  cursor: none;
+}
+
+.os-screensaver.hidden {
+  display: none;
+}
+
+.os-screensaver-clock {
+  font-family: var(--font-display, Inter, sans-serif);
+  font-size: clamp(2.5rem, 8vw, 6rem);
+  font-weight: 600;
+  color: #f5f5f7;
+  letter-spacing: 0.04em;
+}
+
+.os-screensaver-blank .os-screensaver-clock {
+  display: none;
 }

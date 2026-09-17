@@ -37,8 +37,12 @@ export const MessageTypes = {
   // Payload: { success: boolean, path?: string, error?: string }
 
   // OS broadcasts filesystem change to all iframes
-  FILESYSTEM_CHANGE: 'filesystem-change'
+  FILESYSTEM_CHANGE: 'filesystem-change',
   // Payload: { path: string, eventType: 'create'|'delete'|'move'|'copy'|'change' }
+
+  // OS replies to GET_OS_PREFS
+  OS_PREFS: 'osPrefs'
+  // Payload: prefs object + username/hostname
 };
 
 /**
@@ -68,8 +72,13 @@ export const IframeActions = {
   // Payload: { appId: string, args?: string[] }
 
   // Notify OS of filesystem change (from File Manager)
-  FILESYSTEM_CHANGED: 'filesystemChanged'
+  FILESYSTEM_CHANGED: 'filesystemChanged',
   // Payload: { path: string }
+
+  SET_OS_PREFS: 'setOsPrefs',
+  GET_OS_PREFS: 'getOsPrefs',
+  OPEN_ABOUT: 'openAbout',
+  RESET_OS: 'resetOs'
 };
 
 // Freeze message constants
@@ -135,6 +144,37 @@ export const Constants = {
   Z_INDEX_LAUNCHER: 1000,
   Z_INDEX_DIALOG: 2000,
   Z_INDEX_NOTIFICATION: 3000,
+  Z_INDEX_SCREENSAVER: 3500,
+
+  ICON_SIZE_LAYOUT: {
+    s: {
+      tile: 48,
+      font: 32,
+      spacingX: 72,
+      spacingY: 84,
+      fileSpacing: 76,
+      rightOffset: 96,
+      label: 11
+    },
+    m: {
+      tile: 64,
+      font: 48,
+      spacingX: 90,
+      spacingY: 100,
+      fileSpacing: 90,
+      rightOffset: 120,
+      label: 11
+    },
+    l: {
+      tile: 80,
+      font: 64,
+      spacingX: 110,
+      spacingY: 124,
+      fileSpacing: 110,
+      rightOffset: 140,
+      label: 12
+    }
+  },
 
   // Overlap threshold for window positioning (percentage)
   OVERLAP_THRESHOLD: 0.25,
@@ -164,3 +204,7 @@ Object.freeze(Constants);
 Object.freeze(Constants.CATEGORY_ORDER);
 Object.freeze(Constants.CATEGORY_NAMES);
 Object.freeze(Constants.NOTIFICATION_COLORS);
+Object.freeze(Constants.ICON_SIZE_LAYOUT);
+Object.freeze(Constants.ICON_SIZE_LAYOUT.s);
+Object.freeze(Constants.ICON_SIZE_LAYOUT.m);
+Object.freeze(Constants.ICON_SIZE_LAYOUT.l);

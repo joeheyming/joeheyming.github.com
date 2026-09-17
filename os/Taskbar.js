@@ -3,6 +3,39 @@
  * Handles the bottom taskbar with running apps
  */
 
+const TW_COLORS = {
+  'blue-400': '#60a5fa',
+  'blue-500': '#3b82f6',
+  'indigo-500': '#6366f1',
+  'indigo-600': '#4f46e5',
+  'teal-400': '#2dd4bf',
+  'teal-500': '#14b8a6',
+  'cyan-500': '#06b6d4',
+  'gray-500': '#6b7280',
+  'gray-700': '#374151',
+  'amber-500': '#f59e0b',
+  'yellow-500': '#eab308',
+  'slate-600': '#475569',
+  'emerald-500': '#10b981',
+  'emerald-600': '#059669',
+  'purple-500': '#a855f7',
+  'violet-500': '#8b5cf6',
+  'rose-500': '#f43f5e',
+  'orange-500': '#f97316',
+  'sky-500': '#0ea5e9',
+  'pink-500': '#ec4899'
+};
+
+function taskbarGradientCss(token) {
+  if (!token || typeof token !== 'string') return '';
+  const from = token.match(/from-([a-z]+-\d+)/);
+  const to = token.match(/to-([a-z]+-\d+)/);
+  const a = from ? TW_COLORS[from[1]] : null;
+  const b = to ? TW_COLORS[to[1]] : null;
+  if (!a && !b) return '';
+  return `linear-gradient(90deg, ${a || b}, ${b || a})`;
+}
+
 export class Taskbar {
   constructor(windowManager) {
     this.windowManager = windowManager;
@@ -33,6 +66,19 @@ export class Taskbar {
     button.setAttribute('aria-pressed', 'true');
     button.setAttribute('aria-label', label);
     button.innerHTML = `${icon} ${label}`;
+
+    const app =
+      win?.app || (win?.appId && window.AppModule?.getAllApps?.().find((a) => a.id === win.appId));
+    const gradient = taskbarGradientCss(app?.taskbarGradient);
+    if (gradient) {
+      button.style.backgroundImage = gradient;
+      button.style.borderColor = 'transparent';
+    }
+    if (app?.taskbarText === 'text-white') {
+      button.style.color = '#fff';
+    } else if (app?.taskbarText === 'text-black') {
+      button.style.color = '#111';
+    }
 
     button.addEventListener('click', () => {
       const win = this.windowManager.getWindow(windowId);
