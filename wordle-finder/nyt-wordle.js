@@ -1,7 +1,7 @@
 /**
- * Today's Wordle via NYT's public puzzle JSON + /proxy.js.
+ * Official Wordle via NYT's public puzzle JSON + /proxy.js.
  *
- * Used by Play Wordle mode when Word = "Today's Wordle". Fetches
+ * Used by Play Wordle mode when Word = "NYT Wordle". Fetches
  * https://www.nytimes.com/svc/wordle/v2/YYYY-MM-DD.json through
  * window.proxyService.fetchJson (CORS). Does not spoil the answer in the UI —
  * it only seeds the in-browser play clone.
@@ -9,12 +9,9 @@
 (function () {
   var CACHE_PREFIX = 'heyming.wordle.wotd.';
   var NYT_BASE = 'https://www.nytimes.com/svc/wordle/v2/';
+  var WORDLE_LAUNCH = '2021-06-19';
 
-  function nytDateString() {
-    // NYT Wordle in the browser uses the player's local calendar date, not
-    // a fixed Eastern rollover. At 11pm PT that is still "yesterday" in NY,
-    // and players expect the same puzzle as nytimes.com/games/wordle.
-    var d = new Date();
+  function formatLocalDate(d) {
     return (
       d.getFullYear() +
       '-' +
@@ -22,6 +19,53 @@
       '-' +
       String(d.getDate()).padStart(2, '0')
     );
+  }
+
+  function clampWordleDate(dateStr, todayStr) {
+    var today = todayStr || formatLocalDate(new Date());
+    if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return today;
+    }
+    if (dateStr < WORDLE_LAUNCH) return WORDLE_LAUNCH;
+    if (dateStr > today) return today;
+    return dateStr;
+  }
+
+  function parseLocalDate(dateStr) {
+    var parts = String(dateStr).split('-');
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  }
+
+  function statusLabelForDate(dateStr) {
+    var today = formatLocalDate(new Date());
+    if (dateStr === today) return "Today's Wordle";
+    var d = parseLocalDate(dateStr);
+    return (
+      'Wordle — ' +
+      d.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      })
+    );
+  }
+
+  function syncDateInputBounds() {
+    var input = document.getElementById('wordleDate');
+    if (!input) return formatLocalDate(new Date());
+    var today = formatLocalDate(new Date());
+    input.min = WORDLE_LAUNCH;
+    input.max = today;
+    input.value = clampWordleDate(input.value, today);
+    return input.value;
+  }
+
+  function selectedPuzzleDate() {
+    var input = document.getElementById('wordleDate');
+    var today = formatLocalDate(new Date());
+    var raw = input && input.value ? input.value : today;
+    return clampWordleDate(raw, today);
   }
 
   function readCache(dateStr) {
@@ -51,8 +95,7 @@
     }
   }
 
-  async function fetchTodaysPuzzle() {
-    var dateStr = nytDateString();
+  async function fetchPuzzleForDate(dateStr) {
     var cached = readCache(dateStr);
     if (cached) return cached;
 
@@ -62,7 +105,7 @@
 
     var data = await window.proxyService.fetchJson(NYT_BASE + dateStr + '.json', {
       skipDirect: true,
-      friendlyError: "Couldn't read today's Wordle from the New York Times."
+      friendlyError: "Couldn't read that day's Wordle from the New York Times."
     });
 
     if (!data || typeof data.solution !== 'string' || data.solution.length !== 5) {
@@ -97,23 +140,38 @@
       return;
     }
 
-    // Reset immediately so changing Word never leaves prior guesses up.
+    var dateStr = syncDateInputBounds();
+    var loading =
+      dateStr === formatLocalDate(new Date())
+        ? "Loading today's puzzle…"
+        : 'Loading Wordle for ' + dateStr + '…';
+
+    // Reset immediately so changing Word / date never leaves prior guesses up.
     if (typeof window.clearWordleBoard === 'function') {
-      window.clearWordleBoard("Loading today's puzzle…");
+      window.clearWordleBoard(loading);
     } else {
-      setStatusMessage("Loading today's puzzle…");
+      setStatusMessage(loading);
     }
     try {
-      var data = await fetchTodaysPuzzle();
+      var data = await fetchPuzzleForDate(dateStr);
       var word = String(data.solution).toLowerCase();
       window.startWordleGame(word);
-      setStatusMessage("Today's Wordle");
+      setStatusMessage(statusLabelForDate(dateStr));
     } catch (err) {
       console.warn('[wordle] WOTD fetch failed', err);
-      setStatusMessage("Couldn't load today's puzzle — using random");
+      setStatusMessage("Couldn't load that puzzle — using random");
       window.startWordleGame();
     }
   };
 
-  window.fetchTodaysWordle = fetchTodaysPuzzle;
+  window.fetchTodaysWordle = function fetchTodaysWordle() {
+    return fetchPuzzleForDate(formatLocalDate(new Date()));
+  };
+  window.wordleNyt = {
+    WORDLE_LAUNCH: WORDLE_LAUNCH,
+    formatLocalDate: formatLocalDate,
+    clampWordleDate: clampWordleDate,
+    statusLabelForDate: statusLabelForDate,
+    syncDateInputBounds: syncDateInputBounds
+  };
 })();

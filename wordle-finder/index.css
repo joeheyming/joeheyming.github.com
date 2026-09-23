@@ -922,6 +922,7 @@ label.form-input,
   }
 }
 
+input.wordle-date,
 select {
   width: 190px;
   height: 44px;
@@ -934,6 +935,9 @@ select {
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
   padding: 0 12px;
+}
+
+select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -944,6 +948,11 @@ select {
   background-repeat: no-repeat;
 }
 
+input.wordle-date {
+  color-scheme: dark;
+}
+
+input.wordle-date:focus,
 select:focus {
   outline: none;
   border-color: var(--accent-primary);

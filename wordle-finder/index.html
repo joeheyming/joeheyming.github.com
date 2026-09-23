@@ -194,7 +194,7 @@
                 "name": "Does it know today's Wordle answer?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "In Play Wordle mode, choose Today's Wordle to play the official puzzle for today's date. The solver modes still filter the public word list locally with entropy ranking."
+                  "text": "In Play Wordle mode, choose NYT Wordle and pick a date (defaults to today) to play that day's official puzzle. The solver modes still filter the public word list locally with entropy ranking."
                 }
               },
               {
@@ -252,6 +252,7 @@
     <script defer src="wordle-game.js"></script>
     <script defer src="index.js"></script>
     <script defer src="nyt-wordle.js"></script>
+    <script defer src="url-state.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
   </head>
   <body class="hos-page">
@@ -374,9 +375,21 @@
             <div class="custom-select">
               <select id="wordleSource">
                 <option value="random">Random word</option>
-                <option value="today">Today's Wordle</option>
+                <option value="today">NYT Wordle</option>
               </select>
             </div>
+          </div>
+        </div>
+        <div class="form-row" id="wordle-date-row" hidden>
+          <label class="form-label" for="wordleDate">Puzzle date</label>
+          <div class="form-input fixed-input-control">
+            <input
+              type="date"
+              id="wordleDate"
+              class="wordle-date"
+              min="2021-06-19"
+              aria-label="Official Wordle puzzle date"
+            />
           </div>
         </div>
         <div class="form-row" id="strategy-row">
@@ -710,7 +723,9 @@
             Use
             <strong>Generate</strong>
             for a suggested opener, then update the green, yellow, and gray fields after each turn.
-            Reset clears the board for tomorrow&rsquo;s puzzle.
+            Reset clears the board for tomorrow&rsquo;s puzzle. In Play Wordle, choose
+            <strong>NYT Wordle</strong>
+            and a date to play that day&rsquo;s official puzzle.
           </p>
           <nav aria-label="More word and puzzle tools">
             <a href="/periodic-speller/">Spell words with element symbols</a>

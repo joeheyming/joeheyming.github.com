@@ -140,17 +140,77 @@ function helpClick() {
   dialog.style.display = '';
 }
 
+function showFormRow(row, show) {
+  if (!row) return;
+  row.hidden = !show;
+  row.style.display = show ? '' : 'none';
+}
+
+function syncWordleSourceUi(mode) {
+  var sourceRow = document.getElementById('wordle-source-row');
+  var dateRow = document.getElementById('wordle-date-row');
+  var source = document.getElementById('wordleSource');
+  var playWordle = mode === 'wordle';
+  var nytWordle = playWordle && source && source.value === 'today';
+  showFormRow(sourceRow, playWordle);
+  showFormRow(dateRow, nytWordle);
+  if (nytWordle && window.wordleNyt && typeof window.wordleNyt.syncDateInputBounds === 'function') {
+    window.wordleNyt.syncDateInputBounds();
+  }
+}
+
+/** Current control selections, in the shape url-state.js expects. */
+function currentUrlState() {
+  var source = document.getElementById('wordleSource');
+  var date = document.getElementById('wordleDate');
+  var strategy = document.getElementById('strategySelect');
+  var mode = document.getElementById('solverMode');
+  return {
+    mode: mode ? mode.value : 'score',
+    word: source ? source.value : 'random',
+    date: date ? date.value : '',
+    strategy: strategy ? strategy.value : 'pure-entropy'
+  };
+}
+
+// replaceState (not pushState): mode switches are view state, so Back should
+// leave the app rather than walk through every mode the user tried.
+function syncUrlState() {
+  if (!window.wordleUrlState || !window.history || !window.history.replaceState) return;
+  var search = window.wordleUrlState.toSearch(currentUrlState());
+  try {
+    window.history.replaceState(
+      window.history.state,
+      '',
+      window.location.pathname + (search ? '?' + search : '') + window.location.hash
+    );
+  } catch (_) {
+    /* sandboxed iframe / opaque origin */
+  }
+}
+
+/** Seed the controls from ?mode=…&word=…&date=…&strategy=… and return the mode. */
+function applyUrlState() {
+  var mode = document.getElementById('solverMode');
+  if (!window.wordleUrlState) return mode ? mode.value : 'score';
+
+  var state = window.wordleUrlState.parse(window.location.search);
+  var source = document.getElementById('wordleSource');
+  var date = document.getElementById('wordleDate');
+  var strategy = document.getElementById('strategySelect');
+  if (source) source.value = state.word;
+  if (date && state.date) date.value = state.date;
+  if (strategy) strategy.value = state.strategy;
+  if (mode) mode.value = state.mode;
+  return state.mode;
+}
+
 function setMode(mode) {
   var wordleGame = document.getElementById('wordle-game');
   var strategyRow = document.getElementById('strategy-row');
-  var sourceRow = document.getElementById('wordle-source-row');
 
-  // Word source is Play Wordle only — not solver or Play with helper.
-  if (sourceRow) {
-    var showSource = mode === 'wordle';
-    sourceRow.hidden = !showSource;
-    sourceRow.style.display = showSource ? '' : 'none';
-  }
+  // Word source + date picker are Play Wordle only — not solver or helper.
+  syncWordleSourceUi(mode);
 
   // Mobile: hide share/related FAB while the on-screen keyboard is up so it
   // doesn't cover keys (see index.css body.wordle-playing rule).
@@ -276,19 +336,40 @@ window.addEventListener('load', function () {
     solverMode.onchange = function () {
       var mode = this.value;
       setMode(mode);
+      syncUrlState();
     };
     var wordleSource = document.getElementById('wordleSource');
     if (wordleSource) {
       wordleSource.onchange = function () {
+        syncWordleSourceUi(solverMode.value);
         if (solverMode.value === 'wordle' && typeof window.startWordleFromSource === 'function') {
           window.startWordleFromSource();
         }
+        syncUrlState();
       };
     }
+    var wordleDate = document.getElementById('wordleDate');
+    if (wordleDate) {
+      wordleDate.onchange = function () {
+        if (
+          solverMode.value === 'wordle' &&
+          wordleSource &&
+          wordleSource.value === 'today' &&
+          typeof window.startWordleFromSource === 'function'
+        ) {
+          window.startWordleFromSource();
+        }
+        syncUrlState();
+      };
+    }
+    var strategySelect = document.getElementById('strategySelect');
+    if (strategySelect) {
+      // filter.js reads the select live, so the URL is all that needs updating.
+      strategySelect.onchange = syncUrlState;
+    }
 
-    //solverMode.value = 'play';
-    solverMode.value = 'score';
-    setMode(solverMode.value);
+    setMode(applyUrlState());
+    syncUrlState();
 
     initPlayer();
   }, 1);
