@@ -5,6 +5,7 @@
  */
 
 import { DIRECTION, KEY_MODE, CONTROLS, GAME_STATES } from './constants.js';
+import { createPacmanGamepad } from './gamepad-input.js';
 
 export class Controls {
   constructor(game) {
@@ -23,6 +24,10 @@ export class Controls {
     // Snapped to the dominant axis (4-way) — drives Top-Down's classic
     // Pacman feel.
     this._touchKeys = { up: false, down: false, left: false, right: false };
+    // Kept separate for the same reason as touch: releasing one device must
+    // not clear a direction still held on another.
+    this._gamepadKeys = { up: false, down: false, left: false, right: false };
+    this._gamepadVector = null;
     // Continuous-angle joystick vector in WORLD space (`x` east+/west−,
     // `y` north+/south−). `null` when the joystick is idle or inside
     // the dead zone. Used by Birds-Eye Follow so the player can walk
@@ -62,6 +67,65 @@ export class Controls {
 
     // Touch controls for mobile
     this.setupTouchControls();
+
+    // USB/Bluetooth controllers exposed through the browser Gamepad API.
+    this.setupGamepadControls();
+  }
+
+  setupGamepadControls() {
+    this.gamepadController = createPacmanGamepad({
+      onMove: (directions, vector) => {
+        this._gamepadKeys = directions;
+        this._gamepadVector = vector;
+        this.updateDirection();
+      },
+      onLook: (x, y) => this.handleGamepadLook(x, y),
+      onAction: (action) => this.handleGamepadAction(action)
+    });
+  }
+
+  handleGamepadLook(x, y) {
+    if (!this.game.pacman || this.game.state !== GAME_STATES.PLAYING) return;
+    const cameraMode = this.game.cameraController?.currentMode;
+    if (cameraMode !== 1 && cameraMode !== 2) return;
+
+    this.game.pacman.addYaw(-x);
+    if (cameraMode === 2) this.game.pacman.addPitch(-y);
+  }
+
+  handleGamepadAction(action) {
+    switch (action) {
+      case 'primary':
+        if (this.game.state === GAME_STATES.START) {
+          this.game.startGame();
+        } else if (this.game.state === GAME_STATES.PAUSED) {
+          this.game.resumeGame();
+        }
+        break;
+      case 'menu':
+        if (this.game.state === GAME_STATES.PLAYING || this.game.state === GAME_STATES.PAUSED) {
+          this.game.togglePause();
+        }
+        break;
+      case 'startMenu':
+        if (this.game.state === GAME_STATES.START) {
+          this.game.startGame();
+        } else if (
+          this.game.state === GAME_STATES.PLAYING ||
+          this.game.state === GAME_STATES.PAUSED
+        ) {
+          this.game.togglePause();
+        }
+        break;
+      case 'camera':
+        this.cycleCamera();
+        break;
+      case 'restart':
+        if (this.game.state === GAME_STATES.GAME_OVER || this.game.state === GAME_STATES.WIN) {
+          this.game.restartGame();
+        }
+        break;
+    }
   }
 
   setupMouseLook() {
@@ -291,10 +355,10 @@ export class Controls {
     // Merge keyboard + touch joystick inputs. Touch keys are 4-way
     // (dominant axis only), so the merged result is also 4-way — keeps
     // Top-Down on the classic Pacman cardinal grid.
-    const up = this.keys.up || this._touchKeys.up;
-    const down = this.keys.down || this._touchKeys.down;
-    const left = this.keys.left || this._touchKeys.left;
-    const right = this.keys.right || this._touchKeys.right;
+    const up = this.keys.up || this._touchKeys.up || this._gamepadKeys.up;
+    const down = this.keys.down || this._touchKeys.down || this._gamepadKeys.down;
+    const left = this.keys.left || this._touchKeys.left || this._gamepadKeys.left;
+    const right = this.keys.right || this._touchKeys.right || this._gamepadKeys.right;
 
     if (up && !down) {
       this.direction = DIRECTION.UP;
@@ -325,6 +389,7 @@ export class Controls {
    */
   getMoveVector() {
     if (this._joystickVec) return this._joystickVec;
+    if (this._gamepadVector) return this._gamepadVector;
     let dx = 0;
     let dy = 0;
     if (this.keys.up) dy += 1;

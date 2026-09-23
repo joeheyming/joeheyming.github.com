@@ -1,207 +1,126 @@
 // Controller → keyboard bridge for keyboard-driven apps.
 //
-// Some TV and embedded browsers expose a controller through the Gamepad API
-// without translating its buttons into keyboard events. Poll the pad and
-// synthesize the arrow / Enter / Escape events the app already handles.
-// Browsers without the Gamepad API simply leave this bridge inactive.
-//
-// Opt-in per page — add `<script src="/gamepad-keys.js"></script>`. Do NOT
-// load it on pages that consume the Gamepad API directly (the emulator,
-// StepMania, DOOM); they would see both their own reads and these
-// synthesized keys.
-//
-// Synthesized events are untrusted (`isTrusted === false`), so they drive
-// page listeners but cannot trigger browser-native default actions like
-// scrolling. Apps that call `preventDefault()` still behave normally.
-(function () {
-  'use strict';
+// Opt in with `<script type="module" src="/gamepad-keys.js"></script>`.
+// Apps that consume the Gamepad API directly (EmulatorJS, StepMania, Doom,
+// Pac-Man) must not load this bridge or both input paths will fire.
 
-  // Standard-mapping button indices (https://w3c.github.io/gamepad/#remapping).
-  const BUTTON_KEYS = {
-    12: 'ArrowUp',
-    13: 'ArrowDown',
-    14: 'ArrowLeft',
-    15: 'ArrowRight',
-    0: 'Enter', // cross / A
-    1: 'Escape' // circle / B
-  };
+import {
+  STANDARD_AXES,
+  STANDARD_BUTTONS,
+  axisDigital,
+  buttonDown,
+  createGamepadController
+} from './gamepad-core.js';
 
-  // Left stick, so a pad with a dead D-pad (or an analog-only remote) works.
-  const AXIS_KEYS = [
-    { axis: 0, negative: 'ArrowLeft', positive: 'ArrowRight' },
-    { axis: 1, negative: 'ArrowUp', positive: 'ArrowDown' }
-  ];
+const BUTTON_KEYS = {
+  [STANDARD_BUTTONS.DPAD_UP]: 'ArrowUp',
+  [STANDARD_BUTTONS.DPAD_DOWN]: 'ArrowDown',
+  [STANDARD_BUTTONS.DPAD_LEFT]: 'ArrowLeft',
+  [STANDARD_BUTTONS.DPAD_RIGHT]: 'ArrowRight',
+  [STANDARD_BUTTONS.SOUTH]: 'Enter',
+  [STANDARD_BUTTONS.EAST]: 'Escape'
+};
 
-  const AXIS_DEADZONE = 0.55;
-  // Hold-to-repeat, tuned to feel like OS key repeat rather than a stuck key:
-  // discrete games (2048, Snake) should get one move per press, not twenty.
-  const REPEAT_DELAY_MS = 420;
-  const REPEAT_RATE_MS = 150;
+const AXIS_KEYS = [
+  { axis: STANDARD_AXES.LEFT_X, negative: 'ArrowLeft', positive: 'ArrowRight' },
+  { axis: STANDARD_AXES.LEFT_Y, negative: 'ArrowUp', positive: 'ArrowDown' }
+];
 
-  // Legacy keyCode values for apps that predate `event.code`.
-  const LEGACY_CODES = {
-    ArrowLeft: 37,
-    ArrowUp: 38,
-    ArrowRight: 39,
-    ArrowDown: 40,
-    Enter: 13,
-    Escape: 27
-  };
+const AXIS_DEADZONE = 0.55;
+const REPEAT_DELAY_MS = 420;
+const REPEAT_RATE_MS = 150;
 
-  /** @type {Map<string, { nextRepeat: number }>} key → repeat bookkeeping */
-  const held = new Map();
-  let enabled = true;
-  let polling = false;
-  let rafId = 0;
+const LEGACY_CODES = {
+  ArrowLeft: 37,
+  ArrowUp: 38,
+  ArrowRight: 39,
+  ArrowDown: 40,
+  Enter: 13,
+  Escape: 27
+};
 
-  function gamepads() {
-    try {
-      return navigator.getGamepads ? navigator.getGamepads() : [];
-    } catch (_) {
-      return [];
-    }
-  }
+/** @type {Map<string, { nextRepeat: number }>} */
+const held = new Map();
 
-  function hasGamepad() {
-    return Array.prototype.some.call(gamepads() || [], (pad) => pad && pad.connected);
-  }
+function eventTarget() {
+  const active = document.activeElement;
+  if (active && active !== document.body && document.contains(active)) return active;
+  return document.body || document.documentElement;
+}
 
-  /** Deliver to the focused element so normal bubbling reaches document handlers. */
-  function eventTarget() {
-    const active = document.activeElement;
-    if (active && active !== document.body && document.contains(active)) return active;
-    return document.body || document.documentElement;
-  }
-
-  function dispatchKey(type, key) {
-    const target = eventTarget();
-    if (!target) return;
-    const event = new KeyboardEvent(type, {
-      key,
-      code: key,
-      bubbles: true,
-      cancelable: true,
-      composed: true
-    });
-    // KeyboardEvent's constructor ignores keyCode/which, so attach them after
-    // construction for apps still reading the deprecated properties.
-    const legacy = LEGACY_CODES[key];
-    if (legacy) {
-      Object.defineProperty(event, 'keyCode', { value: legacy });
-      Object.defineProperty(event, 'which', { value: legacy });
-    }
-    target.dispatchEvent(event);
-  }
-
-  /** Keys currently pressed across every connected pad. */
-  function pressedKeys() {
-    const keys = new Set();
-    for (const pad of gamepads() || []) {
-      if (!pad || !pad.connected) continue;
-
-      const buttons = pad.buttons || [];
-      for (const index of Object.keys(BUTTON_KEYS)) {
-        const button = buttons[Number(index)];
-        const down = button && (typeof button === 'object' ? button.pressed : button > 0.5);
-        if (down) keys.add(BUTTON_KEYS[index]);
-      }
-
-      const axes = pad.axes || [];
-      for (const map of AXIS_KEYS) {
-        const value = axes[map.axis];
-        if (typeof value !== 'number') continue;
-        if (value <= -AXIS_DEADZONE) keys.add(map.negative);
-        else if (value >= AXIS_DEADZONE) keys.add(map.positive);
-      }
-    }
-    return keys;
-  }
-
-  function poll() {
-    rafId = 0;
-    if (!enabled) {
-      polling = false;
-      return;
-    }
-
-    const now = performance.now();
-    const down = pressedKeys();
-
-    for (const key of down) {
-      const state = held.get(key);
-      if (!state) {
-        held.set(key, { nextRepeat: now + REPEAT_DELAY_MS });
-        dispatchKey('keydown', key);
-      } else if (now >= state.nextRepeat) {
-        state.nextRepeat = now + REPEAT_RATE_MS;
-        dispatchKey('keydown', key);
-      }
-    }
-
-    for (const key of Array.from(held.keys())) {
-      if (!down.has(key)) {
-        held.delete(key);
-        dispatchKey('keyup', key);
-      }
-    }
-
-    if (hasGamepad()) {
-      rafId = requestAnimationFrame(poll);
-    } else {
-      polling = false;
-    }
-  }
-
-  function start() {
-    if (polling || !enabled || !hasGamepad()) return;
-    polling = true;
-    document.documentElement.dataset.gamepadKeys = 'on';
-    rafId = requestAnimationFrame(poll);
-  }
-
-  function releaseAll() {
-    for (const key of Array.from(held.keys())) {
-      held.delete(key);
-      dispatchKey('keyup', key);
-    }
-  }
-
-  function stop() {
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = 0;
-    polling = false;
-    releaseAll();
-    delete document.documentElement.dataset.gamepadKeys;
-  }
-
-  window.addEventListener('gamepadconnected', start);
-  window.addEventListener('gamepaddisconnected', () => {
-    if (!hasGamepad()) stop();
+export function dispatchGamepadKey(type, key) {
+  const target = eventTarget();
+  if (!target) return;
+  const event = new KeyboardEvent(type, {
+    key,
+    code: key,
+    bubbles: true,
+    cancelable: true,
+    composed: true
   });
-  // Pads already connected at load only surface after a gesture in some
-  // browsers, so try immediately and again on the first interaction.
-  window.addEventListener('pointerdown', start, { passive: true });
-  window.addEventListener('keydown', start, { passive: true });
-  // Dropping focus mid-hold would otherwise leave a key stuck down.
-  window.addEventListener('blur', releaseAll);
-  start();
+  const legacy = LEGACY_CODES[key];
+  if (legacy) {
+    Object.defineProperty(event, 'keyCode', { value: legacy });
+    Object.defineProperty(event, 'which', { value: legacy });
+  }
+  target.dispatchEvent(event);
+}
 
-  window.gamepadKeys = {
-    start,
-    stop,
-    get isActive() {
-      return polling;
-    },
-    get hasGamepad() {
-      return hasGamepad();
-    },
-    disable() {
-      enabled = false;
-      stop();
-    },
-    enable() {
-      enabled = true;
-      start();
+export function pressedKeys(pad) {
+  const keys = new Set();
+  const buttons = pad?.buttons || [];
+  for (const index of Object.keys(BUTTON_KEYS)) {
+    if (buttonDown(buttons[Number(index)], 0.5)) keys.add(BUTTON_KEYS[index]);
+  }
+
+  const axes = pad?.axes || [];
+  for (const map of AXIS_KEYS) {
+    const direction = axisDigital(axes[map.axis], AXIS_DEADZONE);
+    if (direction < 0) keys.add(map.negative);
+    if (direction > 0) keys.add(map.positive);
+  }
+  return keys;
+}
+
+function releaseAll() {
+  for (const key of Array.from(held.keys())) {
+    held.delete(key);
+    dispatchGamepadKey('keyup', key);
+  }
+}
+
+function syncKeys(down, now) {
+  for (const key of down) {
+    const state = held.get(key);
+    if (!state) {
+      held.set(key, { nextRepeat: now + REPEAT_DELAY_MS });
+      dispatchGamepadKey('keydown', key);
+    } else if (now >= state.nextRepeat) {
+      state.nextRepeat = now + REPEAT_RATE_MS;
+      dispatchGamepadKey('keydown', key);
     }
-  };
-})();
+  }
+
+  for (const key of Array.from(held.keys())) {
+    if (!down.has(key)) {
+      held.delete(key);
+      dispatchGamepadKey('keyup', key);
+    }
+  }
+}
+
+const controller = createGamepadController({
+  onFrame(pad, _snapshot, timestamp) {
+    syncKeys(pressedKeys(pad), timestamp ?? performance.now());
+  },
+  onConnectionChange(pad) {
+    if (pad) {
+      document.documentElement.dataset.gamepadKeys = 'on';
+    } else {
+      delete document.documentElement.dataset.gamepadKeys;
+    }
+  },
+  onRelease: releaseAll
+});
+
+window.gamepadKeys = controller;

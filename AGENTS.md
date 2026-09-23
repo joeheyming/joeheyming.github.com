@@ -165,7 +165,8 @@ When adding or fixing an app for Search:
 | `/feedback.js`     | `<feedback-button>` web component → Google Form                                                                                                | Most apps                                                                                                                                 |
 | `/share.js`        | Related-projects panel from `apps-registry.json` `related` field                                                                               | Apps with `related` entries                                                                                                               |
 | `/proxy.js`        | `window.proxyService` — CORS-safe fetch with fallback proxies, caching, circuit breaker                                                        | Only when fetching cross-origin resources (ROMs, APIs, etc.)                                                                              |
-| `/gamepad-keys.js` | Polls the Gamepad API and synthesizes arrow / Enter / Escape when a browser exposes a pad but no keyboard events; no-op when the API is absent | Opt-in: keyboard-driven games (see `2048/`). **Never** on pages that read the Gamepad API themselves (`emulator/`, `stepmania/`, `doom/`) |
+| `/gamepad-core.js` | ES-module Gamepad API normalization, standard button/axis names, deadzones, connection lifecycle, and one polling loop                         | Import from app-specific adapters; it deliberately emits no keyboard, mouse, or game actions                                              |
+| `/gamepad-keys.js` | ES-module adapter that synthesizes arrow / Enter / Escape for discrete keyboard-driven games; no-op when the Gamepad API is absent             | Opt-in via `type="module"` (see `2048/`). **Never** on native consumers (`emulator/`, `stepmania/`, `doom/`, `pacman/`)                     |
 
 ### Nav toggle clearance
 

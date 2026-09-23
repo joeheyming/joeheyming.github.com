@@ -265,7 +265,18 @@ export function installUzdomLoaderEngine(ctx) {
           // This overrides the default `\ +showscores`, which is fine
           // for single-player.
           'bind \\ "+altattack"\n' +
-          'bind \' "weapnext"\n';
+          'bind \' "weapnext"\n' +
+          // Gamepad-input.js synthesizes these keys. `j` is jump so the
+          // pad's Y/triangle does not fight Space (which we bind to
+          // +use for classic-Doom muscle memory). `[` is weapprev to
+          // pair with `'` weapnext (LB / RB on the pad).
+          //
+          // `use_joystick 0` stops GZDoom from also reading the same
+          // Gamepad API samples SDL already collected, which would
+          // double-move once a pad is connected.
+          'bind j "+jump"\n' +
+          'bind [ "weapprev"\n' +
+          'use_joystick 0\n';
         if (document.body.classList.contains('mobile')) {
           cfg = 'unbind mouse1\n' + cfg;
         }
