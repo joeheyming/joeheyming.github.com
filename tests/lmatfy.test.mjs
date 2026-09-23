@@ -151,13 +151,17 @@ test('narrator ships the punchline in static HTML', () => {
 
 test('page is indexable and names every destination', () => {
   const document = readDocument('lmatfy/index.html');
-  assert.equal(document.title, 'Let Me Ask That For You — ChatGPT, Gemini & Brave 🤷');
+  assert.equal(document.title, 'Let Me ChatGPT That For You — Gemini & Brave 🤷');
   assert.equal(document.querySelector('meta[name="robots"]')?.content, 'index, follow');
   assert.equal(
     document.querySelector('link[rel="canonical"]')?.href,
     'https://joeheyming.github.io/lmatfy/'
   );
   assert.ok((document.querySelector('meta[name="description"]')?.content || '').length >= 150);
+  assert.match(
+    document.querySelector('meta[name="description"]')?.content || '',
+    /let me chatgpt that for you/i
+  );
   assert.match(document.querySelector('h1')?.textContent || '', /Let me ChatGPT that for you/);
 
   const body = document.body.textContent || '';
