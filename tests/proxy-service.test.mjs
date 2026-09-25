@@ -101,6 +101,47 @@ function createProxyService(deps) {
   return new ProxyService(deps);
 }
 
+describe('ProxyService ambient storage', () => {
+  it('constructs inside a sandbox whose localStorage getter throws', async () => {
+    const module = { exports: {} };
+    const context = {
+      window: { location: { href: 'http://localhost:8000/' } },
+      module,
+      exports: module.exports,
+      fetch: async () => textResponse('{"ok":true}'),
+      console: { log() {}, warn() {}, error() {} },
+      setTimeout,
+      clearTimeout,
+      URL,
+      URLSearchParams,
+      TextDecoder,
+      TextEncoder,
+      AbortController,
+      AbortSignal,
+      DOMException,
+      DOMParser: class {},
+      Date,
+      Blob: globalThis.Blob
+    };
+    // An opaque-origin document throws on access, so even `typeof` fails.
+    Object.defineProperty(context, 'localStorage', {
+      get() {
+        throw new Error("Failed to read the 'localStorage' property from 'Window'");
+      }
+    });
+    vm.createContext(context);
+
+    // The singleton at the bottom of proxy.js runs during evaluation.
+    vm.runInContext(SOURCE, context);
+
+    const service = new module.exports.ProxyService();
+    assert.equal(service.storageImpl, null, 'falls back to no persistence');
+    // Persistence paths must stay no-ops rather than throwing.
+    service._markProxyDead(service.proxyOptions[0], '*', 'test');
+    assert.equal(service.isProxyDead(service.proxyOptions[0], 'text'), true);
+  });
+});
+
 describe('ProxyService Adapter seams', () => {
   /** @type {ReturnType<typeof makeLocalStorage>} */
   let storage;
@@ -183,6 +224,54 @@ describe('ProxyService Adapter seams', () => {
     assert.ok(
       fetched.every((u) => !u.startsWith(HEXLET)),
       'second call should skip the banned hexlet prefix'
+    );
+  });
+
+  it('bans corsproxy.io for every mode once it demands an API key', async () => {
+    const CORSPROXY = 'https://corsproxy.io/?';
+    const keyless =
+      '{"success":false,"status":403,"error":"keyless_legacy_url",' +
+      '"message":"Anonymous legacy proxy URLs are no longer supported."}';
+
+    const fetchImpl = async (url) => {
+      const u = String(url);
+      if (u.startsWith(CORSPROXY)) return textResponse(keyless);
+      return textResponse('{"ok":true}');
+    };
+
+    const service = createProxyService({ fetchImpl, storageImpl: storage });
+    service.proxyCooldownMs = 0;
+    // Order by score so corsproxy.io is reached on the first pass.
+    service.proxyOptions.forEach((p) => service.proxyScores.set(p, p === CORSPROXY ? 2 : 1));
+
+    await service.fetchJson(JSON_URL, { maxRetries: 0, timeout: 1000 });
+
+    assert.equal(service.isProxyDead(CORSPROXY, 'text'), true);
+    assert.equal(service.isProxyDead(CORSPROXY, 'binary'), true, 'keyless ban is universal');
+  });
+
+  it('bans a rate-limited proxy only briefly', async () => {
+    const rateLimited =
+      '<html><head><title>This website has been temporarily rate limited</title></head></html>';
+
+    const fetchImpl = async (url) => {
+      const u = String(url);
+      if (u.startsWith(CORS_EU)) return textResponse(rateLimited, 'text/html');
+      return textResponse('{"ok":true}');
+    };
+
+    const service = createProxyService({ fetchImpl, storageImpl: storage });
+    service.proxyCooldownMs = 0;
+    service.proxyOptions.forEach((p) => service.proxyScores.set(p, p === CORS_EU ? 2 : 1));
+
+    const before = Date.now();
+    await service.fetchJson(JSON_URL, { maxRetries: 0, timeout: 1000 });
+
+    assert.equal(service.isProxyDead(CORS_EU, 'text'), true);
+    const banMs = service.proxyDeadUntil.get(`${CORS_EU}|*`) - before;
+    assert.ok(
+      banMs >= 15 * 60 * 1000 && banMs < 20 * 60 * 1000,
+      `a temporary rate limit should ban for ~15m, not the default 24h (got ${banMs}ms)`
     );
   });
 

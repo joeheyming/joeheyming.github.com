@@ -68,11 +68,14 @@ function looksLikeJsonBody(text) {
  *   - 'binary' — only ban for binary requests (proxy may still work for text).
  *   - '*'      — ban universally.
  *
+ * `ttlMs` overrides {@link DEAD_PROXY_TTL_MS} for failures that advertise
+ * themselves as temporary (rate limits) rather than structural (paywalls).
+ *
  * Add new signatures here when a proxy starts failing in a recognizable
  * way; the regex needs to match an excerpt of the body that uniquely
  * identifies the failure mode.
  *
- * @type {Array<{ name: string, mode: 'binary' | '*', re: RegExp }>}
+ * @type {Array<{ name: string, mode: 'binary' | '*', re: RegExp, ttlMs?: number }>}
  */
 const DEAD_PROXY_SIGNATURES = [
   // corsproxy.io free plan (mid-2026) — blocks binary content types but
@@ -90,6 +93,24 @@ const DEAD_PROXY_SIGNATURES = [
     name: 'corsproxy_paywall_serverside',
     mode: '*',
     re: /server-side requests are not allowed on your plan/i
+  },
+  // corsproxy.io retired anonymous `?<url>` requests in September 2026 and
+  // now answers every keyless call with this 403 JSON. There is no free
+  // keyless shape left, so the ban is universal.
+  {
+    name: 'corsproxy_keyless_legacy',
+    mode: '*',
+    re: /"error"\s*:\s*"keyless_legacy_url"/i
+  },
+  // cors.eu.org sits behind Cloudflare and serves this interstitial with a
+  // 429 when the shared instance is saturated. It recovers on its own, so
+  // the ban is short — just long enough to stop burning the request budget
+  // on a host that is currently refusing everyone.
+  {
+    name: 'cors_eu_rate_limited',
+    mode: '*',
+    ttlMs: 15 * 60 * 1000,
+    re: /This website has been temporarily rate limited/i
   },
   // corsfix.com requires the calling domain to be registered with their
   // service; for an unregistered domain every request fails the same way.
@@ -126,7 +147,7 @@ const DEAD_PROXY_SIGNATURES = [
  * Match a response body against {@link DEAD_PROXY_SIGNATURES}.
  *
  * @param {string} body — Response body text (or excerpt).
- * @returns {{ name: string, mode: 'binary' | '*' } | null}
+ * @returns {{ name: string, mode: 'binary' | '*', ttlMs?: number } | null}
  */
 function detectDeadProxySignature(body) {
   if (typeof body !== 'string' || !body) return null;
@@ -135,10 +156,29 @@ function detectDeadProxySignature(body) {
   const sample = body.length > 4096 ? body.slice(0, 4096) : body;
   for (const sig of DEAD_PROXY_SIGNATURES) {
     if (sig.re.test(sample)) {
-      return { name: sig.name, mode: sig.mode };
+      return { name: sig.name, mode: sig.mode, ttlMs: sig.ttlMs };
     }
   }
   return null;
+}
+
+/**
+ * Resolve ambient `localStorage`, tolerating hosts that refuse it.
+ *
+ * A sandboxed iframe without `allow-same-origin` has an opaque origin, and
+ * there even `typeof localStorage` throws a SecurityError because the check
+ * invokes the getter. Surf frames arbitrary pages that way, so any page that
+ * loads this file would otherwise die before the service is constructed.
+ * Losing storage only costs proxy-health persistence.
+ *
+ * @returns {Storage | null}
+ */
+function resolveAmbientStorage() {
+  try {
+    return typeof localStorage !== 'undefined' ? localStorage : null;
+  } catch {
+    return null;
+  }
 }
 
 /** @param {number} timeoutMs @param {AbortSignal|undefined|null} userSignal */
@@ -174,12 +214,7 @@ class ProxyService {
   constructor(deps = {}) {
     // Adapter seams — production uses ambient globals; tests inject stubs.
     this.fetchImpl = deps.fetchImpl || ((input, init) => fetch(input, init));
-    this.storageImpl =
-      deps.storageImpl !== undefined
-        ? deps.storageImpl
-        : typeof localStorage !== 'undefined'
-        ? localStorage
-        : null;
+    this.storageImpl = deps.storageImpl !== undefined ? deps.storageImpl : resolveAmbientStorage();
 
     // Proxy services ordered roughly by current reliability.
     //
@@ -351,9 +386,9 @@ class ProxyService {
     this.proxyDeadUntil.set(key, Date.now() + ttlMs);
     this.proxyDeadReason.set(key, reason);
     const scope = mode === '*' ? 'all requests' : `${mode} requests`;
-    console.warn(
-      `Disabling proxy ${proxy} for ${Math.round(ttlMs / 3600000)}h ` + `(${scope}): ${reason}`
-    );
+    const duration =
+      ttlMs < 3600000 ? `${Math.round(ttlMs / 60000)}m` : `${Math.round(ttlMs / 3600000)}h`;
+    console.warn(`Disabling proxy ${proxy} for ${duration} ` + `(${scope}): ${reason}`);
     this._schedulePersistProxyHealth();
   }
 
@@ -361,7 +396,7 @@ class ProxyService {
   _maybeMarkDeadFromBody(proxy, body) {
     const sig = detectDeadProxySignature(body);
     if (!sig) return null;
-    this._markProxyDead(proxy, sig.mode, sig.name);
+    this._markProxyDead(proxy, sig.mode, sig.name, sig.ttlMs ?? DEAD_PROXY_TTL_MS);
     return sig;
   }
 

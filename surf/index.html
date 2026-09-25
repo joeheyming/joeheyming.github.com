@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Surf — Minimal HTML Viewer</title>
+    <title>Surf — Minimal Web Browser and HTML Viewer 🌊</title>
 
     <meta
       name="description"
-      content="Open and preview HTML files in a sandboxed browser viewer. Inspired by suckless surf — view rendered pages or source with no install required. Free tool."
+      content="Browse web pages or open local HTML files in a minimal sandboxed viewer. Navigate with an address bar, history, reload, source view, and standalone file picker—no install required."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -15,10 +15,10 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming" />
-    <meta property="og:title" content="Surf — Minimal HTML Viewer" />
+    <meta property="og:title" content="Surf — Minimal Web Browser and HTML Viewer 🌊" />
     <meta
       property="og:description"
-      content="Open and preview HTML files in a sandboxed browser viewer. View rendered pages or source code with no install required."
+      content="Browse web pages or open local HTML files in a minimal sandboxed viewer with history and source view."
     />
     <meta property="og:url" content="https://joeheyming.github.io/surf/" />
     <meta property="og:image" content="https://joeheyming.github.io/surf/surf-preview.png" />
@@ -28,10 +28,10 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
-    <meta name="twitter:title" content="Surf — Minimal HTML Viewer" />
+    <meta name="twitter:title" content="Surf — Minimal Web Browser and HTML Viewer 🌊" />
     <meta
       name="twitter:description"
-      content="Open and preview HTML files in a sandboxed browser viewer. View rendered pages or source code with no install required."
+      content="Browse web pages or open local HTML files in a minimal sandboxed viewer with history and source view."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/surf/surf-preview.png" />
 
@@ -43,7 +43,7 @@
         "@graph": [
           {
             "@type": "SoftwareApplication",
-            "name": "Surf — Minimal HTML Viewer",
+            "name": "Surf — Minimal Web Browser and HTML Viewer",
             "alternateName": [
               "Surf",
               "HTML file viewer browser",
@@ -55,7 +55,7 @@
             "url": "https://joeheyming.github.io/surf/",
             "applicationCategory": "DeveloperApplication",
             "operatingSystem": "Web Browser",
-            "description": "Open and preview a local HTML file in a sandboxed browser viewer. Toggle between rendered output and the raw source. Inspired by suckless surf — minimal, no install, no upload.",
+            "description": "Browse web pages or open a local HTML file in a sandboxed viewer. Navigate with browser controls and toggle between rendered output and raw source.",
             "author": {
               "@type": "Person",
               "name": "Joe Heyming",
@@ -71,7 +71,7 @@
                 "name": "Is opening an HTML file in Surf safe?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Surf renders the file inside a sandboxed iframe (sandbox attribute restricts top navigation, popups, and same-origin access by default). Scripts in the file run, but they can't reach into the parent page or your other tabs."
+                  "text": "Surf renders pages inside a sandboxed iframe that restricts top navigation, popups, and same-origin access. Scripts can run inside the preview but cannot reach into Surf or your other tabs."
                 }
               },
               {
@@ -79,7 +79,7 @@
                 "name": "Why was it inspired by suckless surf?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "suckless surf is a minimal WebKit-based browser from suckless.org built around the Unix-philosophy 'do one thing well' principle. This page is a static-site take on that idea: open one HTML file, see the rendered page or the source, no other features."
+                  "text": "suckless surf is a minimal WebKit-based browser from suckless.org. This static-site take keeps the interface focused: one page, essential navigation, local HTML preview, and source view."
                 }
               },
               {
@@ -87,7 +87,7 @@
                 "name": "Can I see the raw source?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Yes — toggle between rendered and source views. The source view is syntax-highlighted."
+                  "text": "Yes — toggle between rendered and plain-text source views."
                 }
               },
               {
@@ -126,19 +126,37 @@
     <div id="surf-container">
       <!-- Toolbar -->
       <div id="toolbar">
-        <div class="toolbar-group">
-          <button id="btn-open" title="Open HTML File (Ctrl+O)">📂 Open</button>
+        <div id="navigation-row">
+          <div class="toolbar-group navigation-buttons">
+            <button id="btn-back" class="icon-button" title="Back (Alt+Left)" disabled>←</button>
+            <button id="btn-forward" class="icon-button" title="Forward (Alt+Right)" disabled>
+              →
+            </button>
+            <button id="btn-reload" class="icon-button" title="Reload (Ctrl+R)" disabled>↻</button>
+            <button id="btn-home" class="icon-button" title="Home">⌂</button>
+          </div>
+          <form id="address-form" role="search">
+            <label class="visually-hidden" for="address-input">Web address</label>
+            <input
+              id="address-input"
+              type="text"
+              inputmode="url"
+              autocomplete="url"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="Enter a web address"
+            />
+            <button id="btn-go" type="submit">Go</button>
+          </form>
         </div>
-        <div class="toolbar-divider"></div>
-        <div class="toolbar-group">
-          <button id="btn-source" title="View Source (Ctrl+U)">🔍 Source</button>
-        </div>
-        <div class="toolbar-group">
-          <button id="btn-new-tab" title="Open in New Tab" disabled>↗ New Tab</button>
-        </div>
-        <div class="toolbar-spacer"></div>
-        <div class="toolbar-group">
-          <span id="file-info">No file</span>
+        <div id="document-row">
+          <div class="toolbar-group">
+            <button id="btn-open" title="Open HTML File (Ctrl+O)">📂 Open HTML</button>
+            <input id="file-input" type="file" accept=".html,.htm,text/html" hidden />
+            <button id="btn-source" title="View Source (Ctrl+U)" disabled>🔍 Source</button>
+            <button id="btn-new-tab" title="Open in New Tab" disabled>↗ New Tab</button>
+          </div>
+          <span id="file-info" role="status">Ready</span>
         </div>
       </div>
 
@@ -147,21 +165,29 @@
         <div class="landing-content">
           <span class="icon">🌊</span>
           <h1>Surf</h1>
-          <p>Open an HTML file to render it in a sandboxed preview.</p>
+          <p>Enter a web address or open an HTML file.</p>
           <p class="seo-intro">
-            Surf is a minimal HTML viewer for Heyming OS. Open local HTML files to see the rendered
-            page or inspect the source — useful for quick previews and static page testing in the
-            browser.
+            Surf is a minimal browser and HTML viewer for Heyming OS. Navigate the web with focused
+            browser controls, or preview a local page and inspect its source.
           </p>
+          <button id="landing-open">Open an HTML file</button>
         </div>
+      </div>
+
+      <div id="error-view" class="hidden" role="alert">
+        <span class="error-icon">⚠</span>
+        <h2>Surf could not load this page</h2>
+        <p id="error-message"></p>
+        <p id="error-detail" class="hidden"></p>
+        <button id="btn-open-external" class="hidden">Open in your browser</button>
       </div>
 
       <!-- Rendered HTML view -->
       <iframe
         id="html-frame"
         class="hidden"
-        sandbox="allow-scripts allow-same-origin"
-        title="HTML preview"
+        sandbox="allow-forms allow-scripts"
+        title="Surf page"
       ></iframe>
 
       <!-- Source view -->
@@ -170,6 +196,8 @@
       </div>
     </div>
 
+    <script src="/proxy.js"></script>
+    <script src="navigation.js"></script>
     <script src="surf.js"></script>
   </body>
 </html>
