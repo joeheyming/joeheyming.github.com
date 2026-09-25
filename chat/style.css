@@ -495,6 +495,45 @@ body {
   align-items: end;
 }
 
+.chat-composer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-model-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-1);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--chat-fg-dim);
+}
+
+.chat-model-label select {
+  background: transparent;
+  border: none;
+  color: var(--chat-fg);
+  font: inherit;
+  padding: 2px 4px;
+  cursor: pointer;
+  max-width: min(100%, 280px);
+}
+
+.chat-model-label select:focus {
+  outline: 2px solid var(--chat-accent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+.chat-model-label select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 #chat-input {
   resize: none;
   background: var(--surface-1);

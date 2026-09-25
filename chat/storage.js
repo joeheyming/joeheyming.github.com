@@ -7,9 +7,13 @@
  */
 
 const STORAGE_KEY = 'heyming.chat.v1';
-// Bumped when the default model changes so anyone with a stale "installed"
-// flag from a previous default sees a fresh install card.
-const INSTALLED_KEY = 'heyming.chat.modelInstalled.v2.hermes3-8b';
+/** Prefix for model-specific install flags. Append the WebLLM model id. */
+const INSTALLED_KEY_PREFIX = 'heyming.chat.modelInstalled.v3.';
+/** Pre-picker install flag — treated as Hermes 3 8B already cached. */
+const LEGACY_HERMES_INSTALLED_KEY = 'heyming.chat.modelInstalled.v2.hermes3-8b';
+const HERMES_MODEL_ID = 'Hermes-3-Llama-3.1-8B-q4f16_1-MLC';
+/** localStorage key for the user's last-selected chat model id. */
+const SELECTED_MODEL_KEY = 'heyming.chat.selectedModel.v1';
 const MAX_MESSAGES = 80; // keep history bounded
 const MAX_CHARS = 200000; // hard cap on serialized size
 
@@ -85,31 +89,79 @@ export function clearHistory() {
 }
 
 /**
- * Has the local model been successfully installed in this browser
+ * Has the given chat model been successfully installed in this browser
  * before? Used to decide between silent-init-on-boot (returning
  * visitor) and an "Install" CTA (first-time visitor). The OPFS cache
  * is the source of truth for the actual model bytes; this flag is a
  * cheap pre-check so we don't have to probe OPFS on every page load.
+ *
+ * When `modelId` is omitted, reads the legacy Hermes flag so callers
+ * predating the picker still compile-time typecheck against a boolean.
+ *
+ * @param {string} [modelId]
  */
-export function hasInstalledModel() {
+export function hasInstalledModel(modelId) {
   try {
-    return localStorage.getItem(INSTALLED_KEY) === '1';
+    if (!modelId) {
+      return localStorage.getItem(LEGACY_HERMES_INSTALLED_KEY) === '1';
+    }
+    if (localStorage.getItem(`${INSTALLED_KEY_PREFIX}${modelId}`) === '1') {
+      return true;
+    }
+    if (modelId === HERMES_MODEL_ID && localStorage.getItem(LEGACY_HERMES_INSTALLED_KEY) === '1') {
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
 }
 
-export function markModelInstalled() {
+/** @param {string} [modelId] */
+export function markModelInstalled(modelId) {
   try {
-    localStorage.setItem(INSTALLED_KEY, '1');
+    if (modelId) {
+      localStorage.setItem(`${INSTALLED_KEY_PREFIX}${modelId}`, '1');
+      return;
+    }
+    localStorage.setItem(LEGACY_HERMES_INSTALLED_KEY, '1');
   } catch {
     /* quota — silent init will re-confirm next visit */
   }
 }
 
-export function clearModelInstalledFlag() {
+/** @param {string} [modelId] */
+export function clearModelInstalledFlag(modelId) {
   try {
-    localStorage.removeItem(INSTALLED_KEY);
+    if (modelId) {
+      localStorage.removeItem(`${INSTALLED_KEY_PREFIX}${modelId}`);
+      if (modelId === HERMES_MODEL_ID) {
+        localStorage.removeItem(LEGACY_HERMES_INSTALLED_KEY);
+      }
+      return;
+    }
+    localStorage.removeItem(LEGACY_HERMES_INSTALLED_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * @returns {string | null}
+ */
+export function loadSelectedModel() {
+  try {
+    const raw = localStorage.getItem(SELECTED_MODEL_KEY);
+    return raw && typeof raw === 'string' ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+/** @param {string} modelId */
+export function saveSelectedModel(modelId) {
+  try {
+    localStorage.setItem(SELECTED_MODEL_KEY, modelId);
   } catch {
     /* ignore */
   }

@@ -5,26 +5,58 @@
  * first send) into the browser's OPFS cache; subsequent loads are
  * instant.
  *
- * Model selection note: WebLLM only enables `ChatCompletionRequest.tools`
- * for a hand-picked set of Hermes-family models. We pin to the latest
- * (Hermes-3-Llama-3.1-8B) so the agent's tool-calling actually fires.
- * Trying Llama-3.2-1B/3B here will return an error like "X is not
- * supported for ChatCompletionRequest.tools."
+ * Chat is plain conversation (no `tools`). That lets us default to a
+ * 3B instruct model instead of Hermes-3 8B, which was only required
+ * because WebLLM gates ChatCompletionRequest.tools to the Hermes
+ * family. Hermes stays in the picker as the quality option — GPUs
+ * keep getting faster, so the 8B path is the one Moore's-law bet.
  */
 
-const WEBLLM_MODULE_URL =
-  'https://esm.run/@mlc-ai/web-llm@0.2.79';
+export const WEBLLM_MODULE_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.84';
 
 /**
- * Default model — Hermes-3-Llama-3.1-8B quantized to q4f16_1. ~4.5 GB
- * download. Chosen because WebLLM gates tool-calling to the Hermes
- * family; without it, the agent's `tools` array is rejected at runtime.
- * Inference is ~20–40 tok/s on Apple Silicon, ~10–20 on a discrete GPU.
+ * Default model — Llama 3.2 3B quantized to q4f16_1. ~1.8 GB download,
+ * ~2.3 GB VRAM. Marked low-resource in WebLLM; useful chat on iGPUs
+ * that cannot hold Hermes 8B. Inference is typically well above the
+ * 8B rate on the same GPU.
  */
-const DEFAULT_MODEL = 'Hermes-3-Llama-3.1-8B-q4f16_1-MLC';
+const DEFAULT_MODEL = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
 
 /** Human-readable size of the default model, shown in the install dialog. */
-const DEFAULT_MODEL_SIZE_LABEL = '~4.5 GB';
+const DEFAULT_MODEL_SIZE_LABEL = '~1.8 GB';
+
+/**
+ * Registry of supported chat models.
+ *
+ * @typedef {Object} ChatModelInfo
+ * @property {string} id
+ * @property {string} label
+ * @property {string} sizeLabel
+ * @property {string} description
+ * @property {string} speedHint
+ * @property {boolean} [lowResource]
+ *
+ * @type {Record<string, ChatModelInfo>}
+ */
+export const CHAT_MODELS = {
+  'Llama-3.2-3B-Instruct-q4f16_1-MLC': {
+    id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC',
+    label: 'Llama 3.2 3B',
+    sizeLabel: '~1.8 GB',
+    description:
+      'Default chat model. Small enough for most laptops, still useful for drafting, explaining, and summarizing attached documents.',
+    speedHint: 'typically tens of tok/s on Apple Silicon or a discrete GPU',
+    lowResource: true
+  },
+  'Hermes-3-Llama-3.1-8B-q4f16_1-MLC': {
+    id: 'Hermes-3-Llama-3.1-8B-q4f16_1-MLC',
+    label: 'Hermes 3 8B',
+    sizeLabel: '~4.5 GB',
+    description:
+      'Larger quality option. Better at long answers and trickier prompts; needs more VRAM. Will feel faster as GPUs improve.',
+    speedHint: '~20–40 tok/s on Apple Silicon, ~10–20 on a discrete GPU'
+  }
+};
 
 /** @type {Promise<any> | null} */
 let modulePromise = null;
@@ -103,9 +135,7 @@ export async function probeWebGpu() {
       ? window.isSecureContext
       : false;
   const origin =
-    typeof window !== 'undefined' && window.location
-      ? window.location.origin || ''
-      : '';
+    typeof window !== 'undefined' && window.location ? window.location.origin || '' : '';
   let inIframe = false;
   try {
     inIframe = typeof window !== 'undefined' && window.self !== window.top;
@@ -122,8 +152,9 @@ export async function probeWebGpu() {
       return {
         ok: false,
         reason: 'not-secure-context',
-        detail:
-          `This page is not a secure context (origin: ${origin || '(unknown)'}). WebGPU requires HTTPS, or localhost / 127.0.0.1. Reload the page over HTTPS, or use localhost instead of a LAN IP.`,
+        detail: `This page is not a secure context (origin: ${
+          origin || '(unknown)'
+        }). WebGPU requires HTTPS, or localhost / 127.0.0.1. Reload the page over HTTPS, or use localhost instead of a LAN IP.`,
         ...env
       };
     }
@@ -163,9 +194,10 @@ export async function probeWebGpu() {
     return {
       ok: false,
       reason: 'adapter-error',
-      detail: err && /** @type {Error} */ (err).message
-        ? /** @type {Error} */ (err).message
-        : String(err),
+      detail:
+        err && /** @type {Error} */ (err).message
+          ? /** @type {Error} */ (err).message
+          : String(err),
       ...env
     };
   }
@@ -256,9 +288,7 @@ async function summarizeAdapter(adapter) {
   // Human label — prefer description (sometimes has full GPU name),
   // fall back to a Title-Cased vendor name.
   const label =
-    description ||
-    (vendor ? vendor[0].toUpperCase() + vendor.slice(1) : '') ||
-    'unknown';
+    description || (vendor ? vendor[0].toUpperCase() + vendor.slice(1) : '') || 'unknown';
   // Heuristic: Intel = iGPU; AMD APUs sometimes report "amd" but with
   // architectures like "rdna2" + small device names. The safest
   // signal is vendor=intel. Apple is single-GPU so it's effectively
@@ -557,9 +587,21 @@ export const WEBLLM_DEFAULT_MODEL = DEFAULT_MODEL;
 export const WEBLLM_DEFAULT_MODEL_SIZE = DEFAULT_MODEL_SIZE_LABEL;
 
 /**
- * @returns {boolean} true if the engine for the default model is already
- *   loaded and ready to chat without a network round-trip.
+ * @param {string} [modelId]
+ * @returns {ChatModelInfo}
  */
-export function isWebLlmReady() {
-  return engine != null && currentModelId === DEFAULT_MODEL;
+export function getChatModel(modelId) {
+  return CHAT_MODELS[modelId] || CHAT_MODELS[DEFAULT_MODEL];
+}
+
+/**
+ * @param {string} [modelId]  When omitted, ready means any loaded model.
+ *   When given, ready means the loaded model matches.
+ * @returns {boolean} true if the engine is loaded and ready to chat
+ *   without a network round-trip.
+ */
+export function isWebLlmReady(modelId) {
+  if (!engine) return false;
+  if (modelId && currentModelId !== modelId) return false;
+  return true;
 }

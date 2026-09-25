@@ -48,7 +48,7 @@ Heyming OS is a single-page web "operating system" — windows, a taskbar, a vir
 - [Audiobooks](https://joeheyming.github.io/listen/): Free public-domain audiobooks from LibriVox
 - [Books](https://joeheyming.github.io/read/): Free public-domain e-books from Project Gutenberg
 - [Calculator](https://joeheyming.github.io/calculator/): Calculator
-- [Chat](https://joeheyming.github.io/chat/): On-device AI agent (Hermes-3 8B) that runs entirely in your browser
+- [Chat](https://joeheyming.github.io/chat/): On-device AI chat (Llama 3.2 3B, optional Hermes 3 8B) that runs entirely in your browser
 - [Clock](https://joeheyming.github.io/clock/): Clock, stopwatch, and timer — all in one
 - [Code IDE](https://joeheyming.github.io/code-ide/): Monaco editor with an on-device AI assistant
 - [Countdown](https://joeheyming.github.io/countdown/): Event countdown timer

@@ -9,12 +9,12 @@
  *     time someone drops a PDF. The worker uses the bundled .mjs from
  *     the same version so document parsing stays fast.
  *
- * Hermes-3 8B has plenty of context (Llama-3.1 base = 128k tokens) but
- * WebLLM's q4f16_1 build is configured for a much smaller window. We
- * cap extracted content at MAX_TEXT_CHARS so a 500-page PDF doesn't
- * OOM the model. Anything past the cap is marked `truncated: true`
- * and we surface that to the user in the chip + to the model in the
- * attachment header.
+ * The instruct models we ship advertise long context in their cards,
+ * but WebLLM's q4f16_1 prebuilts bake a 4096-token window for GPU
+ * memory. We cap extracted content at MAX_TEXT_CHARS so a 500-page PDF
+ * doesn't OOM the model. Anything past the cap is marked
+ * `truncated: true` and we surface that to the user in the chip + to
+ * the model in the attachment header.
  */
 
 /**
@@ -33,13 +33,12 @@ const PDFJS_WORKER_URL = `https://esm.run/pdfjs-dist@${PDFJS_VERSION}/build/pdf.
  * Conservative limits so a single document never blows past the model's
  * context window.
  *
- * The Hermes-3-Llama-3.1-8B q4f16_1 WebLLM build ships with a 4096-token
- * `context_window_size`. The base model supports 128k, but the prebuilt
- * MLC artifact bakes the smaller window for GPU-memory reasons. After
- * the system prompt (~600 tokens incl. the apps catalog), a couple of
- * prior turns, and ~500 tokens reserved for the assistant's reply, we
- * have roughly ~2500 tokens of headroom for the user's message —
- * about 8–9 KB of English text.
+ * The WebLLM q4f16_1 artifacts we load ship with a 4096-token
+ * `context_window_size` (the base models are often much longer; the
+ * prebuilt WASM bakes the smaller window for GPU-memory reasons). After
+ * the system prompt, a couple of prior turns, and ~500 tokens reserved
+ * for the assistant's reply, we have roughly ~2500 tokens of headroom
+ * for the user's message — about 8–9 KB of English text.
  *
  * 6000 chars (≈1500 tokens) keeps room for the user's typed question
  * plus a few earlier turns of history without overflowing.
@@ -52,14 +51,63 @@ const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB filesystem-side cap; PDFs are 
  * always set a useful mime for code files dropped from Finder/Explorer.
  */
 const TEXT_EXTENSIONS = new Set([
-  '.txt', '.md', '.markdown', '.rst', '.log', '.csv', '.tsv', '.json',
-  '.xml', '.html', '.htm', '.svg', '.yml', '.yaml', '.toml', '.ini',
-  '.cfg', '.conf', '.env',
-  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.css', '.scss', '.less',
-  '.py', '.rb', '.go', '.rs', '.java', '.kt', '.swift', '.c', '.cc',
-  '.cpp', '.cxx', '.h', '.hpp', '.cs', '.php', '.lua', '.r', '.scala',
-  '.sh', '.bash', '.zsh', '.fish', '.ps1', '.bat', '.cmd',
-  '.sql', '.gql', '.graphql', '.proto'
+  '.txt',
+  '.md',
+  '.markdown',
+  '.rst',
+  '.log',
+  '.csv',
+  '.tsv',
+  '.json',
+  '.xml',
+  '.html',
+  '.htm',
+  '.svg',
+  '.yml',
+  '.yaml',
+  '.toml',
+  '.ini',
+  '.cfg',
+  '.conf',
+  '.env',
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.css',
+  '.scss',
+  '.less',
+  '.py',
+  '.rb',
+  '.go',
+  '.rs',
+  '.java',
+  '.kt',
+  '.swift',
+  '.c',
+  '.cc',
+  '.cpp',
+  '.cxx',
+  '.h',
+  '.hpp',
+  '.cs',
+  '.php',
+  '.lua',
+  '.r',
+  '.scala',
+  '.sh',
+  '.bash',
+  '.zsh',
+  '.fish',
+  '.ps1',
+  '.bat',
+  '.cmd',
+  '.sql',
+  '.gql',
+  '.graphql',
+  '.proto'
 ]);
 
 /**
@@ -110,7 +158,9 @@ export async function loadDocument(file) {
   }
 
   throw new Error(
-    `Unsupported file type${mime ? ` (${mime})` : ''}. Try .txt, .md, .json, .csv, code files, or a PDF.`
+    `Unsupported file type${
+      mime ? ` (${mime})` : ''
+    }. Try .txt, .md, .json, .csv, code files, or a PDF.`
   );
 }
 
@@ -217,18 +267,14 @@ export function formatAttachmentForModel(a) {
     `filename: ${a.name}`,
     `type: ${a.kind === 'pdf' ? `PDF, ${a.pages || '?'} page(s)` : 'text'}`,
     a.truncated
-      ? `note: truncated — only the first ${a.content.length} characters of ${a.originalLength || '?'} are shown`
+      ? `note: truncated — only the first ${a.content.length} characters of ${
+          a.originalLength || '?'
+        } are shown`
       : null
   ]
     .filter(Boolean)
     .join('\n');
-  return [
-    '--- Attached document ---',
-    header,
-    '',
-    a.content,
-    '--- End of document ---'
-  ].join('\n');
+  return ['--- Attached document ---', header, '', a.content, '--- End of document ---'].join('\n');
 }
 
 /**

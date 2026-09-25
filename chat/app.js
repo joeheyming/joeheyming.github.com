@@ -27,7 +27,8 @@ import {
   probeWebGpu,
   probeAdapters,
   WEBLLM_DEFAULT_MODEL,
-  WEBLLM_DEFAULT_MODEL_SIZE
+  CHAT_MODELS,
+  getChatModel
 } from './webllm-adapter.js';
 import { loadDocument, formatAttachmentForModel, formatBytes } from './document-loader.js';
 
@@ -42,12 +43,16 @@ let loadHistory;
 let saveHistory;
 /** @type {() => void} */
 let clearHistory;
-/** @type {() => boolean} */
+/** @type {(modelId?: string) => boolean} */
 let hasInstalledModel;
-/** @type {() => void} */
+/** @type {(modelId?: string) => void} */
 let markModelInstalled;
-/** @type {() => void} */
+/** @type {(modelId?: string) => void} */
 let clearModelInstalledFlag;
+/** @type {() => string | null} */
+let loadSelectedModel;
+/** @type {(modelId: string) => void} */
+let saveSelectedModel;
 
 let scriptsCacheBust = '';
 
@@ -60,6 +65,8 @@ async function loadDynamicModules() {
   hasInstalledModel = storage.hasInstalledModel;
   markModelInstalled = storage.markModelInstalled;
   clearModelInstalledFlag = storage.clearModelInstalledFlag;
+  loadSelectedModel = storage.loadSelectedModel;
+  saveSelectedModel = storage.saveSelectedModel;
 }
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -71,6 +78,11 @@ const els = {
   emptyDefault: $('chat-empty-default'),
   install: $('chat-install'),
   installBtn: /** @type {HTMLButtonElement} */ ($('chat-install-btn')),
+  installTitle: $('chat-install-title'),
+  installBody: $('chat-install-body'),
+  model: /** @type {HTMLSelectElement | null} */ (
+    /** @type {unknown} */ (document.getElementById('chat-model'))
+  ),
   messages: $('chat-messages'),
   composer: /** @type {HTMLFormElement} */ ($('chat-composer')),
   input: /** @type {HTMLTextAreaElement} */ ($('chat-input')),
@@ -124,6 +136,14 @@ let pendingAttachments = [];
  * of racing.
  */
 let modelReadyPromise = /** @type {Promise<boolean> | null} */ (null);
+
+/**
+ * Currently-selected WebLLM model. Persisted; first-time visitors get
+ * Llama 3.2 3B. Returning visitors who already installed Hermes 8B
+ * before the picker existed stay on Hermes so we don't force a second
+ * multi-GB download.
+ */
+let selectedModelId = WEBLLM_DEFAULT_MODEL;
 
 // -------------------- System prompt --------------------
 
@@ -423,18 +443,67 @@ function refreshModeLine(state, detail) {
     els.modeLine.textContent = detail ? `Loading model · ${detail}` : 'Loading model…';
     return;
   }
-  const modelLabel = WEBLLM_DEFAULT_MODEL.replace('-MLC', '');
-  if (isWebLlmReady()) {
+  const info = getChatModel(selectedModelId);
+  if (isWebLlmReady(selectedModelId)) {
     const gpuSuffix = gpuLabel ? ` · GPU: ${gpuLabel}` : '';
-    els.modeLine.textContent = `Local · ${modelLabel}${gpuSuffix}`;
+    els.modeLine.textContent = `Local · ${info.label}${gpuSuffix}`;
     return;
   }
-  els.modeLine.textContent = `Local · ${WEBLLM_DEFAULT_MODEL_SIZE} install required`;
+  els.modeLine.textContent = `Local · ${info.label} (${info.sizeLabel}) — install required`;
 }
 
 function setInstallCardVisible(visible) {
   if (els.install) els.install.hidden = !visible;
   if (els.emptyDefault) els.emptyDefault.hidden = visible;
+}
+
+/**
+ * @param {string} s
+ */
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function applySelectedModel() {
+  const info = getChatModel(selectedModelId);
+
+  if (els.installTitle) {
+    els.installTitle.textContent = `Install ${info.label}`;
+  }
+  if (els.installBody) {
+    const safeLabel = escapeHtml(info.label);
+    const safeSize = escapeHtml(info.sizeLabel);
+    const safeDesc = escapeHtml(info.description);
+    els.installBody.innerHTML =
+      `${safeDesc} Install adds <strong>${safeLabel}</strong> (${safeSize}) to your browser. ` +
+      `The full model runs on your GPU — no backend, no API key. After installing, chat is instant and works offline.`;
+  }
+  if (els.installBtn) {
+    els.installBtn.textContent = `Install ${info.label} (${info.sizeLabel})`;
+  }
+
+  refreshModeLine();
+
+  if (isWebLlmReady(selectedModelId)) {
+    setInstallCardVisible(false);
+    return;
+  }
+
+  if (hasInstalledModel(selectedModelId)) {
+    setInstallCardVisible(false);
+    void ensureModelReady({ silent: true });
+    return;
+  }
+
+  // Cold model — show the install card. Re-enable the button in case a
+  // previous successful install left it disabled.
+  if (els.installBtn) els.installBtn.disabled = false;
+  setInstallCardVisible(true);
 }
 
 /**
@@ -448,10 +517,11 @@ function setInstallCardVisible(visible) {
  * @returns {Promise<boolean>}
  */
 function ensureModelReady(opts = {}) {
-  if (isWebLlmReady()) return Promise.resolve(true);
+  if (isWebLlmReady(selectedModelId)) return Promise.resolve(true);
   if (modelReadyPromise) return modelReadyPromise;
 
   const silent = !!opts.silent;
+  const targetModel = selectedModelId;
   modelReadyPromise = (async () => {
     if (!silent) {
       const confirmed = await confirmDownload();
@@ -462,6 +532,7 @@ function ensureModelReady(opts = {}) {
     const progress = silent ? null : openDownloadDialog();
     const installBtnWasDisabled = els.installBtn?.disabled;
     if (els.installBtn) els.installBtn.disabled = true;
+    if (els.model) els.model.disabled = true;
 
     try {
       await initWebLlm((report) => {
@@ -470,8 +541,8 @@ function ensureModelReady(opts = {}) {
         } else {
           refreshModeLine('loading', report.text);
         }
-      });
-      markModelInstalled();
+      }, targetModel);
+      markModelInstalled(targetModel);
       setInstallCardVisible(false);
       progress?.close();
       void identifyAndAnnounceGpu();
@@ -481,7 +552,7 @@ function ensureModelReady(opts = {}) {
     } catch (err) {
       progress?.close();
       const message = err && /** @type {Error} */ (err).message;
-      clearModelInstalledFlag();
+      clearModelInstalledFlag(targetModel);
       setInstallCardVisible(true);
       if (els.installBtn) els.installBtn.disabled = installBtnWasDisabled ?? false;
       if (silent) {
@@ -492,6 +563,7 @@ function ensureModelReady(opts = {}) {
       refreshModeLine();
       return false;
     } finally {
+      if (els.model) els.model.disabled = false;
       modelReadyPromise = null;
     }
   })();
@@ -598,6 +670,7 @@ async function send(text) {
   els.send.hidden = true;
   els.stop.hidden = false;
   els.input.disabled = true;
+  if (els.model) els.model.disabled = true;
 
   const wireMessages = buildWireMessages(finalText, sendAttachments);
 
@@ -650,6 +723,7 @@ async function send(text) {
     els.send.hidden = false;
     els.stop.hidden = true;
     els.input.disabled = false;
+    if (els.model) els.model.disabled = false;
     els.input.focus();
   }
 }
@@ -658,12 +732,15 @@ async function send(text) {
 
 function confirmDownload() {
   return new Promise((resolve) => {
+    const info = getChatModel(selectedModelId);
     const modal = document.createElement('div');
     modal.className = 'chat-modal';
     modal.innerHTML = `
       <div class="chat-modal-box" role="dialog" aria-modal="true">
         <h2>One-time setup</h2>
-        <p>This chat runs entirely on your device — no backend, no API key. To do that, your browser needs to download a small language model (${WEBLLM_DEFAULT_MODEL_SIZE}) and cache it for future visits.</p>
+        <p>This chat runs entirely on your device — no backend, no API key. To do that, your browser needs to download ${escapeHtml(
+          info.label
+        )} (${escapeHtml(info.sizeLabel)}) and cache it for future visits.</p>
         <p>After the download, chat is instant and works offline.</p>
         <div class="chat-modal-actions">
           <button type="button" data-action="cancel">Not now</button>
@@ -758,6 +835,19 @@ function wireEvents() {
     void ensureModelReady({ silent: false });
   });
 
+  els.model?.addEventListener('change', () => {
+    const next = els.model?.value;
+    if (!next || !CHAT_MODELS[next]) return;
+    if (currentTurn || modelReadyPromise) {
+      if (els.model) els.model.value = selectedModelId;
+      notify('Wait for the current reply or install to finish before switching models.', 'warn');
+      return;
+    }
+    selectedModelId = next;
+    saveSelectedModel(next);
+    applySelectedModel();
+  });
+
   els.reloadBtn?.addEventListener('click', () => {
     void refreshScripts();
   });
@@ -826,6 +916,7 @@ function showWebGpuGate(probe) {
   els.input.placeholder = 'WebGPU required — see banner above.';
   els.send.disabled = true;
   if (els.attachBtn) els.attachBtn.disabled = true;
+  if (els.model) els.model.disabled = true;
   refreshModeLine('unsupported');
 }
 
@@ -833,6 +924,16 @@ async function boot() {
   await loadDynamicModules();
   history = loadHistory();
   renderInitialHistory();
+
+  const savedModel = loadSelectedModel();
+  if (savedModel && CHAT_MODELS[savedModel]) {
+    selectedModelId = savedModel;
+  } else if (hasInstalledModel('Hermes-3-Llama-3.1-8B-q4f16_1-MLC')) {
+    // Pre-picker visitors already paid for Hermes; keep them there.
+    selectedModelId = 'Hermes-3-Llama-3.1-8B-q4f16_1-MLC';
+  }
+  if (els.model) els.model.value = selectedModelId;
+
   wireEvents();
   autoResize();
 
@@ -842,14 +943,7 @@ async function boot() {
     showWebGpuGate(probe);
     return;
   }
-  refreshModeLine();
-
-  if (hasInstalledModel()) {
-    setInstallCardVisible(false);
-    void ensureModelReady({ silent: true });
-  } else {
-    setInstallCardVisible(true);
-  }
+  applySelectedModel();
 }
 
 void boot();

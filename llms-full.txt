@@ -141,9 +141,9 @@ Calculator
 
 ### [Chat 🤖](https://joeheyming.github.io/chat/)
 
-Static-site LLM agent powered by WebLLM. The full model (Hermes-3-Llama-3.1-8B) runs on your GPU via WebGPU — no backend, no API key, no third-party LLM endpoint. Install once (~4.5 GB into your browser's OPFS cache); after that, chat is instant and works offline. Knows the HeymingOS app registry, can launch apps for you, and can read files in your virtual filesystem.
+Static-site LLM chat powered by WebLLM. Llama 3.2 3B runs on your GPU via WebGPU by default (~1.8 GB into OPFS); Hermes-3-Llama-3.1-8B is an optional quality model (~4.5 GB). No backend, no API key, no third-party LLM endpoint. After the first install, chat is instant and works offline. Drop in a text file or PDF and talk about it.
 
-Tags: ai, assistant, chat, llm, agent
+Tags: ai, assistant, chat, llm, webgpu
 
 ### [Clock 🕐](https://joeheyming.github.io/clock/)
 
