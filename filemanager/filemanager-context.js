@@ -20,6 +20,12 @@ export function applyFileManagerContext(FileManager) {
 
       await this._populateOpenWithMenu();
 
+      const inTrash = this.currentPath === (this.cfg.TRASH || '/Trash');
+      const restoreEl = document.getElementById('ctx-restore');
+      const emptyEl = document.getElementById('ctx-empty-trash');
+      restoreEl?.classList.toggle('hidden', !inTrash || this.selectedItems.size === 0);
+      emptyEl?.classList.toggle('hidden', !inTrash);
+
       // Adjust if menu goes off screen (after dynamic "Open with" rows)
       const rect = menu.getBoundingClientRect();
       if (rect.right > window.innerWidth) {
@@ -212,6 +218,12 @@ export function applyFileManagerContext(FileManager) {
           break;
         case 'delete':
           this.deleteSelected();
+          break;
+        case 'restore':
+          this.restoreSelected();
+          break;
+        case 'empty-trash':
+          this.emptyTrash();
           break;
         case 'copy':
           this.copySelected();

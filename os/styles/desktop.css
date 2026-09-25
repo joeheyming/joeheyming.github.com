@@ -50,24 +50,23 @@
   transition: background var(--motion-hover), color var(--motion-hover);
 }
 
-/* Dragging state for file icons */
-.desktop-icon.file-icon[draggable='true'] {
+.desktop-icon[draggable='true'] {
   cursor: grab;
 }
 
-.desktop-icon.file-icon:active {
+.desktop-icon[draggable='true']:active {
   cursor: grabbing;
   opacity: 0.7;
   transform: scale(0.95);
 }
 
-.desktop-icon.file-icon.selected {
+.desktop-icon.selected {
   background: var(--accent-primary-soft);
   border-radius: var(--radius-sm);
   outline: 2px solid var(--accent-primary);
 }
 
-.desktop-icon.file-icon.selected .label {
+.desktop-icon.selected .label {
   background: var(--accent-primary-bg);
   color: var(--text-on-accent);
 }
@@ -80,7 +79,7 @@
   box-shadow: 0 0 0 4px var(--focus-ring-outer);
 }
 
-.desktop-icon.file-icon.selected:focus-visible {
+.desktop-icon.selected:focus-visible {
   outline-color: var(--accent-primary-hover);
 }
 

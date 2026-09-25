@@ -17,8 +17,19 @@ export class FileManager {
       }
     };
     const _u = _su() || 'user';
-    this.cfg = window.parent?.HeymingOS?.Config || { HOME: `/home/${_u}`, USER: _u };
+    this.cfg = window.parent?.HeymingOS?.Config || {
+      HOME: `/home/${_u}`,
+      USER: _u,
+      DESKTOP: `/home/${_u}/Desktop`,
+      TRASH: '/Trash'
+    };
     this.currentPath = this.cfg.HOME;
+    const hash = (typeof location !== 'undefined' ? location.hash : '').replace(/^#/, '');
+    if (hash) {
+      const params = new URLSearchParams(hash);
+      const p = params.get('path');
+      if (p) this.currentPath = p;
+    }
     this.history = [this.currentPath];
     this.historyIndex = 0;
     this.selectedItems = new Set();

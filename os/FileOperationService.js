@@ -4,8 +4,12 @@
  */
 
 import { ClipboardService } from './ClipboardService.js';
+import { confirmAction, promptName } from './OsDialog.js';
+import { TRASH_PATH, allPathsInTrash, isProtectedTrashRoot, isTrashPath } from './trash.js';
 
 export const FileOperationService = {
+  TRASH_PATH,
+
   /**
    * Copy files to clipboard
    * @param {FileSystemDB} fs - Filesystem instance
@@ -58,7 +62,6 @@ export const FileOperationService = {
         const fileName = fs.getFileName(sourcePath);
         let destPath = fs.joinPath(destDir, fileName);
 
-        // Get unique path if file exists
         destPath = await fs.getUniquePath(destPath);
         const actualName = fs.getFileName(destPath);
 
@@ -71,7 +74,6 @@ export const FileOperationService = {
         results.push(actualName);
       }
 
-      // Clear clipboard if cut
       if (operation === 'cut') {
         ClipboardService.clear();
       }
@@ -87,34 +89,163 @@ export const FileOperationService = {
   },
 
   /**
-   * Delete files
-   * @param {FileSystemDB} fs - Filesystem instance
-   * @param {string[]} paths - Array of file paths to delete
-   * @param {boolean} confirm - Whether to show confirmation
-   * @returns {Promise<{ success: boolean, count: number, message: string }>}
+   * @param {FileSystemDB} fs
    */
-  async delete(fs, paths, confirm = true) {
+  async ensureTrash(fs) {
+    const existing = await fs.getItem(TRASH_PATH);
+    if (!existing) {
+      await fs.mkdir(TRASH_PATH);
+      return;
+    }
+    if (existing.type !== 'directory') {
+      throw new Error('Trash path exists and is not a folder');
+    }
+  },
+
+  /**
+   * Soft-delete to Trash, or permanently delete items already in Trash.
+   * @param {FileSystemDB} fs
+   * @param {string[]} paths
+   * @param {boolean | { confirm?: boolean, confirmFn?: (msg: string) => boolean | Promise<boolean> }} [confirmOrOpts]
+   * @returns {Promise<{ success: boolean, count: number, message: string, permanent?: boolean }>}
+   */
+  async delete(fs, paths, confirmOrOpts = true) {
     if (!paths || paths.length === 0) {
       return { success: false, count: 0, message: '' };
     }
 
-    const count = paths.length;
-    const confirmMsg =
-      count === 1 ? `Delete "${fs.getFileName(paths[0])}"?` : `Delete ${count} items?`;
+    const opts =
+      typeof confirmOrOpts === 'boolean' ? { confirm: confirmOrOpts } : confirmOrOpts || {};
+    const shouldConfirm = opts.confirm !== false;
+    const confirmFn =
+      opts.confirmFn ||
+      ((msg) =>
+        confirmAction({
+          title: 'Delete',
+          message: msg,
+          confirmLabel: 'Delete'
+        }));
 
-    if (confirm && !window.confirm(confirmMsg)) {
-      return { success: false, count: 0, message: '' };
+    const unique = [...new Set(paths.filter((p) => p && !isProtectedTrashRoot(p)))];
+    if (unique.length === 0) {
+      return { success: false, count: 0, message: 'Cannot delete Trash' };
+    }
+
+    const permanent = allPathsInTrash(unique);
+    const count = unique.length;
+    const confirmMsg = permanent
+      ? count === 1
+        ? `Permanently delete "${fs.getFileName(unique[0])}"?`
+        : `Permanently delete ${count} items?`
+      : count === 1
+      ? `Move "${fs.getFileName(unique[0])}" to Trash?`
+      : `Move ${count} items to Trash?`;
+
+    if (shouldConfirm) {
+      const ok = await confirmFn(confirmMsg);
+      if (!ok) {
+        return { success: false, count: 0, message: '' };
+      }
     }
 
     try {
-      for (const path of paths) {
-        await fs.deleteItem(path);
+      if (permanent) {
+        for (const path of unique) {
+          await fs.deleteItem(path, true);
+        }
+        const name = count === 1 ? fs.getFileName(unique[0]) : `${count} items`;
+        return {
+          success: true,
+          count,
+          permanent: true,
+          message: `🗑️ Deleted: ${name}`
+        };
       }
 
-      const name = count === 1 ? fs.getFileName(paths[0]) : `${count} items`;
-      return { success: true, count, message: `🗑️ Deleted: ${name}` };
+      await this.ensureTrash(fs);
+      for (const path of unique) {
+        if (isTrashPath(path)) {
+          await fs.deleteItem(path, true);
+          continue;
+        }
+        const dest = await fs.getUniquePath(`${TRASH_PATH}/${fs.getFileName(path)}`);
+        await fs.moveItem(path, dest);
+      }
+
+      const name = count === 1 ? fs.getFileName(unique[0]) : `${count} items`;
+      return { success: true, count, permanent: false, message: `🗑️ Moved to Trash: ${name}` };
     } catch (error) {
       return { success: false, count: 0, message: `❌ Delete failed: ${error.message}` };
+    }
+  },
+
+  /**
+   * Restore items from Trash to destDir (defaults to parent of destDir join).
+   * @param {FileSystemDB} fs
+   * @param {string[]} paths
+   * @param {string} destDir
+   */
+  async restore(fs, paths, destDir) {
+    if (!paths || paths.length === 0) {
+      return { success: false, count: 0, message: '' };
+    }
+    const unique = paths.filter((p) => isTrashPath(p) && !isProtectedTrashRoot(p));
+    if (unique.length === 0) {
+      return { success: false, count: 0, message: 'Nothing to restore' };
+    }
+
+    try {
+      let successCount = 0;
+      for (const path of unique) {
+        const dest = await fs.getUniquePath(
+          `${destDir.replace(/\/$/, '')}/${fs.getFileName(path)}`
+        );
+        await fs.moveItem(path, dest);
+        successCount++;
+      }
+      const name = successCount === 1 ? fs.getFileName(unique[0]) : `${successCount} items`;
+      return { success: true, count: successCount, message: `↩️ Restored: ${name}` };
+    } catch (error) {
+      return { success: false, count: 0, message: `❌ Restore failed: ${error.message}` };
+    }
+  },
+
+  /**
+   * Permanently delete everything in Trash.
+   * @param {FileSystemDB} fs
+   * @param {{ confirm?: boolean, confirmFn?: (msg: string) => boolean | Promise<boolean> }} [opts]
+   */
+  async emptyTrash(fs, opts = {}) {
+    const shouldConfirm = opts.confirm !== false;
+    const confirmFn =
+      opts.confirmFn ||
+      ((msg) =>
+        confirmAction({
+          title: 'Empty Trash',
+          message: msg,
+          confirmLabel: 'Empty Trash'
+        }));
+
+    if (shouldConfirm) {
+      const ok = await confirmFn('Permanently delete all items in Trash?');
+      if (!ok) {
+        return { success: false, count: 0, message: '' };
+      }
+    }
+
+    try {
+      await this.ensureTrash(fs);
+      const children = await fs.listDirectory(TRASH_PATH);
+      for (const child of children) {
+        await fs.deleteItem(child.path, true);
+      }
+      return {
+        success: true,
+        count: children.length,
+        message: children.length ? `🗑️ Emptied Trash (${children.length})` : 'Trash is empty'
+      };
+    } catch (error) {
+      return { success: false, count: 0, message: `❌ Empty Trash failed: ${error.message}` };
     }
   },
 
@@ -122,12 +253,19 @@ export const FileOperationService = {
    * Rename a file
    * @param {FileSystemDB} fs - Filesystem instance
    * @param {string} path - File path to rename
-   * @param {string} newName - New filename (optional, will prompt if not provided)
+   * @param {string} [newName] - New filename (prompts if omitted)
    * @returns {Promise<{ success: boolean, newPath: string, message: string }>}
    */
   async rename(fs, path, newName = null) {
     const oldName = fs.getFileName(path);
-    const finalName = newName || window.prompt('Rename file:', oldName);
+    let finalName = newName;
+    if (!finalName) {
+      finalName = await promptName({
+        title: 'Rename',
+        defaultValue: oldName,
+        confirmLabel: 'Rename'
+      });
+    }
 
     if (!finalName || finalName === oldName) {
       return { success: false, newPath: path, message: '' };
@@ -164,12 +302,10 @@ export const FileOperationService = {
         const fileName = fs.getFileName(sourcePath);
         const destPath = fs.joinPath(destDir, fileName);
 
-        // Skip if file is already in destination (dropping on same location)
         if (sourceDir === destDir && action === 'move') {
           continue;
         }
 
-        // Get unique path if destination exists (but not if it's the same file)
         let finalPath = destPath;
         if (sourcePath !== destPath) {
           finalPath = await fs.getUniquePath(destPath);
@@ -184,7 +320,7 @@ export const FileOperationService = {
       }
 
       if (successCount === 0) {
-        return { success: true, count: 0, message: '' }; // No-op, not an error
+        return { success: true, count: 0, message: '' };
       }
 
       const verb = action === 'move' ? 'Moved' : 'Copied';

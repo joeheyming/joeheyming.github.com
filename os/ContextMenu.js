@@ -570,23 +570,15 @@ export class ContextMenu {
   }
 
   async _deleteFile(file) {
-    const fileName = this.os.fileSystemDB?.getFileName(file.path) || file.path.split('/').pop();
-
-    // Confirm deletion
-    if (!confirm(`Delete "${fileName}"?`)) {
-      return;
+    const FileOps = window.HeymingOS?.FileOperationService;
+    const fs = this.os.fileSystemDB;
+    if (!FileOps || !fs) return;
+    const result = await FileOps.delete(fs, [file.path], true);
+    if (result.message) {
+      this.os.notifications[result.success ? 'system' : 'error'](result.message);
     }
-
-    try {
-      const fs = this.os.fileSystemDB;
-      if (!fs) return;
-
-      await fs.deleteItem(file.path);
-      this.os.desktop.refresh();
-      this.os.notifications.system(`Deleted: ${fileName}`);
-    } catch (error) {
-      console.error('Failed to delete file:', error);
-      this.os.notifications.system(`Failed to delete: ${fileName}`);
+    if (result.success) {
+      this.os.desktop?.refresh();
     }
   }
 

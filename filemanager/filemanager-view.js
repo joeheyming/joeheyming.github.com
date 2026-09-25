@@ -168,7 +168,11 @@ export function applyFileManagerView(FileManager) {
                 }
 
                 try {
-                  await this._performFileOperation(fileData.path, destPath, fileData.action);
+                  await this._performFileOperation(
+                    fileData.path,
+                    destPath,
+                    fileData.action === 'copy' ? 'copy' : 'move'
+                  );
                   await this.refresh();
                 } catch (error) {
                   console.error('Drop failed:', error);

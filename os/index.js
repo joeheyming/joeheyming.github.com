@@ -39,6 +39,7 @@ import { ContextMenu } from './ContextMenu.js';
 import { FileDialog } from './FileDialog.js';
 import { Screensaver } from './Screensaver.js';
 import { Prefs } from './prefs.js';
+import { OsDialog } from './OsDialog.js';
 
 // Main orchestrator
 import { HeymingOS } from './HeymingOS.js';
@@ -66,6 +67,7 @@ const OS = {
   FileDialog,
   Screensaver,
   Prefs,
+  OsDialog,
   HeymingOS,
 
   // Utilities
@@ -113,6 +115,7 @@ export {
   FileDialog,
   Screensaver,
   Prefs,
+  OsDialog,
   HeymingOS,
   debug,
   getConfig,

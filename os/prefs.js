@@ -3,6 +3,8 @@
  * Theme stays in `hos-theme` so the home page switcher stays in sync.
  */
 
+import { normalizeIconLayout } from './desktop-layout.js';
+
 export const PREFS_KEY = 'heymingOS_prefs';
 export const THEME_KEY = 'hos-theme';
 export const MAX_WALLPAPER_DATA_URL = 2048;
@@ -21,7 +23,7 @@ export const TIGER_URL = '/assets/ghostscript_tiger.svg';
 
 /** @typedef {{ source: 'preset'|'vfs'|'color', id?: string, path?: string, color?: string, fit: string }} WallpaperPref */
 /** @typedef {{ enabled: boolean, timeoutMs: number, style: string }} ScreensaverPref */
-/** @typedef {{ wallpaper: WallpaperPref, theme: string, iconSize: string, clockShowSeconds: boolean, screensaver: ScreensaverPref }} OsPrefs */
+/** @typedef {{ wallpaper: WallpaperPref, theme: string, iconSize: string, clockShowSeconds: boolean, screensaver: ScreensaverPref, desktopIconLayout: Record<string, { x: number, y: number }> }} OsPrefs */
 
 /** @type {Record<string, { label: string, kind: 'glow'|'image'|'solid', image?: string, color?: string }>} */
 export const WALLPAPER_PRESETS = {
@@ -41,7 +43,8 @@ export const DEFAULT_PREFS = Object.freeze({
     enabled: false,
     timeoutMs: 120000,
     style: 'clock'
-  })
+  }),
+  desktopIconLayout: Object.freeze({})
 });
 
 /**
@@ -97,7 +100,9 @@ export function normalizePrefs(raw) {
       : DEFAULT_PREFS.screensaver.style
   };
 
-  return { wallpaper, theme, iconSize, clockShowSeconds, screensaver };
+  const desktopIconLayout = normalizeIconLayout(src.desktopIconLayout);
+
+  return { wallpaper, theme, iconSize, clockShowSeconds, screensaver, desktopIconLayout };
 }
 
 /**

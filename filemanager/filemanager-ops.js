@@ -124,6 +124,34 @@ export function applyFileManagerOps(FileManager) {
       }
     },
 
+    async restoreSelected() {
+      if (this.selectedItems.size === 0) return;
+      const FileOps = window.parent?.HeymingOS?.FileOperationService;
+      const dest = this.cfg.DESKTOP || `${this.cfg.HOME}/Desktop`;
+      if (FileOps) {
+        const result = await FileOps.restore(this.fs, [...this.selectedItems], dest);
+        if (result.message) this._notify(result.message, result.success ? 'info' : 'error');
+        if (result.success) {
+          this.selectedItems.clear();
+          this.refresh();
+          this.notifyOSFileChange();
+        }
+      }
+    },
+
+    async emptyTrash() {
+      const FileOps = window.parent?.HeymingOS?.FileOperationService;
+      if (FileOps) {
+        const result = await FileOps.emptyTrash(this.fs);
+        if (result.message) this._notify(result.message, result.success ? 'info' : 'error');
+        if (result.success) {
+          this.selectedItems.clear();
+          this.refresh();
+          this.notifyOSFileChange();
+        }
+      }
+    },
+
     async deleteSelected() {
       if (this.selectedItems.size === 0) return;
 

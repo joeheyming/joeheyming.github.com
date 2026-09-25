@@ -12,7 +12,8 @@ export function applyFileManagerNav(FileManager) {
             { name: '⬇️ Downloads', path: `${this.cfg.HOME}/Downloads` },
             { name: '🖼️ Pictures', path: `${this.cfg.HOME}/Pictures` },
             { name: '🎵 Music', path: `${this.cfg.HOME}/Music` },
-            { name: '🎬 Videos', path: `${this.cfg.HOME}/Videos` }
+            { name: '🎬 Videos', path: `${this.cfg.HOME}/Videos` },
+            { name: '🗑️ Trash', path: this.cfg.TRASH || '/Trash' }
           ];
 
       const section = document.getElementById('quick-access-section');

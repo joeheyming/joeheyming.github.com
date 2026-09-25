@@ -612,6 +612,10 @@ body {
   display: none;
 }
 
+#context-menu .menu-item.hidden {
+  display: none;
+}
+
 .menu-item {
   padding: 8px 16px;
   cursor: pointer;

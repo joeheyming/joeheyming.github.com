@@ -15,6 +15,7 @@ interface HeymingOSConfig {
   PICTURES?: string;
   MUSIC?: string;
   VIDEOS?: string;
+  TRASH?: string;
   getQuickAccess?(): Array<{ name: string; path: string; icon: string }>;
 }
 
@@ -40,6 +41,7 @@ interface HeymingOSNamespace {
   FileDialog?: typeof import('../os/FileDialog').FileDialog;
   Screensaver?: typeof import('../os/Screensaver').Screensaver;
   Prefs?: typeof import('../os/prefs.js').Prefs;
+  OsDialog?: typeof import('../os/OsDialog.js').OsDialog;
   HeymingOS?: typeof import('../os/HeymingOS').HeymingOS;
   instance?: import('../terminal/core/heyming-os').HeymingOS;
   debug?: (...args: unknown[]) => void;

@@ -83,6 +83,13 @@ export function applyFileSystemDbScaffold(FileSystemDB) {
           modified: new Date()
         },
         {
+          path: '/Trash',
+          type: 'directory',
+          parentPath: '/',
+          created: new Date(),
+          modified: new Date()
+        },
+        {
           path: `${homeDir}/Videos/Never Gonna Give You Up.ytlink`,
           type: 'file',
           parentPath: `${homeDir}/Videos`,

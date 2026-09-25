@@ -79,6 +79,9 @@ export const Config = {
   get VIDEOS() {
     return `${this.HOME}/Videos`;
   },
+  get TRASH() {
+    return '/Trash';
+  },
 
   // Debug settings
   DEBUG: false,
@@ -92,7 +95,8 @@ export const Config = {
       { name: '⬇️ Downloads', path: this.DOWNLOADS },
       { name: '🖼️ Pictures', path: this.PICTURES },
       { name: '🎵 Music', path: this.MUSIC },
-      { name: '🎬 Videos', path: this.VIDEOS }
+      { name: '🎬 Videos', path: this.VIDEOS },
+      { name: '🗑️ Trash', path: this.TRASH }
     ];
   }
 };

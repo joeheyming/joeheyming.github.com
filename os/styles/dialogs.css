@@ -890,3 +890,80 @@
   background: var(--surface-2);
   color: var(--text-1);
 }
+
+.os-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--scrim);
+}
+
+.os-prompt-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  width: min(360px, 90vw);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 16%, transparent);
+}
+
+.os-prompt-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--text-1);
+}
+
+.os-prompt-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.os-prompt-message {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.os-prompt-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  padding: 8px 10px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-size: 14px;
+}
+
+.os-prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.os-prompt-cancel,
+.os-prompt-ok {
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.os-prompt-cancel {
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-1);
+  color: var(--text-2);
+}
+
+.os-prompt-ok {
+  border: 1px solid var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+}

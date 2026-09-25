@@ -59,7 +59,7 @@ export function applyFileManagerDnd(FileManager) {
 
       // Support both single path and multiple paths
       const paths = fileData.paths || [fileData.path];
-      const action = fileData.action || 'move';
+      const action = fileData.action === 'copy' ? 'copy' : 'move';
       let successCount = 0;
 
       try {
@@ -132,7 +132,7 @@ export function applyFileManagerDnd(FileManager) {
       try {
         // Support both single path and multiple paths
         const paths = fileData.paths || [fileData.path];
-        const action = fileData.action || 'move';
+        const action = fileData.action === 'copy' ? 'copy' : 'move';
         let successCount = 0;
 
         for (const sourcePath of paths) {

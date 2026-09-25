@@ -473,6 +473,10 @@ export class HeymingOS {
     if (this.fileSystemDB) {
       try {
         const full = await this.fileSystemDB.getItem(file.path);
+        if (full && full.type === 'directory') {
+          this.launchApp('filemanager', { hash: `path=${encodeURIComponent(full.path)}` });
+          return;
+        }
         if (full && full.type === 'file') {
           item = full;
           if (file.mimeType && !item.mimeType) {

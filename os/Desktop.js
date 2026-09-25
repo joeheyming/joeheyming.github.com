@@ -9,7 +9,21 @@ import { InputHandler } from './InputHandler.js';
 import { DragService } from './DragService.js';
 import { FileOperationService } from './FileOperationService.js';
 import { QuickLookPreview } from './QuickLookPreview.js';
-import { wallpaperStyleFor } from './prefs.js';
+import { loadPrefs, patchPrefs, wallpaperStyleFor } from './prefs.js';
+import { promptName } from './OsDialog.js';
+import {
+  appIconKey,
+  clampIconPosition,
+  defaultAppPosition,
+  defaultFilePosition,
+  desktopVfsItems,
+  dropPointToIconPosition,
+  packLayoutToGrid,
+  parseIconKey,
+  resolveIconPosition,
+  translateGroup,
+  vfsIconKey
+} from './desktop-layout.js';
 
 export class Desktop {
   constructor(onLaunchApp, onOpenFile) {
@@ -18,9 +32,11 @@ export class Desktop {
     this.desktop = null;
     this.fs = null;
     this.desktopPath = Config.DESKTOP;
-    this.fileIcons = []; // Track file icons for refresh
-    this.selectedFiles = new Set(); // Currently selected file paths
-    this.lastSelectedFile = null; // For shift-click range selection
+    this.fileIcons = []; // VFS icons on the desktop
+    this.appIcons = [];
+    this.selectedKeys = new Set();
+    this.lastSelectedKey = null;
+    this.iconLayout = {};
     this.C = Constants;
     this.Input = InputHandler;
 
@@ -49,16 +65,17 @@ export class Desktop {
     }
 
     // Get shared filesystem instance (singleton)
-    if (window.FileSystemDB) {
+    if (!this.fs && window.FileSystemDB) {
       this.fs = await window.FileSystemDB.getInstance();
     }
 
+    this.iconLayout = { ...loadPrefs().desktopIconLayout };
     this._setupDropZone();
     this._setupKeyboardShortcuts();
     this._setupSelectionHandling();
     this._setupDesktopIconFocusSync();
     this._setupDragSelection();
-    this._ensureAppModuleAndRenderIcons();
+    await this._ensureAppModuleAndRenderIcons();
 
     // Initialize Quick Look preview component
     this.quickLook = new QuickLookPreview(this.desktop, {
@@ -76,8 +93,11 @@ export class Desktop {
     const previousSize = this.iconSize;
     this.applyIconSize(prefs.iconSize);
     await this.applyWallpaper(prefs.wallpaper);
+    if (prefs.desktopIconLayout) {
+      this.iconLayout = { ...prefs.desktopIconLayout };
+    }
     if (previousSize !== this.iconSize) {
-      await this.arrangeIcons();
+      await this._renderIcons();
     }
   }
 
@@ -164,9 +184,12 @@ export class Desktop {
   }
 
   arrangeIcons() {
-    this.desktop?.querySelectorAll('.desktop-icon:not(.file-icon)').forEach((el) => el.remove());
-    this._createDesktopIcons();
-    return this._loadDesktopFiles();
+    const keys = this._iconElements()
+      .map((el) => el.dataset.iconKey)
+      .filter(Boolean);
+    const packed = packLayoutToGrid(keys, this._iconLayout(), this.C);
+    this._persistLayout(packed, true);
+    return this._renderIcons();
   }
 
   /**
@@ -174,12 +197,12 @@ export class Desktop {
    */
   async refresh() {
     this.desktopPath = Config.DESKTOP;
-    await this._loadDesktopFiles();
+    await this._renderIcons();
   }
 
   // ========== Private Methods ==========
 
-  _ensureAppModuleAndRenderIcons() {
+  async _ensureAppModuleAndRenderIcons() {
     if (typeof window.AppModule === 'undefined' || !window.__heymingAppRegistryReady) {
       console.error(
         '[Desktop] AppModule not ready — ensure mime-handlers.js and app.js load before the OS module.'
@@ -187,150 +210,149 @@ export class Desktop {
       return;
     }
     try {
-      this._createDesktopIcons();
-      this._loadDesktopFiles();
+      await this._renderIcons();
     } catch (error) {
       console.error('[Desktop] Failed to initialize icons:', error);
     }
   }
 
-  _createDesktopIcons() {
-    // Get all apps with desktopIcon: true from registry
-    const desktopApps = window.AppModule.getDesktopApps();
-    if (this.Input.isMobile()) {
-      // On mobile: all apps in a responsive grid (ignore fixed positions)
-      const layout = this._iconLayout();
-      const iconSpacingX = this.Input.isMobile() ? this.C.MOBILE_ICON_SPACING_X : layout.spacingX;
-      const iconSpacingY = this.Input.isMobile() ? this.C.MOBILE_ICON_SPACING_Y : layout.spacingY;
-      const startX = this.Input.isMobile() ? this.C.MOBILE_ICON_START_X : this.C.ICON_START_X;
-      const startY = this.Input.isMobile() ? this.C.MOBILE_ICON_START_Y : this.C.ICON_START_Y;
-      const iconsPerRow = this.Input.isMobile()
-        ? Math.max(
-            this.C.MOBILE_MIN_ICONS_PER_ROW,
-            Math.floor((window.innerWidth - this.C.MOBILE_ICON_MARGIN) / iconSpacingX)
-          )
-        : this.C.ICONS_PER_ROW;
-
-      desktopApps.forEach((app, index) => {
-        const row = Math.floor(index / iconsPerRow);
-        const col = index % iconsPerRow;
-
-        this._createAppIcon({
-          name: app.shortName,
-          icon: app.icon,
-          x: startX + col * iconSpacingX,
-          y: startY + row * iconSpacingY,
-          app: app.id
-        });
-      });
-    } else {
-      // On desktop: system apps at fixed positions, others in grid
-      const layout = this._iconLayout();
-      const systemApps = desktopApps.filter((app) => app.system && app.desktopPosition);
-      const regularApps = desktopApps.filter((app) => !app.system || !app.desktopPosition);
-
-      // Create system app icons at their fixed positions
-      systemApps.forEach((app) => {
-        this._createAppIcon({
-          name: app.shortName,
-          icon: app.icon,
-          x: app.desktopPosition.x,
-          y: app.desktopPosition.y,
-          app: app.id
-        });
-      });
-
-      // Create regular app icons in a grid
-      regularApps.forEach((app, index) => {
-        const row = Math.floor(index / this.C.ICONS_PER_ROW);
-        const col = index % this.C.ICONS_PER_ROW;
-
-        this._createAppIcon({
-          name: app.shortName,
-          icon: app.icon,
-          x: this.C.ICON_START_X + col * layout.spacingX,
-          y: this.C.ICON_START_Y + row * layout.spacingY,
-          app: app.id
-        });
-      });
-    }
+  _mobileLayout() {
+    const spacingX = this.C.MOBILE_ICON_SPACING_X;
+    return {
+      startX: this.C.MOBILE_ICON_START_X,
+      startY: this.C.MOBILE_ICON_START_Y,
+      spacingX,
+      spacingY: this.C.MOBILE_ICON_SPACING_Y,
+      iconsPerRow: Math.max(
+        this.C.MOBILE_MIN_ICONS_PER_ROW,
+        Math.floor((window.innerWidth - this.C.MOBILE_ICON_MARGIN) / spacingX)
+      )
+    };
   }
 
-  async _loadDesktopFiles() {
-    if (!this.fs) return;
+  _iconBounds() {
+    const layout = this._iconLayout();
+    return {
+      minX: 0,
+      minY: 0,
+      maxX: Math.max(0, window.innerWidth - layout.tile),
+      maxY: Math.max(0, window.innerHeight - this.C.TASKBAR_HEIGHT - layout.tile - 24)
+    };
+  }
+
+  _iconElements() {
+    return Array.from(this.desktop?.querySelectorAll('.desktop-icon') || []);
+  }
+
+  _vfsPathsFromSelection() {
+    const paths = [];
+    for (const key of this.selectedKeys) {
+      const parsed = parseIconKey(key);
+      if (parsed?.kind === 'vfs') paths.push(parsed.path);
+    }
+    return paths;
+  }
+
+  _persistLayout(partial, replace = false) {
+    this.iconLayout = replace ? { ...partial } : { ...this.iconLayout, ...partial };
+    patchPrefs({ desktopIconLayout: this.iconLayout });
+  }
+
+  async _renderIcons() {
+    if (!this.desktop) return;
 
     this._invalidateDragSelectionGeometry();
-
-    // Remove existing file icons
-    this.fileIcons.forEach((icon) => icon.remove());
+    this._iconElements().forEach((el) => el.remove());
     this.fileIcons = [];
+    this.appIcons = [];
 
-    try {
-      const items = await this.fs.listDirectory(this.desktopPath);
-      const files = items.filter((item) => item.type === 'file');
-      if (this.Input.isMobile()) {
-        // On mobile, place files below app icons in a grid
-        const desktopApps = window.AppModule?.getDesktopApps() || [];
-        const iconsPerRow = Math.max(
-          this.C.MOBILE_MIN_ICONS_PER_ROW,
-          Math.floor((window.innerWidth - this.C.MOBILE_ICON_MARGIN) / this.C.MOBILE_ICON_SPACING_X)
-        );
-        const appIconRows = Math.ceil(desktopApps.length / iconsPerRow);
+    const layout = this._iconLayout();
+    const mobile = this.Input.isMobile();
+    const desktopApps = window.AppModule?.getDesktopApps?.() || [];
+    const systemApps = desktopApps.filter((app) => app.system && app.desktopPosition);
+    const regularApps = desktopApps.filter((app) => !app.system || !app.desktopPosition);
+    const orderedApps = mobile ? desktopApps : [...systemApps, ...regularApps];
 
-        const startX = this.C.MOBILE_ICON_START_X;
-        const startY =
-          this.C.MOBILE_ICON_START_Y + (appIconRows + 1) * this.C.MOBILE_ICON_SPACING_Y;
+    orderedApps.forEach((app, index) => {
+      const regularIndex = mobile
+        ? index
+        : app.system && app.desktopPosition
+        ? 0
+        : regularApps.indexOf(app);
+      const fallback = defaultAppPosition(
+        app,
+        mobile ? index : regularIndex,
+        layout,
+        this.C,
+        mobile,
+        this._mobileLayout()
+      );
+      const key = appIconKey(app.id);
+      const pos = mobile ? fallback : resolveIconPosition(key, this.iconLayout, fallback);
+      const el = this._createAppIcon({
+        name: app.shortName,
+        icon: app.icon,
+        x: pos.x,
+        y: pos.y,
+        app: app.id
+      });
+      this.appIcons.push(el);
+    });
 
-        files.forEach((file, index) => {
-          const fileName = this.fs.getFileName(file.path);
-          const icon = this._getFileIcon(fileName);
-          const row = Math.floor(index / iconsPerRow);
-          const col = index % iconsPerRow;
+    if (this.fs) {
+      try {
+        const items = desktopVfsItems(await this.fs.listDirectory(this.desktopPath));
+        const appCount = orderedApps.length;
+        const mobileMetrics = this._mobileLayout();
+        const fileMobile = {
+          ...mobileMetrics,
+          startY:
+            mobileMetrics.startY +
+            (Math.ceil(appCount / mobileMetrics.iconsPerRow) + 1) * mobileMetrics.spacingY
+        };
 
+        items.forEach((item, index) => {
+          const fileName = this.fs.getFileName(item.path);
+          const glyph = item.type === 'directory' ? '📁' : this._getFileIcon(fileName);
+          const fallback = defaultFilePosition(
+            index,
+            layout,
+            this.C,
+            mobile,
+            fileMobile,
+            window.innerWidth
+          );
+          const key = vfsIconKey(item.path);
+          const pos = mobile ? fallback : resolveIconPosition(key, this.iconLayout, fallback);
           const iconEl = this._createFileIcon({
             name: fileName,
-            icon: icon,
-            x: startX + col * this.C.MOBILE_ICON_SPACING_X,
-            y: startY + row * this.C.MOBILE_ICON_SPACING_Y,
-            file: file
+            icon: glyph,
+            x: pos.x,
+            y: pos.y,
+            file: item
           });
-
           this.fileIcons.push(iconEl);
         });
-      } else {
-        // On desktop, place files on the right side
-        const layout = this._iconLayout();
-        const startX = window.innerWidth - layout.rightOffset;
-        const startY = this.C.FILE_ICON_START_Y;
-        const spacing = layout.fileSpacing;
-
-        files.forEach((file, index) => {
-          const fileName = this.fs.getFileName(file.path);
-          const icon = this._getFileIcon(fileName);
-
-          const iconEl = this._createFileIcon({
-            name: fileName,
-            icon: icon,
-            x: startX,
-            y: startY + index * spacing,
-            file: file
-          });
-
-          this.fileIcons.push(iconEl);
-        });
+      } catch (error) {
+        console.warn('Failed to load desktop files:', error);
       }
-    } catch (error) {
-      console.warn('Failed to load desktop files:', error);
     }
 
+    this._syncSelectionClasses();
     this._handleDragSelectionGeometryChange();
   }
 
   _createAppIcon(iconData) {
+    const key = appIconKey(iconData.app);
     const icon = document.createElement('div');
     icon.className = 'desktop-icon';
+    icon.dataset.iconKey = key;
+    icon.dataset.appId = iconData.app;
     icon.style.left = iconData.x + 'px';
     icon.style.top = iconData.y + 'px';
+    if (!this.Input.isMobile()) {
+      icon.draggable = true;
+    }
 
     const iconEl = document.createElement('div');
     iconEl.className = 'icon';
@@ -349,27 +371,46 @@ export class Desktop {
     icon.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        this._selectKey(key, icon, null);
         this.onLaunchApp(iconData.app);
       }
+    });
+
+    icon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._selectKey(key, icon, e);
     });
 
     this.Input.addDoubleTapHandler(icon, () => {
       this.onLaunchApp(iconData.app);
     });
 
+    if (!this.Input.isMobile()) {
+      icon.addEventListener('dragstart', (e) => {
+        e.stopPropagation();
+        this._handleIconDragStart(e, icon, key);
+      });
+      icon.addEventListener('dragend', () => {
+        DragService.clear();
+      });
+    }
+
     this.desktop.appendChild(icon);
     return icon;
   }
 
   _createFileIcon(iconData) {
+    const key = vfsIconKey(iconData.file.path);
+    const isDir = iconData.file.type === 'directory';
     const icon = document.createElement('div');
     icon.className = 'desktop-icon file-icon';
+    icon.dataset.iconKey = key;
     icon.setAttribute('data-path', iconData.file.path);
+    icon.dataset.itemType = isDir ? 'directory' : 'file';
     icon.style.left = iconData.x + 'px';
     icon.style.top = iconData.y + 'px';
     icon.draggable = true;
 
-    // Truncate long filenames
     const displayName =
       iconData.name.length > this.C.ICON_LABEL_MAX_LENGTH
         ? iconData.name.substring(0, this.C.ICON_LABEL_TRUNCATE_AT) + '...'
@@ -389,43 +430,42 @@ export class Desktop {
 
     icon.tabIndex = 0;
     icon.setAttribute('role', 'button');
-    icon.setAttribute('aria-label', `${iconData.name}, file — Enter to open, Space for Quick Look`);
+    icon.setAttribute(
+      'aria-label',
+      isDir
+        ? `${iconData.name}, folder — Enter to open`
+        : `${iconData.name}, file — Enter to open, Space for Quick Look`
+    );
     icon.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        this._selectFile(iconData.file.path, icon, null);
+        this._selectKey(key, icon, null);
         void this._openSelected();
-      } else if (e.key === ' ') {
+      } else if (e.key === ' ' && !isDir) {
         e.preventDefault();
-        this._selectFile(iconData.file.path, icon, null);
+        this._selectKey(key, icon, null);
         void this._showQuickLook();
       }
     });
 
-    // Make file draggable to real OS
     icon.addEventListener('dragstart', async (e) => {
-      e.stopPropagation(); // Don't trigger desktop drop zone
-      await this._handleFileDragStart(e, iconData);
+      e.stopPropagation();
+      await this._handleFileDragStart(e, iconData, icon, key);
     });
 
     icon.addEventListener('dragend', (e) => {
-      // Clear shared drag data
       DragService.clear();
-
-      // If dropped outside the browser window, trigger download
-      if (e.dataTransfer.dropEffect === 'none') {
+      if (!isDir && e.dataTransfer.dropEffect === 'none') {
         this._downloadFile(iconData);
       }
     });
 
-    // Single click to select (with modifier key support)
     icon.addEventListener('click', (e) => {
       e.stopPropagation();
-      this._selectFile(iconData.file.path, icon, e);
+      this._selectKey(key, icon, e);
     });
 
     this.Input.addDoubleTapHandler(icon, async () => {
-      // Get full file item with content
       const item = await this.fs.getItem(iconData.file.path);
       if (item && this.onOpenFile) {
         this.onOpenFile(item);
@@ -436,37 +476,65 @@ export class Desktop {
     return icon;
   }
 
-  async _handleFileDragStart(e, iconData) {
-    const iconElement = e.target.closest('.desktop-icon');
-    const draggedPath = iconData.file.path;
-
-    // Determine which files to drag:
-    // - If dragged file is in selection, drag all selected files
-    // - If dragged file is NOT in selection, select it and drag only it
-    let pathsToDrag;
-    if (this.selectedFiles.has(draggedPath)) {
-      pathsToDrag = [...this.selectedFiles];
-    } else {
-      // Clicking an unselected file while dragging - select just that file
+  _dragPayloadForIcon(iconElement, key) {
+    if (!this.selectedKeys.has(key)) {
       this._clearSelection();
-      this.selectedFiles.add(draggedPath);
+      this.selectedKeys.add(key);
       iconElement.classList.add('selected');
-      pathsToDrag = [draggedPath];
+      this.lastSelectedKey = key;
     }
+    const keys = [...this.selectedKeys];
+    const origin = {};
+    for (const k of keys) {
+      const el = this._iconElements().find((node) => node.dataset.iconKey === k);
+      if (el) {
+        origin[k] = {
+          x: parseFloat(el.style.left) || 0,
+          y: parseFloat(el.style.top) || 0
+        };
+      }
+    }
+    const rect = iconElement.getBoundingClientRect();
+    const vfsPaths = keys
+      .map((k) => parseIconKey(k))
+      .filter((p) => p?.kind === 'vfs')
+      .map((p) => p.path);
+    return {
+      action: 'reposition',
+      keys,
+      anchorKey: key,
+      origin,
+      grabOffset: { x: 0, y: 0 },
+      paths: vfsPaths,
+      path: vfsPaths[0],
+      clientAnchor: { x: rect.left, y: rect.top }
+    };
+  }
 
-    // Set data for internal transfers (to File Manager) - support multiple paths
-    const dragData = {
-      paths: pathsToDrag,
-      path: pathsToDrag[0], // Backward compatibility
-      action: 'move'
+  _handleIconDragStart(e, iconElement, key) {
+    const dragData = this._dragPayloadForIcon(iconElement, key);
+    dragData.grabOffset = {
+      x: e.clientX - dragData.clientAnchor.x,
+      y: e.clientY - dragData.clientAnchor.y
+    };
+    DragService.setData(dragData, 'desktop');
+    e.dataTransfer.setData('application/x-heyming-file', JSON.stringify(dragData));
+    e.dataTransfer.effectAllowed = 'copyMove';
+  }
+
+  async _handleFileDragStart(e, iconData, iconElement, key) {
+    const dragData = this._dragPayloadForIcon(iconElement, key);
+    dragData.grabOffset = {
+      x: e.clientX - dragData.clientAnchor.x,
+      y: e.clientY - dragData.clientAnchor.y
     };
     DragService.setData(dragData, 'desktop');
     e.dataTransfer.setData('application/x-heyming-file', JSON.stringify(dragData));
 
     // For dragging to real OS - only support single file download
     // (browsers don't support multi-file drag well)
-    const item = await this.fs.getItem(draggedPath);
-    if (item) {
+    const item = await this.fs.getItem(iconData.file.path);
+    if (item && item.type === 'file') {
       const fileName = iconData.name;
       const content = item.content || '';
       const mimeType = item.mimeType || 'text/plain';
@@ -496,7 +564,7 @@ export class Desktop {
         );
       } catch (error) {
         console.warn('Failed to prepare file for drag:', error);
-        e.dataTransfer.setData('text/plain', draggedPath);
+        e.dataTransfer.setData('text/plain', iconData.file.path);
       }
     }
 
@@ -527,11 +595,8 @@ export class Desktop {
         /** @type {Element} */ (e.target).closest?.('.desktop-icon')
       );
       if (!icon || !this.desktop.contains(icon)) return;
-      if (icon.classList.contains('file-icon')) {
-        const path = icon.dataset.path;
-        if (path) this._selectFile(path, icon, null);
-      } else {
-        this._clearSelection();
+      if (icon.dataset.iconKey) {
+        this._selectKey(icon.dataset.iconKey, icon, null);
       }
     });
   }
@@ -545,27 +610,26 @@ export class Desktop {
       if (tgt.closest('iframe')) return;
 
       const isMeta = e.metaKey || e.ctrlKey;
-      const hasSelection = this.selectedFiles.size > 0;
-      const hasSingleSelection = this.selectedFiles.size === 1;
+      const hasSelection = this.selectedKeys.size > 0;
+      const hasSingleSelection = this.selectedKeys.size === 1;
+      const vfsSelection = this._vfsPathsFromSelection();
 
-      if (isMeta && e.key === 'c' && hasSelection) {
+      if (isMeta && e.key === 'c' && vfsSelection.length > 0) {
         e.preventDefault();
         this._copySelected();
-      } else if (isMeta && e.key === 'x' && hasSelection) {
+      } else if (isMeta && e.key === 'x' && vfsSelection.length > 0) {
         e.preventDefault();
         this._cutSelected();
       } else if (isMeta && e.key === 'v') {
         e.preventDefault();
         this._paste();
-      } else if (e.key === 'Delete' && hasSelection) {
+      } else if (e.key === 'Delete' && vfsSelection.length > 0) {
         e.preventDefault();
         this._deleteSelected();
       } else if (isMeta && e.key === 'a') {
-        // Select all files
         e.preventDefault();
         this._selectAll();
-      } else if (e.key === 'F2' && hasSingleSelection) {
-        // Rename selected file
+      } else if (e.key === 'F2' && vfsSelection.length === 1) {
         e.preventDefault();
         this._renameSelected();
       } else if (e.key === ' ' && hasSingleSelection) {
@@ -584,96 +648,89 @@ export class Desktop {
         e.preventDefault();
         this._openSelected();
       } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        const ae = document.activeElement;
-        if (ae?.closest?.('.desktop-icon:not(.file-icon)')) {
-          return;
-        }
-        // Arrow key navigation
         e.preventDefault();
         this._navigateWithArrows(e.key, e.shiftKey);
       }
     });
   }
 
-  _selectFile(path, iconElement, event = null) {
+  _selectKey(key, iconElement, event = null) {
     const isCmd = event?.metaKey || event?.ctrlKey;
     const isShift = event?.shiftKey;
 
     if (isCmd) {
-      // Cmd/Ctrl+click: Toggle selection
-      if (this.selectedFiles.has(path)) {
-        this.selectedFiles.delete(path);
+      if (this.selectedKeys.has(key)) {
+        this.selectedKeys.delete(key);
         iconElement.classList.remove('selected');
       } else {
-        this.selectedFiles.add(path);
+        this.selectedKeys.add(key);
         iconElement.classList.add('selected');
       }
-      this.lastSelectedFile = path;
-    } else if (isShift && this.lastSelectedFile) {
-      // Shift+click: Range selection
-      this._selectRange(this.lastSelectedFile, path);
+      this.lastSelectedKey = key;
+    } else if (isShift && this.lastSelectedKey) {
+      this._selectRange(this.lastSelectedKey, key);
     } else {
-      // Regular click: Single select
       this._clearSelection();
-      this.selectedFiles.add(path);
+      this.selectedKeys.add(key);
       iconElement.classList.add('selected');
-      this.lastSelectedFile = path;
+      this.lastSelectedKey = key;
     }
   }
 
-  _selectRange(fromPath, toPath) {
-    // Get all file icons in order
-    const icons = Array.from(this.desktop.querySelectorAll('.file-icon'));
-    const paths = icons.map((el) => /** @type {HTMLElement} */ (el).dataset.path);
-
-    const fromIndex = paths.indexOf(fromPath);
-    const toIndex = paths.indexOf(toPath);
-
+  _selectRange(fromKey, toKey) {
+    const icons = this._iconElements();
+    const keys = icons.map((el) => el.dataset.iconKey);
+    const fromIndex = keys.indexOf(fromKey);
+    const toIndex = keys.indexOf(toKey);
     if (fromIndex === -1 || toIndex === -1) return;
 
     const start = Math.min(fromIndex, toIndex);
     const end = Math.max(fromIndex, toIndex);
-
-    // Clear and select range
     this._clearSelection();
     for (let i = start; i <= end; i++) {
-      const path = paths[i];
-      if (path) {
-        this.selectedFiles.add(path);
+      const k = keys[i];
+      if (k) {
+        this.selectedKeys.add(k);
         icons[i].classList.add('selected');
       }
     }
   }
 
   _clearSelection() {
-    this.selectedFiles.clear();
-    this.desktop.querySelectorAll('.file-icon.selected').forEach((el) => {
-      el.classList.remove('selected');
+    this.selectedKeys.clear();
+    this._syncSelectionClasses();
+  }
+
+  _syncSelectionClasses() {
+    this._iconElements().forEach((el) => {
+      el.classList.toggle('selected', this.selectedKeys.has(el.dataset.iconKey));
     });
   }
 
   _copySelected() {
-    if (this.selectedFiles.size === 0) return;
-    const result = FileOperationService.copy(this.fs, [...this.selectedFiles], 'desktop');
+    const paths = this._vfsPathsFromSelection();
+    if (paths.length === 0) return;
+    const result = FileOperationService.copy(this.fs, paths, 'desktop');
     if (result.message) this._notify(result.message);
   }
 
   _cutSelected() {
-    if (this.selectedFiles.size === 0) return;
-    const result = FileOperationService.cut(this.fs, [...this.selectedFiles], 'desktop');
+    const paths = this._vfsPathsFromSelection();
+    if (paths.length === 0) return;
+    const result = FileOperationService.cut(this.fs, paths, 'desktop');
     if (result.message) this._notify(result.message);
   }
 
   _selectAll() {
     this._clearSelection();
-    this.fileIcons.forEach((icon) => {
-      const path = icon.dataset.path;
-      if (path) {
-        this.selectedFiles.add(path);
+    this._iconElements().forEach((icon) => {
+      const key = icon.dataset.iconKey;
+      if (key) {
+        this.selectedKeys.add(key);
         icon.classList.add('selected');
       }
     });
-    const count = this.selectedFiles.size;
+    const count = this.selectedKeys.size;
     if (count > 0) {
       this._notify(`Selected ${count} item${count > 1 ? 's' : ''}`);
     }
@@ -684,38 +741,49 @@ export class Desktop {
     if (result.message) {
       this._notify(result.message, result.success ? 'system' : 'error');
     }
+    if (result.success) {
+      await this.refresh();
+    }
   }
 
   async _deleteSelected() {
-    if (this.selectedFiles.size === 0) return;
-    const result = await FileOperationService.delete(this.fs, [...this.selectedFiles], true);
+    const paths = this._vfsPathsFromSelection();
+    if (paths.length === 0) return;
+    const result = await FileOperationService.delete(this.fs, paths, true);
     if (result.message) {
       this._notify(result.message, result.success ? 'system' : 'error');
     }
     if (result.success) {
       this._clearSelection();
+      await this.refresh();
     }
   }
 
   async _renameSelected() {
-    if (this.selectedFiles.size !== 1) return;
-    const path = [...this.selectedFiles][0];
-    const result = await FileOperationService.rename(this.fs, path);
+    const paths = this._vfsPathsFromSelection();
+    if (paths.length !== 1) return;
+    const result = await FileOperationService.rename(this.fs, paths[0]);
     if (result.message) {
       this._notify(result.message, result.success ? 'system' : 'error');
     }
     if (result.success) {
       this._clearSelection();
+      await this.refresh();
     }
   }
 
   async createNewFolder() {
     if (!this.fs) return { success: false, message: '' };
-    const name = window.prompt('Folder name:', 'New Folder');
+    const name = await promptName({
+      title: 'New Folder',
+      defaultValue: 'New Folder',
+      confirmLabel: 'Create'
+    });
     if (!name) return { success: false, message: '' };
     try {
       const dest = await this.fs.getUniquePath(`${this.desktopPath}/${name}`);
       await this.fs.mkdir(dest);
+      await this.refresh();
       return { success: true, message: `📁 Created folder: ${this.fs.getFileName(dest)}` };
     } catch (error) {
       return { success: false, message: `❌ ${error.message}` };
@@ -724,86 +792,82 @@ export class Desktop {
 
   async createNewFile() {
     if (!this.fs) return { success: false, message: '' };
-    const name = window.prompt('File name:', 'untitled.txt');
+    const name = await promptName({
+      title: 'New File',
+      defaultValue: 'untitled.txt',
+      confirmLabel: 'Create'
+    });
     if (!name) return { success: false, message: '' };
     try {
       const dest = await this.fs.getUniquePath(`${this.desktopPath}/${name}`);
       await this.fs.createFile(dest, '', false);
+      await this.refresh();
       return { success: true, message: `📄 Created: ${this.fs.getFileName(dest)}` };
     } catch (error) {
       return { success: false, message: `❌ ${error.message}` };
     }
   }
 
-  // ========== Quick Look Preview ==========
-
   async _showQuickLook() {
-    if (this.selectedFiles.size !== 1) return;
-
-    const path = [...this.selectedFiles][0];
-    const item = await this.fs.getItem(path);
-    if (!item) return;
-
-    const fileName = this.fs.getFileName(path);
-    this.quickLook.show(item, fileName);
+    const paths = this._vfsPathsFromSelection();
+    if (paths.length !== 1) return;
+    const item = await this.fs.getItem(paths[0]);
+    if (!item || item.type !== 'file') return;
+    this.quickLook.show(item, this.fs.getFileName(paths[0]));
   }
 
   async _openSelected() {
-    if (this.selectedFiles.size !== 1) return;
-    const path = [...this.selectedFiles][0];
-    const item = await this.fs.getItem(path);
-    if (item && this.onOpenFile) {
-      this.onOpenFile(item);
+    if (this.selectedKeys.size !== 1) return;
+    const key = [...this.selectedKeys][0];
+    const parsed = parseIconKey(key);
+    if (parsed?.kind === 'app') {
+      this.onLaunchApp(parsed.id);
+      return;
+    }
+    if (parsed?.kind === 'vfs') {
+      const item = await this.fs.getItem(parsed.path);
+      if (item && this.onOpenFile) {
+        this.onOpenFile(item);
+      }
     }
   }
 
   _navigateWithArrows(key, shiftKey) {
-    if (this.fileIcons.length === 0) return;
+    const icons = this._iconElements();
+    if (icons.length === 0) return;
 
-    // Get current selection or start from first icon
-    const currentPath = this.lastSelectedFile || [...this.selectedFiles][0];
-    const currentIcon = currentPath
-      ? this.fileIcons.find((el) => el.dataset.path === currentPath)
-      : null;
+    const currentKey = this.lastSelectedKey || [...this.selectedKeys][0];
+    const currentIcon = currentKey ? icons.find((el) => el.dataset.iconKey === currentKey) : null;
 
-    // If no selection, select the first file icon
     if (!currentIcon) {
-      const firstIcon = this.fileIcons[0];
-      if (firstIcon) {
-        const path = firstIcon.dataset.path;
+      const firstIcon = icons[0];
+      if (firstIcon?.dataset.iconKey) {
         this._clearSelection();
-        this.selectedFiles.add(path);
+        this.selectedKeys.add(firstIcon.dataset.iconKey);
         firstIcon.classList.add('selected');
-        this.lastSelectedFile = path;
+        this.lastSelectedKey = firstIcon.dataset.iconKey;
         firstIcon.focus();
       }
       return;
     }
 
-    // Find the next icon in the direction of the arrow key
-    const nextIcon = this._findNextIcon(currentIcon, key);
+    const nextIcon = this._findNextIcon(currentIcon, key, icons);
     if (!nextIcon) return;
-
-    const nextPath = nextIcon.dataset.path;
-
+    const nextKey = nextIcon.dataset.iconKey;
     if (shiftKey) {
-      // Shift+Arrow: Extend selection
-      this.selectedFiles.add(nextPath);
+      this.selectedKeys.add(nextKey);
       nextIcon.classList.add('selected');
     } else {
-      // Arrow only: Move selection
       this._clearSelection();
-      this.selectedFiles.add(nextPath);
+      this.selectedKeys.add(nextKey);
       nextIcon.classList.add('selected');
     }
-    this.lastSelectedFile = nextPath;
-
-    // Scroll icon into view if needed
+    this.lastSelectedKey = nextKey;
     nextIcon.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     nextIcon.focus();
   }
 
-  _findNextIcon(currentIcon, direction) {
+  _findNextIcon(currentIcon, direction, iconList = this._iconElements()) {
     const currentRect = currentIcon.getBoundingClientRect();
     const currentCenterX = currentRect.left + currentRect.width / 2;
     const currentCenterY = currentRect.top + currentRect.height / 2;
@@ -811,7 +875,7 @@ export class Desktop {
     let bestIcon = null;
     let bestScore = Infinity;
 
-    for (const icon of this.fileIcons) {
+    for (const icon of iconList) {
       if (icon === currentIcon) continue;
 
       const rect = icon.getBoundingClientRect();
@@ -980,11 +1044,11 @@ export class Desktop {
   }
 
   _cacheDragSelectionIconRects() {
-    this.dragSelectionIconRects = this.fileIcons
+    this.dragSelectionIconRects = this._iconElements()
       .map((icon) => {
-        const path = icon.dataset.path;
-        if (!path) return null;
-        return { icon, path, rect: icon.getBoundingClientRect() };
+        const key = icon.dataset.iconKey;
+        if (!key) return null;
+        return { icon, key, rect: icon.getBoundingClientRect() };
       })
       .filter(Boolean);
     return this.dragSelectionIconRects;
@@ -996,8 +1060,7 @@ export class Desktop {
 
     // Only check file icons, not app icons
     const iconRects = this.dragSelectionIconRects || this._cacheDragSelectionIconRects();
-    iconRects.forEach(({ icon, path, rect }) => {
-      // Check if icon intersects with selection box
+    iconRects.forEach(({ icon, key, rect }) => {
       const intersects =
         rect.left < boxRight &&
         rect.right > boxLeft &&
@@ -1005,11 +1068,10 @@ export class Desktop {
         rect.bottom > boxTop;
 
       if (intersects) {
-        this.selectedFiles.add(path);
+        this.selectedKeys.add(key);
         icon.classList.add('selected');
       } else if (!additive) {
-        // If not in additive mode, deselect files outside the box
-        this.selectedFiles.delete(path);
+        this.selectedKeys.delete(key);
         icon.classList.remove('selected');
       }
     });
@@ -1066,14 +1128,14 @@ export class Desktop {
     if (DragService.hasData()) {
       const dragData = DragService.consume();
       window.HeymingOS.debug('Desktop received drag:', dragData);
-      await this._handleInternalDrop(dragData);
+      await this._handleInternalDrop(dragData, e);
       return;
     }
 
     // Check for internal file drag via dataTransfer (fallback)
     const internalData = dataTransfer.getData('application/x-heyming-file');
     if (internalData) {
-      await this._handleInternalDrop(JSON.parse(internalData));
+      await this._handleInternalDrop(JSON.parse(internalData), e);
       return;
     }
 
@@ -1090,15 +1152,91 @@ export class Desktop {
     }
   }
 
-  async _handleInternalDrop(fileData) {
-    if (!this.fs) return;
+  async _handleInternalDrop(fileData, dropEvent) {
+    const folderTarget = /** @type {HTMLElement | null} */ (
+      dropEvent?.target?.closest?.('.file-icon[data-item-type="directory"]')
+    );
+    const paths = (fileData.paths || [fileData.path]).filter(Boolean);
+    const fromDesktop = fileData.action === 'reposition' || Boolean(fileData.keys);
 
-    const paths = fileData.paths || [fileData.path];
-    const action = fileData.action || 'move';
+    if (folderTarget && paths.length && this.fs) {
+      const dest = folderTarget.dataset.path;
+      const result = await FileOperationService.moveOrCopy(this.fs, paths, dest, 'move');
+      if (result.message) {
+        this._notify(result.message, result.success ? 'system' : 'error');
+      }
+      if (result.success) {
+        await this.refresh();
+      }
+      return;
+    }
 
+    if (fromDesktop && dropEvent && !this.Input.isMobile()) {
+      this._applyReposition(fileData, dropEvent);
+      return;
+    }
+
+    if (!this.fs || paths.length === 0) return;
+
+    const action = fileData.action === 'reposition' ? 'move' : fileData.action || 'move';
     const result = await FileOperationService.moveOrCopy(this.fs, paths, this.desktopPath, action);
     if (result.message) {
       this._notify(result.message, result.success ? 'system' : 'error');
+    }
+    if (result.success && dropEvent && !this.Input.isMobile()) {
+      const layout = this._iconLayout();
+      const desktopRect = this.desktop.getBoundingClientRect();
+      const pos = dropPointToIconPosition(
+        dropEvent.clientX,
+        dropEvent.clientY,
+        fileData.grabOffset || { x: 0, y: 0 },
+        desktopRect,
+        layout.spacingX,
+        layout.spacingY,
+        this._iconBounds()
+      );
+      const updates = {};
+      paths.forEach((p, i) => {
+        updates[vfsIconKey(p)] = clampIconPosition(
+          pos.x,
+          pos.y + i * layout.spacingY,
+          this._iconBounds()
+        );
+      });
+      this._persistLayout(updates);
+      await this.refresh();
+    }
+  }
+
+  _applyReposition(fileData, dropEvent) {
+    const layout = this._iconLayout();
+    const desktopRect = this.desktop.getBoundingClientRect();
+    const grab = fileData.grabOffset || { x: 0, y: 0 };
+    const anchorPos = dropPointToIconPosition(
+      dropEvent.clientX,
+      dropEvent.clientY,
+      grab,
+      desktopRect,
+      layout.spacingX,
+      layout.spacingY,
+      this._iconBounds()
+    );
+    const origin = fileData.origin || {};
+    const next = translateGroup(
+      origin,
+      fileData.anchorKey,
+      anchorPos,
+      layout.spacingX,
+      layout.spacingY,
+      this._iconBounds()
+    );
+    this._persistLayout(next);
+    for (const [key, pos] of Object.entries(next)) {
+      const el = this._iconElements().find((node) => node.dataset.iconKey === key);
+      if (el) {
+        el.style.left = pos.x + 'px';
+        el.style.top = pos.y + 'px';
+      }
     }
   }
 
