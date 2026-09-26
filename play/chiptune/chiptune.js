@@ -64,10 +64,15 @@ const els = {
 const transport = new ChipTransport({
   getSong: () => song,
   onStep: (step, arrIndex) => {
+    const patIndex = song.arrangement[arrIndex] ?? song.activePattern;
+    if (patIndex !== song.activePattern && song.patterns[patIndex]) {
+      song.activePattern = patIndex;
+      highlightPatternTab(patIndex);
+    }
     grid.setPlayhead(step);
     highlightArrangement(arrIndex);
     if (els.status) {
-      const pat = song.patterns[song.arrangement[arrIndex] ?? song.activePattern];
+      const pat = song.patterns[patIndex];
       els.status.textContent = `Playing ${pat?.name || '?'} · step ${step + 1}/${song.steps}`;
     }
   },
@@ -256,6 +261,13 @@ function renderPatterns() {
       scheduleUrlSync();
     });
     els.patterns.append(btn);
+  });
+}
+
+function highlightPatternTab(patIndex) {
+  if (!els.patterns) return;
+  [...els.patterns.children].forEach((el, i) => {
+    el.classList.toggle('is-active', i === patIndex);
   });
 }
 

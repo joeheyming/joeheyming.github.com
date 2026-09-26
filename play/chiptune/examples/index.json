@@ -17,6 +17,12 @@
       "title": "Lead Climb",
       "blurb": "Four-bar square lead over triangle roots",
       "file": "lead.json"
+    },
+    {
+      "id": "funkytown",
+      "title": "Funkytown",
+      "blurb": "Imported from MIDI onto the 16th-note grid",
+      "file": "funkytown.json"
     }
   ]
 }
