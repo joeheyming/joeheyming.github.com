@@ -39,6 +39,58 @@
     return url.href;
   }
 
+  /**
+   * Below this much visible text, a page is almost certainly a JavaScript
+   * application rather than a document. DuckDuckGo's homepage ships 212KB
+   * of HTML around ~487 characters of text; Hacker News has ~4k and
+   * Wikipedia ~30k. Nothing useful renders from the first kind.
+   */
+  const MIN_RENDERABLE_TEXT = 700;
+
+  /**
+   * Strip what the preview frame cannot honor.
+   *
+   * The frame has an opaque origin, so page scripts cannot reach cookies,
+   * storage, or their own APIs — they throw partway through startup and
+   * leave a blank page. Removing them renders more, not less. `<noscript>`
+   * holds the site's own no-JavaScript fallback, so it gets promoted.
+   */
+  function sanitizeDocument(doc, options) {
+    const allowScripts = Boolean(options && options.allowScripts);
+
+    if (!allowScripts) {
+      doc.querySelectorAll('script').forEach((el) => el.remove());
+      doc.querySelectorAll('noscript').forEach((el) => {
+        const holder = doc.createElement('div');
+        holder.innerHTML = el.childElementCount ? el.innerHTML : el.textContent;
+        el.replaceWith(...holder.childNodes);
+      });
+      doc.querySelectorAll('*').forEach((el) => {
+        for (const attr of [...el.attributes]) {
+          if (/^on/i.test(attr.name)) el.removeAttribute(attr.name);
+        }
+      });
+      doc.querySelectorAll('a[href^="javascript:" i]').forEach((el) => el.removeAttribute('href'));
+    }
+
+    // The frame inherits an HTTPS page, so insecure subresources are blocked
+    // outright. Nearly every host serves the same asset over TLS.
+    for (const attr of ['src', 'href']) {
+      doc.querySelectorAll(`[${attr}^="http://" i]`).forEach((el) => {
+        el.setAttribute(attr, el.getAttribute(attr).replace(/^http:\/\//i, 'https://'));
+      });
+    }
+    return doc;
+  }
+
+  /** Visible text, used to tell a document apart from an empty app shell. */
+  function extractVisibleText(doc) {
+    if (!doc.body) return '';
+    const clone = doc.body.cloneNode(true);
+    clone.querySelectorAll('script, style, template, noscript').forEach((el) => el.remove());
+    return (clone.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
   function isSameOrigin(url, baseHref) {
     try {
       return new URL(url, baseHref).origin === new URL(baseHref).origin;
@@ -95,6 +147,51 @@
     } catch (_) {
       /* Nothing else to try; the page keeps its own failure mode. */
     }
+  });
+
+  // document.cookie throws for the same reason. Sites commonly read it
+  // during startup to restore a theme or locale, and an uncaught throw
+  // there aborts the rest of their bootstrap.
+  (function () {
+    try {
+      void document.cookie;
+      return;
+    } catch (_) {
+      /* Fall through and install the jar. */
+    }
+    var jar = Object.create(null);
+    function serialize() {
+      return Object.keys(jar).map(function (k) { return k + '=' + jar[k]; }).join('; ');
+    }
+    try {
+      Object.defineProperty(document, 'cookie', {
+        configurable: true,
+        get: serialize,
+        set: function (value) {
+          var pair = String(value).split(';')[0];
+          var eq = pair.indexOf('=');
+          if (eq < 1) return;
+          jar[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
+        }
+      });
+    } catch (_) {
+      /* Leave the page's own failure mode in place. */
+    }
+  })();
+
+  // An opaque origin cannot hold history state for a real URL, so routers
+  // that call replaceState on load throw. Their navigation is meaningless
+  // inside the preview anyway; swallowing it keeps the page alive.
+  ['pushState', 'replaceState'].forEach(function (name) {
+    var original = history[name];
+    if (typeof original !== 'function') return;
+    history[name] = function () {
+      try {
+        return original.apply(history, arguments);
+      } catch (_) {
+        return undefined;
+      }
+    };
   });
 
   function send(url) {
@@ -187,5 +284,13 @@
     }
   }
 
-  return { NavigationHistory, decorateHtml, isSameOrigin, normalizeAddress };
+  return {
+    MIN_RENDERABLE_TEXT,
+    NavigationHistory,
+    decorateHtml,
+    extractVisibleText,
+    isSameOrigin,
+    normalizeAddress,
+    sanitizeDocument
+  };
 });

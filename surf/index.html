@@ -155,6 +155,7 @@
             <input id="file-input" type="file" accept=".html,.htm,text/html" hidden />
             <button id="btn-source" title="View Source (Ctrl+U)" disabled>🔍 Source</button>
             <button id="btn-new-tab" title="Open in New Tab" disabled>↗ New Tab</button>
+            <button id="btn-scripts" title="Page scripts are stripped">⚡ Scripts</button>
           </div>
           <span id="file-info" role="status">Ready</span>
         </div>
@@ -179,7 +180,10 @@
         <h2>Surf could not load this page</h2>
         <p id="error-message"></p>
         <p id="error-detail" class="hidden"></p>
-        <button id="btn-open-external" class="hidden">Open in your browser</button>
+        <div class="error-actions">
+          <button id="btn-open-external" class="hidden">Open in your browser</button>
+          <button id="btn-run-scripts" class="hidden">Try running its scripts</button>
+        </div>
       </div>
 
       <!-- Rendered HTML view -->

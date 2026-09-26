@@ -33,12 +33,18 @@ class Surf {
     this.btnOpen = document.getElementById('btn-open');
     this.btnSource = document.getElementById('btn-source');
     this.btnNewTab = document.getElementById('btn-new-tab');
+    this.btnScripts = document.getElementById('btn-scripts');
     this.btnOpenExternal = document.getElementById('btn-open-external');
+    this.btnRunScripts = document.getElementById('btn-run-scripts');
 
     this.history = new window.SurfNavigation.NavigationHistory();
     this.currentDocument = null;
     this.rawHtml = '';
     this.showingSource = false;
+    // Off by default: in an opaque-origin frame a page's scripts throw on
+    // cookies, storage, and their own network calls, so they routinely
+    // blank out a page that renders fine without them.
+    this.allowScripts = false;
     this.isInOS = window.parent !== window;
     this._blobUrl = null;
     this._requestController = null;
@@ -64,6 +70,8 @@ class Surf {
     });
     this.btnSource.addEventListener('click', () => this.toggleSource());
     this.btnNewTab.addEventListener('click', () => this.openInNewTab());
+    this.btnScripts.addEventListener('click', () => this.toggleScripts());
+    this.btnRunScripts.addEventListener('click', () => this.toggleScripts());
     this.btnOpenExternal.addEventListener('click', () => {
       if (this.currentDocument?.url) {
         window.open(this.currentDocument.url, '_blank', 'noopener');
@@ -233,10 +241,17 @@ class Surf {
     this.btnOpenExternal.classList.add('hidden');
 
     if (entry.kind === 'url') {
-      this.frame.srcdoc = window.SurfNavigation.decorateHtml(this.rawHtml, entry.url);
+      const hostname = new URL(entry.url).hostname;
       this.addressInput.value = entry.url;
-      this.fileInfo.textContent = new URL(entry.url).hostname;
-      document.title = `${new URL(entry.url).hostname} — Surf`;
+      this.fileInfo.textContent = hostname;
+      document.title = `${hostname} — Surf`;
+
+      const page = this.composeRemotePage(entry);
+      if (page.isAppShell) {
+        this.showAppShellNotice(hostname);
+        return;
+      }
+      this.frame.srcdoc = page.html;
     } else {
       this.frame.srcdoc = this.rawHtml;
       this.addressInput.value = entry.path || entry.label;
@@ -244,6 +259,41 @@ class Surf {
       document.title = `${entry.label} — Surf`;
     }
     this.updateControls();
+  }
+
+  /**
+   * Turn fetched markup into something the preview frame can actually
+   * render, and report whether anything survived. A page whose content
+   * only exists after its scripts run has nothing left to show.
+   */
+  composeRemotePage(entry) {
+    const nav = window.SurfNavigation;
+    const doc = new DOMParser().parseFromString(entry.html, 'text/html');
+    nav.sanitizeDocument(doc, { allowScripts: this.allowScripts });
+    const text = nav.extractVisibleText(doc);
+    return {
+      html: nav.decorateHtml(doc.documentElement.outerHTML, entry.url),
+      isAppShell: !this.allowScripts && text.length < nav.MIN_RENDERABLE_TEXT
+    };
+  }
+
+  showAppShellNotice(hostname) {
+    this.showError(
+      `${hostname} builds its page with JavaScript, and Surf renders pages in a sandbox where ` +
+        'a site\u2019s own scripts cannot reach cookies or storage. There is no content to show ' +
+        'without them.'
+    );
+    this.btnRunScripts.classList.remove('hidden');
+  }
+
+  toggleScripts() {
+    this.allowScripts = !this.allowScripts;
+    this.btnScripts.classList.toggle('active', this.allowScripts);
+    this.btnScripts.title = this.allowScripts
+      ? 'Page scripts are running (usually breaks in the sandbox)'
+      : 'Page scripts are stripped';
+    const entry = this.history.current || this.currentDocument;
+    if (entry?.kind === 'url' && entry.html) this.renderEntry(entry);
   }
 
   hideViews() {
@@ -274,6 +324,7 @@ class Surf {
     this.errorDetail.classList.toggle('hidden', !detail);
     this.errorView.classList.remove('hidden');
     this.addressForm.classList.remove('loading');
+    this.btnRunScripts.classList.add('hidden');
     this.fileInfo.textContent = 'Load failed';
     this.btnOpenExternal.classList.toggle('hidden', this.currentDocument?.kind !== 'url');
     this.updateControls();

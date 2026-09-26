@@ -6,11 +6,16 @@ import { JSDOM } from 'jsdom';
 
 const require = createRequire(import.meta.url);
 const {
+  MIN_RENDERABLE_TEXT,
   NavigationHistory,
   decorateHtml,
+  extractVisibleText,
   isSameOrigin,
-  normalizeAddress
+  normalizeAddress,
+  sanitizeDocument
 } = require('../surf/navigation.js');
+
+const parse = (html) => new JSDOM(html).window.document;
 
 describe('Surf address handling', () => {
   it('adds HTTPS to a bare host', () => {
@@ -51,10 +56,13 @@ describe('Surf page decoration', () => {
     assert.ok(output.indexOf('<base') < output.indexOf('<title>'));
   });
 
-  it('stands in for storage the sandbox refuses', () => {
+  it('stands in for the origin-bound APIs the sandbox refuses', () => {
     const output = decorateHtml('<html><head></head></html>', 'https://example.com/');
 
     assert.match(output, /'localStorage', 'sessionStorage'/);
+    assert.match(output, /Object\.defineProperty\(document, 'cookie'/);
+    assert.match(output, /'pushState', 'replaceState'/);
+    // Shims are useless unless they run before the page's own scripts.
     assert.ok(output.indexOf('localStorage') < output.indexOf('</head>'));
   });
 
@@ -73,6 +81,57 @@ describe('Surf page decoration', () => {
 
     assert.equal(output.match(/<base\b/g)?.length, 1);
     assert.match(output, /https:\/\/cdn\.example\//);
+  });
+});
+
+describe('Surf page sanitizing', () => {
+  it('removes page scripts and inline handlers by default', () => {
+    const doc = parse(
+      '<body><p onclick="boom()">Text</p><script>boom()</script>' +
+        '<a href="javascript:boom()">Link</a></body>'
+    );
+
+    sanitizeDocument(doc, { allowScripts: false });
+
+    assert.equal(doc.querySelectorAll('script').length, 0);
+    assert.equal(doc.querySelector('p').hasAttribute('onclick'), false);
+    assert.equal(doc.querySelector('a').hasAttribute('href'), false);
+  });
+
+  it('keeps scripts when the reader opts in', () => {
+    const doc = parse('<body><script>boom()</script></body>');
+
+    sanitizeDocument(doc, { allowScripts: true });
+
+    assert.equal(doc.querySelectorAll('script').length, 1);
+  });
+
+  it('promotes the no-script fallback the site already wrote', () => {
+    const doc = parse('<body><noscript><p>Enable JS</p></noscript></body>');
+
+    sanitizeDocument(doc, { allowScripts: false });
+
+    assert.equal(doc.querySelectorAll('noscript').length, 0);
+    assert.match(doc.body.textContent, /Enable JS/);
+  });
+
+  it('upgrades insecure subresources the frame would block', () => {
+    const doc = parse(
+      '<body><img src="http://cdn.example/a.png"><a href="http://x.example/">x</a></body>'
+    );
+
+    sanitizeDocument(doc, { allowScripts: false });
+
+    assert.equal(doc.querySelector('img').getAttribute('src'), 'https://cdn.example/a.png');
+    assert.equal(doc.querySelector('a').getAttribute('href'), 'https://x.example/');
+  });
+
+  it('tells a document apart from an empty app shell', () => {
+    const shell = parse('<body><div id="root"></div><script>render()</script></body>');
+    const article = parse(`<body><article>${'word '.repeat(400)}</article></body>`);
+
+    assert.ok(extractVisibleText(shell).length < MIN_RENDERABLE_TEXT);
+    assert.ok(extractVisibleText(article).length > MIN_RENDERABLE_TEXT);
   });
 });
 
@@ -109,6 +168,7 @@ describe('Surf document shell', () => {
     assert.ok(document.querySelector('#address-input'));
     assert.ok(document.querySelector('#btn-back'));
     assert.ok(document.querySelector('#file-input'));
+    assert.ok(document.querySelector('#btn-scripts'));
     assert.equal(frame.getAttribute('sandbox'), 'allow-forms allow-scripts');
     assert.equal(frame.getAttribute('sandbox').includes('allow-same-origin'), false);
   });

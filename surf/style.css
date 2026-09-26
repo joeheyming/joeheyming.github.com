@@ -288,6 +288,13 @@ html[data-nav-size='compact'] #navigation-row {
   color: var(--text-3);
 }
 
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
 #error-detail.hidden,
 #error-view button.hidden {
   display: none;
