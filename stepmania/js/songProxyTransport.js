@@ -12,6 +12,48 @@ export const ZIP_DOWNLOAD_TIMEOUT = 60000;
 
 export const ZIP_MAX_RETRIES = 2;
 
+/**
+ * Container sniff so a mislabeled download is still handed to the audio
+ * element as a type it can decode. Null means the bytes are not audio.
+ * @param {ArrayBuffer|Uint8Array|null|undefined} data
+ * @returns {'audio/ogg' | 'audio/mpeg' | 'audio/wav' | null}
+ */
+export function sniffAudioMime(data) {
+  if (data == null) return null;
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x4f &&
+    bytes[1] === 0x67 &&
+    bytes[2] === 0x67 &&
+    bytes[3] === 0x53
+  ) {
+    return 'audio/ogg';
+  }
+  if (bytes.length >= 3 && bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) {
+    return 'audio/mpeg';
+  }
+  // MPEG frame sync. Require the next bits to look like a frame so a random
+  // 0xFF does not get treated as an mp3.
+  if (bytes.length >= 2 && bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) {
+    return 'audio/mpeg';
+  }
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x41 &&
+    bytes[10] === 0x56 &&
+    bytes[11] === 0x45
+  ) {
+    return 'audio/wav';
+  }
+  return null;
+}
+
 /** @param {ArrayBuffer|Uint8Array|{ byteLength?: number, length?: number }} data */
 export function binaryPayloadByteLength(data) {
   if (data == null) return 0;

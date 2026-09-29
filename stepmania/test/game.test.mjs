@@ -6,7 +6,7 @@ import { secondsToBeats, beatsToSeconds, getBPMAtBeat } from '../js/timing.js';
 import { TAP_NOTE_POINTS } from '../js/judgmentPolicy.js';
 import { adjudicateColumnPress } from '../js/columnPressAdjudication.js';
 import { calculateDancePoints, calculateGrade } from '../js/score-panel.js';
-import { calculateNoteY } from '../js/noteRenderer.js';
+import { calculateNoteY, noteFieldY, receptorY } from '../js/noteRenderer.js';
 
 // ==========================================================================
 // GameState
@@ -646,6 +646,14 @@ describe('Scroll mode state', () => {
   it('defaults to xmod with speed 2', () => {
     assert.equal(gameState.getScrollMode(), 'xmod');
     assert.equal(gameState.getScrollSpeed(), 2);
+    assert.equal(gameState.getScrollDirection(), 'up');
+  });
+
+  it('keeps downscroll across a score reset', () => {
+    gameState.setScrollDirection('down');
+    gameState.resetScores();
+    assert.equal(gameState.getScrollDirection(), 'down');
+    gameState.setScrollDirection('up');
   });
 
   it('defaults scrollBPM to 300', () => {
@@ -735,6 +743,17 @@ describe('CMod note positioning', () => {
   describe('constant BPM', () => {
     beforeEach(() => {
       gameState.setSong({ bpm: 120, bpmChanges: [] });
+    });
+
+    it('downscroll puts a future note above the bottom receptor', () => {
+      const height = 400;
+      const receptor = receptorY('down', height);
+      assert.ok(receptor > TARGETS_Y);
+      assert.ok(receptor < height - 32);
+      const y = noteFieldY(1, 64, receptor, 'down');
+      assert.ok(y < receptor, `y=${y} should be above receptor ${receptor}`);
+      assert.equal(noteFieldY(0, 64, receptor, 'down'), receptor);
+      assert.equal(calculateNoteY(0, 64, 2, receptor, 'down'), receptor);
     });
 
     it('note at receptor has Y = TARGETS_Y', () => {

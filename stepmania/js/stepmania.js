@@ -6,7 +6,7 @@ import { Actor } from './Actor.js';
 import { CanvasManager } from './canvasManager.js';
 import gameState from './gameState.js';
 import { songManager } from './songManager.js';
-import { ARROW_WIDTH, TARGETS_Y } from './config.js';
+import { ARROW_WIDTH } from './config.js';
 import { TAP_NOTE_POINTS, TIMING_WINDOWS, MISS_TIMING_INDEX } from './judgmentPolicy.js';
 import { adjudicateColumnPress } from './columnPressAdjudication.js';
 import { ScorePanel } from './score-panel.js';
@@ -19,7 +19,10 @@ import {
   drawHoldBody,
   calculateNoteFrameIndex,
   isNoteOnScreen,
-  calculateNoteY
+  calculateNoteY,
+  noteFieldY,
+  noteSpanOnScreen,
+  receptorY
 } from './noteRenderer.js';
 import Judgment from './judgment.js';
 import { videoManager } from './videoManager.js';
@@ -633,8 +636,18 @@ function drawSpeedOverlay(deltaSeconds) {
 /**
  * @param {number} deltaSeconds - Time since the previous frame
  */
+function playfieldReceptorY() {
+  return receptorY(gameState.getScrollDirection(), CanvasManager.height);
+}
+
 function draw(deltaSeconds) {
   if (!CanvasManager.ctx) return;
+
+  const receptor = playfieldReceptorY();
+  for (let i = 0; i < targets.length; i++) {
+    if (targets[i]) targets[i].props.y = receptor;
+    if (explosions[i]) explosions[i].props.y = receptor;
+  }
 
   CanvasManager.clear();
 
@@ -671,6 +684,8 @@ function drawNoteField() {
   const musicBeat = secondsToBeats(currentTime);
   const scrollSpeed = gameState.getScrollSpeed();
   const scrollMode = gameState.getScrollMode();
+  const scrollDirection = gameState.getScrollDirection();
+  const receptor = playfieldReceptorY();
   const noteData = gameState.getNoteData();
   const arrowSize = ARROW_WIDTH;
   const isCmod = scrollMode === 'cmod';
@@ -714,14 +729,20 @@ function drawNoteField() {
 
     if (isCmod) {
       const secondsUntilNote = beatsToSeconds(beat) - musicSeconds;
-      y = TARGETS_Y + secondsUntilNote * cmodPxPerSec;
+      y = noteFieldY(secondsUntilNote, cmodPxPerSec, receptor, scrollDirection);
 
-      // Pixel-based culling for CMod
+      // Pixel-based culling for CMod. Downscroll puts upcoming notes above
+      // the receptor, so either end of a hold can be the on-screen one.
       let noteEndY = y;
       if (noteEndBeat !== beat) {
-        noteEndY = TARGETS_Y + (beatsToSeconds(noteEndBeat) - musicSeconds) * cmodPxPerSec;
+        noteEndY = noteFieldY(
+          beatsToSeconds(noteEndBeat) - musicSeconds,
+          cmodPxPerSec,
+          receptor,
+          scrollDirection
+        );
       }
-      if (y > canvasHeight + 100 || noteEndY < -100) continue;
+      if (!noteSpanOnScreen(y, noteEndY, canvasHeight)) continue;
 
       currentScrollSpeed = 0;
       cmodInfo = { musicSeconds, pxPerSec: cmodPxPerSec };
@@ -733,7 +754,7 @@ function drawNoteField() {
       // the BPM changes.
       currentScrollSpeed = scrollSpeed;
       if (!isNoteOnScreen(beatUntilNote, beatUntilNoteEnd, currentScrollSpeed)) continue;
-      y = calculateNoteY(beatUntilNote, arrowSize, currentScrollSpeed);
+      y = calculateNoteY(beatUntilNote, arrowSize, currentScrollSpeed, receptor, scrollDirection);
       cmodInfo = null;
     }
 
@@ -761,7 +782,9 @@ function drawNoteField() {
         currentScrollSpeed,
         frameIndex,
         alpha,
-        cmodInfo
+        cmodInfo,
+        receptor,
+        scrollDirection
       );
     } else {
       // Regular tap note
@@ -783,7 +806,9 @@ function drawHoldNote(
   scrollSpeed,
   frameIndex,
   alpha,
-  cmodInfo
+  cmodInfo,
+  receptor,
+  scrollDirection
 ) {
   const noteProps = note[2];
   const holdDurationBeats = noteProps.Duration / 48;
@@ -794,30 +819,34 @@ function drawHoldNote(
   // Calculate hold head position
   let holdHeadY = y;
   if (isActiveHold && !wasDropped) {
-    holdHeadY = TARGETS_Y;
+    holdHeadY = receptor;
   }
 
-  // Calculate hold end position
+  // Calculate hold end position. The tail sits further ahead of the head
+  // along the scroll, which is downward on upscroll and upward on downscroll.
   let holdEndY;
   if (cmodInfo) {
     const noteEndBeat = note[0] + holdDurationBeats;
     const endSecondsUntil = beatsToSeconds(noteEndBeat) - cmodInfo.musicSeconds;
-    holdEndY = TARGETS_Y + endSecondsUntil * cmodInfo.pxPerSec;
+    holdEndY = noteFieldY(endSecondsUntil, cmodInfo.pxPerSec, receptor, scrollDirection);
     if (isActiveHold && !wasDropped) {
       const remainingSeconds = beatsToSeconds(activeHolds[col].endBeat) - cmodInfo.musicSeconds;
-      holdEndY = TARGETS_Y + remainingSeconds * cmodInfo.pxPerSec;
+      holdEndY = noteFieldY(remainingSeconds, cmodInfo.pxPerSec, receptor, scrollDirection);
     }
   } else {
-    holdEndY = holdHeadY + holdDurationBeats * arrowSize * scrollSpeed;
+    holdEndY = noteFieldY(holdDurationBeats, arrowSize * scrollSpeed, holdHeadY, scrollDirection);
     if (isActiveHold && !wasDropped) {
       const remainingBeats = activeHolds[col].endBeat - musicBeat;
-      holdEndY = TARGETS_Y + remainingBeats * arrowSize * scrollSpeed;
+      holdEndY = noteFieldY(remainingBeats, arrowSize * scrollSpeed, receptor, scrollDirection);
     }
   }
 
-  // Check visibility
+  // Check visibility. A downscroll tail is above the head, so either end
+  // can be the one still on screen.
+  const holdTop = Math.min(holdHeadY, holdEndY);
+  const holdBottom = Math.max(holdHeadY, holdEndY);
   const holdVisible =
-    holdHeadY < CanvasManager.height + 50 && holdEndY > -50 && !noteProps.holdCompleted;
+    holdBottom > -50 && holdTop < CanvasManager.height + 50 && !noteProps.holdCompleted;
 
   if (holdVisible) {
     drawHoldBody(colInfo.x, holdHeadY, holdEndY, {

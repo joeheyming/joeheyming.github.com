@@ -94,6 +94,45 @@ export function extractSimfileId(zeniusUrl) {
 }
 
 /**
+ * @returns {((type: string) => string) | null}
+ */
+export function defaultCanPlayType() {
+  if (typeof document === 'undefined') return null;
+  try {
+    const audio = document.createElement('audio');
+    if (typeof audio.canPlayType !== 'function') return null;
+    return (type) => audio.canPlayType(type);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Pick the audio file this browser can decode. Ogg is preferred when both
+ * exist, except where canPlayType rejects it (Safari), which then uses mp3.
+ * The other file is returned as a fallback when the first download will not play.
+ *
+ * @param {string|null|undefined} oggUrl
+ * @param {string|null|undefined} mp3Url
+ * @param {((type: string) => string) | null} [canPlayType]
+ * @returns {{ url: string|null, alternateUrl: string|null }}
+ */
+export function chooseAudioUrl(oggUrl, mp3Url, canPlayType = defaultCanPlayType()) {
+  const ogg = oggUrl || null;
+  const mp3 = mp3Url || null;
+  const supported = (type) => {
+    if (!canPlayType) return true;
+    return canPlayType(type) !== '';
+  };
+  const oggOk = supported('audio/ogg; codecs="vorbis"');
+  const mp3Ok = supported('audio/mpeg');
+  if (mp3 && ogg && mp3Ok && !oggOk) return { url: mp3, alternateUrl: ogg };
+  if (ogg && oggOk) return { url: ogg, alternateUrl: mp3 && mp3 !== ogg ? mp3 : null };
+  if (mp3) return { url: mp3, alternateUrl: ogg && ogg !== mp3 ? ogg : null };
+  return { url: ogg || mp3, alternateUrl: null };
+}
+
+/**
  * Fetch and parse simfile data from Zenius-I-Vanisher
  * @param {string} simfileId - The simfile ID to fetch
  * @param {import('./songProxyTransport.js').SongProxyTransport} [transport]
@@ -128,14 +167,15 @@ export async function fetchZeniusSimfile(simfileId, transport) {
     aviMatch = html.match(/href="([^"]*\.avi)"/);
   }
 
-  // Use OGG if available, otherwise fall back to MP3
-  const audioMatch = oggMatch || mp3Match;
+  const oggUrl = oggMatch ? resolveZeniusUrl(oggMatch[1]) : null;
+  const mp3Url = mp3Match ? resolveZeniusUrl(mp3Match[1]) : null;
+  const chosenAudio = chooseAudioUrl(oggUrl, mp3Url);
 
-  if (!simfileMatch || !audioMatch) {
+  if (!simfileMatch || !chosenAudio.url) {
     throw new Error('Could not find simfile or audio files on Zenius page');
   }
 
-  const audioUrl = resolveZeniusUrl(audioMatch[1]);
+  const audioUrl = chosenAudio.url;
   const simfileDirectUrl = resolveZeniusUrl(simfileMatch[1]);
   const backgroundUrl = backgroundMatch ? resolveZeniusUrl(backgroundMatch[1]) : null;
   const aviUrl = aviMatch ? resolveZeniusUrl(aviMatch[1]) : null;
@@ -171,6 +211,7 @@ export async function fetchZeniusSimfile(simfileId, transport) {
     artist,
     simfileText,
     audioUrl,
+    alternateAudioUrl: chosenAudio.alternateUrl,
     backgroundUrl,
     aviUrl,
     categoryId,
@@ -194,6 +235,7 @@ export function parseZeniusSimfile(simfileData, simfileId) {
     title: simfileData.title,
     artist: simfileData.artist,
     url: simfileData.audioUrl,
+    alternateUrl: simfileData.alternateAudioUrl || null,
     background: simfileData.backgroundUrl || null,
     video: simfileData.aviUrl || null, // AVI video if available (will be converted by videoConverter)
     simfile: null
@@ -238,30 +280,31 @@ export async function fetchZeniusAudioFromZip(simfileId, transport) {
     // Extract ZIP
     const zip = await JSZip.loadAsync(zipData);
 
-    // Find audio file in ZIP (prefer OGG, then MP3)
-    let audioFile = null;
-    let audioType = null;
+    const names = Object.keys(zip.files);
+    const chosen = chooseAudioUrl(
+      names.find((name) => name.toLowerCase().endsWith('.ogg')) || null,
+      names.find((name) => name.toLowerCase().endsWith('.mp3')) || null
+    );
 
-    for (const filename of Object.keys(zip.files)) {
-      const lowerName = filename.toLowerCase();
-      if (lowerName.endsWith('.ogg')) {
-        audioFile = zip.files[filename];
-        audioType = 'audio/ogg';
-        break; // Prefer OGG
-      } else if (lowerName.endsWith('.mp3') && !audioFile) {
-        audioFile = zip.files[filename];
-        audioType = 'audio/mpeg';
-      }
-    }
-
-    if (!audioFile) {
+    if (!chosen.url) {
       console.warn('No audio file found in ZIP');
       return null;
     }
 
-    // Extract audio as blob - JSZip returns a Blob directly, no need to re-wrap
+    const audioFile = zip.files[chosen.url];
+    const audioType = chosen.url.toLowerCase().endsWith('.ogg') ? 'audio/ogg' : 'audio/mpeg';
     const audioBlob = await audioFile.async('blob');
-    return { audioBlob, audioType };
+
+    let alternateBlob = null;
+    let alternateType = null;
+    if (chosen.alternateUrl && zip.files[chosen.alternateUrl]) {
+      alternateType = chosen.alternateUrl.toLowerCase().endsWith('.ogg')
+        ? 'audio/ogg'
+        : 'audio/mpeg';
+      alternateBlob = await zip.files[chosen.alternateUrl].async('blob');
+    }
+
+    return { audioBlob, audioType, alternateBlob, alternateType };
   } catch (error) {
     console.error('Failed to download/extract ZIP:', error);
     return null;

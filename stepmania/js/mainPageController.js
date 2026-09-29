@@ -549,6 +549,33 @@ export class MainPageController {
         lastAudioError = error;
       }
 
+      const alternateUrl = currentSongData.alternateUrl || '';
+      if (!audioLoaded && alternateUrl && alternateUrl !== audioUrl) {
+        try {
+          if (useMainLoading) {
+            LoadingOverlay.updateProgress('Trying the other audio format...', audioProgress + 8);
+          }
+          const alternateType = alternateUrl.toLowerCase().includes('.ogg')
+            ? 'audio/ogg'
+            : 'audio/mpeg';
+          const alternateData = await songManager.getProxyTransport().fetchBinary(alternateUrl, {
+            skipDirect: true,
+            headers: {
+              Referer: 'https://zenius-i-vanisher.com/',
+              Origin: 'https://zenius-i-vanisher.com'
+            },
+            timeout: AUDIO_PROXY_TIMEOUT,
+            maxRetries: AUDIO_PROXY_MAX_RETRIES
+          });
+          if (alternateData && binaryPayloadByteLength(alternateData) > MIN_VALID_AUDIO_SIZE) {
+            await audioManager.loadArrayBuffer(alternateData, alternateType);
+            audioLoaded = true;
+          }
+        } catch (error) {
+          lastAudioError = error;
+        }
+      }
+
       // Fallback: Download ZIP and extract audio
       if (!audioLoaded && currentSongKey.startsWith('zenius_')) {
         const simfileId = currentSongKey.replace('zenius_', '');
@@ -564,8 +591,14 @@ export class MainPageController {
             songManager.getProxyTransport()
           );
           if (zipResult) {
-            await audioManager.loadBlob(zipResult.audioBlob, zipResult.audioType);
-            audioLoaded = true;
+            try {
+              await audioManager.loadBlob(zipResult.audioBlob, zipResult.audioType);
+              audioLoaded = true;
+            } catch (primaryZipError) {
+              if (!zipResult.alternateBlob) throw primaryZipError;
+              await audioManager.loadBlob(zipResult.alternateBlob, zipResult.alternateType);
+              audioLoaded = true;
+            }
           } else if (!lastAudioError) {
             lastAudioError = new Error('Song pack ZIP had no audio file');
           }

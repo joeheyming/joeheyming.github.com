@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveZeniusUrl, formatLoadError } from '../js/songLoader.js';
+import { resolveZeniusUrl, formatLoadError, chooseAudioUrl } from '../js/songLoader.js';
+import { sniffAudioMime } from '../js/songProxyTransport.js';
 
 describe('resolveZeniusUrl', () => {
   it('resolves root-relative hrefs against zenius-i-vanisher.com', () => {
@@ -44,6 +45,41 @@ describe('resolveZeniusUrl', () => {
   it('returns null for empty or non-string input', () => {
     assert.equal(resolveZeniusUrl(''), null);
     assert.equal(resolveZeniusUrl(null), null);
+  });
+});
+
+describe('chooseAudioUrl', () => {
+  const refuseOgg = (type) => (type.startsWith('audio/ogg') ? '' : 'probably');
+
+  it('prefers ogg when the browser can play it', () => {
+    const chosen = chooseAudioUrl('song.ogg', 'song.mp3', () => 'probably');
+    assert.equal(chosen.url, 'song.ogg');
+    assert.equal(chosen.alternateUrl, 'song.mp3');
+  });
+
+  it('prefers mp3 when ogg is unsupported', () => {
+    const chosen = chooseAudioUrl('song.ogg', 'song.mp3', refuseOgg);
+    assert.equal(chosen.url, 'song.mp3');
+    assert.equal(chosen.alternateUrl, 'song.ogg');
+  });
+
+  it('keeps the only available file', () => {
+    assert.equal(chooseAudioUrl('song.ogg', null, refuseOgg).url, 'song.ogg');
+    assert.equal(chooseAudioUrl(null, 'song.mp3', () => '').url, 'song.mp3');
+  });
+});
+
+describe('sniffAudioMime', () => {
+  it('recognizes ogg, id3, and wav headers', () => {
+    assert.equal(sniffAudioMime(Uint8Array.from([0x4f, 0x67, 0x67, 0x53])), 'audio/ogg');
+    assert.equal(sniffAudioMime(Uint8Array.from([0x49, 0x44, 0x33, 0x04])), 'audio/mpeg');
+    const wav = new Uint8Array(12);
+    wav.set(Uint8Array.from([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45]));
+    assert.equal(sniffAudioMime(wav), 'audio/wav');
+  });
+
+  it('rejects an html error page', () => {
+    assert.equal(sniffAudioMime(Uint8Array.from([0x3c, 0x68, 0x74, 0x6d, 0x6c])), null);
   });
 });
 

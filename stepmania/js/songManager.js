@@ -311,7 +311,32 @@ class SongManager {
         audioLoaded = true;
       }
     } catch (error) {
-      // Direct download failed, will try ZIP fallback
+      // Direct download failed, will try the other format and then the ZIP.
+    }
+
+    const alternateUrl = this._currentSong.data.alternateUrl || '';
+    if (!audioLoaded && alternateUrl && alternateUrl !== audioUrl) {
+      try {
+        onProgress?.('Trying the other audio format...', 40);
+        const alternateType = alternateUrl.toLowerCase().includes('.ogg')
+          ? 'audio/ogg'
+          : 'audio/mpeg';
+        const alternateData = await this.getProxyTransport().fetchBinary(alternateUrl, {
+          skipDirect: true,
+          headers: {
+            Referer: 'https://zenius-i-vanisher.com/',
+            Origin: 'https://zenius-i-vanisher.com'
+          },
+          timeout: AUDIO_PROXY_TIMEOUT,
+          maxRetries: AUDIO_PROXY_MAX_RETRIES
+        });
+        if (alternateData && binaryPayloadByteLength(alternateData) > MIN_VALID_AUDIO_SIZE) {
+          await audioManager.loadArrayBuffer(alternateData, alternateType);
+          audioLoaded = true;
+        }
+      } catch (error) {
+        // Fall through to the song pack.
+      }
     }
 
     // Fallback: Download ZIP and extract audio
@@ -323,8 +348,14 @@ class SongManager {
 
         const zipResult = await fetchZeniusAudioFromZip(simfileId, this.getProxyTransport());
         if (zipResult) {
-          await audioManager.loadBlob(zipResult.audioBlob, zipResult.audioType);
-          audioLoaded = true;
+          try {
+            await audioManager.loadBlob(zipResult.audioBlob, zipResult.audioType);
+            audioLoaded = true;
+          } catch (primaryZipError) {
+            if (!zipResult.alternateBlob) throw primaryZipError;
+            await audioManager.loadBlob(zipResult.alternateBlob, zipResult.alternateType);
+            audioLoaded = true;
+          }
         }
       } catch (zipError) {
         // ZIP fallback also failed

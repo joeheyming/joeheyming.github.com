@@ -1,6 +1,8 @@
 // AudioManager - Singleton for managing audio playback
 // Centralizes audio element access, blob URL lifecycle, and event handling
 
+import { sniffAudioMime } from './songProxyTransport.js';
+
 /**
  * Hard cap on playbackRate. Browsers technically accept up to 16, but the
  * built-in time-stretching algorithm artifacts badly past ~2× when
@@ -60,6 +62,8 @@ class AudioManager {
     };
 
     this._elementListenersAttached = false;
+    /** @type {{ onCanPlay: () => void, onError: () => void } | null} */
+    this._pendingLoad = null;
   }
 
   /**
@@ -360,19 +364,26 @@ class AudioManager {
    * @returns {Promise<void>} Resolves when audio can play
    */
   loadUrl(url, type = 'audio/mpeg') {
+    const trusted = typeof type === 'string' && type.startsWith('audio/');
+    return this._attachAndLoad(url, trusted ? type : '');
+  }
+
+  /**
+   * @param {string} url
+   * @param {string} type Empty string omits the type attribute
+   * @returns {Promise<void>}
+   */
+  _attachAndLoad(url, type) {
     return new Promise((resolve, reject) => {
       if (!this.element) {
         reject(new Error('Audio not initialized'));
         return;
       }
 
-      // Note: Don't cleanup blob URL here - loadBlob() handles its own cleanup
-      // before creating a new blob. Cleaning up here would revoke the URL
-      // that loadBlob() just created.
+      this._detachPendingLoad();
 
-      // Set up one-time listeners for load completion
       const onCanPlay = () => {
-        this.element.removeEventListener('error', onError);
+        this._detachPendingLoad();
         // Re-apply rate + pitch preservation: Chrome and Safari reset
         // playbackRate on a fresh <source> in some scenarios, and the
         // pitch-preserve flag is similarly volatile. Cheap to set even
@@ -381,23 +392,31 @@ class AudioManager {
         resolve();
       };
 
-      const onError = (e) => {
-        this.element.removeEventListener('canplay', onCanPlay);
+      const onError = () => {
+        this._detachPendingLoad();
         reject(new Error('Audio failed to load'));
       };
 
-      this.element.addEventListener('canplay', onCanPlay, { once: true });
-      this.element.addEventListener('error', onError, { once: true });
+      this._pendingLoad = { onCanPlay, onError };
+      this.element.addEventListener('canplay', onCanPlay);
+      this.element.addEventListener('error', onError);
 
-      // Load the audio. A <source> with an explicit type the browser can't
-      // claim is skipped outright, so only state the type when we trust it;
-      // otherwise let the element sniff the container.
-      const trusted = typeof type === 'string' && type.startsWith('audio/');
-      this.element.innerHTML = trusted
-        ? `<source src="${url}" type="${type}" />`
-        : `<source src="${url}" />`;
+      const safeUrl = String(url).replace(/"/g, '%22');
+      this.element.innerHTML = type
+        ? `<source src="${safeUrl}" type="${type}" />`
+        : `<source src="${safeUrl}" />`;
       this.element.load();
     });
+  }
+
+  _detachPendingLoad() {
+    if (!this._pendingLoad || !this.element) {
+      this._pendingLoad = null;
+      return;
+    }
+    this.element.removeEventListener('canplay', this._pendingLoad.onCanPlay);
+    this.element.removeEventListener('error', this._pendingLoad.onError);
+    this._pendingLoad = null;
   }
 
   /**
@@ -406,14 +425,24 @@ class AudioManager {
    * @param {string} [type='audio/mpeg'] - MIME type
    * @returns {Promise<void>} Resolves when audio can play
    */
-  loadBlob(blob, type = 'audio/mpeg') {
+  async loadBlob(blob, type = 'audio/mpeg') {
     // Clean up previous blob URL
     this.cleanupBlobUrl();
+
+    let mime = type;
+    try {
+      if (blob && typeof blob.arrayBuffer === 'function') {
+        const sniffed = sniffAudioMime(await blob.arrayBuffer());
+        if (sniffed) mime = sniffed;
+      }
+    } catch {
+      /* keep the declared type */
+    }
 
     // Create new blob URL
     this._currentBlobUrl = URL.createObjectURL(blob);
 
-    return this.loadUrl(this._currentBlobUrl, type);
+    return this.loadUrl(this._currentBlobUrl, mime);
   }
 
   /**

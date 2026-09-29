@@ -19,6 +19,20 @@ const DEFAULT_SCROLL_BPM = 300;
 /** Valid scroll modes */
 const SCROLL_MODES = ['xmod', 'cmod'];
 
+const SCROLL_DIRECTION_KEY = 'heyming.stepmania.scrollDirection.v1';
+
+/**
+ * @returns {'up' | 'down'}
+ */
+function readStoredScrollDirection() {
+  try {
+    const stored = globalThis.localStorage?.getItem(SCROLL_DIRECTION_KEY);
+    return stored === 'down' ? 'down' : 'up';
+  } catch {
+    return 'up';
+  }
+}
+
 // ============================================================================
 // COMBO CONSTANTS
 // ============================================================================
@@ -119,6 +133,8 @@ class GameState {
     this.scrollSpeed = DEFAULT_SCROLL_SPEED;
     this.scrollMode = 'xmod';
     this.scrollBPM = DEFAULT_SCROLL_BPM;
+    /** @type {'up' | 'down'} Upscroll: receptors on top. Downscroll: receptors on the bottom. */
+    this.scrollDirection = readStoredScrollDirection();
 
     // Note: Song metadata (currentSongKey, currentDifficulty, parsedSongs)
     // is managed by songManager - import it directly when needed
@@ -654,6 +670,28 @@ class GameState {
   }
 
   /**
+   * Upscroll (receptors at the top) or downscroll (receptors at the bottom).
+   * @returns {'up' | 'down'}
+   */
+  getScrollDirection() {
+    return this.scrollDirection === 'down' ? 'down' : 'up';
+  }
+
+  /**
+   * @param {'up' | 'down'} direction
+   * @returns {'up' | 'down'}
+   */
+  setScrollDirection(direction) {
+    this.scrollDirection = direction === 'down' ? 'down' : 'up';
+    try {
+      globalThis.localStorage?.setItem(SCROLL_DIRECTION_KEY, this.scrollDirection);
+    } catch {
+      /* quota / private mode */
+    }
+    return this.scrollDirection;
+  }
+
+  /**
    * Get CMod scroll BPM
    * @returns {number}
    */
@@ -762,6 +800,7 @@ class GameState {
       scrollSpeed: this.scrollSpeed,
       scrollMode: this.scrollMode,
       scrollBPM: this.scrollBPM,
+      scrollDirection: this.getScrollDirection(),
       lastError: this.lastError,
       health: this.health,
       failed: this.failed,

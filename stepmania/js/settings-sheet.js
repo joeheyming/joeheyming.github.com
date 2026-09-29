@@ -2,6 +2,7 @@
 
 import { adoptSharedStyles } from './sharedStyles.js';
 import { COLUMNS, inputManager, isReservedActionKey, keyCodeLabel } from './inputManager.js';
+import gameState from './gameState.js';
 
 const COLUMN_META = [
   { id: COLUMNS.LEFT, name: 'Left' },
@@ -84,6 +85,16 @@ class SettingsSheetElement extends HTMLElement {
         this.bindEvents();
       });
     }
+    this.shadowRoot.querySelectorAll('[data-scroll]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const direction = btn.getAttribute('data-scroll') === 'down' ? 'down' : 'up';
+        gameState.setScrollDirection(direction);
+        this._hint = direction === 'down' ? 'Notes fall downward.' : 'Notes rise to the top.';
+        this.render();
+        adoptSharedStyles(this.shadowRoot);
+        this.bindEvents();
+      });
+    });
     this.shadowRoot.querySelectorAll('[data-add-col]').forEach((btn) => {
       btn.addEventListener('click', () => {
         this._listeningColumn = Number(btn.getAttribute('data-add-col'));
@@ -152,6 +163,8 @@ class SettingsSheetElement extends HTMLElement {
         </div>`;
     }).join('');
 
+    const direction = gameState.getScrollDirection();
+
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: block; }
@@ -195,7 +208,7 @@ class SettingsSheetElement extends HTMLElement {
           cursor: pointer;
         }
         .empty { font-size: 0.75rem; color: var(--text-2, #888); }
-        .add, .footer button {
+        .add, .footer button, .scroll-btn {
           border: 1px solid var(--hairline-strong, #ccc);
           background: var(--surface-1, #fff);
           color: inherit;
@@ -204,13 +217,29 @@ class SettingsSheetElement extends HTMLElement {
           font-size: 0.8rem;
           cursor: pointer;
         }
+        .scroll-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+        .scroll-btn.selected {
+          border-color: var(--accent-primary, #1a73e8);
+          background: var(--surface-2, #f3f3f3);
+          font-weight: 600;
+        }
+        .section-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em; margin: 0 0 0.35rem; }
         .footer { display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.85rem; }
         .note { font-size: 0.72rem; color: var(--text-2, #666); margin-top: 0.65rem; }
       </style>
       <div class="backdrop" id="backdrop">
         <div class="panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-          <h2 id="settings-title">Keybinds</h2>
+          <h2 id="settings-title">Keys and scroll</h2>
           <p class="hint">${escapeHtml(this._hint)}</p>
+          <p class="section-label">Scroll</p>
+          <div class="scroll-row">
+            <button type="button" class="scroll-btn${
+              direction === 'up' ? ' selected' : ''
+            }" data-scroll="up">Upscroll</button>
+            <button type="button" class="scroll-btn${
+              direction === 'down' ? ' selected' : ''
+            }" data-scroll="down">Downscroll</button>
+          </div>
           ${rows}
           <p class="note">Space, [ ] \\ and \` stay reserved. Click a key chip to remove it.</p>
           <div class="footer">

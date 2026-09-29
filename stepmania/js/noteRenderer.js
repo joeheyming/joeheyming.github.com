@@ -74,7 +74,8 @@ export function drawMine(x, y, currentTime, beatUntilNote, alpha) {
 export function drawHoldBody(x, headY, endY, options = {}) {
   const { isActive = false, wasDropped = false, currentTime = 0 } = options;
 
-  const bodyHeight = Math.max(0, endY - headY);
+  const bodyTop = Math.min(headY, endY);
+  const bodyHeight = Math.abs(endY - headY);
   if (bodyHeight <= 0) return;
 
   const holdBodyAlpha = wasDropped ? 0.5 : 0.9;
@@ -105,10 +106,10 @@ export function drawHoldBody(x, headY, endY, options = {}) {
 
   // Create gradient and draw body
   const holdGradient = CanvasManager.createLinearGradient(x, headY, x, endY, colorStops);
-  CanvasManager.fillRect(x - 8, headY, 16, bodyHeight, holdGradient, holdBodyAlpha);
+  CanvasManager.fillRect(x - 8, bodyTop, 16, bodyHeight, holdGradient, holdBodyAlpha);
 
   // Draw outline
-  CanvasManager.strokeRect(x - 8, headY, 16, bodyHeight, {
+  CanvasManager.strokeRect(x - 8, bodyTop, 16, bodyHeight, {
     stroke: isActive ? HOLD.activeStroke : HOLD.inactiveStroke,
     lineWidth: isActive ? 3 : 2,
     alpha: holdBodyAlpha
@@ -169,6 +170,62 @@ export function isNoteOnScreen(beatUntilNote, beatUntilNoteEnd, scrollSpeed) {
  * @param {number} scrollSpeed - Current scroll speed
  * @returns {number} Y position
  */
-export function calculateNoteY(beatUntilNote, arrowSize, scrollSpeed) {
-  return TARGETS_Y + beatUntilNote * arrowSize * scrollSpeed;
+/**
+ * @param {unknown} direction
+ * @returns {'up' | 'down'}
+ */
+export function normalizeScrollDirection(direction) {
+  return direction === 'down' ? 'down' : 'up';
+}
+
+/**
+ * Receptor center. Upscroll keeps the arrows at the top. Downscroll parks
+ * them above the health bar so a 64px arrow does not cover it.
+ * @param {'up' | 'down'} direction
+ * @param {number} canvasHeight
+ * @param {number} [targetsY]
+ * @param {number} [arrowSize]
+ * @returns {number}
+ */
+export function receptorY(direction, canvasHeight, targetsY = TARGETS_Y, arrowSize = ARROW_WIDTH) {
+  if (normalizeScrollDirection(direction) !== 'down') return targetsY;
+  const height = Number(canvasHeight) || 0;
+  return Math.max(targetsY, height - arrowSize / 2 - 24);
+}
+
+/**
+ * Positive distance is time still ahead of the receptor. Upscroll draws
+ * that below the receptor; downscroll draws it above.
+ * @param {number} distanceAhead
+ * @param {number} pxPerUnit
+ * @param {number} originY
+ * @param {'up' | 'down'} [direction]
+ * @returns {number}
+ */
+export function noteFieldY(distanceAhead, pxPerUnit, originY, direction = 'up') {
+  const sign = normalizeScrollDirection(direction) === 'down' ? -1 : 1;
+  return originY + sign * distanceAhead * pxPerUnit;
+}
+
+/**
+ * @param {number} y1
+ * @param {number} y2
+ * @param {number} canvasHeight
+ * @param {number} [margin]
+ * @returns {boolean}
+ */
+export function noteSpanOnScreen(y1, y2, canvasHeight, margin = 100) {
+  const top = Math.min(y1, y2);
+  const bottom = Math.max(y1, y2);
+  return bottom > -margin && top < canvasHeight + margin;
+}
+
+export function calculateNoteY(
+  beatUntilNote,
+  arrowSize,
+  scrollSpeed,
+  originY = TARGETS_Y,
+  direction = 'up'
+) {
+  return noteFieldY(beatUntilNote, arrowSize * scrollSpeed, originY, direction);
 }
