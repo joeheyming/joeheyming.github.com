@@ -148,12 +148,15 @@ test('analytics reports the slowest buffered interaction on pagehide', () => {
   dom.window.eval(readFileSync(path.join(ROOT, 'analytics.js'), 'utf8'));
 
   assert.equal(observers.length, 1);
+  const submit = dom.window.document.getElementById('submit');
   observers[0].records.push({
     interactionId: 1,
     duration: 287,
     name: 'click',
-    target: dom.window.document.getElementById('submit')
+    target: submit
   });
+  observers[0].callback({ getEntries: () => observers[0].records.splice(0) });
+  submit.remove();
   dom.window.dispatchEvent(new dom.window.Event('pagehide'));
 
   const inpEvent = dom.window.dataLayer
@@ -164,4 +167,39 @@ test('analytics reports the slowest buffered interaction on pagehide', () => {
   assert.equal(inpEvent[2].event_label, 'click button#submit');
   assert.equal(inpEvent[2].value, 287);
   dom.window.close();
+});
+
+test('Doom caps catch-up work in its browser main loop', () => {
+  const source = readFileSync(path.join(ROOT, 'doom/uzdoom-loader-engine.js'), 'utf8');
+  assert.match(source, /vid_maxfps 60/);
+  assert.match(source, /cl_capfps 1/);
+});
+
+test('StepMania paints interaction feedback before heavy continuations', () => {
+  const browserSource = readFileSync(path.join(ROOT, 'stepmania/js/zenius-browser.js'), 'utf8');
+  const showBrowserStart = browserSource.indexOf('async showBrowser()');
+  const showBrowser = browserSource.slice(
+    showBrowserStart,
+    browserSource.indexOf('\n  hideBrowser()', showBrowserStart)
+  );
+  assert.ok(
+    showBrowser.indexOf('await window.yieldToMain()') < showBrowser.indexOf('renderRecentChips()')
+  );
+
+  const controllerSource = readFileSync(
+    path.join(ROOT, 'stepmania/js/mainPageController.js'),
+    'utf8'
+  );
+  const startPlayingStart = controllerSource.indexOf('async startPlaying()');
+  const startPlaying = controllerSource.slice(
+    startPlayingStart,
+    controllerSource.indexOf('\n  getDifficultyShortCode', startPlayingStart)
+  );
+  assert.ok(
+    startPlaying.indexOf('LoadingOverlay.hide()') <
+      startPlaying.indexOf('await window.yieldToMain()')
+  );
+  assert.ok(
+    startPlaying.indexOf('await window.yieldToMain()') < startPlaying.indexOf('resetGame()')
+  );
 });

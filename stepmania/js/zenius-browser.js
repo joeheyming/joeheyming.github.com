@@ -237,10 +237,19 @@ class ZeniusBrowserElement extends HTMLElement {
     });
   }
 
-  showBrowser() {
+  async showBrowser() {
     this._previouslyFocused = /** @type {HTMLElement|null} */ (document.activeElement);
     this.classList.add('modal-open');
-    this.shadowRoot.getElementById('zenius-browser-modal').classList.add('show');
+    const modal = this.shadowRoot.getElementById('zenius-browser-modal');
+    modal.classList.add('show');
+    updateZeniusBrowserLayout(this);
+
+    // Let the modal shell paint before rebuilding a potentially large cached
+    // song grid. Browse buttons were otherwise among this page's slowest
+    // interactions because both phases ran in the activation task.
+    await window.yieldToMain();
+    if (!modal.classList.contains('show')) return;
+
     this.renderRecentChips();
 
     // If we have a remembered category and we're at home, load it but keep Search tab active
@@ -252,7 +261,6 @@ class ZeniusBrowserElement extends HTMLElement {
     if (this._lastSpotlightSourceLinks && this._lastSpotlightSourceLinks.length > 0) {
       void this.startSimfileSpotlight(this._lastSpotlightSourceLinks);
     }
-    updateZeniusBrowserLayout(this);
 
     requestAnimationFrame(() => {
       this.moveFocusIntoModal();

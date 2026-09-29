@@ -401,7 +401,15 @@ function initInpTracking() {
     for (const entry of entries) {
       if (!entry.interactionId) continue;
       if (!worstInteraction || entry.duration > worstInteraction.duration) {
-        worstInteraction = entry;
+        // PerformanceEventTiming.target becomes null when an interaction
+        // removes its target (launch buttons and loading overlays commonly
+        // do this). Snapshot the diagnostic fields while the node is still
+        // connected instead of retaining the live performance entry.
+        worstInteraction = {
+          duration: entry.duration,
+          name: entry.name,
+          targetLabel: describeTarget(entry.target)
+        };
       }
     }
   }
@@ -413,7 +421,7 @@ function initInpTracking() {
     window.trackEvent(
       'web_vital_inp',
       'Web Vitals',
-      `${worstInteraction.name} ${describeTarget(worstInteraction.target)}`.slice(0, 100),
+      `${worstInteraction.name} ${worstInteraction.targetLabel}`.slice(0, 100),
       Math.round(worstInteraction.duration)
     );
   }

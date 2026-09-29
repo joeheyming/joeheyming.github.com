@@ -276,7 +276,13 @@ export function installUzdomLoaderEngine(ctx) {
           // double-move once a pad is connected.
           'bind j "+jump"\n' +
           'bind [ "weapprev"\n' +
-          'use_joystick 0\n';
+          'use_joystick 0\n' +
+          // Keep a long engine tick from triggering an uncapped burst of
+          // catch-up work in the next Emscripten main-loop turn. That burst
+          // delays the browser's next paint and was the dominant INP source
+          // for keyboard and pointer interactions on the game canvas.
+          'vid_maxfps 60\n' +
+          'cl_capfps 1\n';
         if (document.body.classList.contains('mobile')) {
           cfg = 'unbind mouse1\n' + cfg;
         }

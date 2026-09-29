@@ -129,7 +129,7 @@ export class MainPageController {
           return;
         }
         e.preventDefault();
-        this.restartSong();
+        void window.yieldToMain().then(() => this.restartSong());
       }
     });
   }
@@ -756,7 +756,7 @@ export class MainPageController {
     }
   }
 
-  startPlaying() {
+  async startPlaying() {
     const difficultySelect = document.getElementById('ready-difficulty-select');
 
     if (difficultySelect) {
@@ -765,6 +765,9 @@ export class MainPageController {
         songManager.setCurrentDifficulty(selectedIndex);
       }
     }
+
+    LoadingOverlay.hide();
+    await window.yieldToMain();
 
     const currentSong = songManager.getCurrentSong();
     const parsedData = songManager.getCurrentParsedData();
@@ -785,8 +788,6 @@ export class MainPageController {
         resetGame();
       }
     }
-
-    LoadingOverlay.hide();
 
     audioManager.play();
   }
