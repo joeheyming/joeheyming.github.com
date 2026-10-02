@@ -194,6 +194,34 @@ export function barsOf(song) {
   return Math.max(MIN_BARS, Math.round(song.steps / STEPS_PER_BAR) || DEFAULT_BARS);
 }
 
+/** Arrangement length in bars, counting every slot. */
+export function songBarCount(song) {
+  const slots = Math.max(1, song.arrangement?.length || 1);
+  return slots * barsOf(song);
+}
+
+/**
+ * How many bars fit across a grid of `containerWidth` px.
+ * Prefers columns near `colW` and keeps them inside minCol–maxCol.
+ * @param {number} containerWidth
+ * @param {number} totalBars
+ * @param {{ labelW?: number, colW?: number, minCol?: number, maxCol?: number, stepsPerBar?: number }} [opts]
+ */
+export function visibleBarCount(containerWidth, totalBars, opts = {}) {
+  const labelW = opts.labelW ?? 44;
+  const colW = opts.colW ?? 22;
+  const minCol = opts.minCol ?? 14;
+  const maxCol = opts.maxCol ?? 36;
+  const stepsPerBar = opts.stepsPerBar ?? STEPS_PER_BAR;
+  const total = Math.max(1, Math.round(totalBars) || 1);
+  const inner = Math.max(0, containerWidth - labelW);
+  if (inner <= 0) return 1;
+  const preferred = Math.max(1, Math.round(inner / (stepsPerBar * colW)));
+  const maxFit = Math.max(1, Math.floor(inner / (stepsPerBar * minCol)));
+  const minFit = Math.max(1, Math.ceil(inner / (stepsPerBar * maxCol)));
+  return Math.max(1, Math.min(total, maxFit, Math.max(preferred, minFit)));
+}
+
 /**
  * Resize the pattern length by bar count. Notes past the new end are trimmed.
  * @param {Song} song

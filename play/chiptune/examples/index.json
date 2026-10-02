@@ -23,6 +23,12 @@
       "title": "Funkytown",
       "blurb": "Imported from MIDI onto the 16th-note grid",
       "file": "funkytown.json"
+    },
+    {
+      "id": "smb3-overworld",
+      "title": "Super Mario Bros. 3 — Overworld",
+      "blurb": "Koji Kondo's theme, quantized from MIDI for six chip voices",
+      "file": "smb3-overworld.json"
     }
   ]
 }

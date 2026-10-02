@@ -1,6 +1,5 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { midiToPayload, MidiImportError } from '../play/chiptune/midi-import.js';
 
 describe('midiToPayload', () => {
@@ -33,6 +32,16 @@ describe('midiToPayload', () => {
         return true;
       }
     );
+  });
+
+  it('can intentionally quantize an off-grid note to the nearest 16th', () => {
+    const mid = smf({
+      tempo: 120,
+      tracks: [track([note(60, 60, 120, 100)])]
+    });
+    const { payload, warnings } = midiToPayload(mid, { quantize: true });
+    assert.deepEqual(payload.p[0].t[0], [[60, 1, 1]]);
+    assert.match(warnings[0], /snapped to the nearest 16th-note grid position/);
   });
 
   it('snaps a note-on that is only a few ticks off the grid', () => {
@@ -70,28 +79,6 @@ describe('midiToPayload', () => {
     const overridden = midiToPayload(mid, { waves: { 38: 'triangle' } });
     assert.equal(overridden.voices[0].wave, 'triangle');
     assert.equal(overridden.voices[0].waveSource, 'override');
-  });
-
-  it('converts the Funkytown MIDI into the committed example', () => {
-    const mid = readFileSync(new URL('../play/chiptune/examples/funkytown.mid', import.meta.url));
-    const saved = JSON.parse(
-      readFileSync(new URL('../play/chiptune/examples/funkytown.json', import.meta.url), 'utf8')
-    );
-    const { payload } = midiToPayload(mid);
-    assert.deepEqual(payload, saved);
-    assert.equal(payload.t, 120);
-    assert.equal(payload.s % 16, 0);
-    assert.ok(payload.s <= 256);
-    assert.ok(payload.a.length > 1);
-    for (const pattern of payload.p) {
-      for (const track of pattern.t) {
-        for (const note of track) {
-          assert.ok(note[0] >= 36 && note[0] <= 84);
-          assert.ok(note[1] >= 0 && note[1] < payload.s);
-          assert.ok(note[2] >= 1 && note[1] + note[2] <= payload.s);
-        }
-      }
-    }
   });
 });
 

@@ -14,6 +14,7 @@ import {
   appendArrangement,
   barsOf,
   setBars,
+  songBarCount,
   addBar,
   removeBar
 } from './model.js';
@@ -34,8 +35,9 @@ const els = {
   bpm: /** @type {HTMLInputElement|null} */ (document.getElementById('bpm')),
   bpmValue: document.getElementById('bpm-value'),
   measures: /** @type {HTMLInputElement|null} */ (document.getElementById('measures')),
-  barsMinus: document.getElementById('bars-minus'),
-  barsPlus: document.getElementById('bars-plus'),
+  barsTotal: document.getElementById('bars-total'),
+  barsMinus: /** @type {HTMLButtonElement|null} */ (document.getElementById('bars-minus')),
+  barsPlus: /** @type {HTMLButtonElement|null} */ (document.getElementById('bars-plus')),
   volume: /** @type {HTMLInputElement|null} */ (document.getElementById('volume')),
   status: document.getElementById('now-playing'),
   channels: document.getElementById('channel-list'),
@@ -69,7 +71,7 @@ const transport = new ChipTransport({
       song.activePattern = patIndex;
       highlightPatternTab(patIndex);
     }
-    grid.setPlayhead(step);
+    grid.setPlayhead(step, arrIndex);
     highlightArrangement(arrIndex);
     if (els.status) {
       const pat = song.patterns[patIndex];
@@ -98,7 +100,8 @@ const grid = new PitchGrid({
   onPreview: (midi) => {
     const ch = song.channels[song.activeChannel];
     if (ch) transport.preview(ch, midi);
-  }
+  },
+  onViewChange: () => syncBarsControl()
 });
 
 function snapshot() {
@@ -119,6 +122,8 @@ function afterEdit() {
 function restoreSong(next, statusText = 'Ready') {
   if (!next) return;
   song = next;
+  grid.isolatedPattern = -1;
+  grid.viewStartBar = 0;
   grid.resize();
   renderSidePanels();
   scheduleUrlSync();
@@ -256,8 +261,8 @@ function renderPatterns() {
     btn.textContent = pat.name;
     btn.addEventListener('click', () => {
       song.activePattern = i;
+      grid.focusPattern(i);
       renderSidePanels();
-      grid.draw();
       scheduleUrlSync();
     });
     els.patterns.append(btn);
@@ -322,7 +327,41 @@ function syncChannelControls() {
   if (els.bpm) els.bpm.value = String(song.tempo);
   if (els.bpmValue) els.bpmValue.textContent = String(song.tempo);
   if (els.bpm) els.bpm.setAttribute('aria-valuetext', `${song.tempo} BPM`);
-  if (els.measures) els.measures.value = String(barsOf(song));
+  syncBarsControl();
+}
+
+function timelineView() {
+  return song.arrangement.length > 1 && grid.isolatedPattern < 0;
+}
+
+function syncBarsControl() {
+  const timeline = timelineView();
+  const total = songBarCount(song);
+  const visible = timeline ? grid.visibleBars : barsOf(song);
+  if (els.measures) {
+    els.measures.readOnly = timeline;
+    els.measures.value = String(visible);
+    const caption = timeline ? `Showing ${visible} of ${total} bars` : `${visible} bars`;
+    els.measures.title = caption;
+    els.measures.setAttribute('aria-valuetext', caption);
+  }
+  if (els.barsTotal) {
+    els.barsTotal.hidden = !timeline;
+    els.barsTotal.textContent = timeline ? `of ${total}` : '';
+  }
+  if (timeline) {
+    els.barsMinus?.setAttribute('aria-label', 'Show earlier bars');
+    els.barsPlus?.setAttribute('aria-label', 'Show later bars');
+    if (els.barsMinus) els.barsMinus.disabled = grid.viewStartBar <= 0;
+    if (els.barsPlus) {
+      els.barsPlus.disabled = grid.viewStartBar + grid.visibleBars >= total;
+    }
+  } else {
+    els.barsMinus?.setAttribute('aria-label', 'Remove bar');
+    els.barsPlus?.setAttribute('aria-label', 'Add bar');
+    if (els.barsMinus) els.barsMinus.disabled = barsOf(song) <= MIN_BARS;
+    if (els.barsPlus) els.barsPlus.disabled = barsOf(song) >= MAX_BARS;
+  }
 }
 
 function fillWaveSelect() {
@@ -380,6 +419,10 @@ function bind() {
   });
 
   els.measures?.addEventListener('change', () => {
+    if (timelineView()) {
+      syncBarsControl();
+      return;
+    }
     mutate((s) => {
       setBars(s, Math.round(Number(els.measures?.value) || barsOf(s)));
     });
@@ -387,11 +430,19 @@ function bind() {
     grid.resize();
   });
   els.barsMinus?.addEventListener('click', () => {
+    if (timelineView()) {
+      grid.nudgeWindow(-1);
+      return;
+    }
     if (barsOf(song) <= MIN_BARS) return;
     mutate((s) => removeBar(s));
     grid.resize();
   });
   els.barsPlus?.addEventListener('click', () => {
+    if (timelineView()) {
+      grid.nudgeWindow(1);
+      return;
+    }
     if (barsOf(song) >= MAX_BARS) return;
     mutate((s) => addBar(s));
     grid.resize();
@@ -555,6 +606,8 @@ function bind() {
 function bootUi() {
   fillWaveSelect();
   if (els.volume) setMasterVolume((Number(els.volume.value) || 70) / 100);
+  grid.isolatedPattern = -1;
+  grid.viewStartBar = 0;
   renderSidePanels();
   grid.resize();
   updatePlayButton();

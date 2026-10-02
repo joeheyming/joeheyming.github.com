@@ -95,6 +95,10 @@ sample packs are included.
 Audio oscillators + noise). Inspired by [BeepBox](https://www.beepbox.co/)
 and [JummBox](https://jummb.us/) — no vendored tracker code or iframes.
 
+The "Super Mario Bros. 3 — Overworld" example is based on the
+[Aboveground ("Overworld") MIDI](https://themushroomkingdom.net/media/smb3/mid)
+archived by The Mushroom Kingdom. The original composition is by Koji Kondo.
+
 ## Loader
 
 The shared loader lives in [`play/shared/samples.js`](./shared/samples.js)

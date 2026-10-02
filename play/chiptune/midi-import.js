@@ -2,9 +2,10 @@
  * Standard MIDI File → chiptune payload.
  *
  * Notes, starts, and lengths come only from note-on / note-off pairs.
- * A note-on more than a quarter of a 16th away from the grid is rejected.
- * Closer note-ons snap to the nearest 16th. Note length is the duration
- * rounded to sixteenths, and never shorter than one step.
+ * A note-on more than a quarter of a 16th away from the grid is rejected
+ * unless the caller explicitly enables quantization. Closer note-ons snap
+ * to the nearest 16th. Note length is the duration rounded to sixteenths,
+ * and never shorter than one step.
  * Pitches outside the grid are shifted by octaves until they fit.
  * Channel 9 is General MIDI drums and becomes the noise wave.
  * A song longer than one pattern is split into one-bar patterns.
@@ -62,7 +63,7 @@ export class MidiImportError extends Error {
 
 /**
  * @param {Uint8Array} bytes
- * @param {{ waves?: Record<number, string> }} [opts]
+ * @param {{ waves?: Record<number, string>, quantize?: boolean }} [opts]
  * @returns {{
  *   payload: object,
  *   voices: VoiceReport[],
@@ -94,7 +95,8 @@ export function midiToPayload(bytes, opts = {}) {
       trackIndex,
       smf.tracks[trackIndex],
       ticksPerStep,
-      smf.names[trackIndex] || ''
+      smf.names[trackIndex] || '',
+      opts.quantize === true
     );
   }
 
@@ -141,7 +143,9 @@ export function midiToPayload(bytes, opts = {}) {
   const folded = ordered.reduce((sum, voice) => sum + voice.folded, 0);
   if (moved) {
     warnings.push(
-      `${moved} note starts were within a quarter of a 16th of the grid and snapped to it.`
+      opts.quantize
+        ? `${moved} note starts were snapped to the nearest 16th-note grid position.`
+        : `${moved} note starts were within a quarter of a 16th of the grid and snapped to it.`
     );
   }
   if (folded) {
@@ -339,8 +343,9 @@ function patternName(index) {
  * @param {SmfEvent[]} events
  * @param {number} ticksPerStep
  * @param {string} name
+ * @param {boolean} quantize
  */
-function absorbTrack(voices, trackIndex, events, ticksPerStep, name) {
+function absorbTrack(voices, trackIndex, events, ticksPerStep, name, quantize) {
   for (const event of events) {
     if (event.kind === 'program') {
       const voice = voiceAt(voices, trackIndex, event.channel, name);
@@ -372,7 +377,7 @@ function absorbTrack(voices, trackIndex, events, ticksPerStep, name) {
       );
     }
     voice.open.set(event.pitch, stack);
-    const placed = quantizeStart(started.tick, ticksPerStep, event.pitch);
+    const placed = quantizeStart(started.tick, ticksPerStep, event.pitch, quantize);
     const folded = foldPitch(event.pitch);
     if (placed.moved) voice.moved += 1;
     if (folded.folded) voice.folded += 1;
@@ -431,12 +436,13 @@ function voiceAt(voices, track, channel, name) {
  * @param {number} tick
  * @param {number} ticksPerStep
  * @param {number} pitch
+ * @param {boolean} quantize
  */
-function quantizeStart(tick, ticksPerStep, pitch) {
+function quantizeStart(tick, ticksPerStep, pitch, quantize) {
   const exact = tick / ticksPerStep;
   const start = Math.round(exact);
   const error = Math.abs(exact - start);
-  if (error > 0.25) {
+  if (error > 0.25 && !quantize) {
     throw new MidiImportError(
       `Pitch ${pitch} at tick ${tick} is ${error.toFixed(2)} sixteenths off the grid`,
       'grid'

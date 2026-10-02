@@ -3,9 +3,11 @@
  *
  *   node scripts/midi-to-chiptune.mjs song.mid --out play/chiptune/examples/song.json
  *   node scripts/midi-to-chiptune.mjs song.mid --wave 38=triangle
+ *   node scripts/midi-to-chiptune.mjs song.mid --quantize
  *
  * --wave is optional. Programs 80 and 81 already map to square and saw.
  * Any other program stays square unless you name a wave here.
+ * --quantize permits off-grid note starts and snaps them to the nearest 16th.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -16,6 +18,7 @@ const args = process.argv.slice(2);
 const waves = {};
 let input = '';
 let out = '';
+let quantize = false;
 
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
@@ -28,6 +31,8 @@ for (let i = 0; i < args.length; i++) {
       fail(`Expected --wave <program>=<wave>, got "${spec}"`);
     }
     waves[Number(match[1])] = match[2];
+  } else if (arg === '--quantize') {
+    quantize = true;
   } else if (!arg.startsWith('--') && !input) {
     input = arg;
   } else {
@@ -37,13 +42,13 @@ for (let i = 0; i < args.length; i++) {
 
 if (!input) {
   fail(
-    'Usage: node scripts/midi-to-chiptune.mjs <file.mid> [--out file.json] [--wave 38=triangle]'
+    'Usage: node scripts/midi-to-chiptune.mjs <file.mid> [--out file.json] [--wave 38=triangle] [--quantize]'
   );
 }
 
 try {
   const bytes = readFileSync(input);
-  const result = midiToPayload(bytes, { waves });
+  const result = midiToPayload(bytes, { waves, quantize });
   const json = `${JSON.stringify(result.payload, null, 2)}\n`;
   if (out) writeFileSync(out, json);
   else process.stdout.write(json);
