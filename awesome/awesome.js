@@ -153,6 +153,20 @@ var awesomeNamespace = (function () {
     onAudioPlay: function () {
       this.showTimer();
       window.heymingAchievements?.unlockForCurrentApp('first-action');
+
+      // Only start visual effects once the browser has actually accepted
+      // playback. play() can reject when the activation is no longer backed
+      // by a user gesture, and leaving the effects running would make the
+      // page look active while the soundtrack is silent.
+      if (typeof cursorNamespace !== 'undefined') {
+        cursorNamespace.enable();
+      }
+      if (typeof discoNamespace !== 'undefined') {
+        discoNamespace.enable();
+      }
+      if (typeof fireworksNamespace !== 'undefined') {
+        fireworksNamespace.enable(3000);
+      }
     },
 
     /**
@@ -357,25 +371,16 @@ var awesomeNamespace = (function () {
 
     /**
      * Start playback
+     * @returns {Promise<void>|undefined}
      */
     play: function () {
-      this.showTimer();
-      this.audio.play();
-
-      // 🌈 Enable rainbow cursor
-      if (typeof cursorNamespace !== 'undefined') {
-        cursorNamespace.enable();
+      var playback = this.audio.play();
+      if (playback && typeof playback.catch === 'function') {
+        return playback.catch(function (error) {
+          console.warn('Unable to start the awesome soundtrack:', error);
+        });
       }
-
-      // 🪩 Enable disco ball
-      if (typeof discoNamespace !== 'undefined') {
-        discoNamespace.enable();
-      }
-
-      // 🎆 Enable auto fireworks
-      if (typeof fireworksNamespace !== 'undefined') {
-        fireworksNamespace.enable(3000); // Every 3 seconds
-      }
+      return playback;
     },
 
     /**

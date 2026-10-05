@@ -28,6 +28,27 @@
     window.trackEvent(name, 'DoomFlavor', label, value);
   }
 
+  // A launch request is not a successful engine launch. Wait for the shared
+  // lifecycle to confirm the first playable frame, then detach so one run
+  // produces exactly one outcome event.
+  function trackLaunchWhenPlaying(flavor, entryPath, startedAt) {
+    var lifecycle = window.UZDoomLifecycle;
+    if (!lifecycle || typeof lifecycle.subscribe !== 'function') return;
+    var unsubscribe = function () {};
+    unsubscribe = lifecycle.subscribe(function (state) {
+      if (state.phase === 'playing') {
+        unsubscribe();
+        trackDoomEvent(
+          'doom_engine_launched',
+          flavor + ':' + entryPath,
+          Math.round((Date.now() - startedAt) / 1000)
+        );
+      } else if (state.phase === 'error' || state.phase === 'exited') {
+        unsubscribe();
+      }
+    });
+  }
+
   // Classic DOOM IWAD — the 1993 id Software shareware doom.wad.
   // Hosted on Netlify (was the asset URL the previous chocolate-
   // doom build fetched from). uz-doom plays MIDI directly via
@@ -496,7 +517,8 @@
     }
     btn.addEventListener('click', async function () {
       if (window.UZDoomLifecycle && window.UZDoomLifecycle.get() !== 'primed') return;
-      trackDoomEvent('doom_engine_launched', flavor + ':autolaunch');
+      var tStart = Date.now();
+      trackLaunchWhenPlaying(flavor, 'autolaunch', tStart);
       btn.textContent = 'Loading…';
       btn.disabled = true;
       // Yield so the Loading label paints before WASM boot work.
@@ -617,14 +639,8 @@
           // exited, so we don't need to track this except to
           // bail in the catch below.
           if (ui) stopMirror = mirrorEngineStatus(ui);
+          trackLaunchWhenPlaying(flavor, 'picker', tStart);
           if (window.UZDoomLoader) window.UZDoomLoader.launch();
-          // Value is seconds from click → launch — useful for spotting
-          // a CDN-slow flavor (e.g. classic.wad fetch from Netlify).
-          trackDoomEvent(
-            'doom_engine_launched',
-            flavor + ':picker',
-            Math.round((Date.now() - tStart) / 1000)
-          );
         } catch (e) {
           console.warn('[flavor picker] failed:', e);
           trackDoomEvent(

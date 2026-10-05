@@ -41,4 +41,18 @@ describe('doom flavors', () => {
     assert.match(stub, /flavor=sonic/);
     assert.match(stub, /location\.replace/);
   });
+
+  it('counts a launch only after the engine reaches playing', () => {
+    assert.match(
+      controller,
+      /function trackLaunchWhenPlaying[\s\S]*state\.phase === 'playing'[\s\S]*trackDoomEvent\(\s*'doom_engine_launched'/
+    );
+    assert.match(controller, /trackLaunchWhenPlaying\(flavor, 'autolaunch', tStart\)/);
+    assert.match(controller, /trackLaunchWhenPlaying\(flavor, 'picker', tStart\)/);
+    assert.equal(
+      (controller.match(/trackDoomEvent\(\s*'doom_engine_launched'/g) || []).length,
+      1,
+      'the lifecycle subscriber should be the only success-event emitter'
+    );
+  });
 });

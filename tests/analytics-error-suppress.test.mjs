@@ -7,10 +7,10 @@ import { JSDOM } from 'jsdom';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-function loadAnalytics() {
+function loadAnalytics(url = 'http://localhost/') {
   const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', {
     runScripts: 'outside-only',
-    url: 'http://localhost/'
+    url
   });
   dom.window.eval(readFileSync(path.join(ROOT, 'analytics.js'), 'utf8'));
   return dom;
@@ -52,6 +52,38 @@ test('suppresses residual Doom IDBFS InvalidStateError, not WASM abort', () => {
       "TypeError: canvas.requestPointerLock is not a function. (In 'canvas.requestPointerLock()')"
     ),
     false
+  );
+  dom.window.close();
+});
+
+test('error events include the registered error_message dimension', () => {
+  const dom = loadAnalytics('https://example.com/');
+  dom.window.console.error = () => {};
+  dom.window.console.warn = () => {};
+
+  dom.window.trackError({
+    type: 'javascript_error',
+    message: 'The engine stopped unexpectedly',
+    stack: 'stack'
+  });
+  dom.window.trackError({
+    type: 'resource_error',
+    message: 'Failed to load SCRIPT: cdn.example.com/app.js',
+    resource: 'https://cdn.example.com/app.js'
+  });
+
+  const events = Array.from(dom.window.dataLayer)
+    .map((args) => Array.from(args))
+    .filter((args) => args[0] === 'event');
+  const exception = events.find((args) => args[1] === 'exception');
+  const resourceError = events.find((args) => args[1] === 'error_occurred');
+
+  assert.equal(exception[2].error_message, 'The engine stopped unexpectedly');
+  assert.equal(exception[2].event_label, 'javascript_error - The engine stopped unexpectedly');
+  assert.equal(resourceError[2].error_message, 'Failed to load SCRIPT: cdn.example.com/app.js');
+  assert.equal(
+    resourceError[2].event_label,
+    'resource_error: Failed to load SCRIPT: cdn.example.com/app.js'
   );
   dom.window.close();
 });

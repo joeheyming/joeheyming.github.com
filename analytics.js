@@ -324,7 +324,7 @@ window.__analyticsShouldSuppressError = shouldSuppressError;
 window.trackError = function (errorData) {
   try {
     const errorType = errorData.type || 'unknown';
-    const errorMessage = errorData.message || 'Unknown error';
+    const errorMessage = String(errorData.message || 'Unknown error');
     const context = errorData.context || '';
     const recoverable = errorData.recoverable !== false;
 
@@ -344,9 +344,17 @@ window.trackError = function (errorData) {
     // both events fired for stack-bearing errors, which double-counted users
     // in the GA report.
     if (errorData.stack) {
-      window.trackEvent('exception', 'Error', `${errorType} - ${errorMessage.substring(0, 100)}`);
+      window.trackEvent(
+        'exception',
+        'Error',
+        `${errorType} - ${errorMessage.substring(0, 100)}`,
+        undefined,
+        { error_message: errorMessage.substring(0, 100) }
+      );
     } else {
-      window.trackEvent('error_occurred', 'Error', errorLabel);
+      window.trackEvent('error_occurred', 'Error', errorLabel, undefined, {
+        error_message: errorMessage.substring(0, 100)
+      });
     }
 
     // Log additional context for debugging
@@ -509,7 +517,7 @@ window.yieldToMain = function yieldToMain() {
 };
 
 // Helper function to track events (can be called from anywhere, including web components)
-window.trackEvent = function (eventName, eventCategory, eventLabel, eventValue) {
+window.trackEvent = function (eventName, eventCategory, eventLabel, eventValue, additionalParams) {
   if (typeof gtag === 'undefined') {
     if (isLocalDevHost()) {
       console.log('GA Event tracked (localhost):', eventName, {
@@ -522,6 +530,7 @@ window.trackEvent = function (eventName, eventCategory, eventLabel, eventValue) 
   }
 
   const eventParams = {
+    ...(additionalParams || {}),
     event_category: eventCategory || 'Interaction',
     event_label: eventLabel || eventName
   };
