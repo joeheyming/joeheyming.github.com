@@ -63,6 +63,17 @@ export function binaryPayloadByteLength(data) {
 }
 
 /**
+ * Mime type when the payload is large enough and sniffs as audio.
+ * HTML error pages and empty proxy bodies return null so callers can try another file.
+ * @param {ArrayBuffer|Uint8Array|null|undefined} data
+ * @returns {'audio/ogg' | 'audio/mpeg' | 'audio/wav' | null}
+ */
+export function playableAudioMime(data) {
+  if (binaryPayloadByteLength(data) <= MIN_VALID_AUDIO_SIZE) return null;
+  return sniffAudioMime(data);
+}
+
+/**
  * @typedef {Object} SongProxyTransport
  * @property {(url: string, options?: object) => Promise<string>} fetchText
  * @property {(url: string, options?: object) => Promise<ArrayBuffer>} fetchBinary

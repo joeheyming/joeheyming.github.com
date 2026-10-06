@@ -11,8 +11,7 @@ import {
 import {
   AUDIO_PROXY_TIMEOUT,
   AUDIO_PROXY_MAX_RETRIES,
-  MIN_VALID_AUDIO_SIZE,
-  binaryPayloadByteLength,
+  playableAudioMime,
   createDefaultSongProxyTransport
 } from './songProxyTransport.js';
 
@@ -260,16 +259,17 @@ class SongManager {
       throw new Error('No current song set');
     }
 
-    const audioUrl = this._currentSong.data.url;
-    if (!audioUrl) {
+    const audioUrl = this._currentSong.data.url || '';
+    const zeniusSong = this._currentSong.key.startsWith('zenius_');
+    if (!audioUrl && !zeniusSong) {
       throw new Error('No audio URL in song data');
     }
 
-    const mimeType = audioUrl.endsWith('.ogg') ? 'audio/ogg' : 'audio/mpeg';
+    const mimeType = audioUrl.toLowerCase().includes('.ogg') ? 'audio/ogg' : 'audio/mpeg';
 
-    // Handle Zenius audio with proxy fallbacks
-    if (audioUrl.includes('zenius-i-vanisher.com')) {
-      return await this._loadZeniusAudio(audioUrl, mimeType, onProgress);
+    // Zenius pages can have a chart and a ZIP with no direct audio URL.
+    if (zeniusSong) {
+      return await this._loadZeniusAudio(audioUrl, onProgress);
     }
 
     // Load non-proxied audio directly
@@ -287,40 +287,39 @@ class SongManager {
    * Load audio from Zenius with proxy and ZIP fallbacks
    * @private
    */
-  async _loadZeniusAudio(audioUrl, mimeType, onProgress) {
+  async _loadZeniusAudio(audioUrl, onProgress) {
     let audioLoaded = false;
 
-    // Try direct proxy download first
-    try {
-      onProgress?.('Downloading audio file...', 35);
+    if (audioUrl) {
+      // Try direct proxy download first. corsproxy.io stays in the default
+      // order; deferring it made mobile downloads fail before they reached it.
+      try {
+        onProgress?.('Downloading audio file...', 35);
 
-      const audioData = await this.getProxyTransport().fetchBinary(audioUrl, {
-        skipDirect: true,
-        deferProxies: ['https://corsproxy.io/'],
-        headers: {
-          Referer: 'https://zenius-i-vanisher.com/',
-          Origin: 'https://zenius-i-vanisher.com'
-        },
-        timeout: AUDIO_PROXY_TIMEOUT,
-        maxRetries: AUDIO_PROXY_MAX_RETRIES
-      });
+        const audioData = await this.getProxyTransport().fetchBinary(audioUrl, {
+          skipDirect: true,
+          headers: {
+            Referer: 'https://zenius-i-vanisher.com/',
+            Origin: 'https://zenius-i-vanisher.com'
+          },
+          timeout: AUDIO_PROXY_TIMEOUT,
+          maxRetries: AUDIO_PROXY_MAX_RETRIES
+        });
 
-      // Check if we got actual audio data (not an error page)
-      if (audioData && binaryPayloadByteLength(audioData) > MIN_VALID_AUDIO_SIZE) {
-        await audioManager.loadArrayBuffer(audioData, mimeType);
-        audioLoaded = true;
+        const sniffed = playableAudioMime(audioData);
+        if (sniffed) {
+          await audioManager.loadArrayBuffer(audioData, sniffed);
+          audioLoaded = true;
+        }
+      } catch (error) {
+        // Direct download failed, will try the other format and then the ZIP.
       }
-    } catch (error) {
-      // Direct download failed, will try the other format and then the ZIP.
     }
 
     const alternateUrl = this._currentSong.data.alternateUrl || '';
     if (!audioLoaded && alternateUrl && alternateUrl !== audioUrl) {
       try {
         onProgress?.('Trying the other audio format...', 40);
-        const alternateType = alternateUrl.toLowerCase().includes('.ogg')
-          ? 'audio/ogg'
-          : 'audio/mpeg';
         const alternateData = await this.getProxyTransport().fetchBinary(alternateUrl, {
           skipDirect: true,
           headers: {
@@ -330,8 +329,9 @@ class SongManager {
           timeout: AUDIO_PROXY_TIMEOUT,
           maxRetries: AUDIO_PROXY_MAX_RETRIES
         });
-        if (alternateData && binaryPayloadByteLength(alternateData) > MIN_VALID_AUDIO_SIZE) {
-          await audioManager.loadArrayBuffer(alternateData, alternateType);
+        const sniffedAlternate = playableAudioMime(alternateData);
+        if (sniffedAlternate) {
+          await audioManager.loadArrayBuffer(alternateData, sniffedAlternate);
           audioLoaded = true;
         }
       } catch (error) {

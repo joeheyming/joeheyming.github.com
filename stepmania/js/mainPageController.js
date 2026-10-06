@@ -20,8 +20,7 @@ import { songManager } from './songManager.js';
 import {
   AUDIO_PROXY_TIMEOUT,
   AUDIO_PROXY_MAX_RETRIES,
-  MIN_VALID_AUDIO_SIZE,
-  binaryPayloadByteLength
+  playableAudioMime
 } from './songProxyTransport.js';
 import { buildTimingData, filterUnjudgableNotes } from './timingData.js';
 import { recordRecentPlay } from './zeniusLibraryStorage.js';
@@ -516,6 +515,7 @@ export class MainPageController {
     const mimeType =
       currentSongData.audioType ||
       (audioUrl.toLowerCase().includes('.ogg') ? 'audio/ogg' : 'audio/mpeg');
+    const zeniusSong = currentSongKey.startsWith('zenius_');
 
     if (currentSongData.audioBlob) {
       try {
@@ -526,41 +526,45 @@ export class MainPageController {
         LoadingOverlay.showError('Could not load audio', formatLoadError(error));
         throw error;
       }
-    } else if (audioUrl.includes('zenius-i-vanisher.com')) {
+    } else if (zeniusSong) {
       // AudioManager handles blob URL cleanup automatically in loadBlob()
       let audioLoaded = false;
       /** @type {unknown} */
       let lastAudioError = null;
 
-      // Try direct proxy download first (with short timeout - many files are blocked)
-      try {
-        if (useMainLoading) {
-          LoadingOverlay.updateProgress('Downloading audio file...', audioProgress + 5);
-        }
-        // No deferProxies: corsproxy.io is the most reliable proxy for
-        // zenius binaries (see proxy.js default list). Deferring it pushed
-        // the audio download through 3 less-reliable proxies first; on
-        // mobile they all 400/403'd and the fetch never reached corsproxy
-        // before retries gave up. Default order works.
-        const audioData = await songManager.getProxyTransport().fetchBinary(audioUrl, {
-          skipDirect: true,
-          headers: {
-            Referer: 'https://zenius-i-vanisher.com/',
-            Origin: 'https://zenius-i-vanisher.com'
-          },
-          timeout: AUDIO_PROXY_TIMEOUT,
-          maxRetries: AUDIO_PROXY_MAX_RETRIES
-        });
+      // Pages with only a chart and a ZIP have no direct audio URL. Skip the
+      // file fetch and use the pack fallback below.
+      if (audioUrl) {
+        // Try direct proxy download first (with short timeout - many files are blocked)
+        try {
+          if (useMainLoading) {
+            LoadingOverlay.updateProgress('Downloading audio file...', audioProgress + 5);
+          }
+          // No deferProxies: corsproxy.io is the most reliable proxy for
+          // zenius binaries (see proxy.js default list). Deferring it pushed
+          // the audio download through 3 less-reliable proxies first; on
+          // mobile they all 400/403'd and the fetch never reached corsproxy
+          // before retries gave up. Default order works.
+          const audioData = await songManager.getProxyTransport().fetchBinary(audioUrl, {
+            skipDirect: true,
+            headers: {
+              Referer: 'https://zenius-i-vanisher.com/',
+              Origin: 'https://zenius-i-vanisher.com'
+            },
+            timeout: AUDIO_PROXY_TIMEOUT,
+            maxRetries: AUDIO_PROXY_MAX_RETRIES
+          });
 
-        // Check if we got actual audio data (not an error page)
-        if (audioData && binaryPayloadByteLength(audioData) > MIN_VALID_AUDIO_SIZE) {
-          await audioManager.loadArrayBuffer(audioData, mimeType);
-          audioLoaded = true;
-        } else {
-          lastAudioError = new Error('Audio download was empty or too small');
+          const sniffed = playableAudioMime(audioData);
+          if (sniffed) {
+            await audioManager.loadArrayBuffer(audioData, sniffed);
+            audioLoaded = true;
+          } else {
+            lastAudioError = new Error('Audio download was empty or not an audio file');
+          }
+        } catch (error) {
+          lastAudioError = error;
         }
-      } catch (error) {
-        lastAudioError = error;
       }
 
       const alternateUrl = currentSongData.alternateUrl || '';
@@ -569,9 +573,6 @@ export class MainPageController {
           if (useMainLoading) {
             LoadingOverlay.updateProgress('Trying the other audio format...', audioProgress + 8);
           }
-          const alternateType = alternateUrl.toLowerCase().includes('.ogg')
-            ? 'audio/ogg'
-            : 'audio/mpeg';
           const alternateData = await songManager.getProxyTransport().fetchBinary(alternateUrl, {
             skipDirect: true,
             headers: {
@@ -581,8 +582,9 @@ export class MainPageController {
             timeout: AUDIO_PROXY_TIMEOUT,
             maxRetries: AUDIO_PROXY_MAX_RETRIES
           });
-          if (alternateData && binaryPayloadByteLength(alternateData) > MIN_VALID_AUDIO_SIZE) {
-            await audioManager.loadArrayBuffer(alternateData, alternateType);
+          const sniffedAlternate = playableAudioMime(alternateData);
+          if (sniffedAlternate) {
+            await audioManager.loadArrayBuffer(alternateData, sniffedAlternate);
             audioLoaded = true;
           }
         } catch (error) {
@@ -590,8 +592,9 @@ export class MainPageController {
         }
       }
 
-      // Fallback: Download ZIP and extract audio
-      if (!audioLoaded && currentSongKey.startsWith('zenius_')) {
+      // Fallback: Download ZIP and extract audio. This is the only audio
+      // source when the Zenius page has a chart and a pack, with no file link.
+      if (!audioLoaded) {
         const simfileId = currentSongKey.replace('zenius_', '');
         try {
           if (useMainLoading) {

@@ -6,7 +6,7 @@ import {
   chooseAudioUrl,
   fetchZeniusSimfile
 } from '../js/songLoader.js';
-import { sniffAudioMime } from '../js/songProxyTransport.js';
+import { sniffAudioMime, playableAudioMime } from '../js/songProxyTransport.js';
 
 describe('resolveZeniusUrl', () => {
   it('resolves root-relative hrefs against zenius-i-vanisher.com', () => {
@@ -101,6 +101,84 @@ describe('fetchZeniusSimfile', () => {
     assert.equal(result.simfileText, '#TITLE:Modern Song;\\n#NOTEDATA:;');
     assert.match(fetchedUrls[1], /Modern%20Song\.ssc$/);
   });
+
+  it('loads a chart when the page only offers a ZIP for audio', async () => {
+    const fetchedUrls = [];
+    const transport = {
+      async fetchText(url) {
+        fetchedUrls.push(url);
+        if (url.includes('viewsimfile.php')) {
+          return `
+            <h1>Tohoku EVOLVED (TYPE4)</h1>
+            by Naoki
+            <a href="/simfiles/Tohoku%20EVOLVED%20%28TYPE4%29.sm">SM</a>
+            <a href="download.php?type=ddrsimfile&amp;simfileid=21075">ZIP</a>
+          `;
+        }
+        return '#TITLE:Tohoku EVOLVED;\\n#NOTEDATA:;';
+      },
+      async fetchBinary() {
+        throw new Error('not used');
+      }
+    };
+
+    const result = await fetchZeniusSimfile('21075', transport);
+
+    assert.equal(result.title, 'Tohoku EVOLVED (TYPE4)');
+    assert.equal(result.audioUrl, null);
+    assert.equal(result.alternateAudioUrl, null);
+    assert.match(fetchedUrls[1], /Tohoku%20EVOLVED%20%28TYPE4%29\.sm$/);
+  });
+
+  it('uses a relative #MUSIC path when the page has no audio link', async () => {
+    const transport = {
+      async fetchText(url) {
+        if (url.includes('viewsimfile.php')) {
+          return `
+            <h1>Tohoku EVOLVED (TYPE4)</h1>
+            <a href="/simfiles/Pack/Tohoku%20EVOLVED%20%28TYPE4%29/Tohoku%20EVOLVED%20%28TYPE4%29.sm">SM</a>
+            <a href="download.php?type=ddrsimfile&amp;simfileid=21075">ZIP</a>
+          `;
+        }
+        return '#TITLE:Tohoku EVOLVED;\\n#MUSIC:../Tohoku EVOLVED (TYPE1)/Tohoku EVOLVED (TYPE1).ogg;';
+      },
+      async fetchBinary() {
+        throw new Error('not used');
+      }
+    };
+
+    const result = await fetchZeniusSimfile('21075', transport);
+
+    assert.equal(
+      result.audioUrl,
+      'https://zenius-i-vanisher.com/simfiles/Pack/Tohoku%20EVOLVED%20(TYPE1)/Tohoku%20EVOLVED%20(TYPE1).ogg'
+    );
+  });
+
+  it('follows download.php chart and audio links that have no file extension', async () => {
+    const fetchedUrls = [];
+    const transport = {
+      async fetchText(url) {
+        fetchedUrls.push(url);
+        if (url.includes('viewsimfile.php')) {
+          return `
+            <h1>Typed Song</h1>
+            <a href="download.php?type=simfile&amp;simfileid=9">SM</a>
+            <a href="download.php?type=ogg&amp;simfileid=9">OGG</a>
+          `;
+        }
+        return '#TITLE:Typed Song;\\n#NOTEDATA:;';
+      },
+      async fetchBinary() {
+        throw new Error('not used');
+      }
+    };
+
+    const result = await fetchZeniusSimfile('9', transport);
+
+    assert.match(result.audioUrl, /type=ogg/);
+    assert.match(fetchedUrls[1], /type=simfile/);
+  });
 });
 
 describe('sniffAudioMime', () => {
@@ -114,6 +192,22 @@ describe('sniffAudioMime', () => {
 
   it('rejects an html error page', () => {
     assert.equal(sniffAudioMime(Uint8Array.from([0x3c, 0x68, 0x74, 0x6d, 0x6c])), null);
+  });
+});
+
+describe('playableAudioMime', () => {
+  it('accepts a large ogg payload and rejects an html error page of the same size', () => {
+    const ogg = new Uint8Array(1200);
+    ogg.set([0x4f, 0x67, 0x67, 0x53]);
+    assert.equal(playableAudioMime(ogg), 'audio/ogg');
+
+    const html = new Uint8Array(1200);
+    html.set([0x3c, 0x68, 0x74, 0x6d, 0x6c]);
+    assert.equal(playableAudioMime(html), null);
+  });
+
+  it('rejects a real header that is too small to be a song', () => {
+    assert.equal(playableAudioMime(Uint8Array.from([0x4f, 0x67, 0x67, 0x53])), null);
   });
 });
 

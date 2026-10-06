@@ -133,6 +133,40 @@ export function chooseAudioUrl(oggUrl, mp3Url, canPlayType = defaultCanPlayType(
 }
 
 /**
+ * #MUSIC is often a path relative to the chart, including ../Another Song/file.ogg.
+ * @param {string} simfileText
+ * @param {string} simfileDirectUrl
+ * @returns {string|null}
+ */
+function musicUrlFromSimfile(simfileText, simfileDirectUrl) {
+  const match = simfileText.match(/#MUSIC:([^;\r\n]*)/i);
+  if (!match) return null;
+  const raw = match[1].trim().replace(/\\/g, '/');
+  if (!raw) return null;
+  let abs;
+  try {
+    abs = new URL(raw, simfileDirectUrl).href;
+  } catch {
+    return null;
+  }
+  if (!/\.(ogg|mp3|wav)(?:$|\?)/i.test(abs)) return null;
+  return resolveZeniusUrl(abs);
+}
+
+/**
+ * Zenius sometimes links a file as download.php?type=ogg instead of a .ogg path.
+ * @param {string} html
+ * @param {string} type
+ * @returns {string|null}
+ */
+function matchTypedDownload(html, type) {
+  const typed = new RegExp('href="([^"]*[?&](?:amp;)?type=' + type + '(?:&|&amp;)[^"]*)"', 'i');
+  const typedAtEnd = new RegExp('href="([^"]*[?&](?:amp;)?type=' + type + ')"', 'i');
+  const match = html.match(typed) || html.match(typedAtEnd);
+  return match ? resolveZeniusUrl(match[1]) : null;
+}
+
+/**
  * Fetch and parse simfile data from Zenius-I-Vanisher
  * @param {string} simfileId - The simfile ID to fetch
  * @param {import('./songProxyTransport.js').SongProxyTransport} [transport]
@@ -167,22 +201,28 @@ export async function fetchZeniusSimfile(simfileId, transport) {
     aviMatch = html.match(/href="([^"]*\.avi)"/);
   }
 
-  const oggUrl = oggMatch ? resolveZeniusUrl(oggMatch[1]) : null;
-  const mp3Url = mp3Match ? resolveZeniusUrl(mp3Match[1]) : null;
+  let oggUrl = oggMatch ? resolveZeniusUrl(oggMatch[1]) : null;
+  let mp3Url = mp3Match ? resolveZeniusUrl(mp3Match[1]) : null;
+  if (!oggUrl) oggUrl = matchTypedDownload(html, 'ogg');
+  if (!mp3Url) mp3Url = matchTypedDownload(html, 'mp3');
   const chosenAudio = chooseAudioUrl(oggUrl, mp3Url);
 
-  if (!simfileMatch || !chosenAudio.url) {
+  const simfileHref = simfileMatch ? simfileMatch[1] : null;
+  const typedChart =
+    matchTypedDownload(html, 'ssc') ||
+    matchTypedDownload(html, 'sm') ||
+    matchTypedDownload(html, 'simfile');
+  const simfileDirectUrl = resolveZeniusUrl(simfileHref) || typedChart;
+
+  if (!simfileDirectUrl && !chosenAudio.url) {
     throw new Error('Could not find simfile or audio files on Zenius page');
   }
-
-  const audioUrl = chosenAudio.url;
-  const simfileDirectUrl = resolveZeniusUrl(simfileMatch[1]);
-  const backgroundUrl = backgroundMatch ? resolveZeniusUrl(backgroundMatch[1]) : null;
-  const aviUrl = aviMatch ? resolveZeniusUrl(aviMatch[1]) : null;
-
-  if (!audioUrl || !simfileDirectUrl) {
+  if (!simfileDirectUrl) {
     throw new Error('Could not resolve simfile or audio URLs on Zenius page');
   }
+
+  const backgroundUrl = backgroundMatch ? resolveZeniusUrl(backgroundMatch[1]) : null;
+  const aviUrl = aviMatch ? resolveZeniusUrl(aviMatch[1]) : null;
 
   // Extract title and artist from page
   const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/);
@@ -205,6 +245,8 @@ export async function fetchZeniusSimfile(simfileId, transport) {
 
   // Fetch the actual simfile content
   const simfileText = await fetchSimfile(simfileDirectUrl, t);
+  // Chart-only pages (a TYPE4 edit, for example) point #MUSIC at a sibling folder.
+  const audioUrl = chosenAudio.url || musicUrlFromSimfile(simfileText, simfileDirectUrl);
 
   return {
     title,
