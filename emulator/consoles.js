@@ -329,11 +329,11 @@
       iaDescriptionPrefix: 'Game Boy Advance game',
       iaPreferMetadata: true,
       howto: [
-        'This is Game Boy Advance, not Game Boy. For GB/GBC use the Game Boy page.',
-        'Tap a game to get its Archive download link, then load the saved .gba file.'
+        'Tap a game to get its Archive download link, then load the saved .gba file.',
+        'Game Boy and Game Boy Color carts belong on the Game Boy page.'
       ],
       romHelp:
-        'This is GBA, not Game Boy. Pick a game from the collection, download it from Internet Archive, then load the saved file here. For GB/GBC use the Game Boy page.',
+        'Bring your own .gba dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
@@ -451,11 +451,11 @@
       iaBaseUrl: 'https://archive.org/download/Neo-GeoPocketColorRomCollectionByGhostware',
       iaDescriptionPrefix: 'Neo Geo Pocket Color game',
       howto: [
-        'This is Neo Geo Pocket / Color — the handheld. For AES/MVS arcade, use Neo Geo.',
-        'Tap a game to get its Archive download link, then load the saved .ngp / .ngc file.'
+        'Tap a game to get its Archive download link, then load the saved .ngp / .ngc file.',
+        'AES and MVS arcade sets belong on the Neo Geo page.'
       ],
       romHelp:
-        'This is Neo Geo Pocket, not the arcade AES/MVS. Pick a game from the collection, download it from Internet Archive, then load the saved file here. For arcade titles use the Neo Geo page.',
+        'Bring your own .ngp / .ngc dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },

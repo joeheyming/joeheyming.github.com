@@ -64,21 +64,27 @@ test('sitemap pages do not use MetaRefresh', () => {
   assert.deepEqual(offenders, [], `MetaRefresh tags:\n${offenders.join('\n')}`);
 });
 
-test('Game Boy lander is not hidden-text / VideoGame spam', () => {
-  const html = readFileSync(path.join(ROOT, 'emulator/gb/index.html'), 'utf8');
-  const document = new JSDOM(html).window.document;
-  assert.equal(document.querySelector('.seo-intro'), null);
-  assert.equal(document.querySelector('meta[name="keywords"]'), null);
+test('handheld emulator landers are not hidden-text / VideoGame spam', () => {
+  for (const page of [
+    'emulator/gb/index.html',
+    'emulator/gba/index.html',
+    'emulator/ngp/index.html'
+  ]) {
+    const html = readFileSync(path.join(ROOT, page), 'utf8');
+    const document = new JSDOM(html).window.document;
+    assert.equal(document.querySelector('.seo-intro'), null, page);
+    assert.equal(document.querySelector('meta[name="keywords"]'), null, page);
 
-  const graph = JSON.parse(
-    document.querySelector('script[type="application/ld+json"]')?.textContent || '{}'
-  );
-  const types = [graph, ...(graph['@graph'] || [])].flatMap((entry) => {
-    const t = entry?.['@type'];
-    return Array.isArray(t) ? t : t ? [t] : [];
-  });
-  assert.equal(types.includes('VideoGame'), false);
-  assert.equal(types.includes('SoftwareApplication'), true);
+    const graph = JSON.parse(
+      document.querySelector('script[type="application/ld+json"]')?.textContent || '{}'
+    );
+    const types = [graph, ...(graph['@graph'] || [])].flatMap((entry) => {
+      const t = entry?.['@type'];
+      return Array.isArray(t) ? t : t ? [t] : [];
+    });
+    assert.equal(types.includes('VideoGame'), false, page);
+    assert.equal(types.includes('SoftwareApplication'), true, page);
+  }
 });
 
 test('search opportunity pages use intent-led snippets without hidden SEO copy', () => {
