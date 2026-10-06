@@ -19,6 +19,7 @@
 //   web_vital_inp         Slowest interaction on a page
 //   watch_playback_error  Watch exhausted its playback fallbacks
 //   doom_flavor_failed    Doom failed to launch a selected engine
+//   stepmania_song_load   Remote song reached ready state or failed at a named stage
 //
 // High-intent platform outcome:
 //   pwa_install           Site installed as a PWA

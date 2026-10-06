@@ -47,6 +47,8 @@ export class MainPageController {
     this.lastLocalId = null;
     /** @type {boolean} Flag to prevent onChange loops during programmatic updates */
     this.isUpdatingDifficulty = false;
+    /** @type {string|null} Avoid counting difficulty changes as fresh successful loads */
+    this._trackedReadySongKey = null;
     this.init();
   }
 
@@ -162,11 +164,12 @@ export class MainPageController {
     this.lastZeniusUrl = zeniusUrl;
     this.lastDifficulty = difficulty;
     hideHomeScreen();
+    let simfileId = null;
 
     try {
       LoadingOverlay.showLoading('from Song Library', 'Parsing song URL...', 5);
 
-      const simfileId = extractSimfileId(zeniusUrl);
+      simfileId = extractSimfileId(zeniusUrl);
       if (!simfileId) {
         throw new Error('Could not extract simfile ID from song URL');
       }
@@ -209,12 +212,11 @@ export class MainPageController {
 
       LoadingOverlay.updateProgress('Starting game...', 85);
       document.getElementById('sub-title').textContent = simfileData.title;
-      await this.startSelectedSong(true, true);
-
-      return true;
+      return await this.startSelectedSong(true, true);
     } catch (error) {
       LoadingOverlay.hide();
       console.error('Error loading from Song Library URL:', error);
+      this.trackZeniusSongLoad('failed', 'song-data', error, simfileId);
       LoadingOverlay.showError(
         'Could not load song',
         formatLoadError(error) || 'Network error — try again or return to the song browser'
@@ -392,12 +394,12 @@ export class MainPageController {
   async startSelectedSong(loadingAlreadyShown = false, useMainLoading = false) {
     const currentSong = songManager.getCurrentSong();
     if (!currentSong) {
-      return;
+      return false;
     }
 
     // Prevent concurrent loads - if already loading, skip this call
     if (this._isLoadingSong) {
-      return;
+      return false;
     }
     this._isLoadingSong = true;
 
@@ -411,7 +413,7 @@ export class MainPageController {
     if (!parsedData) {
       console.error(`Parsed data not found for song key: ${currentSong.key}`);
       this._isLoadingSong = false;
-      return;
+      return false;
     }
 
     let selectedChart = parsedData.charts[currentDifficulty];
@@ -425,12 +427,13 @@ export class MainPageController {
         songManager.setCurrentDifficulty(0);
       } else {
         console.error('No charts available in this simfile');
+        this.trackZeniusSongLoad('failed', 'charts', new Error('No playable charts'));
         LoadingOverlay.showError(
           'No Charts Available',
           'This simfile has no playable charts. Try a different song.'
         );
         this._isLoadingSong = false;
-        return;
+        return false;
       }
     }
 
@@ -442,7 +445,15 @@ export class MainPageController {
       }
 
       const startProgress = loadingAlreadyShown ? 50 : 30;
-      await this.loadSongIntoGame(parsedData, selectedChart, startProgress, useMainLoading);
+      const loaded = await this.loadSongIntoGame(
+        parsedData,
+        selectedChart,
+        startProgress,
+        useMainLoading
+      );
+      if (!loaded) {
+        return false;
+      }
 
       if (useMainLoading) {
         LoadingOverlay.updateProgress('Starting game...', 90);
@@ -454,11 +465,13 @@ export class MainPageController {
         LoadingOverlay.updateProgress('Ready!', 100);
       }
       await new Promise((resolve) => setTimeout(resolve, 300));
+      return true;
     } catch (error) {
       if (useMainLoading) {
         LoadingOverlay.hide();
       }
       console.error('Error starting song:', error);
+      return false;
     } finally {
       this._isLoadingSong = false;
     }
@@ -509,6 +522,7 @@ export class MainPageController {
         await audioManager.loadBlob(currentSongData.audioBlob, mimeType);
       } catch (error) {
         console.error('Audio failed to load:', error);
+        this.trackZeniusSongLoad('failed', 'audio', error);
         LoadingOverlay.showError('Could not load audio', formatLoadError(error));
         throw error;
       }
@@ -608,8 +622,9 @@ export class MainPageController {
       }
 
       if (!audioLoaded) {
+        this.trackZeniusSongLoad('failed', 'audio', lastAudioError);
         LoadingOverlay.showError('Could not load audio', formatLoadError(lastAudioError));
-        return;
+        return false;
       }
     } else {
       // Load non-proxied audio directly
@@ -617,10 +632,13 @@ export class MainPageController {
         await audioManager.loadUrl(audioUrl, mimeType);
       } catch (error) {
         console.error('Audio failed to load:', error);
+        this.trackZeniusSongLoad('failed', 'audio', error);
         LoadingOverlay.showError('Could not load audio', formatLoadError(error));
         throw error;
       }
     }
+
+    this.trackZeniusSongLoad('ready', 'audio');
 
     if (currentSongKey.startsWith('zenius_') && this.lastZeniusUrl) {
       const simfileId = currentSongKey.replace('zenius_', '');
@@ -653,6 +671,43 @@ export class MainPageController {
 
     // Reset the game for the new song
     resetGame();
+    return true;
+  }
+
+  /**
+   * Record one actionable remote-song outcome without exposing the full source URL.
+   * @param {'ready'|'failed'} outcome
+   * @param {string} stage
+   * @param {unknown} [error]
+   * @param {string|null} [songId]
+   */
+  trackZeniusSongLoad(outcome, stage, error = null, songId = null) {
+    const songKey = songManager.getCurrentSongKey();
+    const resolvedId =
+      songId || (songKey?.startsWith('zenius_') ? songKey.replace('zenius_', '') : null);
+    if (!resolvedId || typeof window.trackEvent !== 'function') {
+      return;
+    }
+    if (outcome === 'ready') {
+      if (this._trackedReadySongKey === `zenius_${resolvedId}`) {
+        return;
+      }
+      this._trackedReadySongKey = `zenius_${resolvedId}`;
+    }
+
+    const rawMessage = error instanceof Error ? error.message : error == null ? '' : String(error);
+    const errorMessage = rawMessage.trim().slice(0, 100);
+    const label =
+      outcome === 'ready'
+        ? `ready: zenius_${resolvedId}`
+        : `failed at ${stage}: zenius_${resolvedId}${errorMessage ? ` - ${errorMessage}` : ''}`;
+
+    window.trackEvent('stepmania_song_load', 'StepMania', label.slice(0, 100), undefined, {
+      outcome,
+      load_stage: stage,
+      song_id: `zenius_${resolvedId}`,
+      ...(errorMessage ? { error_message: errorMessage } : {})
+    });
   }
 
   handleURLChange() {

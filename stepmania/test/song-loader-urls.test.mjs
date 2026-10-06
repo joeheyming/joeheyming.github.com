@@ -1,6 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveZeniusUrl, formatLoadError, chooseAudioUrl } from '../js/songLoader.js';
+import {
+  resolveZeniusUrl,
+  formatLoadError,
+  chooseAudioUrl,
+  fetchZeniusSimfile
+} from '../js/songLoader.js';
 import { sniffAudioMime } from '../js/songProxyTransport.js';
 
 describe('resolveZeniusUrl', () => {
@@ -66,6 +71,35 @@ describe('chooseAudioUrl', () => {
   it('keeps the only available file', () => {
     assert.equal(chooseAudioUrl('song.ogg', null, refuseOgg).url, 'song.ogg');
     assert.equal(chooseAudioUrl(null, 'song.mp3', () => '').url, 'song.mp3');
+  });
+});
+
+describe('fetchZeniusSimfile', () => {
+  it('loads modern Zenius pages that only provide an SSC chart', async () => {
+    const fetchedUrls = [];
+    const transport = {
+      async fetchText(url) {
+        fetchedUrls.push(url);
+        if (url.includes('viewsimfile.php')) {
+          return `
+            <h1>Modern Song</h1>
+            <a href="/simfiles/Modern%20Song/Modern%20Song.ssc">SSC</a>
+            <a href="/simfiles/Modern%20Song/Modern%20Song.ogg">OGG</a>
+          `;
+        }
+        return '#TITLE:Modern Song;\\n#NOTEDATA:;';
+      },
+      async fetchBinary() {
+        throw new Error('not used');
+      }
+    };
+
+    const result = await fetchZeniusSimfile('70606', transport);
+
+    assert.equal(result.title, 'Modern Song');
+    assert.match(result.audioUrl, /Modern%20Song\.ogg$/);
+    assert.equal(result.simfileText, '#TITLE:Modern Song;\\n#NOTEDATA:;');
+    assert.match(fetchedUrls[1], /Modern%20Song\.ssc$/);
   });
 });
 

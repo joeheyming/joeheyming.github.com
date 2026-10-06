@@ -145,14 +145,14 @@ export async function fetchZeniusSimfile(simfileId, transport) {
   const html = await t.fetchText(zeniusPageUrl, { skipDirect: true });
 
   // Try to match file links with descriptive text first, then fall back to any match
-  let simfileMatch = html.match(/href="([^"]*\.sm)"[^>]*>.*?SM.*?<\/a>/);
+  let simfileMatch = html.match(/href="([^"]*\.(?:ssc|sm))"[^>]*>.*?(?:SSC|SM).*?<\/a>/i);
   let oggMatch = html.match(/href="([^"]*\.ogg)"[^>]*>.*?OGG.*?<\/a>/);
   let mp3Match = html.match(/href="([^"]*\.mp3)"[^>]*>.*?MP3.*?<\/a>/);
   let backgroundMatch = html.match(/href="([^"]*\.png)"[^>]*>.*?Background.*?<\/a>/);
   let aviMatch = html.match(/href="([^"]*\.avi)"[^>]*>.*?AVI.*?<\/a>/);
 
   if (!simfileMatch) {
-    simfileMatch = html.match(/href="([^"]*\.sm)"/);
+    simfileMatch = html.match(/href="([^"]*\.(?:ssc|sm))"/i);
   }
   if (!oggMatch) {
     oggMatch = html.match(/href="([^"]*\.ogg)"/);

@@ -18,6 +18,7 @@ const ALLOWED = new Set([
   'web_vital_inp',
   'watch_playback_error',
   'doom_flavor_failed',
+  'stepmania_song_load',
   'pwa_install'
 ]);
 
