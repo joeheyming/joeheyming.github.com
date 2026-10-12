@@ -79,6 +79,12 @@
     // because the boot card and ROM browser navigate with the same keys.
     window.emulatorSocd?.install();
 
+    // DS only. Other cores use the mouse for light guns, and replaying a
+    // finger as a click would fire those by accident.
+    if (cfg.id === 'nds' || cfg.ejsCore === 'nds') {
+      installNdsStylus();
+    }
+
     const script = document.createElement('script');
     script.src = 'https://cdn.emulatorjs.org/latest/data/loader.js';
     script.onload = function () {
@@ -131,8 +137,129 @@
     tryAttach();
   }
 
+  /**
+   * melonDS reads the stylus from RetroArch's mouse device. A trackpad
+   * produces mouse events, so it already works. A Windows touchscreen
+   * produces touch and pointer events, which RetroArch files on a separate
+   * pointer device the core ignores. Replay a finger or pen as mouse
+   * events on the canvas. `touch-action: none` keeps the browser from
+   * taking the gesture as a page scroll before the core sees it.
+   * @param {Document} [doc]
+   * @returns {boolean}
+   */
+  function installNdsStylus(doc) {
+    const root = doc || document;
+    const game = root.getElementById('game');
+    if (!game || game.dataset.ndsStylus === 'on') return false;
+    game.dataset.ndsStylus = 'on';
+    game.style.touchAction = 'none';
+
+    const synthetic = new WeakSet();
+    let activeId = null;
+
+    function canvasEl() {
+      return game.querySelector('canvas');
+    }
+
+    function arm(node) {
+      if (!node || node.tagName !== 'CANVAS') return;
+      if (node.style.touchAction !== 'none') node.style.touchAction = 'none';
+      if (node.classList.contains('ejs-canvas-no-pointer')) {
+        node.classList.remove('ejs-canvas-no-pointer');
+      }
+    }
+
+    arm(canvasEl());
+    const observer = new MutationObserver(function () {
+      arm(canvasEl());
+    });
+    observer.observe(game, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style']
+    });
+
+    function onSurface(ev) {
+      const canvas = canvasEl();
+      if (!canvas) return false;
+      return ev.target === canvas || ev.target === game;
+    }
+
+    function dispatch(type, ev, buttons) {
+      const canvas = canvasEl();
+      if (!canvas) return;
+      const view = root.defaultView || window;
+      const mouse = new view.MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        view: view,
+        clientX: ev.clientX,
+        clientY: ev.clientY,
+        screenX: ev.screenX,
+        screenY: ev.screenY,
+        button: 0,
+        buttons: buttons,
+        movementX: ev.movementX || 0,
+        movementY: ev.movementY || 0
+      });
+      synthetic.add(mouse);
+      canvas.dispatchEvent(mouse);
+    }
+
+    function begin(ev) {
+      if (ev.pointerType !== 'touch' && ev.pointerType !== 'pen') return;
+      if (!onSurface(ev) || activeId !== null) return;
+      activeId = ev.pointerId;
+      if (ev.cancelable) ev.preventDefault();
+      const cap = ev.target;
+      if (cap && typeof cap.setPointerCapture === 'function') {
+        try {
+          cap.setPointerCapture(ev.pointerId);
+        } catch (err) {
+          // The hit target can refuse capture when the canvas was
+          // pointer-events: none. Moves still arrive on #game.
+        }
+      }
+      dispatch('mousemove', ev, 1);
+      dispatch('mousedown', ev, 1);
+    }
+
+    function move(ev) {
+      if (ev.pointerId !== activeId) return;
+      if (ev.cancelable) ev.preventDefault();
+      dispatch('mousemove', ev, 1);
+    }
+
+    function end(ev) {
+      if (ev.pointerId !== activeId) return;
+      activeId = null;
+      if (ev.cancelable) ev.preventDefault();
+      dispatch('mouseup', ev, 0);
+    }
+
+    // Chrome also synthesizes mouse events after a touch. RetroArch would
+    // see both and double-tap the stylus. Drop the compatibility ones.
+    function swallowCompatibility(ev) {
+      if (synthetic.has(ev)) return;
+      const fromTouch = ev.sourceCapabilities && ev.sourceCapabilities.firesTouchEvents;
+      if (!fromTouch) return;
+      ev.stopImmediatePropagation();
+    }
+
+    game.addEventListener('pointerdown', begin, { capture: true, passive: false });
+    game.addEventListener('pointermove', move, { capture: true, passive: false });
+    game.addEventListener('pointerup', end, { capture: true, passive: false });
+    game.addEventListener('pointercancel', end, { capture: true, passive: false });
+    game.addEventListener('mousedown', swallowCompatibility, true);
+    game.addEventListener('mousemove', swallowCompatibility, true);
+    game.addEventListener('mouseup', swallowCompatibility, true);
+    return true;
+  }
+
   window.emulatorEjsMount = {
     mount,
-    keepSavesInBrowser
+    keepSavesInBrowser,
+    installNdsStylus
   };
 })();

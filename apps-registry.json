@@ -1423,7 +1423,7 @@
     "name": "Nintendo DS 🖊️",
     "shortName": "Nintendo DS",
     "description": "Nintendo DS emulator",
-    "detailedDescription": "Play Nintendo DS games in your browser. Both screens stack in one window and the mouse works as the stylus. No BIOS upload needed — bring your own .nds dump or browse Internet Archive. Part of the unified emulator shell (EmulatorJS / melonDS).",
+    "detailedDescription": "Play Nintendo DS games in your browser. Both screens stack in one window and a mouse or touchscreen works as the stylus. No BIOS upload needed — bring your own .nds dump or browse Internet Archive. Part of the unified emulator shell (EmulatorJS / melonDS).",
     "icon": "🖊️",
     "path": "./emulator/nds/",
     "category": "game",

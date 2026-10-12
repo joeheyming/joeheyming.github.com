@@ -360,7 +360,7 @@
       fileAccept: '.nds,.zip,.7z',
       fileExtsLabel: '.nds',
       seoDescription:
-        'Browser Nintendo DS emulator. Both screens stack in one window and the mouse doubles as the stylus, with no BIOS upload to hunt down. Load your own .nds dump; saves and save states stay on this device. Powered by EmulatorJS and melonDS.',
+        'Browser Nintendo DS emulator. Both screens stack in one window and a mouse or touchscreen doubles as the stylus, with no BIOS upload to hunt down. Load your own .nds dump; saves and save states stay on this device. Powered by EmulatorJS and melonDS.',
       // Coral rose — the one family the other twelve consoles left alone.
       accentHex: '#e11d48',
       accentGoldHex: '#9f1239',
@@ -371,12 +371,12 @@
       iaPreferMetadata: true,
       howto: [
         'Both screens stack inside the one window. The lower screen is the touch screen.',
-        'Click or drag on the lower screen to use the stylus.',
+        'Click, tap, or drag on the lower screen to use the stylus.',
         'Tap a game to get its Internet Archive download link, then load the saved .zip.',
         'If a game refuses to boot, switch from melonDS to DeSmuME under the settings gear.'
       ],
       romHelp:
-        'Bring your own .nds dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here. Most games are 10–60 MB. Click the lower screen to use the stylus.',
+        'Bring your own .nds dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here. Most games are 10–60 MB. Click or tap the lower screen to use the stylus.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
@@ -384,7 +384,7 @@
         { label: 'X button', key: 'A' },
         { label: 'Y button', key: 'S' },
         { label: 'L / R', key: 'Q / E' },
-        { label: 'Touch screen', key: 'Mouse' },
+        { label: 'Touch screen', key: 'Mouse or touch' },
         { label: 'Select', key: 'V' },
         { label: 'Start', key: 'Enter' },
         { label: 'Save state', key: 'F5' },
