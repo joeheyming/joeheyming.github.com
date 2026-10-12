@@ -437,14 +437,7 @@
       bar.id = 'emu-play-chrome';
       document.body.appendChild(bar);
     }
-    const bits = [
-      '<button type="button" class="emu-chrome-btn" id="emu-game-list-btn">Back to game list</button>'
-    ];
-    if (cfg.audioUnlock || cfg.audioNote) {
-      bits.push(
-        '<button type="button" class="emu-chrome-btn" id="emu-sound-btn">Sound off — click to enable</button>'
-      );
-    }
+    const bits = [];
     if (cfg.showSaveStates) {
       bits.push(
         '<button type="button" class="emu-chrome-btn" id="emu-save-btn">Save (F5)</button>'
@@ -456,8 +449,16 @@
         '<span class="emu-chrome-note">Quick save — not the in-game memory card menu.</span>'
       );
     }
+    if (cfg.audioUnlock || cfg.audioNote) {
+      bits.push(
+        '<button type="button" class="emu-chrome-btn" id="emu-sound-btn">Sound off — click to enable</button>'
+      );
+    }
+    // Kept last and pushed to the far edge so a missed Save click can't quit the game.
+    bits.push(
+      '<button type="button" class="emu-chrome-btn emu-chrome-exit" id="emu-game-list-btn">Back to game list</button>'
+    );
     bar.innerHTML = bits.join('');
-    bar.hidden = bits.length === 0;
 
     document.getElementById('emu-game-list-btn')?.addEventListener('click', returnToGameList);
     document.getElementById('emu-sound-btn')?.addEventListener('click', unlockGameAudio);

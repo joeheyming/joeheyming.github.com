@@ -314,11 +314,20 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  max-width: min(560px, calc(100vw - 24px));
+  width: min(560px, calc(100vw - 24px));
+  pointer-events: none;
+}
+
+#emu-play-chrome > * {
+  pointer-events: auto;
 }
 
 #emu-play-chrome[hidden] {
   display: none;
+}
+
+.emu-chrome-exit {
+  margin-left: auto;
 }
 
 .emu-chrome-btn {
