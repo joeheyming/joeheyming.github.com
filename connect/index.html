@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connect — Random Video Chat 🎥</title>
+    <meta
+      name="description"
+      content="Meet a random person or send a friend a private link for a one-to-one browser video chat. Video, audio, and messages travel directly between browsers; a public lobby only handles matchmaking."
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0b1020" />
+    <link rel="canonical" href="https://joeheyming.github.io/connect/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Connect — Random Video Chat 🎥" />
+    <meta
+      property="og:description"
+      content="One-to-one random video chat that connects browsers directly."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/connect/" />
+    <meta property="og:image" content="https://joeheyming.github.io/connect/connect-preview.png" />
+    <meta property="og:image:alt" content="Connect random video chat interface" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Connect — Random Video Chat 🎥" />
+    <meta
+      name="twitter:description"
+      content="One-to-one random video chat that connects browsers directly."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/connect/connect-preview.png" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎥</text></svg>"
+    />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="index.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Connect",
+        "url": "https://joeheyming.github.io/connect/",
+        "applicationCategory": "SocialNetworkingApplication",
+        "operatingSystem": "Any modern browser",
+        "description": "A one-to-one random video chat that connects browsers directly with WebRTC.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <a class="brand" href="/" aria-label="Home">◌</a>
+        <div>
+          <p class="eyebrow">Browser-to-browser</p>
+          <h1>Connect</h1>
+        </div>
+        <div id="connection-status" class="connection-status" role="status" aria-live="polite">
+          Ready when you are
+        </div>
+      </header>
+
+      <section class="video-grid" aria-label="Video chat">
+        <figure class="video-card video-card--remote">
+          <video
+            id="remote-video"
+            autoplay
+            playsinline
+            aria-label="The person you are talking to"
+          ></video>
+          <figcaption>Stranger</figcaption>
+          <p class="empty-video">Your next conversation will appear here.</p>
+        </figure>
+        <figure class="video-card video-card--local">
+          <video
+            id="local-video"
+            autoplay
+            muted
+            playsinline
+            aria-label="Your camera preview"
+          ></video>
+          <figcaption>You</figcaption>
+        </figure>
+      </section>
+
+      <p id="lobby-presence" class="lobby-presence" data-state="unknown">Checking who is around…</p>
+
+      <label id="age-gate" class="age-gate">
+        <input id="age-confirm" type="checkbox" />
+        <span>I'm 18 or older, and I won't share personal information.</span>
+      </label>
+
+      <section class="controls" aria-label="Connection controls">
+        <button id="start-button" class="button button--primary" type="button">
+          Start video chat
+        </button>
+        <button id="invite-button" class="button button--secondary" type="button">
+          Invite a friend
+        </button>
+        <button id="next-button" class="button button--primary" type="button" hidden>
+          Next person
+        </button>
+        <button id="stop-button" class="button button--secondary" type="button" hidden>Stop</button>
+        <button id="mute-button" class="button button--secondary" type="button" hidden>Mute</button>
+        <button id="camera-button" class="button button--secondary" type="button" hidden>
+          Camera off
+        </button>
+      </section>
+
+      <section class="chat-panel" aria-labelledby="chat-heading">
+        <div class="chat-heading">
+          <h2 id="chat-heading">Chat</h2>
+          <span>Messages are direct</span>
+        </div>
+        <ol id="chat-messages" class="messages" aria-live="polite"></ol>
+        <form id="chat-form" class="chat-form">
+          <label class="sr-only" for="chat-input">Message</label>
+          <input id="chat-input" autocomplete="off" placeholder="Message…" disabled />
+          <button type="submit" class="button button--secondary" disabled>Send</button>
+        </form>
+      </section>
+
+      <aside class="safety-note">
+        <strong>Stay in control.</strong>
+        This is an unmoderated random chat. Do not share personal information; use Next or close the
+        page if someone makes you uncomfortable. The matchmaking list is public, so anyone watching
+        it can see a caller's network address. Video and messages go directly between the two
+        browsers.
+      </aside>
+    </main>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

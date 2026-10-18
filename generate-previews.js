@@ -1354,6 +1354,12 @@ const PAGES = [
     url: `${BASE_URL}/settings/`,
     output: 'settings/settings-preview.png',
     title: 'Settings'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/connect/`,
+    output: 'connect/connect-preview.png',
+    title: 'Connect'
   }
 ];
 

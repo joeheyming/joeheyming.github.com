@@ -2216,6 +2216,27 @@
     "geo": true
   },
   {
+    "id": "connect",
+    "name": "Connect 🎥",
+    "shortName": "Connect",
+    "description": "Meet someone new in a direct browser-to-browser video chat",
+    "detailedDescription": "Random one-to-one video chat with direct WebRTC video and messages. A lightweight Google Form and Sheet provide temporary matchmaking; conversation media never passes through this site.",
+    "icon": "🎥",
+    "path": "./connect/",
+    "category": "entertainment",
+    "gradient": "from-fuchsia-500/20 to-violet-500/20",
+    "border": "border-fuchsia-500/30 hover:border-fuchsia-400/50",
+    "taskbarGradient": "from-fuchsia-600 to-violet-700",
+    "taskbarText": "text-white",
+    "defaultWidth": 1000,
+    "defaultHeight": 760,
+    "tags": ["video chat", "random", "webrtc", "camera", "social"],
+    "related": ["chat", "sayhello", "watch"],
+    "shareCategory": "entertainment",
+    "appTier": "experience",
+    "geo": false
+  },
+  {
     "id": "chat",
     "name": "Chat 🤖",
     "shortName": "Chat",
