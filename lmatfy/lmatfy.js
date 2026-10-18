@@ -13,7 +13,12 @@ export const ENGINES = {
     id: 'gemini',
     label: 'Gemini',
     placeholder: 'Ask Gemini',
-    destination: (query) => `https://gemini.google.com/app?q=${encodeURIComponent(query)}`
+    // gemini.google.com/app ignores ?q=. AI Mode is the Gemini surface that runs it.
+    // Search queries drop line breaks, so collapse them before encoding.
+    destination: (query) => {
+      const flat = query.replace(/[ \t]*\n+[ \t]*/g, ' ').trim();
+      return `https://www.google.com/search?udm=50&q=${encodeURIComponent(flat)}`;
+    }
   },
   brave: {
     id: 'brave',

@@ -59,7 +59,11 @@ test('destination URLs prefill ChatGPT, Gemini, and Ask Brave', () => {
   );
   assert.equal(
     destinationUrl('gemini', 'why is the sky blue'),
-    'https://gemini.google.com/app?q=why%20is%20the%20sky%20blue'
+    'https://www.google.com/search?udm=50&q=why%20is%20the%20sky%20blue'
+  );
+  assert.equal(
+    destinationUrl('gemini', 'line one\n\n  line two'),
+    'https://www.google.com/search?udm=50&q=line%20one%20line%20two'
   );
   assert.equal(
     destinationUrl('brave', 'why is the sky blue'),
