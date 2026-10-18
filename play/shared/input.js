@@ -8,10 +8,20 @@
  *   - Space (without focused key) toggles sustain
  *   - Window blur clears stuck notes
  *   - Window focus resumes a suspended AudioContext
+ *
+ * `routeKey(event, isDown)` lets a page hand keys to a different surface
+ * (e.g. the accordion's Stradella grid). Returning true consumes the key.
  */
 import { resumeIfSuspended } from './audio.js';
 
-export function attachKeyboardInput({ keyboard, synth, sustainEl, announceNote, shiftOctave }) {
+export function attachKeyboardInput({
+  keyboard,
+  synth,
+  sustainEl,
+  announceNote,
+  shiftOctave,
+  routeKey
+}) {
   const heldKeys = new Map();
   const focusHeld = new Set();
 
@@ -40,6 +50,12 @@ export function attachKeyboardInput({ keyboard, synth, sustainEl, announceNote, 
     const isFormField =
       target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
     if (isFormField && target.type !== 'checkbox' && target.type !== 'range') return;
+
+    if (routeKey?.(event, true)) {
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
+      event.preventDefault();
+      return;
+    }
 
     if (event.key === 'Enter') {
       const midi = focusedKeyMidi();
@@ -89,6 +105,7 @@ export function attachKeyboardInput({ keyboard, synth, sustainEl, announceNote, 
   });
 
   document.addEventListener('keyup', (event) => {
+    if (routeKey?.(event, false)) return;
     if (event.key === 'Enter' || event.code === 'Space') {
       const midi = focusedKeyMidi();
       if (midi != null && focusHeld.has(midi)) {

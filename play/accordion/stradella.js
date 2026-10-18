@@ -1,6 +1,7 @@
 import { createPointerSurface } from '../shared/pointer-surface.js';
 import { tap as hapticTap } from '../shared/haptics.js';
 import { SHARP_NAMES, FLAT_NAMES, notesForButton } from './stradella-chords.js';
+import { isStradellaKey, stradellaCellForKey } from './stradella-keys.js';
 
 /**
  * Stradella bass system — the left-hand button system on a piano accordion.
@@ -349,27 +350,80 @@ export function renderStradella(rootEl, opts) {
     onRelease: (btn) => release(btn)
   });
 
+  // Buttons held from the computer keyboard, keyed by `KeyboardEvent.code`.
+  // The value is null when the key is held but the current Shift state has
+  // no button for it (a minor key on a layout with no diminished row).
+  const heldKeys = new Map();
+
+  const buttonForKey = (code, shiftKey) => {
+    const rowEls = rootEl.querySelectorAll('.stradella-row');
+    const cell = stradellaCellForKey(code, shiftKey, {
+      rowCount: rowEls.length,
+      colCount: Number(rootEl.style.getPropertyValue('--col-count')) || 0,
+      flip: currentFlip
+    });
+    if (!cell) return null;
+    return rowEls[cell.row].querySelectorAll('.stradella-button')[cell.col] || null;
+  };
+
+  const releaseAll = () => {
+    surface.releaseAll();
+    for (const btn of heldKeys.values()) release(btn);
+    heldKeys.clear();
+  };
+
   build();
 
   return {
+    /** Press the button mapped to a physical key. Returns true if the key is mapped. */
+    keyDown(code, shiftKey) {
+      if (heldKeys.has(code)) return true;
+      if (!isStradellaKey(code)) return false;
+      const btn = buttonForKey(code, shiftKey);
+      heldKeys.set(code, btn);
+      if (btn) press(btn);
+      return true;
+    },
+    /** Release the button held by a physical key. Returns true if one was held. */
+    keyUp(code) {
+      if (!heldKeys.has(code)) return false;
+      const btn = heldKeys.get(code);
+      heldKeys.delete(code);
+      if (btn) release(btn);
+      return true;
+    },
+    /**
+     * Shift swaps sounding majors for dominant 7ths and minors for
+     * diminished 7ths. Keys still held when Shift comes back up return
+     * to their triad.
+     */
+    setShift(shiftKey) {
+      for (const [code, btn] of heldKeys) {
+        const next = buttonForKey(code, shiftKey);
+        if (next === btn) continue;
+        if (btn) release(btn);
+        heldKeys.set(code, next);
+        if (next) press(next);
+      }
+    },
     setLayout(layoutId) {
       if (!STRADELLA_LAYOUTS[layoutId]) return;
       // Release everything before redrawing.
-      surface.releaseAll();
+      releaseAll();
       currentLayout = layoutId;
       build();
     },
     setOrientation(orientation) {
       if (orientation !== 'horizontal' && orientation !== 'vertical') return;
       if (orientation === currentOrientation) return;
-      surface.releaseAll();
+      releaseAll();
       currentOrientation = orientation;
       build();
     },
     setSize(sizeId) {
       if (!STRADELLA_SIZES[sizeId]) return;
       if (sizeId === currentSize) return;
-      surface.releaseAll();
+      releaseAll();
       currentSize = sizeId;
       build();
     },
@@ -379,19 +433,19 @@ export function renderStradella(rootEl, opts) {
       // No rebuild needed — the flip is pure CSS driven by the data
       // attribute. We do release any in-flight presses so a user who
       // flips mid-press doesn't get stranded "stuck" buttons.
-      surface.releaseAll();
+      releaseAll();
       currentFlip = mode;
       rootEl.dataset.flip = currentFlip;
     },
     setOctaveShift(semis) {
       const next = Number.isInteger(semis) ? semis : 0;
       if (next === octaveShift) return;
-      surface.releaseAll();
+      releaseAll();
       octaveShift = next;
       build();
     },
     clearActive() {
-      surface.releaseAll();
+      releaseAll();
       rootEl.querySelectorAll('.stradella-button.active').forEach((el) => {
         el.classList.remove('active');
         el._pressed = false;

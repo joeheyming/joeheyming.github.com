@@ -58,6 +58,7 @@ describe('attachKeyboardInput', () => {
   let released;
   let keyboard;
   let synth;
+  let routed;
 
   beforeEach(async () => {
     window = setupDom();
@@ -83,14 +84,29 @@ describe('attachKeyboardInput', () => {
       },
       allOff() {}
     };
+    routed = [];
     // Cache-bust so each file run re-binds against the fresh document.
     const mod = await import(`${INPUT_HREF}?t=${Date.now()}-${Math.random()}`);
     mod.attachKeyboardInput({
       keyboard,
       synth,
       sustainEl: null,
-      announceNote() {}
+      announceNote() {},
+      routeKey(event, isDown) {
+        if (event.code !== 'Digit1') return false;
+        routed.push(isDown ? 'down' : 'up');
+        return true;
+      }
     });
+  });
+
+  it('routeKey consumes keys before the piano mapping', () => {
+    dispatchKey(window, 'keydown', { key: '1', code: 'Digit1' });
+    dispatchKey(window, 'keyup', { key: '1', code: 'Digit1' });
+    assert.deepEqual(routed, ['down', 'up']);
+    assert.deepEqual(played, []);
+    dispatchKey(window, 'keydown', { key: 'a' });
+    assert.deepEqual(played, [60]);
   });
 
   afterEach(() => {

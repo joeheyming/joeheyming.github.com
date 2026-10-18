@@ -15,6 +15,7 @@ import { setupMidi } from '../shared/midi.js';
 import { makePrefs } from '../shared/prefs.js';
 import { attachKeyboardInput } from '../shared/input.js';
 import { renderStradella } from './stradella.js';
+import { isStradellaKey } from './stradella-keys.js';
 import { renderChromatic } from './chromatic.js';
 import { renderDiatonic } from './diatonic.js';
 import { Bellows, isBellowsAvailable, isBellowsPermissionRequired } from '../shared/bellows.js';
@@ -534,12 +535,46 @@ document.addEventListener('keydown', warm, { once: true });
 // shift the global octave even when no piano-key is focused. The
 // chromatic / Stradella / diatonic views all pick up the new shift via
 // `applyOctaveShift`, so the shortcut works on every view.
+//
+// On the horizontal Stradella view the letter rows drive the bass grid
+// instead of the (hidden) piano; see `stradella-keys.js` for the map.
+const stradellaKeysActive = () =>
+  stageEl.dataset.kind === 'stradella' && stradellaHostEl.dataset.orientation === 'horizontal';
+
+// Both Shift keys count, so releasing one while the other is held keeps
+// the 7th / diminished swap in place.
+const heldShifts = new Set();
+
 attachKeyboardInput({
   keyboard: accordion,
   synth,
   sustainEl: null,
   announceNote,
-  shiftOctave
+  shiftOctave,
+  routeKey: (event, isDown) => {
+    const isShift = event.code === 'ShiftLeft' || event.code === 'ShiftRight';
+    if (isShift) {
+      if (!stradellaKeysActive()) {
+        if (!isDown) heldShifts.delete(event.code);
+        return false;
+      }
+      if (isDown) {
+        if (!event.repeat && !heldShifts.has(event.code)) {
+          heldShifts.add(event.code);
+          if (heldShifts.size === 1) stradella.setShift(true);
+        }
+      } else {
+        heldShifts.delete(event.code);
+        if (heldShifts.size === 0) stradella.setShift(false);
+      }
+      return true;
+    }
+    if (!isDown) return stradella.keyUp(event.code);
+    if (event.ctrlKey || event.metaKey || event.altKey) return false;
+    if (!stradellaKeysActive() || !isStradellaKey(event.code)) return false;
+    stradella.keyDown(event.code, event.shiftKey);
+    return true;
+  }
 });
 
 // External MIDI hardware: shift the incoming note by the current
@@ -733,6 +768,7 @@ setView(viewEl ? viewEl.value : 'stradella-standard-h');
 
 // Drop in-flight presses if the page loses focus.
 window.addEventListener('blur', () => {
+  heldShifts.clear();
   stradella.clearActive();
   chromatic.clearActive();
   diatonic.clearActive();
