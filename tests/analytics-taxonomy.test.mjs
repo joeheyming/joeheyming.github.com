@@ -13,6 +13,7 @@ const ALLOWED = new Set([
   'watch_played',
   'speller_word_rendered',
   'content_shared',
+  'next_app_click',
   'exception',
   'error_occurred',
   'web_vital_inp',

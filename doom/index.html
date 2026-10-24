@@ -600,6 +600,11 @@
         </button>
       </section>
 
+      <!-- Shown only after a flavor fails to prime. Filled by next-apps.js.
+           Kept outside the flavor cards because those cards are buttons
+           and cannot contain links. -->
+      <div id="doomFailNext" class="doom-fail-next" hidden></div>
+
       <!-- Inline flavor dropdown for the picker page. Mirrors the in-game
            #flavorSwitcher widget so users have one consistent way to
            change flavors and reach Manual mode. The 3 flavor items are
@@ -781,17 +786,15 @@
            from users to keep the boot screen minimal. -->
       <nav aria-label="More retro games" class="seo-intro" hidden>
         <strong>More retro games:</strong>
-        <a href="/badapple/">Bad Apple ASCII</a>
+        <a href="/emulator/">Emulator</a>
         &middot;
-        <a href="/starwars/">ASCII Star Wars</a>
+        <a href="/stepmania/">Stepmania</a>
         &middot;
         <a href="/pacman/">3D Pac-Man</a>
         &middot;
         <a href="/minesweeper/">Minesweeper</a>
         &middot;
         <a href="/emulator/nes/">NES Emulator</a>
-        &middot;
-        <a href="/stepmania/">StepMania</a>
         &middot;
         <a href="/terminal/">Web Terminal</a>
         &middot;
@@ -810,16 +813,8 @@
       </div>
       <div class="panel" style="gap: 14px">
         <div class="outcome ok" id="exitOutcome">Thanks for playing.</div>
-        <div class="detail">
-          Save games and configuration have been saved to your browser. Use the button below to
-          start a new session, try
-          <a href="/badapple/" style="color: var(--accent)">Bad Apple</a>
-          or
-          <a href="/pacman/" style="color: var(--accent)">3D Pac-Man</a>
-          , or head back
-          <a href="/" style="color: var(--accent)">home</a>
-          .
-        </div>
+        <div class="detail">Save games and configuration are in this browser.</div>
+        <nav id="doomExitNext" class="doom-next-apps" aria-label="Play something else"></nav>
         <div class="reason" id="exitReason"></div>
         <div class="btn-row">
           <button class="btn primary" id="relaunchBtn">Relaunch</button>
@@ -970,6 +965,7 @@
          which means AudioContext / fullscreen unlock the same way they
          would on a single hero-button click. The hero is unused in picker
          mode and stays hidden via body.picker-mode CSS. -->
+    <script src="next-apps.js"></script>
     <script src="flavor-controller.js"></script>
     <!-- Live chat (desktop only). room=doom; Meta!A1 kill switch when wired. -->
     <script type="module">

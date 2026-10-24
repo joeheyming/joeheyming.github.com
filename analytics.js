@@ -12,6 +12,7 @@
 //   watch_played           Watch playback succeeded (not every watch_play_start)
 //   speller_word_rendered  Periodic Speller produced a spelling
 //   content_shared         Shared via share.js / share FAB
+//   next_app_click         Clicked a next-app offer (Doom exit/fail, or home Continue)
 //
 // Actionable health:
 //   exception             JavaScript errors with a stack
@@ -93,6 +94,71 @@ function normalizePagePath(path) {
 
   return normalized;
 }
+
+// Last app the visitor actually opened. The homepage reads this to offer
+// Continue. Doom's exit panel does not — that surface offers a different
+// app on purpose. Fourteen days is long enough to cover a weekly return
+// and short enough that a forgotten experiment doesn't linger.
+const LAST_APP_KEY = 'hos-last-app';
+const LAST_APP_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+const LAST_APP_STRIPPED_PARAMS = [
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_content',
+  'utm_term',
+  'shared',
+  'share_source',
+  'fbclid',
+  'gclid'
+];
+
+function continueHref(loc) {
+  const path = normalizePagePath(loc.pathname);
+  const params = new URLSearchParams(loc.search || '');
+  LAST_APP_STRIPPED_PARAMS.forEach(function (key) {
+    params.delete(key);
+  });
+  const query = params.toString();
+  return path + (query ? '?' + query : '');
+}
+
+function rememberLastApp(loc, storage, now) {
+  if (!loc || loc.protocol === 'about:' || loc.protocol === 'file:') return null;
+  const path = normalizePagePath(loc.pathname || '');
+  if (path === '/' || /\.\w+$/.test(path)) return null;
+  if (!path.startsWith('/') || path.startsWith('//')) return null;
+  const href = continueHref(loc);
+  const record = { path: path, href: href, at: now };
+  try {
+    storage.setItem(LAST_APP_KEY, JSON.stringify(record));
+  } catch (_) {
+    return null;
+  }
+  return record;
+}
+
+function readLastApp(storage, now) {
+  let parsed;
+  try {
+    parsed = JSON.parse(storage.getItem(LAST_APP_KEY) || '');
+  } catch (_) {
+    return null;
+  }
+  if (!parsed || typeof parsed.path !== 'string' || typeof parsed.href !== 'string') return null;
+  if (typeof parsed.at !== 'number' || now - parsed.at > LAST_APP_MAX_AGE_MS) return null;
+  if (!parsed.path.startsWith('/') || parsed.path.startsWith('//') || parsed.path === '/')
+    return null;
+  if (!parsed.href.startsWith(parsed.path) || /[\s<>]/.test(parsed.href)) return null;
+  return parsed;
+}
+
+window.heyLastApp = {
+  KEY: LAST_APP_KEY,
+  MAX_AGE_MS: LAST_APP_MAX_AGE_MS,
+  remember: rememberLastApp,
+  read: readLastApp
+};
 
 // Loopback (127/8), RFC1918 private ranges (10/8, 172.16/12, 192.168/16),
 // and link-local (169.254/16). Loose octet matching is fine here — this
@@ -637,4 +703,23 @@ if (isLocalDevHost()) {
 
   initErrorTracking();
   initInpTracking();
+}
+
+// Clicks on [data-next-app] are the growth outcome for the Doom exit/fail
+// offers and the homepage Continue chip. One listener covers every page
+// because analytics.js is already on all of them.
+document.addEventListener('click', function (event) {
+  let node = event.target;
+  if (node && node.nodeType !== 1) node = node.parentElement;
+  const link = node && node.closest ? node.closest('[data-next-app]') : null;
+  if (!link) return;
+  const id = link.getAttribute('data-next-app') || '';
+  const surface = link.getAttribute('data-next-surface') || 'next';
+  window.trackEvent('next_app_click', 'Growth', (surface + ':' + id).slice(0, 100));
+});
+
+try {
+  window.heyLastApp.remember(window.location, localStorage, Date.now());
+} catch (_) {
+  /* private mode or a host with no storage — Continue simply stays hidden */
 }

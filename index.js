@@ -848,7 +848,57 @@ function initConsoleEasterEgg() {
 
 /* ─── Boot ─────────────────────────────────────────────────────────── */
 
+// Return visitors land on `/` from a bookmark or a typed URL and then
+// leave. Continue points at the last app they opened (see heyLastApp in
+// analytics.js) so that visit has a second click waiting.
+function renderContinueApp() {
+  const slot = document.getElementById('continue-app');
+  if (!slot) return;
+  slot.replaceChildren();
+  slot.hidden = true;
+  if (!window.heyLastApp || typeof AppModule === 'undefined') return;
+
+  let record = null;
+  try {
+    record = window.heyLastApp.read(localStorage, Date.now());
+  } catch (_) {
+    return;
+  }
+  if (!record) return;
+
+  const app = AppModule.getAllApps().find(function (candidate) {
+    return featuredHrefFromPath(candidate.path).split('?')[0] === record.path;
+  });
+  if (!app) return;
+
+  const label = app.shortName || app.name || 'your last app';
+  const link = document.createElement('a');
+  link.className = 'hos-continue-link';
+  link.href = record.href;
+  link.dataset.nextApp = app.id;
+  link.dataset.nextSurface = 'home';
+  link.setAttribute('aria-label', 'Continue ' + label);
+
+  const kicker = document.createElement('span');
+  kicker.className = 'hos-continue-kicker';
+  kicker.textContent = 'Continue';
+
+  const icon = document.createElement('span');
+  icon.className = 'hos-continue-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = app.icon || '';
+
+  const name = document.createElement('span');
+  name.className = 'hos-continue-name';
+  name.textContent = label;
+
+  link.append(kicker, icon, name);
+  slot.appendChild(link);
+  slot.hidden = false;
+}
+
 function bootHome() {
+  renderContinueApp();
   renderFeaturedHeroes();
   renderFeaturedProjects();
   renderAppGallery();

@@ -357,3 +357,45 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
 .hero .fineprint a {
   color: var(--accent);
 }
+
+/* Next-game offers on the exit overlay and after a flavor prime failure.
+   [hidden] must win over display:flex — an author rule otherwise beats
+   the user-agent hidden style and the failure row shows on first paint. */
+.doom-next-apps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+  max-width: 520px;
+}
+.doom-fail-next[hidden],
+.doom-next-apps[hidden] {
+  display: none !important;
+}
+.doom-next-apps a {
+  flex: 1 1 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  text-align: left;
+}
+.doom-next-apps a:hover {
+  border-color: var(--accent);
+}
+.doom-next-name {
+  font-size: 13px;
+  color: var(--accent);
+}
+.doom-next-blurb {
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.4;
+}

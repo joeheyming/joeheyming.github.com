@@ -516,6 +516,40 @@
   --card-accent-hairline: var(--cat-system-hairline);
 }
 
+/* ─── Continue (last app) ──────────────────────────────────────────── */
+/* Return visitors. Hidden until index.js finds a fresh heyLastApp record.
+   [hidden] has to beat any display rule or the empty slot shows. */
+.hos-continue[hidden] {
+  display: none !important;
+}
+.hos-continue:not([hidden]) {
+  display: flex;
+  margin: 0 0 18px;
+}
+.hos-continue-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  color: var(--text-1);
+  text-decoration: none;
+}
+.hos-continue-link:hover {
+  border-color: var(--accent-primary);
+}
+.hos-continue-kicker {
+  font-size: var(--text-caption);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.hos-continue-name {
+  font-weight: 600;
+}
+
 /* ─── Featured heroes ──────────────────────────────────────────────── */
 /* Two oversized tiles for the apps that drive ~94% of engaged minutes
  * (Doom + Stepmania per 2026-04/05 GA4). Above-the-fold dual-column on

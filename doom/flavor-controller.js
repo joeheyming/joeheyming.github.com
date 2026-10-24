@@ -28,6 +28,16 @@
     window.trackEvent(name, 'DoomFlavor', label, value);
   }
 
+  // Flavor cards are <button>s, so the offer lives in #doomFailNext (or in
+  // the auto-launch instructions, which is a div). hidden is cleared here
+  // because the slot starts hidden and an author display:flex would otherwise
+  // lose to nothing once the class is added.
+  function offerDoomNext(parent) {
+    if (!parent || !window.DoomNextApps) return;
+    parent.hidden = false;
+    window.DoomNextApps.mount(parent, 'doom_fail');
+  }
+
   // A launch request is not a successful engine launch. Wait for the shared
   // lifecycle to confirm the first playable frame, then detach so one run
   // produces exactly one outcome event.
@@ -684,6 +694,7 @@
           card.classList.remove('loading');
           document.body.classList.remove('flavor-loading');
           if (cta) cta.textContent = 'Failed — reload to retry';
+          offerDoomNext(document.getElementById('doomFailNext'));
         }
       });
     });
@@ -713,9 +724,8 @@
       if (!alreadyTerminal && window.UZDoomLifecycle) {
         window.UZDoomLifecycle.markError('autoprime', { message: String(e.message || e) });
       }
-      if (alreadyTerminal) return;
       var inst = document.getElementById('autoInstructions');
-      if (inst) {
+      if (!alreadyTerminal && inst) {
         inst.classList.remove('manual-only');
         inst.innerHTML =
           '<b>⚠ Auto-setup failed.</b>' +
@@ -726,6 +736,9 @@
           String(e.message || e) +
           '). Reload with <code>?manual=1</code> to pick files by hand.</p>';
         inst.style.display = 'block';
+        offerDoomNext(inst);
+      } else {
+        offerDoomNext(document.getElementById('doomFailNext'));
       }
     }
   }

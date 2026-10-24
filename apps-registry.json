@@ -72,7 +72,7 @@
     "defaultHeight": 768,
     "desktopIcon": true,
     "tags": ["fps", "retro", "popular", "sonic"],
-    "related": ["badapple", "starwars", "pacman", "minesweeper"],
+    "related": ["emulator", "stepmania", "pacman"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "DOOM",
