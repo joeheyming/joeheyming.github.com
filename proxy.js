@@ -59,6 +59,41 @@ function looksLikeJsonBody(text) {
 }
 
 /**
+ * Terminal failure after the proxy chain is exhausted. Callers catch this
+ * and update their own UI. It is not suppressed in analytics: an uncaught
+ * one means a caller forgot to handle it.
+ */
+class ProxyExhaustedError extends Error {
+  /**
+   * @param {string} message
+   * @param {{ attempts: number, cause?: unknown }} [info]
+   */
+  constructor(message, info) {
+    super(message);
+    this.name = 'ProxyExhaustedError';
+    this.attempts = info && typeof info.attempts === 'number' ? info.attempts : 0;
+    if (info && info.cause) this.cause = info.cause;
+  }
+}
+
+/**
+ * @param {'text' | 'post' | 'binary'} kind
+ * @param {number} attempts
+ * @param {unknown} lastError
+ */
+function proxyExhausted(kind, attempts, lastError) {
+  const detail =
+    lastError && typeof lastError === 'object' && 'message' in lastError && lastError.message
+      ? String(lastError.message)
+      : 'Unknown error';
+  const prefix = kind === 'post' ? 'All POST proxies failed' : 'All proxies failed';
+  return new ProxyExhaustedError(`${prefix} after ${attempts} attempts: ${detail}`, {
+    attempts,
+    cause: lastError || undefined
+  });
+}
+
+/**
  * Signatures that identify a proxy as terminally broken (paywall, dead
  * endpoint, missing domain registration). When a response body matches
  * one of these, the proxy gets banned for `DEAD_PROXY_TTL_MS` so we
@@ -717,7 +752,7 @@ class ProxyService {
     }
 
     const timeoutMs = options.timeout || this.timeoutMs;
-    const maxRetries = options.maxRetries || this.maxRetries;
+    const maxRetries = options.maxRetries ?? this.maxRetries;
     let lastError = null;
 
     const orderedProxies = this.getOrderedProxies({ ...options, mode: 'text' });
@@ -848,11 +883,7 @@ class ProxyService {
     if (userAbort && userAbort.aborted) {
       throw new DOMException('The operation was aborted.', 'AbortError');
     }
-    throw new Error(
-      `All proxies failed after ${maxRetries + 1} attempts: ${
-        lastError?.message || 'Unknown error'
-      }`
-    );
+    throw proxyExhausted('text', maxRetries + 1, lastError);
   }
 
   /** @returns {string} '' when the URL cannot be parsed. */
@@ -941,7 +972,7 @@ class ProxyService {
   async postWithProxy(url, body, options = {}) {
     const userAbort = options.signal;
     const timeoutMs = options.timeout || this.timeoutMs;
-    const maxRetries = options.maxRetries || this.maxRetries;
+    const maxRetries = options.maxRetries ?? this.maxRetries;
     let lastError = null;
 
     // POST-capable proxies (not all support POST)
@@ -1012,11 +1043,7 @@ class ProxyService {
       }
     }
 
-    throw new Error(
-      `All POST proxies failed after ${maxRetries + 1} attempts: ${
-        lastError?.message || 'Unknown error'
-      }`
-    );
+    throw proxyExhausted('post', maxRetries + 1, lastError);
   }
 
   // Internal buffered binary chain; prefer Interface method fetchBinary.
@@ -1046,7 +1073,7 @@ class ProxyService {
     }
 
     const timeoutMs = options.timeout || this.binaryTimeoutMs;
-    const maxRetries = options.maxRetries || this.maxRetries;
+    const maxRetries = options.maxRetries ?? this.maxRetries;
     let lastError = null;
 
     // corsproxy.io free plan is text-oriented; it often 502s on ZIP/ROM
@@ -1194,11 +1221,7 @@ class ProxyService {
       }
     }
 
-    throw new Error(
-      `All proxies failed after ${maxRetries + 1} attempts: ${
-        lastError?.message || 'Unknown error'
-      }`
-    );
+    throw proxyExhausted('binary', maxRetries + 1, lastError);
   }
 
   /**
@@ -1311,11 +1334,7 @@ class ProxyService {
         await new Promise((resolve) => setTimeout(resolve, 1000 * (retry + 1)));
       }
     }
-    throw new Error(
-      `All proxies failed after ${maxRetries + 1} attempts: ${
-        lastError?.message || 'Unknown error'
-      }`
-    );
+    throw proxyExhausted('binary', maxRetries + 1, lastError);
   }
 
   /**
@@ -1644,5 +1663,5 @@ window.proxyService = proxyService;
 
 // Export for module systems / tests (`new ProxyService({ fetchImpl, storageImpl })`)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { ProxyService, proxyService };
+  module.exports = { ProxyService, ProxyExhaustedError, proxyService };
 }

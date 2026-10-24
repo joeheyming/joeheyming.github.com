@@ -383,6 +383,7 @@ class AudioManager {
       this._detachPendingLoad();
 
       const onCanPlay = () => {
+        delete this.element.dataset.playbackProbe;
         this._detachPendingLoad();
         // Re-apply rate + pitch preservation: Chrome and Safari reset
         // playbackRate on a fresh <source> in some scenarios, and the
@@ -393,6 +394,7 @@ class AudioManager {
       };
 
       const onError = () => {
+        delete this.element.dataset.playbackProbe;
         this._detachPendingLoad();
         reject(new Error('Audio failed to load'));
       };
@@ -402,6 +404,8 @@ class AudioManager {
       this.element.addEventListener('error', onError);
 
       const safeUrl = String(url).replace(/"/g, '%22');
+      // Fallback URLs fail often. The caller records one stepmania_song_load.
+      this.element.dataset.playbackProbe = '1';
       this.element.innerHTML = type
         ? `<source src="${safeUrl}" type="${type}" />`
         : `<source src="${safeUrl}" />`;

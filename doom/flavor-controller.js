@@ -187,6 +187,28 @@
   // first-load failure mode we see, and most of those are first-byte
   // CDN misses that recover on retry — cheap fix, 750ms cost on the
   // unlucky path.
+  function isFailedToFetch(err) {
+    return /failed to fetch/i.test(String((err && err.message) || err));
+  }
+
+  // Direct CDN misses are the common first-load failure. One proxy pass
+  // after the direct retry, then the caller records doom_flavor_failed.
+  async function fetchViaProxy(url, onProgress) {
+    var proxy = window.proxyService;
+    if (!proxy || typeof proxy.fetchBinary !== 'function') {
+      throw new TypeError('Failed to fetch');
+    }
+    if (onProgress) onProgress({ loaded: 0, total: 0 });
+    var data = await proxy.fetchBinary(url, {
+      skipDirect: true,
+      maxRetries: 0,
+      timeout: 120000
+    });
+    var bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+    if (onProgress) onProgress({ loaded: bytes.byteLength, total: bytes.byteLength });
+    return bytes;
+  }
+
   async function fetchWithProgress(url, onProgress) {
     try {
       return await fetchWithProgressOnce(url, onProgress);
@@ -195,7 +217,12 @@
       await new Promise(function (r) {
         setTimeout(r, 750);
       });
-      return await fetchWithProgressOnce(url, onProgress);
+      try {
+        return await fetchWithProgressOnce(url, onProgress);
+      } catch (retryErr) {
+        if (!isFailedToFetch(retryErr)) throw retryErr;
+        return await fetchViaProxy(url, onProgress);
+      }
     }
   }
 

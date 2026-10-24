@@ -191,8 +191,7 @@
       // US Model 1 v1.10 dump is a fixed 128 KiB.
       biosMinBytes: 128 * 1024,
       biosIaBaseUrl: 'https://archive.org/download/SEGACDBIOS/Sega%20Mega%20CD%20BIOS.zip',
-      biosIaFileName:
-        'Sega%20Mega%20CD%20BIOS%2FSega%20CD%20%28U%29%20-%20Model%201%20v1.10%20%281992%29.bin',
+      biosIaFileName: 'Sega Mega CD BIOS/Sega CD (U) - Model 1 v1.10 (1992).bin',
       biosHelp:
         'US BIOS (bios_CD_U.bin) — load once if auto-download fails, then it stays in this browser. EU/JP: bios_CD_E.bin / bios_CD_J.bin.',
       howto: [
@@ -247,8 +246,7 @@
       // region lock, so it boots the US/EU discs in the collection too.
       biosIaBaseUrl:
         'https://archive.org/download/saturnbios/Sega%20Saturn%20Bios%20%28All%20Regions%29.zip',
-      biosIaFileName:
-        'Sega%20Saturn%20Bios%20%28All%20Regions%29%2FSega%20Saturn%20BIOS%20v1.00%20%28JAP%29.bin',
+      biosIaFileName: 'Sega Saturn Bios (All Regions)/Sega Saturn BIOS v1.00 (JAP).bin',
       biosHelp:
         'BIOS auto-loads once from Internet Archive, then stays in this browser. Without it yabause falls back to an HLE BIOS that breaks many games.',
       howto: [

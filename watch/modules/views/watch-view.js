@@ -976,6 +976,7 @@ export async function mount(slot, ctx) {
     playbackQueue = buildPlaybackQueue(ep, catalog);
     playbackIndex = 0;
     const primary = playbackQueue[0] || ep.url;
+    syncPlaybackProbe();
     if (video.src !== primary) {
       video.src = primary;
       // Poster is the TVMaze still when available, then the subject's
@@ -1005,6 +1006,16 @@ export async function mount(slot, ctx) {
     subtitleCtrl.setEpisode(ep);
   }
 
+  // A failed <video> src is a probe while another candidate remains.
+  // The last URL is not a probe; giving up records watch_playback_error.
+  function syncPlaybackProbe() {
+    if (playbackIndex + 1 < playbackQueue.length) {
+      video.dataset.playbackProbe = '1';
+    } else {
+      delete video.dataset.playbackProbe;
+    }
+  }
+
   /**
    * Advance to the next candidate in `playbackQueue`. Returns true when
    * a new src was assigned (caller should not show the error banner yet).
@@ -1017,6 +1028,7 @@ export async function mount(slot, ctx) {
     playbackIndex = next;
     const url = playbackQueue[playbackIndex];
     console.warn(`[watch] playback fallback ${playbackIndex + 1}/${playbackQueue.length}:`, url);
+    syncPlaybackProbe();
     video.src = url;
     video.load();
     const p = video.play();

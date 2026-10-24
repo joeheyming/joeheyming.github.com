@@ -128,6 +128,23 @@ describe('emulator looksLikeBiosPayload', () => {
     );
   });
 
+  it('joins Saturn and Sega CD BIOS names with a real slash', () => {
+    window.eval(readFileSync(join(repoRoot, 'emulator/consoles.js'), 'utf8'));
+    const consoles = window.EMULATOR_CONSOLES;
+    const saturn = bios.biosIaUrl(consoles.saturn);
+    const segacd = bios.biosIaUrl(consoles.segacd);
+    assert.equal(
+      saturn,
+      'https://archive.org/download/saturnbios/Sega%20Saturn%20Bios%20%28All%20Regions%29.zip/Sega Saturn Bios (All Regions)/Sega Saturn BIOS v1.00 (JAP).bin'
+    );
+    assert.equal(
+      segacd,
+      'https://archive.org/download/SEGACDBIOS/Sega%20Mega%20CD%20BIOS.zip/Sega Mega CD BIOS/Sega CD (U) - Model 1 v1.10 (1992).bin'
+    );
+    assert.equal(saturn.includes('%2F'), false);
+    assert.equal(segacd.includes('%2F'), false);
+  });
+
   it('enforces a size floor for .bin BIOS dumps', () => {
     const cfg = { biosFileName: 'scph5501.bin', biosMinBytes: 512 * 1024 };
     assert.equal(bios.looksLikeBiosPayload(cfg, new Uint8Array(100)), false);

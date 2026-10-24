@@ -163,6 +163,7 @@ function initErrorTracking() {
           resource: resource,
           tagName: tagName,
           context: elementContext,
+          playbackProbe: isPlaybackProbeTarget(event.target),
           url: window.location.href,
           timestamp: new Date().toISOString()
         });
@@ -297,7 +298,19 @@ function isSuppressedResourceHost(host) {
   return false;
 }
 
-function shouldSuppressError(errorType, errorMessage, resource) {
+function isPlaybackProbeTarget(target) {
+  let node = target;
+  while (node && node.nodeType === 1) {
+    if (node.dataset && node.dataset.playbackProbe === '1') return true;
+    node = node.parentElement;
+  }
+  return false;
+}
+
+function shouldSuppressError(errorType, errorMessage, resource, playbackProbe) {
+  // Intermediate playback URLs (Watch queue, StepMania audio fallbacks) are
+  // expected to fail. The app records one terminal event when it gives up.
+  if (playbackProbe && errorType === 'resource_error') return true;
   for (const entry of SUPPRESSED_ERROR_PATTERNS) {
     if (entry.types && !entry.types.includes(errorType)) continue;
     const matches =
@@ -329,7 +342,14 @@ window.trackError = function (errorData) {
     const context = errorData.context || '';
     const recoverable = errorData.recoverable !== false;
 
-    if (shouldSuppressError(errorType, errorMessage, errorData.resource)) {
+    if (
+      shouldSuppressError(
+        errorType,
+        errorMessage,
+        errorData.resource,
+        errorData.playbackProbe === true
+      )
+    ) {
       console.warn('[analytics] suppressed error:', errorType, '-', errorMessage);
       return;
     }

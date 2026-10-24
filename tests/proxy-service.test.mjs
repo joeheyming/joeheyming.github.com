@@ -303,4 +303,19 @@ describe('ProxyService Adapter seams', () => {
     });
     assert.equal(second.isProxyDead(HEXLET, 'binary'), true, 'ban should reload from storageImpl');
   });
+
+  it('throws ProxyExhaustedError when every proxy fails', async () => {
+    const fetchImpl = async () => {
+      throw new TypeError('Failed to fetch');
+    };
+    const service = createProxyService({ fetchImpl, storageImpl: storage });
+    await assert.rejects(
+      () => service.fetchJson(JSON_URL, { maxRetries: 0, timeout: 500, skipDirect: true }),
+      (err) => {
+        assert.equal(err.name, 'ProxyExhaustedError');
+        assert.match(String(err.message), /All proxies failed after 1 attempts: Failed to fetch/);
+        return true;
+      }
+    );
+  });
 });

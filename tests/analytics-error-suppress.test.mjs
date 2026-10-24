@@ -56,6 +56,36 @@ test('suppresses residual Doom IDBFS InvalidStateError, not WASM abort', () => {
   dom.window.close();
 });
 
+test('suppresses playback-probe resource errors until the queue gives up', () => {
+  const dom = loadAnalytics('https://example.com/watch/');
+  const suppress = dom.window.__analyticsShouldSuppressError;
+  const resource = 'https://ia801604.us/download/show/episode.mp4';
+  const message = 'Failed to load VIDEO: ia801604.us/episode.mp4';
+
+  assert.equal(suppress('resource_error', message, resource, true), true);
+  assert.equal(suppress('resource_error', message, resource, false), false);
+  assert.equal(suppress('javascript_error', message, resource, true), false);
+
+  dom.window.console.warn = () => {};
+  dom.window.console.error = () => {};
+  const video = dom.window.document.createElement('video');
+  video.dataset.playbackProbe = '1';
+  const source = dom.window.document.createElement('source');
+  source.src = resource;
+  video.appendChild(source);
+  dom.window.document.body.appendChild(video);
+  // Media errors do not bubble. Capture on window still sees them.
+  source.dispatchEvent(new dom.window.Event('error'));
+  delete video.dataset.playbackProbe;
+  source.dispatchEvent(new dom.window.Event('error'));
+
+  const events = Array.from(dom.window.dataLayer || [])
+    .map((args) => Array.from(args))
+    .filter((args) => args[0] === 'event' && args[1] === 'error_occurred');
+  assert.equal(events.length, 1);
+  dom.window.close();
+});
+
 test('error events include the registered error_message dimension', () => {
   const dom = loadAnalytics('https://example.com/');
   dom.window.console.error = () => {};

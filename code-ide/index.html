@@ -371,19 +371,12 @@
     <input id="file-input" type="file" hidden />
 
     <!--
-      Prettier (standalone build + plugins) is loaded BEFORE Monaco's AMD
-      loader. The plugins' UMD wrappers check for `define` first; if Monaco's
-      AMD loader has already installed one, the plugins try to AMD-define
-      themselves and Monaco rejects the duplicate. Loading them first means
-      they attach to `window.prettierPlugins` instead.
+      Prettier standalone only. Language plugins load on the first format
+      for that language (format.js) so a dead CDN does not 404 seven scripts
+      on every visit. Those loads hide Monaco's AMD `define` so the UMD
+      builds attach to window.prettierPlugins.
     -->
     <script src="https://unpkg.com/prettier@3.2.5/standalone.js"></script>
-    <script src="https://unpkg.com/prettier@3.2.5/plugins/estree.js"></script>
-    <script src="https://unpkg.com/prettier@3.2.5/plugins/babel.js"></script>
-    <script src="https://unpkg.com/prettier@3.2.5/plugins/typescript.js"></script>
-    <script src="https://unpkg.com/prettier@3.2.5/plugins/postcss.js"></script>
-    <script src="https://unpkg.com/prettier@3.2.5/plugins/html.js"></script>
-    <script src="https://unpkg.com/prettier@3.2.5/plugins/markdown.js"></script>
 
     <script>
       // Monaco worker bootstrap. Cross-origin workers normally fail under same-origin
@@ -410,23 +403,23 @@
     <section class="code-ide-seo" hidden aria-hidden="true">
       <h2>Free browser IDE with on-device AI assistant</h2>
       <p>
-        Code IDE is a browser-based code editor powered by Monaco (the same engine that runs
-        VS Code) with a project file tree, tabs, Vim keybindings, Prettier format-on-save, a
-        sandboxed JavaScript runner, side-by-side diff, and basic git integration. The optional
-        AI assistant runs Hermes-3 locally via WebLLM on WebGPU — no API key, no backend, no
-        third-party LLM endpoint. Files can be loaded from a real folder on disk via the File
-        System Access API or from the Heyming OS virtual filesystem.
+        Code IDE is a browser-based code editor powered by Monaco (the same engine that runs VS
+        Code) with a project file tree, tabs, Vim keybindings, Prettier format-on-save, a sandboxed
+        JavaScript runner, side-by-side diff, and basic git integration. The optional AI assistant
+        runs Hermes-3 locally via WebLLM on WebGPU — no API key, no backend, no third-party LLM
+        endpoint. Files can be loaded from a real folder on disk via the File System Access API or
+        from the Heyming OS virtual filesystem.
       </p>
     </section>
 
     <p class="seo-keywords-extended" hidden>
-      Free browser IDE, online code editor, Monaco editor browser, VS Code in browser, web
-      VS Code, browser code editor with AI, on-device AI code editor, WebGPU code assistant,
-      Cursor alternative no signup, Cursor browser, free code editor with AI no API key,
-      Hermes 3 code editor, WebLLM IDE, Prettier in browser, format on save browser, JS
-      sandbox browser, run JavaScript in browser, file system access API editor, github
-      pages code editor. Common typos: monoco editor, monaco editor browser, vs code online,
-      vs-code browser, vs code in browser, web ide, browser ide, browser-ide.
+      Free browser IDE, online code editor, Monaco editor browser, VS Code in browser, web VS Code,
+      browser code editor with AI, on-device AI code editor, WebGPU code assistant, Cursor
+      alternative no signup, Cursor browser, free code editor with AI no API key, Hermes 3 code
+      editor, WebLLM IDE, Prettier in browser, format on save browser, JS sandbox browser, run
+      JavaScript in browser, file system access API editor, github pages code editor. Common typos:
+      monoco editor, monaco editor browser, vs code online, vs-code browser, vs code in browser, web
+      ide, browser ide, browser-ide.
     </p>
 
     <script type="module" src="app.js"></script>
