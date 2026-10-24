@@ -16,7 +16,7 @@ export const CONFIG = {
 
   // Soft client throttle (Script enforces for real).
   minSendGapMs: 3000,
-  maxMessageChars: 200,
+  maxMessageChars: 130,
   minNickChars: 3,
   maxNickChars: 20,
 

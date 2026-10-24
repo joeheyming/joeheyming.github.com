@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { classifyChatText } from './moderation.js';
 import { assertTextSafe, getTextModel } from '../posts/textfilter.js';
 
 /** Doom/COEP pages cannot load esm.sh TF — skip client toxicity (Script still moderates). */
@@ -32,6 +33,7 @@ export function validateMessageShape(message) {
   if (/https?:\/\//i.test(text) || /www\./i.test(text)) {
     return 'Links are not allowed';
   }
+  if (classifyChatText(text, 'message')) return 'Message not allowed';
   return null;
 }
 

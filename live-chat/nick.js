@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { classifyChatText } from './moderation.js';
 
 const ADJECTIVES = [
   'Swift',
@@ -74,6 +75,7 @@ export function validateNick(nick) {
   if (!/^[A-Za-z0-9][A-Za-z0-9 _-]*$/.test(n)) {
     return 'Letters, numbers, spaces, and hyphens only';
   }
+  if (classifyChatText(n, 'nick')) return 'Name not allowed';
   return null;
 }
 
