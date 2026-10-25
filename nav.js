@@ -869,6 +869,7 @@
       }
     }
     const visible = cachedRegistry.filter((app) => {
+      if (app.listed === false) return false;
       const path = app.path || '';
       if (!path) return false;
       if (!path.includes('?')) return true;

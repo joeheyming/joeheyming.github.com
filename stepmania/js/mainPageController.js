@@ -211,6 +211,10 @@ export class MainPageController {
 
       LoadingOverlay.updateProgress('Starting game...', 85);
       document.getElementById('sub-title').textContent = simfileData.title;
+      if (!document.documentElement.dataset.baseTitle) {
+        document.documentElement.dataset.baseTitle = document.title;
+      }
+      document.title = simfileData.title + ' — ' + document.documentElement.dataset.baseTitle;
       return await this.startSelectedSong(true, true);
     } catch (error) {
       LoadingOverlay.hide();

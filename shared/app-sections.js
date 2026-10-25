@@ -75,6 +75,12 @@
     return app?.appTier || 'app';
   }
 
+  // Search landings (Classic DOOM, chart index) stay in the sitemap and
+  // out of the gallery, drawer, and OS launcher.
+  function isListed(app) {
+    return !!app && app.listed !== false;
+  }
+
   /**
    * Bucket apps into sections (first match wins). Apps that match no
    * section land in `unsectioned`.
@@ -95,6 +101,7 @@
     isPlayFamily,
     sectionForApp,
     tierFor,
+    isListed,
     groupApps
   };
 })(typeof window !== 'undefined' ? window : globalThis);

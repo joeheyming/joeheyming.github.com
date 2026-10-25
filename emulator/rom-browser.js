@@ -11,6 +11,11 @@
 //
 // Lean-back (TV): cards are focusable with roving tabindex, search is
 // demoted behind a toggle, Escape/Backspace closes the modal.
+//
+// GBA's Archive item is ~3,500 zips. Painting every card at once stalls
+// the tab, so the list opens a window and grows when asked.
+const ROM_PAGE_SIZE = 48;
+
 class RomBrowserElement extends HTMLElement {
   constructor() {
     super();
@@ -320,6 +325,17 @@ class RomBrowserElement extends HTMLElement {
           gap: 0.5rem;
           margin-top: 0.8rem;
         }
+        .rom-more {
+          display: block;
+          margin: 16px auto 8px;
+          padding: 10px 16px;
+          border-radius: 4px;
+          border: 1px solid var(--hairline, #444);
+          background: transparent;
+          color: inherit;
+          font: inherit;
+          cursor: pointer;
+        }
         .rom-actions button,
         .rom-actions a {
           appearance: none;
@@ -556,7 +572,16 @@ class RomBrowserElement extends HTMLElement {
   }
 
   renderRoms(roms) {
+    this._romWindow = roms;
+    this._romShown = ROM_PAGE_SIZE;
+    this._paintRomWindow();
+  }
+
+  _paintRomWindow() {
+    const roms = this._romWindow || [];
+    const shown = roms.slice(0, this._romShown);
     const contentArea = this.shadowRoot.getElementById('contentArea');
+    if (!contentArea) return;
     if (this._romRoving) {
       this._romRoving.dispose();
       this._romRoving = null;
@@ -567,7 +592,7 @@ class RomBrowserElement extends HTMLElement {
     const cfg = this.consoleConfig;
     const isDisc = !!(cfg && cfg.iaExternalDownload);
 
-    roms.forEach((rom) => {
+    shown.forEach((rom) => {
       const romCard = document.createElement('div');
       romCard.className = 'rom-card';
       const title = this._escapeHtml(rom.title);
@@ -595,6 +620,19 @@ class RomBrowserElement extends HTMLElement {
 
     contentArea.innerHTML = '';
     contentArea.appendChild(romGrid);
+
+    if (shown.length < roms.length) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'rom-more';
+      more.dataset.action = 'show-more';
+      more.textContent = `Show more (${shown.length} of ${roms.length})`;
+      more.addEventListener('click', () => {
+        this._romShown += ROM_PAGE_SIZE;
+        this._paintRomWindow();
+      });
+      contentArea.appendChild(more);
+    }
 
     const lb = window.emulatorLeanback;
     if (lb && typeof lb.applyRovingTabindex === 'function') {

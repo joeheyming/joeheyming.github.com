@@ -1358,6 +1358,17 @@ const PAGES = [
     url: `${BASE_URL}/connect/`,
     output: 'connect/connect-preview.png',
     title: 'Connect'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/doom/classic/`,
+    output: 'doom/classic/classic-preview.png',
+    title: 'Classic DOOM'
+  },
+  {
+    url: `${BASE_URL}/stepmania/songs/`,
+    output: 'stepmania/songs/songs-preview.png',
+    title: 'StepMania Charts'
   }
 ];
 

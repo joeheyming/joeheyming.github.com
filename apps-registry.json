@@ -91,6 +91,22 @@
     "geo": true
   },
   {
+    "id": "doom-classic",
+    "name": "Classic DOOM 💀",
+    "shortName": "Classic DOOM",
+    "description": "The 1993 original, in the browser",
+    "detailedDescription": "Play the original Classic DOOM shareware episode in the browser. A search landing for the 1993 game; the Play button opens /doom/?flavor=classic.",
+    "icon": "💀",
+    "path": "./doom/classic/",
+    "category": "game",
+    "tags": ["fps", "retro", "doom", "1993"],
+    "related": ["doom", "emulator", "stepmania"],
+    "shareCategory": "game",
+    "listed": false,
+    "appTier": "experience",
+    "geo": true
+  },
+  {
     "id": "doom-mods",
     "name": "Browse Doom mods 🛒",
     "shortName": "Doom Mods",
@@ -469,6 +485,23 @@
       "preset": "stepmania",
       "analyticsLabel": "StepMania"
     },
+    "appTier": "experience",
+    "geo": true
+  },
+  {
+    "id": "stepmania-songs",
+    "name": "StepMania Charts 💃",
+    "shortName": "StepMania Charts",
+    "description": "Top official charts, each with its own play link",
+    "detailedDescription": "Crawlable index of the top official Zenius charts. Each title links to StepMania with that simfile already selected.",
+    "icon": "💃",
+    "path": "./stepmania/songs/",
+    "category": "game",
+    "subCategory": "music",
+    "tags": ["rhythm", "stepmania", "charts"],
+    "related": ["stepmania", "piano-hero", "play"],
+    "shareCategory": "game",
+    "listed": false,
     "appTier": "experience",
     "geo": true
   },

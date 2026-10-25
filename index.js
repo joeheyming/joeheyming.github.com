@@ -177,6 +177,7 @@ function renderAppGallery() {
 
   GALLERY_SECTIONS.forEach((section) => {
     const apps = allApps
+      .filter((app) => app.listed !== false)
       .filter(section.filter)
       .sort((a, b) => (a.shortName || a.name).localeCompare(b.shortName || b.name));
 

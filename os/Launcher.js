@@ -113,7 +113,7 @@ export class Launcher {
       );
       return;
     }
-    this.availableApps = window.AppModule.getAllApps();
+    this.availableApps = window.AppModule.getAllApps().filter((app) => app.listed !== false);
     this._updateMenu();
   }
 

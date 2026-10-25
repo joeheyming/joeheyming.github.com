@@ -266,6 +266,7 @@ const AppModule = {
   // Generate hamburger menu items
   generateHamburgerMenuItems: () => {
     return AppModule.getAllApps()
+      .filter((app) => app.listed !== false)
       .slice() // Create a copy to avoid modifying the original array
       .sort((a, b) => a.shortName.localeCompare(b.shortName))
       .map((app) => ({

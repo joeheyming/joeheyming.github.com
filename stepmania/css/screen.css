@@ -211,6 +211,7 @@ body {
   color: var(--text-on-accent);
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .sm-home-browse-secondary {
