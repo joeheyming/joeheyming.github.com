@@ -1,15 +1,26 @@
 import { CONFIG, isConfigured } from './config.js';
+import { OUTLINE_NAMES, buildOutlines, outlineAt } from './outlines.js';
 
 const N = CONFIG.N;
 const CONFIGURED = isConfigured(CONFIG);
 
 // ---------------------------------------------------------------------
 // Layout constants.
+//
+// Matches onemillioncheckboxes.com: each grid slot is 35×35 and holds
+// a 25×25 checkbox, centered (5px of page color on every side). A
+// colored cell gets a 29×29 frame with a 5px border, which overlaps
+// the checkbox edge the same way their absolutely positioned div does.
 // ---------------------------------------------------------------------
-const CELL = 16;
-const GAP = 4;
-const STEP = CELL + GAP;
-const ROWS_PER_TILE = 60;
+const PITCH = 35;
+const BOX = 25;
+const BOX_INSET = (PITCH - BOX) / 2;
+const RING = 29;
+const RING_INSET = (PITCH - RING) / 2;
+const RING_WIDTH = 5;
+const ROWS_PER_TILE = 34;
+
+const outlines = buildOutlines(N);
 
 const PENDING_DASH = [2, 2];
 
@@ -33,7 +44,11 @@ function readPalette() {
   return {
     accent: get('--cb-accent', '#b45309'),
     accentCheck: get('--cb-accent-fg', '#ffffff'),
-    cellBg: get('--cb-cell-bg', '#e3e0d6')
+    box: get('--cb-box', '#ffffff'),
+    boxBorder: get('--cb-box-border', '#8e8e8e'),
+    checked: get('--cb-checked', '#3777ff'),
+    checkedMark: get('--cb-checked-mark', '#ffffff'),
+    outlines: OUTLINE_NAMES.map((name) => get(`--cb-${name}`, '#cb4334'))
   };
 }
 let palette = readPalette();
@@ -173,12 +188,10 @@ let NUM_TILES = 0;
 let tiles = [];
 
 function computeLayout() {
-  // Width budget = grid container minus its 4px padding on each side.
   // Fall back to viewport width if we're called before first layout.
+  // Slots pack edge to edge at PITCH; the checkbox is inset inside.
   const w = grid.clientWidth || Math.max(window.innerWidth - 24, 200);
-  // Each cell takes STEP horizontally, but the last cell on a row only
-  // takes CELL (no trailing gap). So total = COLS*STEP - GAP <= w.
-  COLS = Math.max(8, Math.floor((w + GAP) / STEP));
+  COLS = Math.max(4, Math.floor(w / PITCH));
   ROWS = Math.ceil(N / COLS);
   NUM_TILES = Math.ceil(ROWS / ROWS_PER_TILE);
 }
@@ -211,9 +224,9 @@ function buildTiles() {
 
   // Container holds the full virtual height so the page scrollbar
   // reflects the real depth of the grid. Tiles position absolutely.
-  const totalH = ROWS * STEP - GAP;
+  const totalH = ROWS * PITCH;
   grid.style.height = `${totalH}px`;
-  grid.style.width = `${COLS * STEP - GAP}px`;
+  grid.style.width = `${COLS * PITCH}px`;
 
   for (let i = 0; i < NUM_TILES; i++) {
     const startRow = i * ROWS_PER_TILE;
@@ -221,8 +234,8 @@ function buildTiles() {
     const tileEl = document.createElement('div');
     tileEl.className = 'cb-tile';
     tileEl.setAttribute('data-tile', String(i));
-    tileEl.style.top = `${startRow * STEP}px`;
-    tileEl.style.height = `${(endRow - startRow) * STEP - GAP}px`;
+    tileEl.style.top = `${startRow * PITCH}px`;
+    tileEl.style.height = `${(endRow - startRow) * PITCH}px`;
     grid.appendChild(tileEl);
     const tile = {
       el: tileEl,
@@ -243,11 +256,11 @@ function buildTiles() {
 
 function mountTile(tile) {
   if (tile.mounted) return;
-  const w = COLS * STEP - GAP;
-  const h = (tile.endRow - tile.startRow) * STEP - GAP;
+  const w = COLS * PITCH;
+  const h = (tile.endRow - tile.startRow) * PITCH;
   const canvas = document.createElement('canvas');
-  // 1x DPR. At chunky 16px shapes the difference vs retina is invisible
-  // but the memory savings are real: ~75% lower vs a 2x backing store.
+  // 1x DPR. At 25px checkboxes the difference vs retina is small,
+  // and a 2x backing store would roughly quadruple tile memory.
   canvas.width = w;
   canvas.height = h;
   canvas.style.width = `${w}px`;
@@ -276,43 +289,74 @@ function unmountTile(tile) {
 function paintTile(tile) {
   if (!tile.mounted || !tile.ctx) return;
   const ctx = tile.ctx;
-  const w = COLS * STEP - GAP;
-  const h = (tile.endRow - tile.startRow) * STEP - GAP;
+  const w = COLS * PITCH;
+  const h = (tile.endRow - tile.startRow) * PITCH;
   ctx.clearRect(0, 0, w, h);
   for (let r = tile.startRow; r < tile.endRow; r++) {
     for (let c = 0; c < COLS; c++) {
       const cellId = r * COLS + c;
       if (cellId >= N) return;
-      const x = c * STEP;
-      const y = (r - tile.startRow) * STEP;
-      paintCellAt(ctx, x, y, !!getBit(cellId), pending.has(cellId));
+      const x = c * PITCH;
+      const y = (r - tile.startRow) * PITCH;
+      paintCellAt(ctx, x, y, cellId);
     }
   }
   tile.dirty = false;
 }
 
-function paintCellAt(ctx, x, y, checked, isPending) {
+function paintCellAt(ctx, x, y, cellId) {
+  const checked = !!getBit(cellId);
+  const bx = x + BOX_INSET;
+  const by = y + BOX_INSET;
+  ctx.beginPath();
+  ctx.roundRect(bx + 0.5, by + 0.5, BOX - 1, BOX - 1, 3);
   if (checked) {
-    ctx.fillStyle = palette.accent;
-    ctx.fillRect(x, y, CELL, CELL);
-    ctx.strokeStyle = palette.accentCheck;
-    ctx.lineWidth = 2;
+    ctx.fillStyle = palette.checked;
+    ctx.fill();
+    ctx.strokeStyle = palette.checkedMark;
+    ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.moveTo(x + 3.5, y + 8);
-    ctx.lineTo(x + 6.5, y + 11);
-    ctx.lineTo(x + 12.5, y + 4);
+    ctx.moveTo(bx + 6, by + 13);
+    ctx.lineTo(bx + 10.5, by + 17.5);
+    ctx.lineTo(bx + 19, by + 8);
     ctx.stroke();
   } else {
-    ctx.fillStyle = palette.cellBg;
-    ctx.fillRect(x, y, CELL, CELL);
+    ctx.fillStyle = palette.box;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = palette.boxBorder;
+    ctx.stroke();
   }
-  if (isPending) {
-    ctx.strokeStyle = palette.accent;
+
+  const colorId = outlineAt(outlines.indices, outlines.colors, cellId);
+  if (colorId >= 0) {
+    // CSS border-box: a 29px box with a 5px border. Stroke is centered
+    // on the path, so inset by half the width to keep the outer edge
+    // on the 29px box. Drawn after the checkbox so it covers the rim,
+    // matching the original's absolutely positioned overlay.
+    const outerLeft = x + RING_INSET;
+    const outerTop = y + RING_INSET;
+    ctx.beginPath();
+    ctx.roundRect(
+      outerLeft + RING_WIDTH / 2,
+      outerTop + RING_WIDTH / 2,
+      RING - RING_WIDTH,
+      RING - RING_WIDTH,
+      2
+    );
+    ctx.lineWidth = RING_WIDTH;
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = palette.outlines[colorId] || palette.outlines[0];
+    ctx.stroke();
+  }
+
+  if (pending.has(cellId)) {
+    ctx.strokeStyle = palette.checked;
     ctx.setLineDash(PENDING_DASH);
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(x - 1, y - 1, CELL + 2, CELL + 2);
+    ctx.strokeRect(bx - 2, by - 2, BOX + 4, BOX + 4);
     ctx.setLineDash([]);
   }
 }
@@ -335,11 +379,12 @@ function paintCellId(cellId) {
     tile.dirty = true;
     return;
   }
-  const x = c * STEP;
-  const y = (r - tile.startRow) * STEP;
-  // Clear a slightly oversize rect so the prior pending dash gets wiped.
-  tile.ctx.clearRect(x - 2, y - 2, CELL + 4, CELL + 4);
-  paintCellAt(tile.ctx, x, y, !!getBit(cellId), pending.has(cellId));
+  const x = c * PITCH;
+  const y = (r - tile.startRow) * PITCH;
+  // The slot is packed against its neighbors, so clear only this cell.
+  // The pending dash and the color frame both stay inside PITCH.
+  tile.ctx.clearRect(x, y, PITCH, PITCH);
+  paintCellAt(tile.ctx, x, y, cellId);
 }
 
 let lastCheckedCount = -1;
@@ -369,7 +414,7 @@ function updateChecked() {
 
 // ---------------------------------------------------------------------
 // Click handling. We delegate from the grid container, do hit-testing
-// against the cell rectangle (skipping clicks in the GAP), and flip
+// against the 25px checkbox (skipping the gutter around it), and flip
 // the bit + submit.
 // ---------------------------------------------------------------------
 grid.addEventListener('click', (e) => {
@@ -382,13 +427,21 @@ grid.addEventListener('click', (e) => {
   const rect = tileEl.getBoundingClientRect();
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
-  const col = Math.floor(px / STEP);
-  const rowInTile = Math.floor(py / STEP);
+  const col = Math.floor(px / PITCH);
+  const rowInTile = Math.floor(py / PITCH);
   if (col < 0 || col >= COLS) return;
-  // Skip the 4px gap on the right/bottom of each cell.
-  const inCellX = px - col * STEP;
-  const inCellY = py - rowInTile * STEP;
-  if (inCellX > CELL || inCellY > CELL) return;
+  // The clickable control is the 25px checkbox, not the gutter or the
+  // colored frame that hangs past it (that frame doesn't take clicks).
+  const inCellX = px - col * PITCH;
+  const inCellY = py - rowInTile * PITCH;
+  if (
+    inCellX < BOX_INSET ||
+    inCellY < BOX_INSET ||
+    inCellX > BOX_INSET + BOX ||
+    inCellY > BOX_INSET + BOX
+  ) {
+    return;
+  }
 
   const row = tile.startRow + rowInTile;
   const cellId = row * COLS + col;
@@ -422,14 +475,14 @@ function jumpToCell(cellId) {
   if (cellId < 0 || cellId >= N || COLS === 0) return;
   const row = Math.floor(cellId / COLS);
   const col = cellId % COLS;
-  const x = col * STEP;
-  const y = row * STEP;
+  const x = col * PITCH;
+  const y = row * PITCH;
 
   // Center the cell vertically in the viewport. The grid is positioned
   // inside .cb-wrapper which has top padding, so we go through
   // getBoundingClientRect to get the real document-relative position.
   const gridRect = grid.getBoundingClientRect();
-  const targetY = gridRect.top + window.scrollY + y - window.innerHeight / 2 + STEP / 2;
+  const targetY = gridRect.top + window.scrollY + y - window.innerHeight / 2 + PITCH / 2;
   window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
 
   showJumpHighlight(x, y);
@@ -449,10 +502,10 @@ function showJumpHighlight(x, y) {
     highlightEl.className = 'cb-jump-highlight';
     grid.appendChild(highlightEl);
   }
-  highlightEl.style.left = `${x - 6}px`;
-  highlightEl.style.top = `${y - 6}px`;
-  highlightEl.style.width = `${CELL + 12}px`;
-  highlightEl.style.height = `${CELL + 12}px`;
+  highlightEl.style.left = `${x + BOX_INSET - 6}px`;
+  highlightEl.style.top = `${y + BOX_INSET - 6}px`;
+  highlightEl.style.width = `${BOX + 12}px`;
+  highlightEl.style.height = `${BOX + 12}px`;
 
   // Restart the animation: drop the class, force a reflow so the
   // browser commits the "no-animation" state, then re-add it.
@@ -509,7 +562,7 @@ function cellAtViewportTop() {
   // Distance from the top of the grid to the top of the viewport,
   // in grid coordinates. Negative while the header is still on screen.
   const yInGrid = Math.max(0, -gridRect.top);
-  const row = Math.min(ROWS - 1, Math.floor(yInGrid / STEP));
+  const row = Math.min(ROWS - 1, Math.floor(yInGrid / PITCH));
   return Math.min(N, row * COLS + 1);
 }
 
@@ -1089,7 +1142,7 @@ function renderImageView() {
       onB = 9; // #b45309, our --cb-accent
     const offR = 227,
       offG = 224,
-      offB = 214; // #e3e0d6, our --cb-cell-bg
+      offB = 214; // #e3e0d6, warm paper for empty pixels
     const max = Math.min(N, MONO_SIDE * MONO_SIDE);
     for (let cellId = 0; cellId < max; cellId++) {
       const bit = (state[cellId >> 3] >> (cellId & 7)) & 1;

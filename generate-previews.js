@@ -1161,14 +1161,13 @@ const PAGES = [
         if (!state || !repaint) return;
 
         // Reverse-engineer COLS from the grid container's inline width
-        // (set in index.js as `COLS * STEP - GAP` px, with STEP=20, GAP=4).
+        // (set in index.js as `COLS * PITCH` px, with PITCH=35).
         const grid = document.getElementById('cb-grid');
         if (!grid) return;
         const widthPx = parseInt(grid.style.width, 10);
         if (!isFinite(widthPx) || widthPx <= 0) return;
-        const STEP = 20;
-        const GAP = 4;
-        const COLS = Math.floor((widthPx + GAP) / STEP);
+        const STEP = 35;
+        const COLS = Math.floor(widthPx / STEP);
         const N = state.length * 8;
         const setBit = (idx) => {
           if (idx < 0 || idx >= N) return;
@@ -1191,8 +1190,7 @@ const PAGES = [
         }
 
         // 2. Stamp a centered heart. 32 wide × 13 tall — fits inside
-        //    any viewport COLS >= 36. Skip on narrow grids (mobile-
-        //    sized OG renders, which we don't currently produce).
+        //    any viewport COLS >= 32. Skip on narrower grids.
         const heart = [
           '...........XX........XX.........',
           '..........XXXX......XXXX........',
@@ -1210,7 +1208,7 @@ const PAGES = [
         ];
         const HW = 32;
         const HH = heart.length;
-        if (COLS >= HW + 4) {
+        if (COLS >= HW) {
           const startRow = 5;
           const startCol = Math.floor((COLS - HW) / 2);
           for (let r = 0; r < HH; r++) {

@@ -2,16 +2,25 @@
    index.js); the page is just chrome + a tall scrolling area for
    the tiles to live in.
 
-   Cell colors are defined here as CSS variables and read by index.js
-   via getComputedStyle. That keeps style decisions in one place and
-   means the grid follows whatever theme mechanism brand.css uses
-   (system @media prefers-color-scheme + manual [data-theme] toggle). */
+   Checkbox colors are defined here as CSS variables and read by index.js
+   via getComputedStyle. The field, box, and outline palette stay on the
+   original light values; only the page chrome follows brand.css's theme. */
 .cb-wrapper {
-  /* Light mode: cells are a faint step darker than the cream page bg,
-     reading as recessed paper-form fields. */
+  /* Checkbox paint, read by index.js. The grid matches the original
+     onemillioncheckboxes.com: gray page, white 25px boxes, blue when
+     checked, and gold/red/green/purple frames on the scattered cells.
+     These stay light in dark mode — the original page has no dark theme. */
   --cb-accent: #b45309; /* amber-700 */
   --cb-accent-fg: #ffffff;
-  --cb-cell-bg: #e3e0d6;
+  --cb-field: #ebeaea;
+  --cb-box: #ffffff;
+  --cb-box-border: #8e8e8e;
+  --cb-checked: #3777ff;
+  --cb-checked-mark: #ffffff;
+  --cb-gold: #bd9d28;
+  --cb-red: #cb4334;
+  --cb-green: #2aa23a;
+  --cb-purple: #9634cb;
   min-height: 100vh;
   padding: 80px 12px 32px;
   display: flex;
@@ -23,26 +32,17 @@
   font-family: var(--font-ui), system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
-/* Dark mode: cells go a noticeable step DARKER than the dark page bg
-   (--surface-2 = #1f262f), giving the grid a "wells punched into the
-   surface" feel rather than a wall of bright squares. The stronger
-   step in dark mode is intentional — same %-luminance reads weaker
-   on dark backgrounds, so symmetric values look asymmetric in practice.
-
-   Two selectors to match brand.css's theme-toggle machinery:
-     1. Manual override:  :root[data-theme='dark']
-     2. System pref:      @media + :root:not([data-theme='light']) */
+/* Dark mode only retints the page chrome (counter, scrubber, jump
+   button). The checkbox field stays the original light palette above. */
 :root[data-theme='dark'] .cb-wrapper {
   --cb-accent: #f59e0b; /* amber-500 — pops harder on dark */
   --cb-accent-fg: #1a1a1a;
-  --cb-cell-bg: #161b22; /* matches brand --surface-1 dark */
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .cb-wrapper {
     --cb-accent: #f59e0b;
     --cb-accent-fg: #1a1a1a;
-    --cb-cell-bg: #161b22;
   }
 }
 
@@ -102,9 +102,10 @@
 }
 
 /* The grid is the page's tall scrolling area. JS sets explicit
-   width/height: width = COLS * 20px - 4px, height = ROWS * 20px - 4px
-   where ROWS = ceil(N / COLS). At 1M cells this is ~16,000+ rows — a
-   long vertical scroll, the OMCB feel.
+   width/height: width = COLS * 35px, height = ROWS * 35px
+   where ROWS = ceil(N / COLS). At 1M cells this is a long vertical
+   scroll, the OMCB feel. The field color shows through the canvas
+   gutters between the 25px checkboxes.
 
    Tiles position absolutely inside .cb-grid. We don't draw cells in
    CSS at this scale; tiles mount canvases as they enter the viewport
@@ -112,6 +113,7 @@
 .cb-grid {
   position: relative;
   align-self: center;
+  background: var(--cb-field, #ebeaea);
   /* Width and height are set inline from JS based on COLS and ROWS. */
 }
 
