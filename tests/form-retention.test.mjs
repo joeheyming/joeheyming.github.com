@@ -1,15 +1,23 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  MAX_ARCHIVE_ROWS,
   MAX_LIVE_POSTS,
   MAX_RESPONSE_ROWS,
   attachmentChunkCount,
   pickArchiveTargets
 } from '../posts/retention.js';
-import { oldestCountToDrop, pruneIdleRates, RATE_IDLE_MS } from '../live-chat/retention.js';
+import {
+  capRatesByRecency,
+  oldestCountToDrop,
+  pruneIdleRates,
+  RATE_IDLE_MS
+} from '../live-chat/retention.js';
 import {
   ANSWERS_KEEP_ROUNDS,
+  MAX_SHEET_ROWS,
   keepRoundIdSet,
+  oldestPrefixToDrop,
   shouldKeepAnswerOrTallyRow,
   shouldKeepQuarantineRow
 } from '../trivia/retention.js';
@@ -77,6 +85,7 @@ describe('posts retention', () => {
   it('keeps default caps in the recommended range', () => {
     assert.equal(MAX_LIVE_POSTS, 150);
     assert.equal(MAX_RESPONSE_ROWS, 500);
+    assert.equal(MAX_ARCHIVE_ROWS, 500);
   });
 });
 
@@ -97,6 +106,15 @@ describe('live chat retention', () => {
     assert.equal(oldestCountToDrop(500, 500), 0);
     assert.equal(oldestCountToDrop(720, 500), 220);
   });
+
+  it('keeps the most recently active rate rows', () => {
+    const map = {
+      old: { lastMsgAt: 1, lastNickAt: 0, windowStart: 0 },
+      mid: { lastMsgAt: 50, lastNickAt: 0, windowStart: 0 },
+      fresh: { lastMsgAt: 0, lastNickAt: 80, windowStart: 0 }
+    };
+    assert.deepEqual(Object.keys(capRatesByRecency(map, 2)).sort(), ['fresh', 'mid']);
+  });
 });
 
 describe('trivia retention', () => {
@@ -115,5 +133,13 @@ describe('trivia retention', () => {
     assert.equal(shouldKeepAnswerOrTallyRow('r-old', keep), false);
     assert.equal(shouldKeepQuarantineRow('', keep), true);
     assert.equal(shouldKeepQuarantineRow('r-old', keep), false);
+  });
+
+  it('trims oldest log rows without eating the open round', () => {
+    const ids = ['old-a', 'old-b', 'open', 'open'];
+    assert.equal(oldestPrefixToDrop(ids, MAX_SHEET_ROWS, 'open'), 0);
+    assert.equal(oldestPrefixToDrop(ids, 3, 'open'), 1);
+    assert.equal(oldestPrefixToDrop(['open', 'open', 'open'], 1, 'open'), 0);
+    assert.equal(MAX_SHEET_ROWS, 500);
   });
 });

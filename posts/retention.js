@@ -5,6 +5,8 @@
 
 export const MAX_LIVE_POSTS = 150;
 export const MAX_RESPONSE_ROWS = 500;
+/** Quarantine and Deleted tabs. Oldest rows dropped. */
+export const MAX_ARCHIVE_ROWS = 500;
 export const MAX_ATTACHMENT_CHUNKS = 20;
 export const INCOMPLETE_MIN_AGE_MS = 15 * 60 * 1000;
 
