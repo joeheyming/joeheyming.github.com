@@ -48,7 +48,10 @@
 
 .cb-header {
   position: sticky;
-  top: 8px;
+  /* Stay under the fixed Menu button (top: 20px, about 42px tall) and
+     the info button. A smaller top lets the card slide up underneath
+     Menu as soon as the page scrolls. */
+  top: 72px;
   z-index: 90;
   text-align: center;
   max-width: 880px;
@@ -752,7 +755,8 @@
   }
 
   .cb-header {
-    top: 6px;
+    /* Menu is top: 12px and about 38px tall on phones. */
+    top: 58px;
     padding: 8px 54px;
   }
 
