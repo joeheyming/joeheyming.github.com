@@ -1,0 +1,946 @@
+/* Paint — Window › panel visibility and the Navigator | Histogram | Info group (doc-panels.js) */
+
+/* Window menu closes a tab, or a whole group once its last tab is closed */
+.dock-group[hidden],
+.dock-tab[hidden] {
+  display: none;
+}
+
+.navigator,
+.histogram-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+}
+.navigator-preview,
+.histogram-graph {
+  width: 100%;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.histogram-graph {
+  cursor: default;
+}
+.navigator-zoom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--fg);
+}
+.navigator-pct {
+  width: 48px;
+  padding: 2px 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-1);
+  color: var(--fg);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.navigator-zoom-out,
+.navigator-zoom-in {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--fg);
+  cursor: pointer;
+}
+.navigator-zoom-out:hover,
+.navigator-zoom-in:hover {
+  background: var(--bg-1);
+}
+.navigator-slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+.histogram-channel {
+  align-self: flex-start;
+  padding: 2px 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-1);
+  color: var(--fg);
+  font-size: 11px;
+}
+
+.histogram-stats,
+.info-col {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 6px;
+  margin: 0;
+  font-size: 11px;
+}
+.histogram-stats dt,
+.info-col dt {
+  color: var(--fg-dim);
+}
+.histogram-stats dd,
+.info-col dd {
+  margin: 0;
+  color: var(--fg);
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+.info-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  padding: 6px;
+}
+
+/* Properties | Adjustments (properties-panel.js) */
+#panel-properties {
+  max-height: 320px;
+  overflow-y: auto;
+}
+.properties-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+}
+.properties-section + .properties-section {
+  border-top: 1px solid var(--border);
+}
+.properties-heading {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-dim);
+}
+.properties-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 48px;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.properties-row input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.properties-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.properties-size {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.properties-fields .adjust-field {
+  font-size: 12px;
+}
+#panel-adjustments {
+  padding: 6px;
+}
+.adjustments-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 4px;
+}
+.adjustments-grid-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.adjustments-grid-btn:hover,
+.adjustments-grid-btn:focus-visible {
+  background: var(--bg-1);
+  border-color: var(--border);
+}
+
+/* Brushes panel: presets, the Brush Settings and Tool Presets sections (brush-panel.js) */
+.preset-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 140px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.preset-list li {
+  display: flex;
+}
+.preset-item,
+.preset-delete,
+.preset-new {
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.preset-item {
+  flex: 1;
+  padding: 3px 6px;
+}
+.preset-item:hover,
+.preset-delete:hover,
+.preset-new:hover {
+  background: var(--bg-1);
+}
+.preset-delete {
+  padding: 0 6px;
+  color: var(--fg-dim);
+}
+.preset-new {
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.dock-section {
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
+  color: var(--fg);
+  font-size: 12px;
+}
+.dock-section summary {
+  cursor: pointer;
+  padding: 2px 0;
+}
+.brush-settings-group {
+  margin: 4px 0;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+.brush-settings-group legend {
+  padding: 0 4px;
+  color: var(--fg);
+}
+.brush-setting-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-dim);
+}
+.brush-setting-row span {
+  min-width: 96px;
+}
+.brush-setting-row input[type='range'] {
+  flex: 1;
+  min-width: 0;
+}
+.brush-setting-row output {
+  min-width: 40px;
+  text-align: right;
+  color: var(--fg);
+}
+
+/* Gradients | Patterns, Styles, Clone Source (preset-panels.js) */
+#panel-gradients,
+#panel-patterns {
+  padding: 6px;
+}
+.preset-group-name {
+  margin: 4px 0 2px;
+  color: var(--fg-dim);
+  font-size: 11px;
+}
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+  gap: 4px;
+}
+.preset-swatch {
+  height: 28px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background-size: 100% 100%, 8px 8px;
+  cursor: pointer;
+}
+.preset-swatch[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.pattern-thumb {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+.shape-swatch {
+  background: var(--bg-1);
+  color: var(--fg);
+}
+.shape-swatch svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.clone-source-line {
+  margin: 4px 0;
+  color: var(--fg-dim);
+  font-size: 11px;
+}
+.clone-source-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+}
+.clone-source-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--fg-dim);
+  font-size: 11px;
+}
+.clone-source-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 1px 3px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-1);
+  color: var(--fg);
+  font-size: 11px;
+}
+.clone-source-checks {
+  margin: 4px 0;
+}
+
+/* Character | Paragraph (type-panels.js) */
+.type-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  font-size: 11px;
+}
+.type-panel-row,
+.type-panel-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-dim);
+}
+.type-panel-row span {
+  min-width: 96px;
+}
+.type-panel-row select,
+.type-panel-row input[type='number'] {
+  flex: 1;
+  min-width: 0;
+}
+.type-panel-aligns {
+  display: flex;
+  gap: 2px;
+}
+.type-panel-align {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  background: var(--bg-1);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+.type-panel-align[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Channels tab */
+.channel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.channel-row {
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--fg);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.channel-thumb {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+}
+.channel-name {
+  flex: 1;
+  min-width: 0;
+}
+.channel-eye {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  cursor: pointer;
+}
+.channel-eye[aria-pressed='false'] {
+  opacity: 0.5;
+}
+.channel-row:hover {
+  background: var(--bg-3);
+}
+.channel-row[aria-selected='true'] {
+  border-color: var(--accent);
+}
+.channel-submenu {
+  display: flex;
+  flex-direction: column;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+}
+
+/* Paths tab: the Work Path (italic) and the saved paths; the target row is outlined */
+.path-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.path-row {
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--fg);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.path-row.work {
+  font-style: italic;
+}
+.path-row:hover {
+  background: var(--bg-3);
+}
+.path-row[aria-selected='true'] {
+  border-color: var(--accent);
+}
+.path-thumb {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background: var(--bg-1);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+.path-name {
+  flex: 1;
+  min-width: 0;
+}
+.channel-rename,
+.path-rename {
+  box-sizing: border-box;
+  width: 100%;
+  height: 20px;
+  padding: 0 4px;
+  background: var(--bg-1);
+  color: var(--fg);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+/* Layers panel (layers.js / layer-panel chrome) */
+/* Layers inside panel: header, then the list as the only scroller, then the footer pinned
+   at the bottom (PhotoCraft panels.rs) */
+#panel-layers:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#panel-layers > .dock-section {
+  flex-shrink: 0;
+}
+#layer-list-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 6px;
+}
+
+.layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 5px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.1s;
+  min-width: 0;
+}
+.layer-row:hover {
+  background: var(--bg-3);
+}
+.layer-row.selected {
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+}
+.layer-row.active {
+  border-color: var(--accent);
+}
+
+.layer-vis-btn {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  color: var(--fg);
+}
+.layer-vis-btn svg {
+  display: block;
+  pointer-events: none;
+}
+
+.layer-thumb {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  image-rendering: pixelated;
+}
+
+/* Layer groups: children indent under their group; a group row has a disclosure triangle and a
+   folder in place of the thumbnail. */
+.layer-row[data-depth] {
+  padding-left: calc(5px + var(--layer-depth, 0) * 16px);
+}
+
+/* Clipping masks: a clipped row is indented behind the clip glyph; its base's name is
+   underlined. A locked layer shows a lock after its name. */
+.layer-clip-glyph,
+.layer-link-glyph,
+.layer-lock-glyph {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--fg-dim);
+}
+.layer-clip-glyph {
+  margin-left: 8px;
+}
+.layer-clip-glyph svg,
+.layer-link-glyph svg,
+.layer-lock-glyph svg {
+  display: block;
+}
+.layer-clip-base .layer-name {
+  text-decoration: underline;
+}
+
+/* PhotoCraft's fx badge on a styled layer; dimmed while Hide All Effects is on. */
+.layer-fx-badge {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--fg);
+  cursor: pointer;
+}
+.layer-fx-badge.hidden-effects {
+  color: var(--fg-dim);
+  opacity: 0.5;
+}
+.layer-fx-badge svg {
+  display: block;
+}
+
+.layer-disclosure {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.layer-disclosure svg {
+  display: block;
+  pointer-events: none;
+}
+
+.layer-thumb.layer-group-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 24px;
+  border-color: transparent;
+  color: var(--fg);
+}
+
+/* A smart object's thumbnail: the bottom-right corner is drawn in the text colour. */
+.layer-thumb.smart {
+  border-right-color: var(--fg);
+  border-bottom-color: var(--fg);
+}
+
+.layer-mask-thumb {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+/* The edit target, layer pixels or its mask, is outlined. */
+.layer-thumb.target,
+.layer-mask-thumb.target {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.layer-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.layer-name-input {
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  padding: 0 4px;
+  background: var(--bg-1);
+  color: var(--fg);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+/* Blend mode and Opacity for the active layer sit above the list, the Lock: row under them. */
+.layer-filter-row {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 0 6px;
+}
+.layer-filter-by {
+  width: 64px;
+  height: 22px;
+  margin-right: 4px;
+  background: var(--bg-1);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 12px;
+}
+.layer-filter-name,
+.layer-filter-mode {
+  flex: 1;
+  min-width: 48px;
+  height: 22px;
+  background: var(--bg-1);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.layer-filter-kind {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* brand.css :where(button) padding would collapse the 22×22 content box */
+  padding: 0;
+  line-height: 0;
+  overflow: visible;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--fg);
+  cursor: pointer;
+}
+.layer-filter-kind[aria-pressed='true'] {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+.layer-filter-kind svg {
+  display: block;
+  pointer-events: none;
+}
+
+.layer-panel-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+.layer-blend {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  background: var(--bg-3);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 12px;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.layer-blend:hover:not(:disabled) {
+  border-color: var(--fg-dim);
+}
+.layer-blend:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.layer-opacity-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--fg-dim);
+  flex-shrink: 0;
+}
+.layer-opacity {
+  width: 46px;
+  height: 22px;
+  background: var(--bg-3);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 12px;
+  padding: 0 3px;
+}
+
+.layer-lock-row {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: 1px;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+.layer-lock-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  padding: 0;
+  line-height: 0;
+  overflow: visible;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--fg);
+  cursor: pointer;
+}
+.layer-lock-btn[aria-pressed='true'] {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+.layer-lock-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.layer-lock-btn svg {
+  display: block;
+  pointer-events: none;
+}
+.layer-fill-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+}
+.layer-fill {
+  width: 46px;
+  height: 22px;
+  background: var(--bg-3);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 12px;
+  padding: 0 3px;
+}
+.layer-fill:disabled {
+  opacity: 0.5;
+}
+
+.layer-panel-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 4px 0 0;
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.layer-footer-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Same brand.css padding trap as .tool-btn: 0.5em 1em leaves ~0px for the glyph. */
+  padding: 0;
+  line-height: 0;
+  overflow: visible;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  color: var(--fg);
+  cursor: pointer;
+}
+.layer-footer-btn svg {
+  display: block;
+  pointer-events: none;
+}
+.layer-footer-btn svg text {
+  fill: currentColor;
+  stroke: none;
+}
+.layer-footer-btn:hover:not(:disabled) {
+  background: var(--bg-3);
+}
+.layer-footer-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Row context menu and the new fill / adjustment layer menu. */
+.layer-popup-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 180px;
+  padding: 4px 0;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+}
+
+/* History panel */
+.history-source-btn {
+  display: block;
+  width: calc(100% - 12px);
+  margin: 6px 6px 2px;
+  padding: 5px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 12px;
+}
+.history-source-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 6px;
+  gap: 1px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--fg-dim);
+  transition: background 0.1s;
+}
+.history-item:hover {
+  background: var(--bg-3);
+  color: var(--fg);
+}
+.history-item.current {
+  color: var(--fg);
+  font-weight: 600;
+}
+.history-item.future {
+  opacity: 0.35;
+}
+.history-snapshot {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--fg);
+}
+.history-snapshot:hover {
+  background: var(--bg-3);
+}
+.history-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 4px 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.history-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.history-icon svg {
+  width: 14px;
+  height: 14px;
+}

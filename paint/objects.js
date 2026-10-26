@@ -1,4 +1,4 @@
-// Placed objects (text / images) — Google Drawings-style selectable items
+// Placed objects (text / images) — moved and resized with the Move tool
 // that live above raster layers and can be clicked, moved, and re-edited.
 
 let nextObjectId = 1;
@@ -486,7 +486,7 @@ function normalizeSelectedIds(selectedIds) {
   return [selectedIds];
 }
 
-/** Axis-aligned bounds of objects (for multi-select status / marquee). */
+/** Axis-aligned bounds of objects (for multi-select status). */
 export function objectsBounds(objects) {
   if (!objects?.length) return null;
   let minX = Infinity,
@@ -501,18 +501,6 @@ export function objectsBounds(objects) {
   }
   if (!Number.isFinite(minX)) return null;
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
-}
-
-/** Objects whose boxes intersect the marquee rect. */
-export function objectsIntersectingRect(objects, x0, y0, x1, y1) {
-  const left = Math.min(x0, x1);
-  const top = Math.min(y0, y1);
-  const right = Math.max(x0, x1);
-  const bottom = Math.max(y0, y1);
-  return objects.filter((o) => {
-    if (o._hiddenWhileEdit) return false;
-    return !(o.x + o.w < left || o.x > right || o.y + o.h < top || o.y > bottom);
-  });
 }
 
 function drawObjectOutline(ctx, o, zoom = 1, showHandles = true) {

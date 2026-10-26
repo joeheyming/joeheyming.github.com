@@ -39,3 +39,4 @@ node_modules
 
 *.local.*
 .agent-memory/
+scripts/ralph/.last-branch

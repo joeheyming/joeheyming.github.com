@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>Paint Online — Draw in Your Browser 🎨</title>
+    <title>Paint — Layered Photo Editor in Your Browser 🎨</title>
 
     <link
       rel="icon"
@@ -12,17 +12,17 @@
 
     <meta
       name="description"
-      content="Draw in a free MS Paint-style editor in the browser. Pencil, fill, shapes, undo/redo, and PNG export — nothing is uploaded, and no signup is required."
+      content="Edit photos and paint in a free layered editor in the browser. Selections, adjustments, filters, retouch brushes, and PNG export — nothing is uploaded, no signup."
     />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#FAFAFA" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming" />
-    <meta property="og:title" content="Paint Online — Draw in Your Browser 🎨" />
+    <meta property="og:title" content="Paint — Layered Photo Editor in Your Browser 🎨" />
     <meta
       property="og:description"
-      content="Draw in a free MS Paint-style editor in the browser. Pencil, fill, shapes, undo/redo, and PNG export — nothing is uploaded, and no signup is required."
+      content="Edit photos and paint in a free layered editor in the browser. Selections, adjustments, filters, retouch brushes, and PNG export — nothing is uploaded, no signup."
     />
     <meta property="og:url" content="https://joeheyming.github.io/paint/" />
     <meta property="og:image" content="https://joeheyming.github.io/paint/paint-preview.png" />
@@ -32,10 +32,10 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
-    <meta name="twitter:title" content="Paint Online — Draw in Your Browser 🎨" />
+    <meta name="twitter:title" content="Paint — Layered Photo Editor in Your Browser 🎨" />
     <meta
       name="twitter:description"
-      content="Draw in a free MS Paint-style editor in the browser. Pencil, fill, shapes, undo/redo, and PNG export — nothing is uploaded, and no signup is required."
+      content="Edit photos and paint in a free layered editor in the browser. Selections, adjustments, filters, retouch brushes, and PNG export — nothing is uploaded, no signup."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/paint/paint-preview.png" />
 
@@ -50,7 +50,7 @@
             "name": "Paint",
             "alternateName": [
               "Browser Paint",
-              "MS Paint clone",
+              "Online photo editor",
               "Online paint app",
               "Free browser paint",
               "Web paint",
@@ -59,7 +59,7 @@
             "url": "https://joeheyming.github.io/paint/",
             "applicationCategory": "DesignApplication",
             "operatingSystem": "Web Browser",
-            "description": "A free MS-Paint-style raster drawing app in your browser. Pencil, brush, eraser, fill, line, rectangle, ellipse, picker, and selection tools. Export PNG; nothing is uploaded.",
+            "description": "A free layered raster photo editor in your browser. Marquee, lasso, and magic wand selections, brush, clone stamp, dodge and burn, gradients, layers with blend modes, adjustments, and filters. Export PNG; nothing is uploaded.",
             "author": {
               "@type": "Person",
               "name": "Joe Heyming",
@@ -75,7 +75,7 @@
                 "name": "What tools are included?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Pencil (1px), brush (variable width), eraser, fill bucket, line, rectangle (filled or outlined), ellipse (filled or outlined), colour picker, and rectangular selection. The toolbox layout deliberately echoes the original Microsoft Paint."
+                  "text": "Move, rectangular and elliptical marquees, lasso and polygonal lasso, magic wand, brush, pencil, eraser, fill, gradient, clone stamp, dodge, burn, shapes, text, and an eyedropper. The window follows a pro photo editor layout: menu bar, options bar, tool column, a Color and Layers dock, and a status bar."
                 }
               },
               {
@@ -135,6 +135,9 @@
     <script src="/share.js"></script>
 
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="extras.css" />
+    <link rel="stylesheet" href="dock.css" />
+    <link rel="stylesheet" href="panels.css" />
 
     <!-- Heyming OS brand foundation -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -145,216 +148,652 @@
     <link rel="stylesheet" href="/brand.css" />
   </head>
   <body>
+    <h1 class="paint-sr-title">Paint — free layered photo editor online</h1>
     <div class="paint-layout">
-      <!-- ── Toolbar ── -->
-      <header class="paint-header" role="toolbar" aria-label="Paint tools">
-        <h1 class="paint-title-wrap">
-          <a href="/" class="paint-title" aria-label="Paint — back to portfolio">
-            <span aria-hidden="true">🎨</span>
-            <span>Paint</span>
-          </a>
-        </h1>
-        <p class="paint-seo-intro">
-          Free MS Paint-style drawing online. Sketch, fill, and export PNG.
-        </p>
+      <!-- ── Menu bar ── -->
+      <nav id="menu-bar" class="menu-bar" role="menubar" aria-label="Menu bar">
+        <div class="action-menu menu-bar-menu" id="file-menu-wrap">
+          <button
+            class="menu-bar-btn"
+            id="btn-file"
+            role="menuitem"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            File
+          </button>
+          <div class="action-menu-list hidden" id="file-menu-list" role="menu">
+            <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
+          </div>
+        </div>
+        <div class="action-menu menu-bar-menu" id="edit-menu-wrap">
+          <button
+            class="menu-bar-btn"
+            id="btn-edit"
+            role="menuitem"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            Edit
+          </button>
+          <div class="action-menu-list hidden" id="edit-menu-list" role="menu">
+            <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
+          </div>
+        </div>
+        <div class="action-menu menu-bar-menu" id="image-menu-wrap">
+          <button
+            class="menu-bar-btn"
+            id="btn-image"
+            role="menuitem"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            Image
+          </button>
+          <div class="action-menu-list hidden" id="image-menu-list" role="menu">
+            <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
+          </div>
+        </div>
+        <div class="action-menu menu-bar-menu" id="layer-menu-wrap">
+          <button
+            class="menu-bar-btn"
+            id="btn-layer"
+            role="menuitem"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            Layer
+          </button>
+          <div class="action-menu-list hidden" id="layer-menu-list" role="menu">
+            <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
+          </div>
+        </div>
+        <div class="action-menu menu-bar-menu" id="type-menu-wrap">
+          <button
+            class="menu-bar-btn"
+            id="btn-type"
+            role="menuitem"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            Type
+          </button>
+          <div class="action-menu-list hidden" id="type-menu-list" role="menu">
+            <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
+          </div>
+        </div>
+        <div class="action-menu menu-bar-menu" id="select-menu-wrap">
+          <button
+            class="menu-bar-btn"
+            id="btn-select"
+            role="menuitem"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            Select
+          </button>
+          <div class="action-menu-list hidden" id="select-menu-list" role="menu">
+            <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
+            <label class="action-menu-field" for="select-radius" data-menu-path="Select > Modify">
+              Radius
+              <input
+                type="number"
+                id="select-radius"
+                min="0"
+                max="32"
+                step="1"
+                value="2"
+                aria-label="Selection modify radius in pixels"
+              />
+              px
+            </label>
+          </div>
+        </div>
+        <div class="action-menu menu-bar-menu" id="filter-menu-wrap">
+          <button
+            class="menu-bar-btn"
+            id="btn-filter"
+            role="menuitem"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            Filter
+          </button>
+          <div class="action-menu-list hidden" id="filter-menu-list" role="menu">
+            <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
+          </div>
+        </div>
+        <div class="action-menu menu-bar-menu" id="view-menu-wrap">
+          <button
+            class="menu-bar-btn"
+            id="btn-view"
+            role="menuitem"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            View
+          </button>
+          <div class="action-menu-list hidden" id="view-menu-list" role="menu">
+            <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
+          </div>
+        </div>
+        <div class="action-menu menu-bar-menu" id="window-menu-wrap">
+          <button
+            class="menu-bar-btn"
+            id="btn-window"
+            role="menuitem"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            Window
+          </button>
+          <div class="action-menu-list hidden" id="window-menu-list" role="menu">
+            <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
+          </div>
+        </div>
+      </nav>
 
-        <div class="header-sep" aria-hidden="true"></div>
+      <!-- ── Document tab ── -->
+      <div class="doc-tab" role="tablist" aria-label="Documents">
+        <span id="doc-tab-title" class="doc-tab-title" role="tab" aria-selected="true">
+          Untitled-1 @ 100% (RGB/8)
+        </span>
+      </div>
 
+      <!-- ── Options bar: the active tool's options ── -->
+      <div id="options-bar" class="options-bar" role="toolbar" aria-label="Tool options bar">
         <div id="tool-options" class="tool-options" aria-label="Tool options"></div>
+      </div>
 
-        <div class="header-sep" aria-hidden="true"></div>
-
-        <div class="zoom-group" aria-label="Zoom controls">
-          <button class="zoom-btn" id="btn-zoom-out" title="Zoom out (-)">−</button>
-          <span id="zoom-display">100%</span>
-          <button class="zoom-btn" id="btn-zoom-in" title="Zoom in (+)">+</button>
-          <button class="zoom-btn" id="btn-zoom-reset" title="Reset zoom (0)">1:1</button>
-        </div>
-
-        <div class="action-group">
-          <div class="action-menu" id="file-menu-wrap">
-            <button
-              class="action-btn"
-              id="btn-file"
-              title="File"
-              aria-label="File menu"
-              aria-haspopup="true"
-              aria-expanded="false"
-            >
-              <span class="btn-icon" aria-hidden="true">📁</span>
-              <span>File</span>
-              <span class="action-caret" aria-hidden="true">▾</span>
-            </button>
-            <div class="action-menu-list hidden" id="file-menu-list" role="menu">
-              <button class="action-menu-item" data-file="new">New</button>
-              <div class="action-menu-sep"></div>
-              <button class="action-menu-item" data-file="open-computer">
-                Open from Computer…
-              </button>
-              <!-- Open from OS injected here by initOSBridge() -->
-              <div class="action-menu-sep"></div>
-              <div class="action-menu-item has-submenu" role="menuitem" aria-haspopup="true">
-                Export
-                <div class="action-submenu" role="menu">
-                  <button class="action-menu-item" data-file="save-png">PNG image</button>
-                  <button class="action-menu-item" data-file="save-jpeg">JPEG image</button>
-                  <div class="action-menu-sep"></div>
-                  <button class="action-menu-item" data-file="save-project">
-                    Paint project (.paintproj)
-                  </button>
-                </div>
-              </div>
-              <!-- Save to OS submenu injected here by initOSBridge() -->
-            </div>
-          </div>
-          <button class="action-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
-            <span class="btn-icon" aria-hidden="true">↩</span>
-            <span>Undo</span>
-          </button>
-          <button class="action-btn" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo" disabled>
-            <span class="btn-icon" aria-hidden="true">↪</span>
-            <span>Redo</span>
-          </button>
-          <button
-            class="action-btn"
-            id="btn-resize"
-            title="Resize canvas"
-            aria-label="Resize canvas"
-          >
-            <span class="btn-icon" aria-hidden="true">⇲</span>
-            <span>Resize</span>
-          </button>
-          <button
-            class="action-btn"
-            id="btn-crop"
-            title="Crop canvas to selection"
-            aria-label="Crop to selection"
-          >
-            <span class="btn-icon" aria-hidden="true">✂</span>
-            <span>Crop</span>
-          </button>
-          <button
-            class="action-btn"
-            id="btn-flip-h"
-            title="Flip horizontal (selection or layer)"
-            aria-label="Flip horizontal"
-          >
-            <span class="btn-icon" aria-hidden="true">⇆</span>
-            <span>Flip H</span>
-          </button>
-          <button
-            class="action-btn"
-            id="btn-flip-v"
-            title="Flip vertical (selection or layer)"
-            aria-label="Flip vertical"
-          >
-            <span class="btn-icon" aria-hidden="true">⇅</span>
-            <span>Flip V</span>
-          </button>
-          <div class="action-menu" id="adjust-menu-wrap">
-            <button
-              class="action-btn"
-              id="btn-adjust"
-              title="Image adjustments"
-              aria-label="Adjust"
-              aria-haspopup="true"
-              aria-expanded="false"
-            >
-              <span class="btn-icon" aria-hidden="true">🎚</span>
-              <span>Adjust</span>
-              <span class="action-caret" aria-hidden="true">▾</span>
-            </button>
-            <div class="action-menu-list hidden" id="adjust-menu-list" role="menu"></div>
-          </div>
-          <button
-            class="action-btn danger"
-            id="btn-clear"
-            title="Clear active layer"
-            aria-label="Clear"
-          >
-            <span class="btn-icon" aria-hidden="true">🗑️</span>
-            <span>Clear</span>
-          </button>
-        </div>
-
-        <input
-          type="file"
-          id="upload-input"
-          class="hidden-file"
-          accept="image/*,.paintproj,application/json"
-          aria-label="Upload image or project"
-        />
-      </header>
+      <input
+        type="file"
+        id="upload-input"
+        class="hidden-file"
+        accept="image/*,.paintproj,application/json"
+        aria-label="Upload image or project"
+      />
+      <input
+        type="file"
+        id="place-input"
+        class="hidden-file"
+        accept="image/*"
+        aria-label="Place embedded image"
+      />
 
       <!-- ── Canvas + panels ── -->
       <div class="paint-body">
         <!-- Left tool panel -->
         <aside class="left-panel" aria-label="Tools">
           <div id="tool-buttons" role="group" aria-label="Drawing tools"></div>
+          <!-- Foreground / background chips, filled by buildPalette() -->
+          <div
+            id="color-chips"
+            class="fb-wrap"
+            role="group"
+            aria-label="Foreground and background colors"
+          ></div>
+          <!-- Select › Edit in Quick Mask Mode (Q), under the color chips as in PhotoCraft -->
+          <button
+            type="button"
+            id="btn-quick-mask"
+            class="tool-btn quick-mask-btn"
+            aria-pressed="false"
+            title="Edit in Quick Mask Mode (Q)"
+            aria-label="Edit in Quick Mask Mode"
+          ></button>
         </aside>
 
-        <div id="canvas-area" aria-label="Drawing canvas">
-          <div class="canvas-stack" id="canvas-stack">
-            <!-- Layer canvases inserted here by JS -->
-            <canvas id="objects-canvas" aria-hidden="true"></canvas>
-            <canvas id="overlay-canvas" role="img" aria-label="Draw here"></canvas>
-            <div
-              id="canvas-resize-ghost"
-              class="canvas-resize-ghost hidden"
-              aria-hidden="true"
-            ></div>
-            <div
-              id="canvas-resize-handle"
-              class="canvas-resize-handle"
-              title="Resize canvas"
-              role="slider"
-              aria-label="Resize canvas"
-              aria-valuemin="1"
-              aria-valuemax="8000"
-            ></div>
-            <div
-              id="canvas-resize-label"
-              class="canvas-resize-label hidden"
-              aria-hidden="true"
-            ></div>
+        <!-- Canvas column: the document, then the status bar under it -->
+        <div class="canvas-column">
+          <!-- View › Rulers (Ctrl+R): drag a guide out of either one -->
+          <div id="ruler-corner" class="ruler ruler-corner" aria-hidden="true"></div>
+          <canvas id="ruler-top" class="ruler ruler-top" aria-label="Horizontal ruler"></canvas>
+          <canvas id="ruler-left" class="ruler ruler-left" aria-label="Vertical ruler"></canvas>
+          <div id="canvas-area" aria-label="Drawing canvas">
+            <div class="canvas-stack" id="canvas-stack">
+              <!-- Layer canvases inserted here by JS -->
+              <canvas id="objects-canvas" aria-hidden="true"></canvas>
+              <canvas id="overlay-canvas" role="img" aria-label="Draw here"></canvas>
+              <!-- View › Show: grid, pixel grid, layer edges, smart guides, brush outline -->
+              <div id="extras-layer" class="extras-layer" aria-hidden="true"></div>
+              <div id="guide-layer" class="guide-layer" aria-hidden="true"></div>
+              <div
+                id="canvas-resize-ghost"
+                class="canvas-resize-ghost hidden"
+                aria-hidden="true"
+              ></div>
+              <div
+                id="canvas-resize-handle"
+                class="canvas-resize-handle"
+                title="Resize canvas"
+                role="slider"
+                aria-label="Resize canvas"
+                aria-valuemin="1"
+                aria-valuemax="8000"
+              ></div>
+              <div
+                id="canvas-resize-label"
+                class="canvas-resize-label hidden"
+                aria-hidden="true"
+              ></div>
+            </div>
+            <!-- Text tool input -->
+            <textarea id="text-input" rows="1" aria-label="Type text to add"></textarea>
           </div>
-          <!-- Text tool input -->
-          <textarea id="text-input" rows="1" aria-label="Type text to add"></textarea>
+          <div id="status-bar" class="status-bar" role="region" aria-label="Status">
+            <span id="status-coords" aria-live="polite" aria-atomic="true">0, 0</span>
+            <span id="status-size" hidden aria-live="polite" aria-atomic="true"></span>
+            <span id="status-message" hidden role="status"></span>
+            <div class="zoom-group" aria-label="Zoom controls">
+              <button class="zoom-btn" id="btn-zoom-out" title="Zoom out (-)">−</button>
+              <span id="zoom-display">100%</span>
+              <button class="zoom-btn" id="btn-zoom-in" title="Zoom in (+)">+</button>
+              <button class="zoom-btn" id="btn-zoom-reset" title="Reset zoom (0)">1:1</button>
+            </div>
+          </div>
         </div>
 
-        <!-- Drag handle between canvas and right panel -->
+        <!-- Drag handle between canvas and the dock -->
         <div class="panel-resize-handle" id="panel-resize-handle" aria-hidden="true"></div>
 
-        <!-- Persistent right panel: Layers + History -->
-        <aside class="right-panel" aria-label="Panels">
-          <div class="panel-section expanded" id="section-layers">
-            <div class="panel-section-header" role="button" tabindex="0" aria-expanded="true">
-              <span>Layers</span>
-              <span class="panel-chevron" aria-hidden="true">▾</span>
+        <!-- Right dock: the PhotoCraft panel groups, top to bottom. Layers fills the rest. -->
+        <aside id="dock" class="dock" aria-label="Panels">
+          <section class="dock-group" aria-label="Color panels">
+            <div class="dock-tabs" role="tablist" aria-label="Color panels">
+              <button
+                class="dock-tab"
+                id="tab-color"
+                role="tab"
+                aria-selected="true"
+                aria-controls="panel-color"
+              >
+                Color
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-swatches"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-swatches"
+                tabindex="-1"
+              >
+                Swatches
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-gradients"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-gradients"
+                tabindex="-1"
+              >
+                Gradients
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-patterns"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-patterns"
+                tabindex="-1"
+              >
+                Patterns
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-shapes"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-shapes"
+                tabindex="-1"
+              >
+                Shapes
+              </button>
             </div>
-            <div class="panel-section-body">
-              <div id="layer-list-container"></div>
+            <div class="dock-panel" id="panel-color" role="tabpanel" aria-labelledby="tab-color">
+              <div class="color-values">
+                <button class="color-value" id="color-fg-row" title="Foreground color">
+                  <span class="color-value-chip" id="color-fg-chip" aria-hidden="true"></span>
+                  <span class="color-value-label">Foreground</span>
+                  <code class="color-value-hex" id="color-fg-value"></code>
+                </button>
+                <button class="color-value" id="color-bg-row" title="Background color">
+                  <span class="color-value-chip" id="color-bg-chip" aria-hidden="true"></span>
+                  <span class="color-value-label">Background</span>
+                  <code class="color-value-hex" id="color-bg-value"></code>
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="panel-section" id="section-history">
-            <div class="panel-section-header" role="button" tabindex="0" aria-expanded="true">
-              <span>History</span>
-              <span class="panel-chevron" aria-hidden="true">▾</span>
+            <div
+              class="dock-panel"
+              id="panel-swatches"
+              role="tabpanel"
+              aria-labelledby="tab-swatches"
+              hidden
+            >
+              <div id="palette-bar" class="palette-dock" aria-label="Color swatches"></div>
             </div>
-            <div class="panel-section-body">
+            <div
+              class="dock-panel"
+              id="panel-gradients"
+              role="tabpanel"
+              aria-labelledby="tab-gradients"
+              hidden
+            ></div>
+            <div
+              class="dock-panel"
+              id="panel-patterns"
+              role="tabpanel"
+              aria-labelledby="tab-patterns"
+              hidden
+            ></div>
+            <div
+              class="dock-panel"
+              id="panel-shapes"
+              role="tabpanel"
+              aria-labelledby="tab-shapes"
+              hidden
+            ></div>
+          </section>
+          <section class="dock-group" aria-label="Properties panels">
+            <div class="dock-tabs" role="tablist" aria-label="Properties panels">
+              <button
+                class="dock-tab"
+                id="tab-properties"
+                role="tab"
+                aria-selected="true"
+                aria-controls="panel-properties"
+              >
+                Properties
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-adjustments"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-adjustments"
+                tabindex="-1"
+              >
+                Adjustments
+              </button>
+            </div>
+            <div
+              class="dock-panel"
+              id="panel-properties"
+              role="tabpanel"
+              aria-labelledby="tab-properties"
+            >
+              <p class="panel-empty"></p>
+            </div>
+            <div
+              class="dock-panel"
+              id="panel-adjustments"
+              role="tabpanel"
+              aria-labelledby="tab-adjustments"
+              hidden
+            >
+              <p class="panel-empty"></p>
+            </div>
+          </section>
+          <section class="dock-group" aria-label="Navigator panels">
+            <div class="dock-tabs" role="tablist" aria-label="Navigator panels">
+              <button
+                class="dock-tab"
+                id="tab-navigator"
+                role="tab"
+                aria-selected="true"
+                aria-controls="panel-navigator"
+              >
+                Navigator
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-histogram"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-histogram"
+                tabindex="-1"
+              >
+                Histogram
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-info"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-info"
+                tabindex="-1"
+              >
+                Info
+              </button>
+            </div>
+            <div
+              class="dock-panel"
+              id="panel-navigator"
+              role="tabpanel"
+              aria-labelledby="tab-navigator"
+            >
+              <p class="panel-empty"></p>
+            </div>
+            <div
+              class="dock-panel"
+              id="panel-histogram"
+              role="tabpanel"
+              aria-labelledby="tab-histogram"
+              hidden
+            >
+              <p class="panel-empty"></p>
+            </div>
+            <div
+              class="dock-panel"
+              id="panel-info"
+              role="tabpanel"
+              aria-labelledby="tab-info"
+              hidden
+            >
+              <p class="panel-empty"></p>
+            </div>
+          </section>
+          <section class="dock-group" aria-label="History panel">
+            <div class="dock-tabs" role="tablist" aria-label="History panel">
+              <button
+                class="dock-tab"
+                id="tab-history"
+                role="tab"
+                aria-selected="true"
+                aria-controls="panel-history"
+              >
+                History
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-layer-comps"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-layer-comps"
+                tabindex="-1"
+              >
+                Layer Comps
+              </button>
+            </div>
+            <div
+              class="dock-panel"
+              id="panel-history"
+              role="tabpanel"
+              aria-labelledby="tab-history"
+            >
+              <button
+                type="button"
+                id="btn-history-source"
+                class="history-source-btn"
+                title="Make the active layer's current pixels the History Brush source"
+              >
+                Set History Brush source
+              </button>
               <div id="history-list-container"></div>
             </div>
-          </div>
+            <div
+              class="dock-panel"
+              id="panel-layer-comps"
+              role="tabpanel"
+              aria-labelledby="tab-layer-comps"
+              hidden
+            >
+              <div id="layer-comps-container"></div>
+            </div>
+          </section>
+          <section class="dock-group dock-group-fill" aria-label="Layer panels">
+            <div class="dock-tabs" role="tablist" aria-label="Layer panels">
+              <button
+                class="dock-tab"
+                id="tab-layers"
+                role="tab"
+                aria-selected="true"
+                aria-controls="panel-layers"
+              >
+                Layers
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-channels"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-channels"
+                tabindex="-1"
+              >
+                Channels
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-paths"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-paths"
+                tabindex="-1"
+              >
+                Paths
+              </button>
+            </div>
+            <div class="dock-panel" id="panel-layers" role="tabpanel" aria-labelledby="tab-layers">
+              <div id="layer-list-container"></div>
+              <details id="section-styles" class="dock-section">
+                <summary>Styles</summary>
+                <ul id="style-preset-list" class="preset-list" aria-label="Styles"></ul>
+              </details>
+            </div>
+            <div
+              class="dock-panel"
+              id="panel-channels"
+              role="tabpanel"
+              aria-labelledby="tab-channels"
+              hidden
+            >
+              <div id="channel-list-container"></div>
+            </div>
+            <div
+              class="dock-panel"
+              id="panel-paths"
+              role="tabpanel"
+              aria-labelledby="tab-paths"
+              hidden
+            >
+              <div id="path-list-container"></div>
+            </div>
+          </section>
+          <section class="dock-group" aria-label="Character panels" hidden>
+            <div class="dock-tabs" role="tablist" aria-label="Character panels">
+              <button
+                class="dock-tab"
+                id="tab-character"
+                role="tab"
+                aria-selected="true"
+                aria-controls="panel-character"
+              >
+                Character
+              </button>
+              <button
+                class="dock-tab"
+                id="tab-paragraph"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-paragraph"
+                tabindex="-1"
+              >
+                Paragraph
+              </button>
+            </div>
+            <div
+              class="dock-panel"
+              id="panel-character"
+              role="tabpanel"
+              aria-labelledby="tab-character"
+            ></div>
+            <div
+              class="dock-panel"
+              id="panel-paragraph"
+              role="tabpanel"
+              aria-labelledby="tab-paragraph"
+              hidden
+            ></div>
+          </section>
+          <section class="dock-group" aria-label="Brushes panel">
+            <div class="dock-tabs" role="tablist" aria-label="Brushes panel">
+              <button
+                class="dock-tab"
+                id="tab-brushes"
+                role="tab"
+                aria-selected="true"
+                aria-controls="panel-brushes"
+              >
+                Brushes
+              </button>
+            </div>
+            <div
+              class="dock-panel"
+              id="panel-brushes"
+              role="tabpanel"
+              aria-labelledby="tab-brushes"
+            >
+              <div class="brushes-panel">
+                <input
+                  type="search"
+                  id="brush-search"
+                  class="brush-search"
+                  placeholder="Search brushes"
+                  aria-label="Search brushes"
+                />
+                <label class="brush-size-row" for="dock-brush-size">
+                  <span>Size</span>
+                  <input type="range" id="dock-brush-size" min="1" max="200" step="1" value="4" />
+                  <output id="dock-brush-size-value" for="dock-brush-size">4 px</output>
+                </label>
+                <ul id="brush-preset-list" class="preset-list" aria-label="Brush presets"></ul>
+                <button type="button" id="btn-new-brush-preset" class="preset-new">
+                  New Brush Preset
+                </button>
+                <details id="section-brushSettings" class="dock-section">
+                  <summary>Brush Settings</summary>
+                  <div id="brush-settings-fields"></div>
+                </details>
+                <details id="section-toolPresets" class="dock-section">
+                  <summary>Tool Presets</summary>
+                  <label class="brush-setting-row">
+                    <input type="checkbox" id="tool-presets-current" checked />
+                    <span>Current Tool Only</span>
+                  </label>
+                  <ul id="tool-preset-list" class="preset-list" aria-label="Tool presets"></ul>
+                  <button type="button" id="btn-new-tool-preset" class="preset-new">
+                    New Tool Preset
+                  </button>
+                </details>
+                <details id="section-cloneSource" class="dock-section">
+                  <summary>Clone Source</summary>
+                  <div id="clone-source-fields"></div>
+                </details>
+              </div>
+            </div>
+          </section>
         </aside>
-      </div>
-
-      <!-- ── Palette bar ── -->
-      <div class="palette-bar-outer" role="region" aria-label="Color palette">
-        <div id="palette-bar"></div>
-        <div class="status-bar">
-          <span id="status-coords" aria-live="polite" aria-atomic="true">0, 0</span>
-          <span id="status-size" hidden aria-live="polite" aria-atomic="true"></span>
-        </div>
       </div>
     </div>
 
@@ -404,6 +843,838 @@
       </div>
     </div>
 
+    <!-- ── File Info modal (File › File Info…) ── -->
+    <div
+      id="file-info-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="File Info"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>File Info</h2>
+        <div class="modal-row">
+          <label for="file-info-title">Document Title</label>
+          <input type="text" id="file-info-title" autocomplete="off" />
+        </div>
+        <div class="modal-row">
+          <label for="file-info-author">Author</label>
+          <input type="text" id="file-info-author" autocomplete="off" />
+        </div>
+        <div class="modal-row">
+          <label for="file-info-description">Description</label>
+          <textarea id="file-info-description" rows="3"></textarea>
+        </div>
+        <div class="modal-row">
+          <label for="file-info-keywords">Keywords</label>
+          <input type="text" id="file-info-keywords" autocomplete="off" />
+        </div>
+        <div class="modal-row">
+          <label for="file-info-copyright">Copyright Notice</label>
+          <input type="text" id="file-info-copyright" autocomplete="off" />
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="file-info-cancel">Cancel</button>
+          <button class="modal-btn primary" id="file-info-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Edit › Keyboard Shortcuts… (read-only; paint/shortcuts-dialog.js) ── -->
+    <div
+      id="shortcuts-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Keyboard Shortcuts"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Keyboard Shortcuts</h2>
+        <input
+          type="search"
+          id="shortcuts-search"
+          placeholder="Search"
+          aria-label="Search shortcuts"
+          autocomplete="off"
+        />
+        <div id="shortcuts-list" class="shortcuts-list"></div>
+        <p class="shortcuts-note">Shortcuts are fixed in Paint and cannot be reassigned.</p>
+        <div class="modal-buttons">
+          <button class="modal-btn primary" id="shortcuts-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Edit › Fill… (PhotoCraft fill_ui.rs) ── -->
+    <div
+      id="fill-modal"
+      class="modal fill-stroke-modal hidden"
+      role="dialog"
+      aria-label="Fill"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Fill</h2>
+        <div class="modal-row">
+          <label for="fill-contents">Contents</label>
+          <select id="fill-contents"></select>
+        </div>
+        <div class="modal-row" id="fill-color-row" hidden>
+          <label for="fill-color">Color</label>
+          <input type="color" id="fill-color" value="#000000" />
+        </div>
+        <fieldset class="modal-group">
+          <legend>Blending</legend>
+          <div class="modal-row">
+            <label for="fill-mode">Mode</label>
+            <select id="fill-mode"></select>
+          </div>
+          <div class="modal-row">
+            <label for="fill-opacity">Opacity</label>
+            <input type="number" id="fill-opacity" min="0" max="100" value="100" />
+            <span class="modal-unit">%</span>
+          </div>
+          <label class="modal-check">
+            <input type="checkbox" id="fill-preserve" />
+            Preserve Transparency
+          </label>
+        </fieldset>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="fill-cancel">Cancel</button>
+          <button class="modal-btn primary" id="fill-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Edit › Stroke… (PhotoCraft stroke_ui.rs) ── -->
+    <div
+      id="stroke-modal"
+      class="modal fill-stroke-modal hidden"
+      role="dialog"
+      aria-label="Stroke"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Stroke</h2>
+        <fieldset class="modal-group">
+          <legend>Stroke</legend>
+          <div class="modal-row">
+            <label for="stroke-width">Width</label>
+            <input type="number" id="stroke-width" min="1" max="250" value="1" />
+            <span class="modal-unit">px</span>
+          </div>
+          <div class="modal-row">
+            <label for="stroke-color">Color</label>
+            <input type="color" id="stroke-color" value="#000000" />
+          </div>
+        </fieldset>
+        <fieldset class="modal-group" id="stroke-location" role="radiogroup">
+          <legend>Location</legend>
+          <div class="modal-row modal-radios"></div>
+        </fieldset>
+        <fieldset class="modal-group">
+          <legend>Blending</legend>
+          <div class="modal-row">
+            <label for="stroke-mode">Mode</label>
+            <select id="stroke-mode"></select>
+          </div>
+          <div class="modal-row">
+            <label for="stroke-opacity">Opacity</label>
+            <input type="number" id="stroke-opacity" min="0" max="100" value="100" />
+            <span class="modal-unit">%</span>
+          </div>
+          <label class="modal-check">
+            <input type="checkbox" id="stroke-preserve" />
+            Preserve Transparency
+          </label>
+        </fieldset>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="stroke-cancel">Cancel</button>
+          <button class="modal-btn primary" id="stroke-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Select › Color Range… (PhotoCraft color_range_ui.rs) ── -->
+    <div
+      id="color-range-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Color Range"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Color Range</h2>
+        <div class="modal-row">
+          <label for="color-range-select">Select</label>
+          <select id="color-range-select"></select>
+        </div>
+        <div class="modal-row" data-range-for="sampledColors">
+          <label for="color-range-fuzziness">Fuzziness</label>
+          <input type="number" id="color-range-fuzziness" min="0" max="200" value="40" />
+        </div>
+        <div class="modal-row" data-range-for="highlights midtones shadows">
+          <label for="color-range-toneFuzziness">Fuzziness</label>
+          <input type="number" id="color-range-toneFuzziness" min="0" max="100" value="20" />
+          <span class="modal-unit">%</span>
+        </div>
+        <div class="modal-row" data-range-for="shadows">
+          <label for="color-range-shadowsLevel">Shadows up to:</label>
+          <input type="number" id="color-range-shadowsLevel" min="0" max="255" value="65" />
+        </div>
+        <div class="modal-row" data-range-for="highlights">
+          <label for="color-range-highlightsLevel">Highlights from:</label>
+          <input type="number" id="color-range-highlightsLevel" min="0" max="255" value="190" />
+        </div>
+        <div class="modal-row" data-range-for="midtones">
+          <label for="color-range-midtonesLow">Midtones from:</label>
+          <input type="number" id="color-range-midtonesLow" min="0" max="255" value="105" />
+        </div>
+        <div class="modal-row" data-range-for="midtones">
+          <label for="color-range-midtonesHigh">Midtones to:</label>
+          <input type="number" id="color-range-midtonesHigh" min="0" max="255" value="150" />
+        </div>
+        <canvas
+          id="color-range-preview"
+          class="color-range-preview"
+          width="200"
+          height="200"
+        ></canvas>
+        <div
+          class="color-range-tools"
+          role="radiogroup"
+          aria-label="Eyedropper"
+          data-range-for="sampledColors"
+        >
+          <button
+            type="button"
+            role="radio"
+            data-range-tool="sample"
+            title="Sample"
+            aria-label="Sample"
+          ></button>
+          <button type="button" role="radio" data-range-tool="add" title="Add to Sample">+</button>
+          <button
+            type="button"
+            role="radio"
+            data-range-tool="subtract"
+            title="Subtract from Sample"
+          >
+            −
+          </button>
+        </div>
+        <label class="modal-check">
+          <input type="checkbox" id="color-range-invert" />
+          Invert
+        </label>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="color-range-cancel">Cancel</button>
+          <button class="modal-btn primary" id="color-range-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Image › Trim… (PhotoCraft image_cmds.rs trim) ── -->
+    <!-- ── Select › Save Selection… / Load Selection… (alpha channels) ── -->
+    <div
+      id="selection-channel-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-labelledby="selection-channel-title"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2 id="selection-channel-title">Save Selection</h2>
+        <div class="modal-row">
+          <label for="selection-channel-channel">Channel</label>
+          <select id="selection-channel-channel"></select>
+        </div>
+        <div class="modal-row" id="selection-channel-name-row">
+          <label for="selection-channel-name">Name</label>
+          <input type="text" id="selection-channel-name" />
+        </div>
+        <div class="modal-row">
+          <label for="selection-channel-op">Operation</label>
+          <select id="selection-channel-op"></select>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="selection-channel-cancel">Cancel</button>
+          <button class="modal-btn primary" id="selection-channel-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="channel-options-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-labelledby="channel-options-title"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2 id="channel-options-title">Channel Options</h2>
+        <div class="modal-row">
+          <label for="channel-options-name">Name</label>
+          <input type="text" id="channel-options-name" />
+        </div>
+        <div class="modal-row">
+          <label for="channel-options-indicates">Color Indicates</label>
+          <select id="channel-options-indicates">
+            <option value="masked">Masked Areas</option>
+            <option value="selected">Selected Areas</option>
+          </select>
+        </div>
+        <div class="modal-row">
+          <label for="channel-options-color">Color</label>
+          <input type="color" id="channel-options-color" value="#ff0000" />
+        </div>
+        <div class="modal-row">
+          <label for="channel-options-opacity">Opacity %</label>
+          <input type="number" id="channel-options-opacity" min="0" max="100" step="1" value="50" />
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="channel-options-cancel">Cancel</button>
+          <button class="modal-btn primary" id="channel-options-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="trim-modal" class="modal hidden" role="dialog" aria-label="Trim" aria-modal="true">
+      <div class="modal-box">
+        <h2>Trim</h2>
+        <div class="modal-row">
+          <label for="trim-based-on">Based On</label>
+          <select id="trim-based-on"></select>
+        </div>
+        <fieldset class="modal-fieldset">
+          <legend>Trim Away</legend>
+          <label class="modal-check">
+            <input type="checkbox" id="trim-top" checked />
+            Top
+          </label>
+          <label class="modal-check">
+            <input type="checkbox" id="trim-bottom" checked />
+            Bottom
+          </label>
+          <label class="modal-check">
+            <input type="checkbox" id="trim-left" checked />
+            Left
+          </label>
+          <label class="modal-check">
+            <input type="checkbox" id="trim-right" checked />
+            Right
+          </label>
+        </fieldset>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="trim-cancel">Cancel</button>
+          <button class="modal-btn primary" id="trim-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Edit › Fade… (PhotoCraft edit.fade) ── -->
+    <div id="fade-modal" class="modal hidden" role="dialog" aria-label="Fade" aria-modal="true">
+      <div class="modal-box">
+        <h2 id="fade-title">Fade</h2>
+        <div class="modal-row">
+          <label for="fade-opacity">Opacity</label>
+          <input type="range" id="fade-opacity" min="0" max="100" step="1" value="100" />
+          <input type="number" id="fade-opacity-num" min="0" max="100" step="1" value="100" />
+          <span>%</span>
+        </div>
+        <div class="modal-row">
+          <label for="fade-mode">Mode</label>
+          <select id="fade-mode"></select>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="fade-cancel">Cancel</button>
+          <button class="modal-btn primary" id="fade-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Layer › New › Layer… and Layer from Background… (PhotoCraft new_layer dialog) ── -->
+    <div
+      id="new-layer-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="New Layer"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2 id="new-layer-title">New Layer</h2>
+        <div class="modal-row">
+          <label for="new-layer-name">Name</label>
+          <input type="text" id="new-layer-name" />
+        </div>
+        <div class="modal-row">
+          <label for="new-layer-mode">Mode</label>
+          <select id="new-layer-mode"></select>
+        </div>
+        <div class="modal-row">
+          <label for="new-layer-opacity">Opacity</label>
+          <input type="number" id="new-layer-opacity" min="0" max="100" step="1" />
+          <span class="modal-unit">%</span>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="new-layer-cancel">Cancel</button>
+          <button class="modal-btn primary" id="new-layer-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Layer › Lock Layers… (PhotoCraft layers_panel_ui.rs LockLayers) ── -->
+    <div
+      id="lock-layers-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Lock Layers"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Lock Layers</h2>
+        <div class="modal-row">
+          <label>
+            <input type="checkbox" id="lock-layers-transparency" />
+            Transparency
+          </label>
+        </div>
+        <div class="modal-row">
+          <label>
+            <input type="checkbox" id="lock-layers-pixels" />
+            Image
+          </label>
+        </div>
+        <div class="modal-row">
+          <label>
+            <input type="checkbox" id="lock-layers-position" />
+            Position
+          </label>
+        </div>
+        <div class="modal-row">
+          <label>
+            <input type="checkbox" id="lock-layers-all" />
+            All
+          </label>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="lock-layers-cancel">Cancel</button>
+          <button class="modal-btn primary" id="lock-layers-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Confirm / alert (replaces window.confirm / window.alert so automation is not blocked) ── -->
+    <div
+      id="confirm-modal"
+      class="modal hidden"
+      role="alertdialog"
+      aria-label="Paint"
+      aria-modal="true"
+      aria-describedby="confirm-message"
+    >
+      <div class="modal-box">
+        <p id="confirm-message"></p>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="confirm-cancel">Cancel</button>
+          <button class="modal-btn primary" id="confirm-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Rasterize prompt (PhotoCraft rasterize_prompt.rs): painting a type layer asks first ── -->
+    <div
+      id="rasterize-modal"
+      class="modal hidden"
+      role="alertdialog"
+      aria-label="PhotoCraft"
+      aria-modal="true"
+      aria-describedby="rasterize-message"
+    >
+      <div class="modal-box">
+        <p id="rasterize-message"></p>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="rasterize-cancel">Cancel</button>
+          <button class="modal-btn primary" id="rasterize-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Edit › Define Custom Shape… (PhotoCraft canvas_tool_menu.rs {"name": text}) ── -->
+    <div
+      id="custom-shape-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Shape Name"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Shape Name</h2>
+        <div class="modal-row">
+          <label for="custom-shape-name">Name</label>
+          <input type="text" id="custom-shape-name" autocomplete="off" />
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="custom-shape-cancel">Cancel</button>
+          <button class="modal-btn primary" id="custom-shape-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Type › Warp Text… (PhotoCraft warp_text_dialog.rs) ── -->
+    <div
+      id="warp-text-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Warp Text"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Warp Text</h2>
+        <div class="modal-row">
+          <label for="warp-style">Style</label>
+          <select id="warp-style"></select>
+        </div>
+        <div class="modal-row" role="radiogroup" aria-label="Orientation">
+          <label>
+            <input
+              type="radio"
+              name="warp-orientation"
+              id="warp-horizontal"
+              value="horizontal"
+              checked
+            />
+            Horizontal
+          </label>
+          <label>
+            <input type="radio" name="warp-orientation" id="warp-vertical" value="vertical" />
+            Vertical
+          </label>
+        </div>
+        <div class="modal-row">
+          <label for="warp-bend">Bend</label>
+          <input type="range" id="warp-bend" min="-100" max="100" step="1" value="50" />
+          <input type="number" id="warp-bend-num" min="-100" max="100" step="1" value="50" />
+          <span>%</span>
+        </div>
+        <div class="modal-row">
+          <label for="warp-hdistort">Horizontal Distortion</label>
+          <input type="range" id="warp-hdistort" min="-100" max="100" step="1" value="0" />
+          <input type="number" id="warp-hdistort-num" min="-100" max="100" step="1" value="0" />
+          <span>%</span>
+        </div>
+        <div class="modal-row">
+          <label for="warp-vdistort">Vertical Distortion</label>
+          <input type="range" id="warp-vdistort" min="-100" max="100" step="1" value="0" />
+          <input type="number" id="warp-vdistort-num" min="-100" max="100" step="1" value="0" />
+          <span>%</span>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="warp-cancel">Cancel</button>
+          <button class="modal-btn primary" id="warp-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Image › Analysis › Set Measurement Scale… (PhotoCraft analysis_ui.rs "scale") ── -->
+    <div
+      id="measurement-scale-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Measurement Scale"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Measurement Scale</h2>
+        <div class="modal-row">
+          <label for="measurement-scale-preset">Presets</label>
+          <select id="measurement-scale-preset">
+            <option value="custom">Custom</option>
+            <option value="default">Default</option>
+          </select>
+        </div>
+        <div class="modal-row">
+          <label for="measurement-scale-pixel">Pixel Length</label>
+          <input type="number" id="measurement-scale-pixel" min="0.001" step="any" />
+        </div>
+        <div class="modal-row">
+          <label for="measurement-scale-logical">Logical Length</label>
+          <input type="number" id="measurement-scale-logical" min="0.0001" step="any" />
+        </div>
+        <div class="modal-row">
+          <label for="measurement-scale-units">Logical Units</label>
+          <input type="text" id="measurement-scale-units" />
+        </div>
+        <p class="modal-unit" id="measurement-scale-text"></p>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="measurement-scale-cancel">Cancel</button>
+          <button class="modal-btn primary" id="measurement-scale-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── View › New Guide… (PhotoCraft dialogs.rs new_guide) ── -->
+    <div
+      id="new-guide-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="New Guide"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>New Guide</h2>
+        <fieldset class="modal-fieldset">
+          <legend>Orientation</legend>
+          <label class="modal-check">
+            <input
+              type="radio"
+              name="new-guide-orientation"
+              id="new-guide-horizontal"
+              value="horizontal"
+              checked
+            />
+            Horizontal
+          </label>
+          <label class="modal-check">
+            <input
+              type="radio"
+              name="new-guide-orientation"
+              id="new-guide-vertical"
+              value="vertical"
+            />
+            Vertical
+          </label>
+        </fieldset>
+        <div class="modal-row">
+          <label for="new-guide-position">Position</label>
+          <input type="text" id="new-guide-position" value="0 px" />
+        </div>
+        <p class="modal-unit" id="new-guide-error" role="alert"></p>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="new-guide-cancel">Cancel</button>
+          <button class="modal-btn primary" id="new-guide-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Edit › Preferences › Guides, Grid & Slices… (the grid part; PhotoCraft prefs.rs) ── -->
+    <div
+      id="grid-prefs-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Guides, Grid &amp; Slices"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Guides, Grid &amp; Slices</h2>
+        <div class="modal-row">
+          <label for="grid-prefs-every">Gridline Every</label>
+          <input type="number" id="grid-prefs-every" min="1" max="10000" step="any" value="72" />
+          <span class="modal-unit">px</span>
+        </div>
+        <div class="modal-row">
+          <label for="grid-prefs-subdivisions">Subdivisions</label>
+          <input type="number" id="grid-prefs-subdivisions" min="1" max="100" step="1" value="4" />
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="grid-prefs-cancel">Cancel</button>
+          <button class="modal-btn primary" id="grid-prefs-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── View › New Guide Layout… (PhotoCraft guide_layout_ui.rs) ── -->
+    <div
+      id="guide-layout-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="New Guide Layout"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>New Guide Layout</h2>
+        <fieldset class="modal-fieldset">
+          <legend>
+            <label class="modal-check">
+              <input type="checkbox" id="guide-layout-use-columns" checked />
+              Columns
+            </label>
+          </legend>
+          <div class="modal-row">
+            <label for="guide-layout-columns">Number</label>
+            <input type="number" id="guide-layout-columns" min="1" max="1000" step="1" value="8" />
+          </div>
+          <div class="modal-row">
+            <label for="guide-layout-width">Width</label>
+            <input type="number" id="guide-layout-width" min="0" step="any" placeholder="auto" />
+          </div>
+          <div class="modal-row">
+            <label for="guide-layout-gutter">Gutter</label>
+            <input type="number" id="guide-layout-gutter" min="0" step="any" value="20" />
+          </div>
+        </fieldset>
+        <fieldset class="modal-fieldset">
+          <legend>
+            <label class="modal-check">
+              <input type="checkbox" id="guide-layout-use-rows" />
+              Rows
+            </label>
+          </legend>
+          <div class="modal-row">
+            <label for="guide-layout-rows">Number</label>
+            <input type="number" id="guide-layout-rows" min="1" max="1000" step="1" value="1" />
+          </div>
+          <div class="modal-row">
+            <label for="guide-layout-height">Height</label>
+            <input type="number" id="guide-layout-height" min="0" step="any" placeholder="auto" />
+          </div>
+          <div class="modal-row">
+            <label for="guide-layout-row-gutter">Gutter</label>
+            <input type="number" id="guide-layout-row-gutter" min="0" step="any" value="20" />
+          </div>
+        </fieldset>
+        <fieldset class="modal-fieldset">
+          <legend>
+            <label class="modal-check">
+              <input type="checkbox" id="guide-layout-use-margin" />
+              Margin
+            </label>
+          </legend>
+          <div class="modal-row">
+            <label for="guide-layout-margin-top">Top</label>
+            <input type="number" id="guide-layout-margin-top" min="0" step="any" value="0" />
+          </div>
+          <div class="modal-row">
+            <label for="guide-layout-margin-left">Left</label>
+            <input type="number" id="guide-layout-margin-left" min="0" step="any" value="0" />
+          </div>
+          <div class="modal-row">
+            <label for="guide-layout-margin-bottom">Bottom</label>
+            <input type="number" id="guide-layout-margin-bottom" min="0" step="any" value="0" />
+          </div>
+          <div class="modal-row">
+            <label for="guide-layout-margin-right">Right</label>
+            <input type="number" id="guide-layout-margin-right" min="0" step="any" value="0" />
+          </div>
+        </fieldset>
+        <label class="modal-check">
+          <input type="checkbox" id="guide-layout-center" />
+          Center Columns
+        </label>
+        <label class="modal-check">
+          <input type="checkbox" id="guide-layout-clear" />
+          Clear Existing Guides
+        </label>
+        <p class="modal-unit" id="guide-layout-error" role="alert"></p>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="guide-layout-cancel">Cancel</button>
+          <button class="modal-btn primary" id="guide-layout-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Image › Image Size… (PhotoCraft sizing.rs image_size) ── -->
+    <div
+      id="image-size-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Image Size"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Image Size</h2>
+        <p class="modal-unit" id="image-size-dims"></p>
+        <div class="modal-row">
+          <label for="image-size-w">Width</label>
+          <input type="number" id="image-size-w" min="0.01" step="any" />
+        </div>
+        <div class="modal-row">
+          <label for="image-size-h">Height</label>
+          <input type="number" id="image-size-h" min="0.01" step="any" />
+        </div>
+        <div class="modal-row">
+          <label for="image-size-unit">Units</label>
+          <select id="image-size-unit"></select>
+        </div>
+        <label class="modal-check">
+          <input type="checkbox" id="image-size-constrain" checked />
+          Constrain Proportions
+        </label>
+        <div class="modal-row">
+          <label for="image-size-resample">Resample</label>
+          <select id="image-size-resample"></select>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="image-size-cancel">Cancel</button>
+          <button class="modal-btn primary" id="image-size-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="indexed-color-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Indexed Color"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Indexed Color</h2>
+        <div class="modal-row">
+          <label for="indexed-palette">Palette</label>
+          <select id="indexed-palette"></select>
+        </div>
+        <div class="modal-row">
+          <label for="indexed-colors">Colors</label>
+          <input type="number" id="indexed-colors" min="2" max="256" step="1" value="256" />
+        </div>
+        <div class="modal-row">
+          <label for="indexed-dither">Dither</label>
+          <select id="indexed-dither"></select>
+        </div>
+        <div class="modal-row">
+          <label for="indexed-amount">Amount %</label>
+          <input type="number" id="indexed-amount" min="0" max="100" step="1" value="75" />
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="indexed-cancel">Cancel</button>
+          <button class="modal-btn primary" id="indexed-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="bitmap-modal" class="modal hidden" role="dialog" aria-label="Bitmap" aria-modal="true">
+      <div class="modal-box">
+        <h2>Bitmap</h2>
+        <div class="modal-row">
+          <label for="bitmap-method">Method</label>
+          <select id="bitmap-method"></select>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="bitmap-cancel">Cancel</button>
+          <button class="modal-btn primary" id="bitmap-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="color-table-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Color Table"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Color Table</h2>
+        <div id="color-table-grid" class="color-table-grid" role="group" aria-label="Colors"></div>
+        <input type="color" id="color-table-picker" class="color-table-picker" tabindex="-1" />
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="color-table-cancel">Cancel</button>
+          <button class="modal-btn primary" id="color-table-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Resize modal ── -->
     <div
       id="resize-modal"
@@ -441,6 +1712,55 @@
         <div class="modal-buttons">
           <button class="modal-btn secondary" id="resize-cancel">Cancel</button>
           <button class="modal-btn primary" id="resize-ok">Resize</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Rotate Canvas modal ── -->
+    <div
+      id="rotate-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-label="Rotate canvas"
+      aria-modal="true"
+    >
+      <div class="modal-box">
+        <h2>Rotate Canvas</h2>
+        <div class="modal-row">
+          <label for="rotate-angle">Angle</label>
+          <input
+            type="number"
+            id="rotate-angle"
+            min="-3600"
+            max="3600"
+            step="0.1"
+            value="0"
+            aria-label="Rotation angle in degrees"
+          />
+          <span style="color: var(--fg-dim); font-size: 12px">°</span>
+        </div>
+        <div class="modal-row">
+          <label for="rotate-direction">Direction</label>
+          <select
+            id="rotate-direction"
+            aria-label="Rotation direction"
+            style="
+              flex: 1;
+              padding: 6px 8px;
+              background: var(--bg-3);
+              border: 1px solid var(--border);
+              border-radius: 5px;
+              color: var(--fg);
+              font-size: 13px;
+            "
+          >
+            <option value="cw">Clockwise</option>
+            <option value="ccw">Counter Clockwise</option>
+          </select>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="rotate-cancel">Cancel</button>
+          <button class="modal-btn primary" id="rotate-ok">Rotate</button>
         </div>
       </div>
     </div>

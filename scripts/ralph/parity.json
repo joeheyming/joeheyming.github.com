@@ -1,0 +1,6301 @@
+{
+ "source": "PhotoCraft crates/ui-egui/src/menu_catalog.rs + state.rs Tool enum",
+ "rules": {
+  "done": "The command works in Paint (a test runs it and asserts pixels, a mask, the layer stack, or the view) and it is reached where PhotoCraft puts it. A label or an empty panel is not done.",
+  "impl": "Behavior exists in Paint but is reached somewhere else.",
+  "scope": "out = not possible or not wanted in a static canvas page."
+ },
+ "items": [
+  {
+   "id": "menu:file.new",
+   "area": "menu",
+   "path": "File",
+   "label": "New…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.open",
+   "area": "menu",
+   "path": "File",
+   "label": "Open…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.openAs",
+   "area": "menu",
+   "path": "File",
+   "label": "Open As…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.openExrParts",
+   "area": "menu",
+   "path": "File",
+   "label": "Open EXR Parts…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.close",
+   "area": "menu",
+   "path": "File",
+   "label": "Close",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.closeAll",
+   "area": "menu",
+   "path": "File",
+   "label": "Close All",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.closeOthers",
+   "area": "menu",
+   "path": "File",
+   "label": "Close Others",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.save",
+   "area": "menu",
+   "path": "File",
+   "label": "Save",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.saveAs",
+   "area": "menu",
+   "path": "File",
+   "label": "Save As…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.saveACopy",
+   "area": "menu",
+   "path": "File",
+   "label": "Save a Copy…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.revert",
+   "area": "menu",
+   "path": "File",
+   "label": "Revert",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.export.quickExportAsPng",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Quick Export as PNG",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.export.exportAs",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Export As…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.export.exportPreferences",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Export Preferences…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.export.saveForWebLegacy",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Save for Web (Legacy)…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.export.artboardsToFiles",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Artboards to Files…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.export.artboardsToPdf",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Artboards to PDF…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.export.layersToFiles",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Layers to Files…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.export.layerCompsToFiles",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Layer Comps to Files…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.export.colorLookupTables",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Color Lookup Tables…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.export.dataSetsAsFiles",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Data Sets as Files…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.export.pathsToIllustrator",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Paths to Illustrator…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.export.renderVideo",
+   "area": "menu",
+   "path": "File > Export",
+   "label": "Render Video…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.generate.imageAssets",
+   "area": "menu",
+   "path": "File > Generate",
+   "label": "Image Assets",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.placeEmbedded",
+   "area": "menu",
+   "path": "File",
+   "label": "Place Embedded…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.placeLinked",
+   "area": "menu",
+   "path": "File",
+   "label": "Place Linked…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.package",
+   "area": "menu",
+   "path": "File",
+   "label": "Package…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.automate.batch",
+   "area": "menu",
+   "path": "File > Automate",
+   "label": "Batch…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.automate.createDroplet",
+   "area": "menu",
+   "path": "File > Automate",
+   "label": "Create Droplet…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.automate.cropAndStraightenPhotos",
+   "area": "menu",
+   "path": "File > Automate",
+   "label": "Crop and Straighten Photos",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.automate.contactSheetII",
+   "area": "menu",
+   "path": "File > Automate",
+   "label": "Contact Sheet II…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.automate.conditionalModeChange",
+   "area": "menu",
+   "path": "File > Automate",
+   "label": "Conditional Mode Change…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.automate.fitImage",
+   "area": "menu",
+   "path": "File > Automate",
+   "label": "Fit Image…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.automate.lensCorrection",
+   "area": "menu",
+   "path": "File > Automate",
+   "label": "Lens Correction…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.automate.mergeToHdrPro",
+   "area": "menu",
+   "path": "File > Automate",
+   "label": "Merge to HDR Pro…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.automate.photomerge",
+   "area": "menu",
+   "path": "File > Automate",
+   "label": "Photomerge…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.scripts.imageProcessor",
+   "area": "menu",
+   "path": "File > Scripts",
+   "label": "Image Processor…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.scripts.deleteAllEmptyLayers",
+   "area": "menu",
+   "path": "File > Scripts",
+   "label": "Delete All Empty Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.scripts.flattenAllLayerEffects",
+   "area": "menu",
+   "path": "File > Scripts",
+   "label": "Flatten All Layer Effects",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.scripts.flattenAllMasks",
+   "area": "menu",
+   "path": "File > Scripts",
+   "label": "Flatten All Masks",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.scripts.scriptEventsManager",
+   "area": "menu",
+   "path": "File > Scripts",
+   "label": "Script Events Manager…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.scripts.loadFilesIntoStack",
+   "area": "menu",
+   "path": "File > Scripts",
+   "label": "Load Files into Stack…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.scripts.statistics",
+   "area": "menu",
+   "path": "File > Scripts",
+   "label": "Statistics…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.scripts.browse",
+   "area": "menu",
+   "path": "File > Scripts",
+   "label": "Browse…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.import.variableDataSets",
+   "area": "menu",
+   "path": "File > Import",
+   "label": "Variable Data Sets…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.import.videoFramesToLayers",
+   "area": "menu",
+   "path": "File > Import",
+   "label": "Video Frames to Layers…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.import.notes",
+   "area": "menu",
+   "path": "File > Import",
+   "label": "Notes…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.import.wiaSupport",
+   "area": "menu",
+   "path": "File > Import",
+   "label": "WIA Support…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.fileInfo",
+   "area": "menu",
+   "path": "File",
+   "label": "File Info…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:file.print",
+   "area": "menu",
+   "path": "File",
+   "label": "Print…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.printOneCopy",
+   "area": "menu",
+   "path": "File",
+   "label": "Print One Copy",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:file.exit",
+   "area": "menu",
+   "path": "File",
+   "label": "Exit",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.undo",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Undo",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.redo",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Redo",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.toggleLastState",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Toggle Last State",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.fade",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Fade…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.cut",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Cut",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.copy",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Copy",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.copyMerged",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Copy Merged",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.paste",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Paste",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.pasteSpecial.pasteInPlace",
+   "area": "menu",
+   "path": "Edit > Paste Special",
+   "label": "Paste in Place",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.pasteSpecial.pasteInto",
+   "area": "menu",
+   "path": "Edit > Paste Special",
+   "label": "Paste Into",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.pasteSpecial.pasteOutside",
+   "area": "menu",
+   "path": "Edit > Paste Special",
+   "label": "Paste Outside",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.clear",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Clear",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.search",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Search…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.checkSpelling",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Check Spelling…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.findAndReplaceText",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Find and Replace Text…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.fill",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Fill…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.stroke",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Stroke…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.contentAwareFill",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Content-Aware Fill…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.contentAwareScale",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Content-Aware Scale",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.puppetWarp",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Puppet Warp",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.perspectiveWarp",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Perspective Warp",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.freeTransform",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Free Transform",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.again",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Again",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.scale",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Scale",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.rotate",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Rotate",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.skew",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Skew",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.distort",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Distort",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.perspective",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Perspective",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.warp",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Warp",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.splitWarpHorizontally",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Split Warp Horizontally",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.transform.splitWarpVertically",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Split Warp Vertically",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.transform.splitWarpCrosswise",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Split Warp Crosswise",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.transform.removeWarpSplit",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Remove Warp Split",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.transform.rotate180",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Rotate 180°",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.rotate90Cw",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Rotate 90° Clockwise",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.rotate90Ccw",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Rotate 90° Counter Clockwise",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.flipHorizontal",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Flip Horizontal",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.transform.flipVertical",
+   "area": "menu",
+   "path": "Edit > Transform",
+   "label": "Flip Vertical",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.autoAlignLayers",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Auto-Align Layers…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.autoBlendLayers",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Auto-Blend Layers…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.defineBrushPreset",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Define Brush Preset…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.definePattern",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Define Pattern…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.defineCustomShape",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Define Custom Shape…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.purge.undo",
+   "area": "menu",
+   "path": "Edit > Purge",
+   "label": "Undo",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.purge.clipboard",
+   "area": "menu",
+   "path": "Edit > Purge",
+   "label": "Clipboard",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.purge.histories",
+   "area": "menu",
+   "path": "Edit > Purge",
+   "label": "Histories",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.purge.videoCache",
+   "area": "menu",
+   "path": "Edit > Purge",
+   "label": "Video Cache",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.purge.all",
+   "area": "menu",
+   "path": "Edit > Purge",
+   "label": "All",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.presets.presetManager",
+   "area": "menu",
+   "path": "Edit > Presets",
+   "label": "Preset Manager…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.presets.migratePresets",
+   "area": "menu",
+   "path": "Edit > Presets",
+   "label": "Migrate Presets",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.presets.exportImportPresets",
+   "area": "menu",
+   "path": "Edit > Presets",
+   "label": "Export/Import Presets…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.colorSettings",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Color Settings…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.assignProfile",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Assign Profile…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.convertToProfile",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Convert to Profile…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.keyboardShortcuts",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Keyboard Shortcuts…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:edit.menus",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Menus…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.toolbar",
+   "area": "menu",
+   "path": "Edit",
+   "label": "Toolbar…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.general",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Settings…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.integrations",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "AI Integrations…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.interface",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Interface…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.workspace",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Workspace…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.tools",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Tools…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.historyLog",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "History Log…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.fileHandling",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "File Handling…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.export",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Export…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.performance",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Performance…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.scratchDisks",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Scratch Disks…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.cursors",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Cursors…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.transparencyAndGamut",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Transparency & Gamut…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.unitsAndRulers",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Units & Rulers…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.guidesGridAndSlices",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Guides, Grid & Slices…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.plugIns",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Plug-ins…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.type",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Type…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.enhancedControls",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Enhanced Controls…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.preferences.rawDefaults",
+   "area": "menu",
+   "path": "Edit > Preferences",
+   "label": "Raw Defaults…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.mode.bitmap",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "Bitmap",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.mode.grayscale",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "Grayscale",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.mode.duotone",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "Duotone",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.mode.indexedColor",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "Indexed Color",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.mode.rgb",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "RGB Color",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.mode.cmyk",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "CMYK Color",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.mode.lab",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "Lab Color",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.mode.multichannel",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "Multichannel",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.mode.bits8",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "8 Bits/Channel",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.mode.bits16",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "16 Bits/Channel",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.mode.bits32",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "32 Bits/Channel",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.mode.colorTable",
+   "area": "menu",
+   "path": "Image > Mode",
+   "label": "Color Table…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.brightnessContrast",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Brightness/Contrast…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.levels",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Levels…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.curves",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Curves…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.exposure",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Exposure…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.vibrance",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Vibrance…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.hueSaturation",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Hue/Saturation…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.colorBalance",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Color Balance…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.blackWhite",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Black & White…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.photoFilter",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Photo Filter…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.channelMixer",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Channel Mixer…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.colorLookup",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Color Lookup…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.invert",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Invert",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.posterize",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Posterize…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.threshold",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Threshold…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.gradientMap",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Gradient Map…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.selectiveColor",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Selective Color…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.shadowsHighlights",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Shadows/Highlights…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.hdrToning",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "HDR Toning…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.adjustments.desaturate",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Desaturate",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.matchColor",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Match Color…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.adjustments.replaceColor",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Replace Color…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.adjustments.equalize",
+   "area": "menu",
+   "path": "Image > Adjustments",
+   "label": "Equalize",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.autoTone",
+   "area": "menu",
+   "path": "Image",
+   "label": "Auto Tone",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.autoContrast",
+   "area": "menu",
+   "path": "Image",
+   "label": "Auto Contrast",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.autoColor",
+   "area": "menu",
+   "path": "Image",
+   "label": "Auto Color",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.imageSize",
+   "area": "menu",
+   "path": "Image",
+   "label": "Image Size…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.canvasSize",
+   "area": "menu",
+   "path": "Image",
+   "label": "Canvas Size…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.imageRotation.180",
+   "area": "menu",
+   "path": "Image > Image Rotation",
+   "label": "180°",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.imageRotation.90cw",
+   "area": "menu",
+   "path": "Image > Image Rotation",
+   "label": "90° Clockwise",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.imageRotation.90ccw",
+   "area": "menu",
+   "path": "Image > Image Rotation",
+   "label": "90° Counter Clockwise",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.rotation.arbitrary",
+   "area": "menu",
+   "path": "Image > Image Rotation",
+   "label": "Arbitrary…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.imageRotation.flipCanvasHorizontal",
+   "area": "menu",
+   "path": "Image > Image Rotation",
+   "label": "Flip Canvas Horizontal",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.imageRotation.flipCanvasVertical",
+   "area": "menu",
+   "path": "Image > Image Rotation",
+   "label": "Flip Canvas Vertical",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.crop",
+   "area": "menu",
+   "path": "Image",
+   "label": "Crop",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.trim",
+   "area": "menu",
+   "path": "Image",
+   "label": "Trim…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.revealAll",
+   "area": "menu",
+   "path": "Image",
+   "label": "Reveal All",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.duplicate",
+   "area": "menu",
+   "path": "Image",
+   "label": "Duplicate…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.applyImage",
+   "area": "menu",
+   "path": "Image",
+   "label": "Apply Image…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.calculations",
+   "area": "menu",
+   "path": "Image",
+   "label": "Calculations…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.variables.define",
+   "area": "menu",
+   "path": "Image > Variables",
+   "label": "Define…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.variables.dataSets",
+   "area": "menu",
+   "path": "Image > Variables",
+   "label": "Data Sets…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.applyDataSet",
+   "area": "menu",
+   "path": "Image",
+   "label": "Apply Data Set…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.trap",
+   "area": "menu",
+   "path": "Image",
+   "label": "Trap…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.analysis.setMeasurementScale",
+   "area": "menu",
+   "path": "Image > Analysis",
+   "label": "Set Measurement Scale…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.analysis.selectDataPoints",
+   "area": "menu",
+   "path": "Image > Analysis",
+   "label": "Select Data Points…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.analysis.recordMeasurements",
+   "area": "menu",
+   "path": "Image > Analysis",
+   "label": "Record Measurements",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:image.analysis.rulerTool",
+   "area": "menu",
+   "path": "Image > Analysis",
+   "label": "Ruler Tool",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.analysis.countTool",
+   "area": "menu",
+   "path": "Image > Analysis",
+   "label": "Count Tool",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:image.analysis.placeScaleMarker",
+   "area": "menu",
+   "path": "Image > Analysis",
+   "label": "Place Scale Marker…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.new.layer",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Layer…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.new.layerFromBackground",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Layer from Background…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.new.backgroundFromLayer",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Background from Layer",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.new.group",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Group…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.new.groupFromLayers",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Group from Layers…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.new.artboard",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Artboard…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.new.artboardFromGroup",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Artboard from Group…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.new.artboardFromLayers",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Artboard from Layers…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.new.frameFromLayers",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Frame from Layers",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.new.layerViaCopy",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Layer via Copy",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.new.layerViaCut",
+   "area": "menu",
+   "path": "Layer > New",
+   "label": "Layer via Cut",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.duplicate",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Duplicate Layer…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.delete",
+   "area": "menu",
+   "path": "Layer > Delete",
+   "label": "Layer",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.delete.hiddenLayers",
+   "area": "menu",
+   "path": "Layer > Delete",
+   "label": "Hidden Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.quickExportAsPng",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Quick Export as PNG",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.exportAs",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Export As…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.renameLayer",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Rename Layer",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.blendingOptions",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Blending Options…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.bevelEmboss",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Bevel & Emboss…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.stroke",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Stroke…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.innerShadow",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Inner Shadow…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.innerGlow",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Inner Glow…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.satin",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Satin…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.colorOverlay",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Color Overlay…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.gradientOverlay",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Gradient Overlay…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.patternOverlay",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Pattern Overlay…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.outerGlow",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Outer Glow…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.dropShadow",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Drop Shadow…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.copyLayerStyle",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Copy Layer Style",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.pasteLayerStyle",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Paste Layer Style",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.clear",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Clear Layer Style",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.globalLight",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Global Light…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.layerStyle.createLayer",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Create Layer",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.layerStyle.hideAllEffects",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Hide All Effects",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerStyle.scaleEffects",
+   "area": "menu",
+   "path": "Layer > Layer Style",
+   "label": "Scale Effects…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartFilter.disableSmartFilters",
+   "area": "menu",
+   "path": "Layer > Smart Filter",
+   "label": "Disable Smart Filters",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartFilter.deleteFilterMask",
+   "area": "menu",
+   "path": "Layer > Smart Filter",
+   "label": "Delete Filter Mask",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartFilter.disableFilterMask",
+   "area": "menu",
+   "path": "Layer > Smart Filter",
+   "label": "Disable Filter Mask",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartFilter.blendingOptions",
+   "area": "menu",
+   "path": "Layer > Smart Filter",
+   "label": "Blending Options…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartFilter.clearSmartFilters",
+   "area": "menu",
+   "path": "Layer > Smart Filter",
+   "label": "Clear Smart Filters",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.newFillLayer.solidColor",
+   "area": "menu",
+   "path": "Layer > New Fill Layer",
+   "label": "Solid Color…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newFillLayer.gradient",
+   "area": "menu",
+   "path": "Layer > New Fill Layer",
+   "label": "Gradient…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newFillLayer.pattern",
+   "area": "menu",
+   "path": "Layer > New Fill Layer",
+   "label": "Pattern…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.brightnessContrast",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Brightness/Contrast…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.levels",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Levels…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.curves",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Curves…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.exposure",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Exposure…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.vibrance",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Vibrance…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.hueSaturation",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Hue/Saturation…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.colorBalance",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Color Balance…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.blackWhite",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Black & White…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.photoFilter",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Photo Filter…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.channelMixer",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Channel Mixer…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.colorLookup",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Color Lookup…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.invert",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Invert…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.posterize",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Posterize…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.threshold",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Threshold…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.gradientMap",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Gradient Map…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newAdjustmentLayer.selectiveColor",
+   "area": "menu",
+   "path": "Layer > New Adjustment Layer",
+   "label": "Selective Color…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerContentOptions",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Layer Content Options…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.layerMask.revealAll",
+   "area": "menu",
+   "path": "Layer > Layer Mask",
+   "label": "Reveal All",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerMask.hideAll",
+   "area": "menu",
+   "path": "Layer > Layer Mask",
+   "label": "Hide All",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerMask.revealSelection",
+   "area": "menu",
+   "path": "Layer > Layer Mask",
+   "label": "Reveal Selection",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerMask.hideSelection",
+   "area": "menu",
+   "path": "Layer > Layer Mask",
+   "label": "Hide Selection",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerMask.fromTransparency",
+   "area": "menu",
+   "path": "Layer > Layer Mask",
+   "label": "From Transparency",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerMask.delete",
+   "area": "menu",
+   "path": "Layer > Layer Mask",
+   "label": "Delete",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerMask.apply",
+   "area": "menu",
+   "path": "Layer > Layer Mask",
+   "label": "Apply",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerMask.enabled",
+   "area": "menu",
+   "path": "Layer > Layer Mask",
+   "label": "Enable Layer Mask",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.layerMask.linked",
+   "area": "menu",
+   "path": "Layer > Layer Mask",
+   "label": "Link Layer Mask",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.maskAllObjects",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Mask All Objects",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.vectorMask.revealAll",
+   "area": "menu",
+   "path": "Layer > Vector Mask",
+   "label": "Reveal All",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.vectorMask.hideAll",
+   "area": "menu",
+   "path": "Layer > Vector Mask",
+   "label": "Hide All",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.vectorMask.currentPath",
+   "area": "menu",
+   "path": "Layer > Vector Mask",
+   "label": "Current Path",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.vectorMask.delete",
+   "area": "menu",
+   "path": "Layer > Vector Mask",
+   "label": "Delete",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.vectorMask.enabled",
+   "area": "menu",
+   "path": "Layer > Vector Mask",
+   "label": "Enable Vector Mask",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.vectorMask.linked",
+   "area": "menu",
+   "path": "Layer > Vector Mask",
+   "label": "Link Vector Mask",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.createClippingMask",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Create Clipping Mask",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.smartObjects.convertToSmartObject",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Convert to Smart Object",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.smartObjects.newSmartObjectViaCopy",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "New Smart Object via Copy",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.smartObjects.revealInFinder",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Reveal in Finder",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.updateModifiedContent",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Update Modified Content",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.updateAllModifiedContent",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Update All Modified Content",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.editContents",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Edit Contents",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.relinkToFile",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Relink to File…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.replaceContents",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Replace Contents…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.exportContents",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Export Contents…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.convertToLinked",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Convert to Linked…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.convertToEmbedded",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Convert to Embedded",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.convertToLayers",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Convert to Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.entropy",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Entropy",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.kurtosis",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Kurtosis",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.maximum",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Maximum",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.mean",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Mean",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.median",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Median",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.minimum",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Minimum",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.range",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Range",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.skewness",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Skewness",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.standardDeviation",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Standard Deviation",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.summation",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Summation",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.stackMode.variance",
+   "area": "menu",
+   "path": "Layer > Smart Objects > Stack Mode",
+   "label": "Variance",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.rasterize",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Rasterize",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.smartObjects.warp",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Warp",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.perspectiveWarp",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Perspective Warp",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.smartObjects.puppetWarp",
+   "area": "menu",
+   "path": "Layer > Smart Objects",
+   "label": "Puppet Warp",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.newBlankVideoLayer",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "New Blank Video Layer",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.newVideoLayerFromFile",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "New Video Layer from File…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.insertBlankFrame",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "Insert Blank Frame",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.duplicateFrame",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "Duplicate Frame",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.deleteFrame",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "Delete Frame",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.replaceFootage",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "Replace Footage…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.interpretFootage",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "Interpret Footage…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.showAlteredVideo",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "Show Altered Video",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.restoreFrame",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "Restore Frame",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.restoreAllFrames",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "Restore All Frames",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.reloadFrame",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "Reload Frame",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.videoLayers.rasterize",
+   "area": "menu",
+   "path": "Layer > Video Layers",
+   "label": "Rasterize",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.rasterize.type",
+   "area": "menu",
+   "path": "Layer > Rasterize",
+   "label": "Type",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.rasterize.shape",
+   "area": "menu",
+   "path": "Layer > Rasterize",
+   "label": "Shape",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.rasterize.fillContent",
+   "area": "menu",
+   "path": "Layer > Rasterize",
+   "label": "Fill Content",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.rasterize.vectorMask",
+   "area": "menu",
+   "path": "Layer > Rasterize",
+   "label": "Vector Mask",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.rasterize.smartObject",
+   "area": "menu",
+   "path": "Layer > Rasterize",
+   "label": "Smart Object",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.rasterize.video",
+   "area": "menu",
+   "path": "Layer > Rasterize",
+   "label": "Video",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.rasterize.layerStyle",
+   "area": "menu",
+   "path": "Layer > Rasterize",
+   "label": "Layer Style",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.rasterize.layer",
+   "area": "menu",
+   "path": "Layer > Rasterize",
+   "label": "Layer",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.rasterize.allLayers",
+   "area": "menu",
+   "path": "Layer > Rasterize",
+   "label": "All Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.newLayerBasedSlice",
+   "area": "menu",
+   "path": "Layer",
+   "label": "New Layer Based Slice",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.groupLayers",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Group Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.ungroupLayers",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Ungroup Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.hideLayers",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Hide Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.arrange.bringToFront",
+   "area": "menu",
+   "path": "Layer > Arrange",
+   "label": "Bring to Front",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.arrange.bringForward",
+   "area": "menu",
+   "path": "Layer > Arrange",
+   "label": "Bring Forward",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.arrange.sendBackward",
+   "area": "menu",
+   "path": "Layer > Arrange",
+   "label": "Send Backward",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.arrange.sendToBack",
+   "area": "menu",
+   "path": "Layer > Arrange",
+   "label": "Send to Back",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.arrange.reverse",
+   "area": "menu",
+   "path": "Layer > Arrange",
+   "label": "Reverse",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.combineShapes.unite",
+   "area": "menu",
+   "path": "Layer > Combine Shapes",
+   "label": "Unite Shapes",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.combineShapes.subtractFrontShape",
+   "area": "menu",
+   "path": "Layer > Combine Shapes",
+   "label": "Subtract Front Shape",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.combineShapes.intersectShapeAreas",
+   "area": "menu",
+   "path": "Layer > Combine Shapes",
+   "label": "Intersect Shape Areas",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.combineShapes.excludeOverlappingShapes",
+   "area": "menu",
+   "path": "Layer > Combine Shapes",
+   "label": "Exclude Overlapping Shapes",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.combineShapes.mergeShapeComponents",
+   "area": "menu",
+   "path": "Layer > Combine Shapes",
+   "label": "Merge Shape Components",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.align.topEdges",
+   "area": "menu",
+   "path": "Layer > Align",
+   "label": "Top Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.align.verticalCenters",
+   "area": "menu",
+   "path": "Layer > Align",
+   "label": "Vertical Centers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.align.bottomEdges",
+   "area": "menu",
+   "path": "Layer > Align",
+   "label": "Bottom Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.align.leftEdges",
+   "area": "menu",
+   "path": "Layer > Align",
+   "label": "Left Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.align.horizontalCenters",
+   "area": "menu",
+   "path": "Layer > Align",
+   "label": "Horizontal Centers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.align.rightEdges",
+   "area": "menu",
+   "path": "Layer > Align",
+   "label": "Right Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.distribute.topEdges",
+   "area": "menu",
+   "path": "Layer > Distribute",
+   "label": "Top Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.distribute.verticalCenters",
+   "area": "menu",
+   "path": "Layer > Distribute",
+   "label": "Vertical Centers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.distribute.bottomEdges",
+   "area": "menu",
+   "path": "Layer > Distribute",
+   "label": "Bottom Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.distribute.leftEdges",
+   "area": "menu",
+   "path": "Layer > Distribute",
+   "label": "Left Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.distribute.horizontalCenters",
+   "area": "menu",
+   "path": "Layer > Distribute",
+   "label": "Horizontal Centers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.distribute.rightEdges",
+   "area": "menu",
+   "path": "Layer > Distribute",
+   "label": "Right Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.distribute.horizontally",
+   "area": "menu",
+   "path": "Layer > Distribute",
+   "label": "Horizontally",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.distribute.vertically",
+   "area": "menu",
+   "path": "Layer > Distribute",
+   "label": "Vertically",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.lockLayers",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Lock Layers…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.linkLayers",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Link Layers",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.selectLinkedLayers",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Select Linked Layers",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.mergeLayers",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Merge Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.mergeVisible",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Merge Visible",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.flattenImage",
+   "area": "menu",
+   "path": "Layer",
+   "label": "Flatten Image",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.matting.colorDecontaminate",
+   "area": "menu",
+   "path": "Layer > Matting",
+   "label": "Color Decontaminate…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:layer.matting.defringe",
+   "area": "menu",
+   "path": "Layer > Matting",
+   "label": "Defringe…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.matting.removeBlackMatte",
+   "area": "menu",
+   "path": "Layer > Matting",
+   "label": "Remove Black Matte",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:layer.matting.removeWhiteMatte",
+   "area": "menu",
+   "path": "Layer > Matting",
+   "label": "Remove White Matte",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.panels.character",
+   "area": "menu",
+   "path": "Type > Panels",
+   "label": "Character Panel",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.panels.paragraph",
+   "area": "menu",
+   "path": "Type > Panels",
+   "label": "Paragraph Panel",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.panels.glyphs",
+   "area": "menu",
+   "path": "Type > Panels",
+   "label": "Glyphs Panel",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.panels.characterStyles",
+   "area": "menu",
+   "path": "Type > Panels",
+   "label": "Character Styles Panel",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.panels.paragraphStyles",
+   "area": "menu",
+   "path": "Type > Panels",
+   "label": "Paragraph Styles Panel",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.antiAlias.none",
+   "area": "menu",
+   "path": "Type > Anti-Alias",
+   "label": "None",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.antiAlias.sharp",
+   "area": "menu",
+   "path": "Type > Anti-Alias",
+   "label": "Sharp",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.antiAlias.crisp",
+   "area": "menu",
+   "path": "Type > Anti-Alias",
+   "label": "Crisp",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.antiAlias.strong",
+   "area": "menu",
+   "path": "Type > Anti-Alias",
+   "label": "Strong",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.antiAlias.smooth",
+   "area": "menu",
+   "path": "Type > Anti-Alias",
+   "label": "Smooth",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.antiAlias.windowsLcd",
+   "area": "menu",
+   "path": "Type > Anti-Alias",
+   "label": "Windows LCD",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.antiAlias.windows",
+   "area": "menu",
+   "path": "Type > Anti-Alias",
+   "label": "Windows",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.orientation.horizontal",
+   "area": "menu",
+   "path": "Type > Orientation",
+   "label": "Horizontal",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.orientation.vertical",
+   "area": "menu",
+   "path": "Type > Orientation",
+   "label": "Vertical",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.openType.standardLigatures",
+   "area": "menu",
+   "path": "Type > OpenType",
+   "label": "Standard Ligatures",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.openType.contextualAlternates",
+   "area": "menu",
+   "path": "Type > OpenType",
+   "label": "Contextual Alternates",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.openType.discretionaryLigatures",
+   "area": "menu",
+   "path": "Type > OpenType",
+   "label": "Discretionary Ligatures",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.openType.swash",
+   "area": "menu",
+   "path": "Type > OpenType",
+   "label": "Swash",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.openType.oldstyle",
+   "area": "menu",
+   "path": "Type > OpenType",
+   "label": "Oldstyle",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.openType.stylisticAlternates",
+   "area": "menu",
+   "path": "Type > OpenType",
+   "label": "Stylistic Alternates",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.openType.titlingAlternates",
+   "area": "menu",
+   "path": "Type > OpenType",
+   "label": "Titling Alternates",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.openType.ornaments",
+   "area": "menu",
+   "path": "Type > OpenType",
+   "label": "Ornaments",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.openType.ordinals",
+   "area": "menu",
+   "path": "Type > OpenType",
+   "label": "Ordinals",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.openType.fractions",
+   "area": "menu",
+   "path": "Type > OpenType",
+   "label": "Fractions",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.createWorkPath",
+   "area": "menu",
+   "path": "Type",
+   "label": "Create Work Path",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.convertToShape",
+   "area": "menu",
+   "path": "Type",
+   "label": "Convert to Shape",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.rasterizeTypeLayer",
+   "area": "menu",
+   "path": "Type",
+   "label": "Rasterize Type Layer",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.convertToParagraphText",
+   "area": "menu",
+   "path": "Type",
+   "label": "Convert to Paragraph Text",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.convertToPointText",
+   "area": "menu",
+   "path": "Type",
+   "label": "Convert to Point Text",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.warpText",
+   "area": "menu",
+   "path": "Type",
+   "label": "Warp Text…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.fontPreviewSize.small",
+   "area": "menu",
+   "path": "Type > Font Preview Size",
+   "label": "Small",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.fontPreviewSize.medium",
+   "area": "menu",
+   "path": "Type > Font Preview Size",
+   "label": "Medium",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.fontPreviewSize.large",
+   "area": "menu",
+   "path": "Type > Font Preview Size",
+   "label": "Large",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.fontPreviewSize.extraLarge",
+   "area": "menu",
+   "path": "Type > Font Preview Size",
+   "label": "Extra Large",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.fontPreviewSize.huge",
+   "area": "menu",
+   "path": "Type > Font Preview Size",
+   "label": "Huge",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.languageOptions.defaultFeatures",
+   "area": "menu",
+   "path": "Type > Language Options",
+   "label": "Default Features",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.languageOptions.eastAsianFeatures",
+   "area": "menu",
+   "path": "Type > Language Options",
+   "label": "East Asian Features",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.languageOptions.middleEasternFeatures",
+   "area": "menu",
+   "path": "Type > Language Options",
+   "label": "Middle Eastern Features",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.languageOptions.middleEasternAndSouthAsianComposer",
+   "area": "menu",
+   "path": "Type > Language Options",
+   "label": "Middle Eastern & South Asian Composer",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.updateAllTextLayers",
+   "area": "menu",
+   "path": "Type",
+   "label": "Update All Text Layers",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.replaceAllMissingFonts",
+   "area": "menu",
+   "path": "Type",
+   "label": "Replace All Missing Fonts",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.resolveMissingFonts",
+   "area": "menu",
+   "path": "Type",
+   "label": "Resolve Missing Fonts…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.pasteLoremIpsum",
+   "area": "menu",
+   "path": "Type",
+   "label": "Paste Lorem Ipsum",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:type.loadDefaultTypeStyles",
+   "area": "menu",
+   "path": "Type",
+   "label": "Load Default Type Styles",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:type.saveDefaultTypeStyles",
+   "area": "menu",
+   "path": "Type",
+   "label": "Save Default Type Styles",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:select.all",
+   "area": "menu",
+   "path": "Select",
+   "label": "All",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.deselect",
+   "area": "menu",
+   "path": "Select",
+   "label": "Deselect",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.reselect",
+   "area": "menu",
+   "path": "Select",
+   "label": "Reselect",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.inverse",
+   "area": "menu",
+   "path": "Select",
+   "label": "Inverse Selection",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.convertToShape",
+   "area": "menu",
+   "path": "Select",
+   "label": "Convert to Shape",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:select.allLayers",
+   "area": "menu",
+   "path": "Select",
+   "label": "All Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.deselectLayers",
+   "area": "menu",
+   "path": "Select",
+   "label": "Deselect Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.findLayers",
+   "area": "menu",
+   "path": "Select",
+   "label": "Find Layers",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:select.isolateLayers",
+   "area": "menu",
+   "path": "Select",
+   "label": "Isolate Layers",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:select.colorRange",
+   "area": "menu",
+   "path": "Select",
+   "label": "Color Range…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.focusArea",
+   "area": "menu",
+   "path": "Select",
+   "label": "Focus Area…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:select.subject",
+   "area": "menu",
+   "path": "Select",
+   "label": "Subject",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:select.sky",
+   "area": "menu",
+   "path": "Select",
+   "label": "Sky",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:select.selectAndMask",
+   "area": "menu",
+   "path": "Select",
+   "label": "Select and Mask…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:select.modify.border",
+   "area": "menu",
+   "path": "Select > Modify",
+   "label": "Border…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.modify.smooth",
+   "area": "menu",
+   "path": "Select > Modify",
+   "label": "Smooth…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.modify.expand",
+   "area": "menu",
+   "path": "Select > Modify",
+   "label": "Expand…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.modify.contract",
+   "area": "menu",
+   "path": "Select > Modify",
+   "label": "Contract…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.modify.feather",
+   "area": "menu",
+   "path": "Select > Modify",
+   "label": "Feather…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.grow",
+   "area": "menu",
+   "path": "Select",
+   "label": "Grow",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.similar",
+   "area": "menu",
+   "path": "Select",
+   "label": "Similar",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.transformSelection",
+   "area": "menu",
+   "path": "Select",
+   "label": "Transform Selection",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.editInQuickMaskMode",
+   "area": "menu",
+   "path": "Select",
+   "label": "Edit in Quick Mask Mode",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.loadSelection",
+   "area": "menu",
+   "path": "Select",
+   "label": "Load Selection…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:select.saveSelection",
+   "area": "menu",
+   "path": "Select",
+   "label": "Save Selection…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.lastFilter",
+   "area": "menu",
+   "path": "Filter",
+   "label": "Last Filter",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.convertForSmartFilters",
+   "area": "menu",
+   "path": "Filter",
+   "label": "Convert for Smart Filters",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.filterGallery",
+   "area": "menu",
+   "path": "Filter",
+   "label": "Filter Gallery…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.cameraRaw",
+   "area": "menu",
+   "path": "Filter",
+   "label": "Camera Raw Filter…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.adaptiveWideAngle",
+   "area": "menu",
+   "path": "Filter",
+   "label": "Adaptive Wide Angle…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.lensCorrection",
+   "area": "menu",
+   "path": "Filter",
+   "label": "Lens Correction…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.liquify",
+   "area": "menu",
+   "path": "Filter",
+   "label": "Liquify…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.vanishingPoint",
+   "area": "menu",
+   "path": "Filter",
+   "label": "Vanishing Point…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.blur.average",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Average",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blur.blur",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Blur",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blur.blurMore",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Blur More",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blur.boxBlur",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Box Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blur.gaussianBlur",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Gaussian Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blur.lensBlur",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Lens Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blur.motionBlur",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Motion Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blur.radialBlur",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Radial Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blur.shapeBlur",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Shape Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blur.smartBlur",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Smart Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blur.surfaceBlur",
+   "area": "menu",
+   "path": "Filter > Blur",
+   "label": "Surface Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blurGallery.fieldBlur",
+   "area": "menu",
+   "path": "Filter > Blur Gallery",
+   "label": "Field Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blurGallery.irisBlur",
+   "area": "menu",
+   "path": "Filter > Blur Gallery",
+   "label": "Iris Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blurGallery.tiltShift",
+   "area": "menu",
+   "path": "Filter > Blur Gallery",
+   "label": "Tilt-Shift…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.blurGallery.pathBlur",
+   "area": "menu",
+   "path": "Filter > Blur Gallery",
+   "label": "Path Blur…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.blurGallery.spinBlur",
+   "area": "menu",
+   "path": "Filter > Blur Gallery",
+   "label": "Spin Blur…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.distort.displace",
+   "area": "menu",
+   "path": "Filter > Distort",
+   "label": "Displace…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.distort.pinch",
+   "area": "menu",
+   "path": "Filter > Distort",
+   "label": "Pinch…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.distort.polarCoordinates",
+   "area": "menu",
+   "path": "Filter > Distort",
+   "label": "Polar Coordinates…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.distort.ripple",
+   "area": "menu",
+   "path": "Filter > Distort",
+   "label": "Ripple…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.distort.shear",
+   "area": "menu",
+   "path": "Filter > Distort",
+   "label": "Shear…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.distort.spherize",
+   "area": "menu",
+   "path": "Filter > Distort",
+   "label": "Spherize…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.distort.twirl",
+   "area": "menu",
+   "path": "Filter > Distort",
+   "label": "Twirl…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.distort.wave",
+   "area": "menu",
+   "path": "Filter > Distort",
+   "label": "Wave…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.distort.zigZag",
+   "area": "menu",
+   "path": "Filter > Distort",
+   "label": "ZigZag…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.noise.addNoise",
+   "area": "menu",
+   "path": "Filter > Noise",
+   "label": "Add Noise…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.noise.despeckle",
+   "area": "menu",
+   "path": "Filter > Noise",
+   "label": "Despeckle",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.noise.dustAndScratches",
+   "area": "menu",
+   "path": "Filter > Noise",
+   "label": "Dust & Scratches…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.noise.median",
+   "area": "menu",
+   "path": "Filter > Noise",
+   "label": "Median…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.noise.reduceNoise",
+   "area": "menu",
+   "path": "Filter > Noise",
+   "label": "Reduce Noise…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.pixelate.colorHalftone",
+   "area": "menu",
+   "path": "Filter > Pixelate",
+   "label": "Color Halftone…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.pixelate.crystallize",
+   "area": "menu",
+   "path": "Filter > Pixelate",
+   "label": "Crystallize…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.pixelate.facet",
+   "area": "menu",
+   "path": "Filter > Pixelate",
+   "label": "Facet",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.pixelate.fragment",
+   "area": "menu",
+   "path": "Filter > Pixelate",
+   "label": "Fragment",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.pixelate.mezzotint",
+   "area": "menu",
+   "path": "Filter > Pixelate",
+   "label": "Mezzotint…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.pixelate.mosaic",
+   "area": "menu",
+   "path": "Filter > Pixelate",
+   "label": "Mosaic…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.pixelate.pointillize",
+   "area": "menu",
+   "path": "Filter > Pixelate",
+   "label": "Pointillize…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.render.flame",
+   "area": "menu",
+   "path": "Filter > Render",
+   "label": "Flame…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.render.pictureFrame",
+   "area": "menu",
+   "path": "Filter > Render",
+   "label": "Picture Frame…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.render.tree",
+   "area": "menu",
+   "path": "Filter > Render",
+   "label": "Tree…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:filter.render.clouds",
+   "area": "menu",
+   "path": "Filter > Render",
+   "label": "Clouds",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.render.differenceClouds",
+   "area": "menu",
+   "path": "Filter > Render",
+   "label": "Difference Clouds",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.render.fibers",
+   "area": "menu",
+   "path": "Filter > Render",
+   "label": "Fibers…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.render.lensFlare",
+   "area": "menu",
+   "path": "Filter > Render",
+   "label": "Lens Flare…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.render.lightingEffects",
+   "area": "menu",
+   "path": "Filter > Render",
+   "label": "Lighting Effects…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.sharpen.sharpen",
+   "area": "menu",
+   "path": "Filter > Sharpen",
+   "label": "Sharpen",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.sharpen.sharpenEdges",
+   "area": "menu",
+   "path": "Filter > Sharpen",
+   "label": "Sharpen Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.sharpen.sharpenMore",
+   "area": "menu",
+   "path": "Filter > Sharpen",
+   "label": "Sharpen More",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.sharpen.smartSharpen",
+   "area": "menu",
+   "path": "Filter > Sharpen",
+   "label": "Smart Sharpen…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.sharpen.unsharpMask",
+   "area": "menu",
+   "path": "Filter > Sharpen",
+   "label": "Unsharp Mask…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.stylize.diffuse",
+   "area": "menu",
+   "path": "Filter > Stylize",
+   "label": "Diffuse…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.stylize.emboss",
+   "area": "menu",
+   "path": "Filter > Stylize",
+   "label": "Emboss…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.stylize.extrude",
+   "area": "menu",
+   "path": "Filter > Stylize",
+   "label": "Extrude…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.stylize.findEdges",
+   "area": "menu",
+   "path": "Filter > Stylize",
+   "label": "Find Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.stylize.oilPaint",
+   "area": "menu",
+   "path": "Filter > Stylize",
+   "label": "Oil Paint…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.stylize.solarize",
+   "area": "menu",
+   "path": "Filter > Stylize",
+   "label": "Solarize",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.stylize.tiles",
+   "area": "menu",
+   "path": "Filter > Stylize",
+   "label": "Tiles…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.stylize.traceContour",
+   "area": "menu",
+   "path": "Filter > Stylize",
+   "label": "Trace Contour…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.stylize.wind",
+   "area": "menu",
+   "path": "Filter > Stylize",
+   "label": "Wind…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.video.deInterlace",
+   "area": "menu",
+   "path": "Filter > Video",
+   "label": "De-Interlace…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.video.ntscColors",
+   "area": "menu",
+   "path": "Filter > Video",
+   "label": "NTSC Colors",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.other.custom",
+   "area": "menu",
+   "path": "Filter > Other…",
+   "label": "Custom…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.other.hsbHsl",
+   "area": "menu",
+   "path": "Filter > Other…",
+   "label": "HSB/HSL",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.other.highPass",
+   "area": "menu",
+   "path": "Filter > Other…",
+   "label": "High Pass…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.other.maximum",
+   "area": "menu",
+   "path": "Filter > Other…",
+   "label": "Maximum…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.other.minimum",
+   "area": "menu",
+   "path": "Filter > Other…",
+   "label": "Minimum…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:filter.other.offset",
+   "area": "menu",
+   "path": "Filter > Other…",
+   "label": "Offset…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.proofSetup.custom",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Custom…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.workingCmyk",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Working CMYK",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.workingCyanPlate",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Working Cyan Plate",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.workingMagentaPlate",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Working Magenta Plate",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.workingYellowPlate",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Working Yellow Plate",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.workingBlackPlate",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Working Black Plate",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.workingCmyPlate",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Working CMY Plate",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.legacyMacintoshRgb",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Legacy Macintosh RGB",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.internetStandardRgb",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Internet Standard RGB",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.monitorRgb",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Monitor RGB",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.colorBlindnessProtanopia",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Color Blindness — Protanopia-type",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofSetup.colorBlindnessDeuteranopia",
+   "area": "menu",
+   "path": "View > Proof Setup",
+   "label": "Color Blindness — Deuteranopia-type",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.proofColors",
+   "area": "menu",
+   "path": "View",
+   "label": "Proof Colors",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.gamutWarning",
+   "area": "menu",
+   "path": "View",
+   "label": "Gamut Warning",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelAspectRatio.custom",
+   "area": "menu",
+   "path": "View > Pixel Aspect Ratio",
+   "label": "Custom Pixel Aspect Ratio…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelAspectRatio.square",
+   "area": "menu",
+   "path": "View > Pixel Aspect Ratio",
+   "label": "Square",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelAspectRatio.d1DvNtsc",
+   "area": "menu",
+   "path": "View > Pixel Aspect Ratio",
+   "label": "D1/DV NTSC (0.91)",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelAspectRatio.d1DvPal",
+   "area": "menu",
+   "path": "View > Pixel Aspect Ratio",
+   "label": "D1/DV PAL (1.09)",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelAspectRatio.d1DvNtscWidescreen",
+   "area": "menu",
+   "path": "View > Pixel Aspect Ratio",
+   "label": "D1/DV NTSC Widescreen (1.21)",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelAspectRatio.hdv1080",
+   "area": "menu",
+   "path": "View > Pixel Aspect Ratio",
+   "label": "HDV 1080/DVCPRO HD 720 (1.33)",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelAspectRatio.d1DvPalWidescreen",
+   "area": "menu",
+   "path": "View > Pixel Aspect Ratio",
+   "label": "D1/DV PAL Widescreen (1.46)",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelAspectRatio.dvcproHd1080",
+   "area": "menu",
+   "path": "View > Pixel Aspect Ratio",
+   "label": "DVCPRO HD 1080/HDV 1080 (1.5)",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelAspectRatio.anamorphic2To1",
+   "area": "menu",
+   "path": "View > Pixel Aspect Ratio",
+   "label": "Anamorphic 2:1 (2)",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelAspectRatioCorrection",
+   "area": "menu",
+   "path": "View",
+   "label": "Pixel Aspect Ratio Correction",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.thirtyTwoBitPreviewOptions",
+   "area": "menu",
+   "path": "View",
+   "label": "32-bit Preview Options…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.zoomIn",
+   "area": "menu",
+   "path": "View",
+   "label": "Zoom In",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.zoomOut",
+   "area": "menu",
+   "path": "View",
+   "label": "Zoom Out",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.fitOnScreen",
+   "area": "menu",
+   "path": "View",
+   "label": "Fit on Screen",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.fitLayersOnScreen",
+   "area": "menu",
+   "path": "View",
+   "label": "Fit Layer(s) on Screen",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.fitArtboardOnScreen",
+   "area": "menu",
+   "path": "View",
+   "label": "Fit Artboard on Screen",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.actualPixels",
+   "area": "menu",
+   "path": "View",
+   "label": "100%",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.twoHundredPercent",
+   "area": "menu",
+   "path": "View",
+   "label": "200%",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.printSize",
+   "area": "menu",
+   "path": "View",
+   "label": "Print Size",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.flipHorizontal",
+   "area": "menu",
+   "path": "View",
+   "label": "Flip Horizontal",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.screenMode.standard",
+   "area": "menu",
+   "path": "View > Screen Mode",
+   "label": "Standard Screen Mode",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.screenMode.fullScreenWithMenuBar",
+   "area": "menu",
+   "path": "View > Screen Mode",
+   "label": "Full Screen Mode With Menu Bar",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.screenMode.fullScreen",
+   "area": "menu",
+   "path": "View > Screen Mode",
+   "label": "Full Screen Mode",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.extras",
+   "area": "menu",
+   "path": "View",
+   "label": "Extras",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.show.layerEdges",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Layer Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.show.selectionEdges",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Selection Edges",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.show.targetPath",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Target Path",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.show.grid",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Grid",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.show.guides",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Guides",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.show.canvasGuides",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Canvas Guides",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.show.artboardGuides",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Artboard Guides",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.show.count",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Count",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.show.smartGuides",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Smart Guides",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.show.slices",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Slices",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.show.notes",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Notes",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.show.pixelGrid",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Pixel Grid",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.show.brushPreview",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Brush Preview",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.show.mesh",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Mesh",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.show.editPins",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Edit Pins",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.show.all",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "All",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.show.showExtrasOptions",
+   "area": "menu",
+   "path": "View > Show",
+   "label": "Show Extras Options…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.rulers",
+   "area": "menu",
+   "path": "View",
+   "label": "Rulers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.snap",
+   "area": "menu",
+   "path": "View",
+   "label": "Snap",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.snapTo.guides",
+   "area": "menu",
+   "path": "View > Snap To",
+   "label": "Guides",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.snapTo.grid",
+   "area": "menu",
+   "path": "View > Snap To",
+   "label": "Grid",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.snapTo.layers",
+   "area": "menu",
+   "path": "View > Snap To",
+   "label": "Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.snapTo.slices",
+   "area": "menu",
+   "path": "View > Snap To",
+   "label": "Slices",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.snapTo.documentBounds",
+   "area": "menu",
+   "path": "View > Snap To",
+   "label": "Document Bounds",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.snapTo.all",
+   "area": "menu",
+   "path": "View > Snap To",
+   "label": "All",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.lockGuides",
+   "area": "menu",
+   "path": "View",
+   "label": "Lock Guides",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.clearGuides",
+   "area": "menu",
+   "path": "View",
+   "label": "Clear Guides",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.clearSelectedArtboardGuides",
+   "area": "menu",
+   "path": "View",
+   "label": "Clear Selected Artboard Guides",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.clearCanvasGuides",
+   "area": "menu",
+   "path": "View",
+   "label": "Clear Canvas Guides",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.newGuide",
+   "area": "menu",
+   "path": "View",
+   "label": "New Guide…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.newGuideLayout",
+   "area": "menu",
+   "path": "View",
+   "label": "New Guide Layout…",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:view.newGuidesFromShape",
+   "area": "menu",
+   "path": "View",
+   "label": "New Guides From Shape",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.lockSlices",
+   "area": "menu",
+   "path": "View",
+   "label": "Lock Slices",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.clearSlices",
+   "area": "menu",
+   "path": "View",
+   "label": "Clear Slices",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.patternPreview",
+   "area": "menu",
+   "path": "View",
+   "label": "Pattern Preview",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:view.pixelArtPreview",
+   "area": "menu",
+   "path": "View",
+   "label": "Pixel Art Preview",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.arrange.tileAllVertically",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Tile All Vertically",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.tileAllHorizontally",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Tile All Horizontally",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.twoUpVertical",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "2-up Vertical",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.twoUpHorizontal",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "2-up Horizontal",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.threeUpVertical",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "3-up Vertical",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.threeUpHorizontal",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "3-up Horizontal",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.threeUpStacked",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "3-up Stacked",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.fourUp",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "4-up",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.sixUp",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "6-up",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.consolidateAllToTabs",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Consolidate All to Tabs",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.cascade",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Cascade",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.tile",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Tile",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.floatInWindow",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Float in Window",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.floatAllInWindows",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Float All in Windows",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.newWindowForDocument",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "New Window for Document",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.matchZoom",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Match Zoom",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.matchLocation",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Match Location",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.matchRotation",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Match Rotation",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.arrange.matchAll",
+   "area": "menu",
+   "path": "Window > Arrange",
+   "label": "Match All",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.workspace.essentials",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "Essentials",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.workspace.photography",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "Photography",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.workspace.painting",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "Painting",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.workspace.pixelArt",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "Pixel Art",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.workspace.graphicAndWeb",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "Graphic and Web",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.workspace.motion",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "Motion",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.workspace.resetWorkspace",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "Reset Workspace",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.workspace.newWorkspace",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "New Workspace…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.workspace.deleteWorkspace",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "Delete Workspace…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:edit.keyboardShortcuts",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "Keyboard Shortcuts…",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.workspace.lockWorkspace",
+   "area": "menu",
+   "path": "Window > Workspace",
+   "label": "Lock Workspace",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.panel.actions",
+   "area": "menu",
+   "path": "Window",
+   "label": "Actions",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.panel.adjustments",
+   "area": "menu",
+   "path": "Window",
+   "label": "Adjustments",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.brushSettings",
+   "area": "menu",
+   "path": "Window",
+   "label": "Brush Settings",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.brushes",
+   "area": "menu",
+   "path": "Window",
+   "label": "Brushes",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.channels",
+   "area": "menu",
+   "path": "Window",
+   "label": "Channels",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.character",
+   "area": "menu",
+   "path": "Window",
+   "label": "Character",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.characterStyles",
+   "area": "menu",
+   "path": "Window",
+   "label": "Character Styles",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.panel.cloneSource",
+   "area": "menu",
+   "path": "Window",
+   "label": "Clone Source",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.color",
+   "area": "menu",
+   "path": "Window",
+   "label": "Color",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.glyphs",
+   "area": "menu",
+   "path": "Window",
+   "label": "Glyphs",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.panel.gradients",
+   "area": "menu",
+   "path": "Window",
+   "label": "Gradients",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.histogram",
+   "area": "menu",
+   "path": "Window",
+   "label": "Histogram",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.history",
+   "area": "menu",
+   "path": "Window",
+   "label": "History",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.info",
+   "area": "menu",
+   "path": "Window",
+   "label": "Info",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.layerComps",
+   "area": "menu",
+   "path": "Window",
+   "label": "Layer Comps",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.panel.layers",
+   "area": "menu",
+   "path": "Window",
+   "label": "Layers",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.measurementLog",
+   "area": "menu",
+   "path": "Window",
+   "label": "Measurement Log",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.panel.modifierKeys",
+   "area": "menu",
+   "path": "Window",
+   "label": "Modifier Keys",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.panel.navigator",
+   "area": "menu",
+   "path": "Window",
+   "label": "Navigator",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.notes",
+   "area": "menu",
+   "path": "Window",
+   "label": "Notes",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.panel.paragraph",
+   "area": "menu",
+   "path": "Window",
+   "label": "Paragraph",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.paragraphStyles",
+   "area": "menu",
+   "path": "Window",
+   "label": "Paragraph Styles",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.panel.paths",
+   "area": "menu",
+   "path": "Window",
+   "label": "Paths",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.patterns",
+   "area": "menu",
+   "path": "Window",
+   "label": "Patterns",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.properties",
+   "area": "menu",
+   "path": "Window",
+   "label": "Properties",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.shapes",
+   "area": "menu",
+   "path": "Window",
+   "label": "Shapes",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.styles",
+   "area": "menu",
+   "path": "Window",
+   "label": "Styles",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.swatches",
+   "area": "menu",
+   "path": "Window",
+   "label": "Swatches",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.timeline",
+   "area": "menu",
+   "path": "Window",
+   "label": "Timeline",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "menu:window.panel.toolPresets",
+   "area": "menu",
+   "path": "Window",
+   "label": "Tool Presets",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.options",
+   "area": "menu",
+   "path": "Window",
+   "label": "Options",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "menu:window.panel.tools",
+   "area": "menu",
+   "path": "Window",
+   "label": "Tools",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:move",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Move",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:artboard",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Artboard",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "tool:rectmarquee",
+   "area": "tool",
+   "path": "Tools",
+   "label": "RectMarquee",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:ellipsemarquee",
+   "area": "tool",
+   "path": "Tools",
+   "label": "EllipseMarquee",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:singlerowmarquee",
+   "area": "tool",
+   "path": "Tools",
+   "label": "SingleRowMarquee",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:singlecolumnmarquee",
+   "area": "tool",
+   "path": "Tools",
+   "label": "SingleColumnMarquee",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:lasso",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Lasso",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:polygonlasso",
+   "area": "tool",
+   "path": "Tools",
+   "label": "PolygonLasso",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:magneticlasso",
+   "area": "tool",
+   "path": "Tools",
+   "label": "MagneticLasso",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:magicwand",
+   "area": "tool",
+   "path": "Tools",
+   "label": "MagicWand",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:crop",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Crop",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:perspectivecrop",
+   "area": "tool",
+   "path": "Tools",
+   "label": "PerspectiveCrop",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:eyedropper",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Eyedropper",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:colorsampler",
+   "area": "tool",
+   "path": "Tools",
+   "label": "ColorSampler",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:ruler",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Ruler",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:note",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Note",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:count",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Count",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:brush",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Brush",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:pencil",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Pencil",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:mixerbrush",
+   "area": "tool",
+   "path": "Tools",
+   "label": "MixerBrush",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:colorreplacement",
+   "area": "tool",
+   "path": "Tools",
+   "label": "ColorReplacement",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:eraser",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Eraser",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:backgrounderaser",
+   "area": "tool",
+   "path": "Tools",
+   "label": "BackgroundEraser",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:magiceraser",
+   "area": "tool",
+   "path": "Tools",
+   "label": "MagicEraser",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:gradient",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Gradient",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:paintbucket",
+   "area": "tool",
+   "path": "Tools",
+   "label": "PaintBucket",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:type",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Type",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:verticaltype",
+   "area": "tool",
+   "path": "Tools",
+   "label": "VerticalType",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:horizontaltypemask",
+   "area": "tool",
+   "path": "Tools",
+   "label": "HorizontalTypeMask",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:verticaltypemask",
+   "area": "tool",
+   "path": "Tools",
+   "label": "VerticalTypeMask",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:hand",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Hand",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:rotateview",
+   "area": "tool",
+   "path": "Tools",
+   "label": "RotateView",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:zoom",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Zoom",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:remove",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Remove",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "tool:spothealing",
+   "area": "tool",
+   "path": "Tools",
+   "label": "SpotHealing",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:healing",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Healing",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:patch",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Patch",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:contentawaremove",
+   "area": "tool",
+   "path": "Tools",
+   "label": "ContentAwareMove",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "tool:redeye",
+   "area": "tool",
+   "path": "Tools",
+   "label": "RedEye",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:clonestamp",
+   "area": "tool",
+   "path": "Tools",
+   "label": "CloneStamp",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:patternstamp",
+   "area": "tool",
+   "path": "Tools",
+   "label": "PatternStamp",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:historybrush",
+   "area": "tool",
+   "path": "Tools",
+   "label": "HistoryBrush",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:blur",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Blur",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:sharpen",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Sharpen",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:smudge",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Smudge",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:dodge",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Dodge",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:burn",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Burn",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:sponge",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Sponge",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:quickselection",
+   "area": "tool",
+   "path": "Tools",
+   "label": "QuickSelection",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:objectselection",
+   "area": "tool",
+   "path": "Tools",
+   "label": "ObjectSelection",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "tool:pen",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Pen",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:freeformpen",
+   "area": "tool",
+   "path": "Tools",
+   "label": "FreeformPen",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:curvaturepen",
+   "area": "tool",
+   "path": "Tools",
+   "label": "CurvaturePen",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:addanchorpoint",
+   "area": "tool",
+   "path": "Tools",
+   "label": "AddAnchorPoint",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:deleteanchorpoint",
+   "area": "tool",
+   "path": "Tools",
+   "label": "DeleteAnchorPoint",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:convertpoint",
+   "area": "tool",
+   "path": "Tools",
+   "label": "ConvertPoint",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:pathselection",
+   "area": "tool",
+   "path": "Tools",
+   "label": "PathSelection",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:directselection",
+   "area": "tool",
+   "path": "Tools",
+   "label": "DirectSelection",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:rectangle",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Rectangle",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:ellipseshape",
+   "area": "tool",
+   "path": "Tools",
+   "label": "EllipseShape",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:triangle",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Triangle",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:polygon",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Polygon",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:line",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Line",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:customshape",
+   "area": "tool",
+   "path": "Tools",
+   "label": "CustomShape",
+   "scope": "in",
+   "impl": true,
+   "done": true
+  },
+  {
+   "id": "tool:slice",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Slice",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "tool:sliceselect",
+   "area": "tool",
+   "path": "Tools",
+   "label": "SliceSelect",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  },
+  {
+   "id": "tool:frame",
+   "area": "tool",
+   "path": "Tools",
+   "label": "Frame",
+   "scope": "out",
+   "impl": false,
+   "done": false
+  }
+ ]
+}

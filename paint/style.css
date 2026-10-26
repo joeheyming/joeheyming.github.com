@@ -11,9 +11,11 @@
   --accent: var(--accent-primary);
   --accent-2: var(--accent-primary-hover);
   --border: var(--hairline);
-  --header-h: 52px;
-  --palette-h: 52px;
-  --layer-panel-w: 200px;
+  --menu-bar-h: 32px;
+  --options-bar-h: 36px;
+  --doc-tab-h: 28px;
+  --status-h: 30px;
+  --layer-panel-w: 280px;
 }
 
 *,
@@ -39,65 +41,29 @@ body {
 /* ── Layout ─────────────────────────────────── */
 
 .paint-layout {
+  /* PhotoCraft Pro palette (docs/ui-design.md); the rest of the site keeps brand.css */
+  --pc-panel: #323232;
+  --pc-surround: #262626;
+  --pc-border: #4a4a4a;
+  --pc-text: #e8e8e8;
+  --pc-accent: #378ef0;
+  --bg-0: var(--pc-surround);
+  --bg-1: var(--pc-surround);
+  --bg-2: var(--pc-panel);
+  --fg: var(--pc-text);
+  --border: var(--pc-border);
+  --hairline: var(--pc-border);
+  --hairline-strong: var(--pc-border);
+  --accent: var(--pc-accent);
+  --accent-2: #5aa3f4;
+  --accent-primary: var(--pc-accent);
+  --accent-primary-hover: #5aa3f4;
+  --accent-primary-soft: rgba(55, 142, 240, 0.2);
   display: flex;
   flex-direction: column;
   height: 100vh;
-}
-
-/* ── Header / toolbar ───────────────────────── */
-
-.paint-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  /* leave room for the compact back button (fixed: left:10px, ~80px wide) */
-  padding-left: 90px;
-  height: var(--header-h);
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  overflow: visible;
-}
-
-.paint-title-wrap {
-  margin: 0;
-  font-size: inherit;
-  font-weight: inherit;
-  line-height: inherit;
-}
-
-.paint-seo-intro {
-  font-size: 12px;
-  color: var(--fg-muted, #94a3b8);
-  max-width: 14rem;
-  line-height: 1.3;
-  margin: 0;
-  flex-shrink: 1;
-}
-
-.paint-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--fg);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.paint-title span {
-  font-size: 20px;
-}
-
-.header-sep {
-  width: 1px;
-  height: 28px;
-  background: var(--border);
-  margin: 0 2px;
-  flex-shrink: 0;
+  background: var(--pc-surround);
+  color: var(--pc-text);
 }
 
 /* Tool buttons — lives in the left panel, stacked vertically */
@@ -113,6 +79,11 @@ body {
   justify-content: center;
   width: 36px;
   height: 36px;
+  /* brand.css :where(button) padding loads after the universal reset and
+     would shrink this fixed box to a sliver, clipping the icon. */
+  padding: 0;
+  overflow: visible;
+  line-height: 0;
   border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
@@ -121,6 +92,14 @@ body {
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s;
   flex-shrink: 0;
+}
+
+.tool-btn svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .tool-btn:hover {
@@ -133,7 +112,95 @@ body {
   color: var(--accent);
 }
 
-/* Per-tool options bar */
+/* A slot with more than one tool: PhotoCraft's corner triangle, and its flyout */
+.tool-slot {
+  position: relative;
+}
+.tool-btn.has-flyout::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  border-style: solid;
+  border-width: 0 0 4px 4px;
+  border-color: transparent transparent currentColor transparent;
+  opacity: 0.7;
+}
+.tool-flyout {
+  position: fixed;
+  z-index: 1000;
+  min-width: 220px;
+  padding: 4px 0;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.tool-flyout[hidden] {
+  display: none;
+}
+.tool-flyout-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.tool-flyout-item:hover {
+  background: var(--accent-primary-soft);
+}
+.tool-flyout-item[aria-checked='true'] {
+  color: var(--accent);
+}
+.tool-flyout-name {
+  flex: 1;
+}
+.tool-flyout-key {
+  opacity: 0.6;
+}
+
+/* ── Document tab: under the menu bar ── */
+.doc-tab {
+  display: flex;
+  align-items: flex-end;
+  height: var(--doc-tab-h);
+  /* clear the fixed nav toggle like the menu bar */
+  padding: 0 10px 0 120px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.doc-tab-title {
+  padding: 4px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  color: var(--fg);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ── Options bar: full width under the menu bar ── */
+.options-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--options-bar-h);
+  /* the fixed nav toggle still reaches this row, so clear it like the menu bar */
+  padding: 4px 10px 4px 120px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* Per-tool options */
 .tool-options {
   display: flex;
   align-items: center;
@@ -178,12 +245,36 @@ body {
   font-size: 12px;
   cursor: pointer;
 }
+.tool-opt input[type='number'] {
+  width: 62px;
+  background: var(--bg-3);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.tool-opt input:disabled,
+.tool-opt-icon:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .tool-opt-value {
   min-width: 22px;
   text-align: right;
   font-size: 12px;
   color: var(--fg);
   font-variant-numeric: tabular-nums;
+}
+/* Read-only readouts (Ruler X, Y, W, H, A, L1) */
+.tool-opt-readout-label {
+  color: var(--fg-dim);
+  font-size: 12px;
+}
+.tool-opt-readout .tool-opt-value {
+  min-width: 48px;
+  font-family: ui-monospace, monospace;
 }
 .tool-opt-hint {
   color: var(--fg-dim);
@@ -194,6 +285,113 @@ body {
   user-select: none;
 }
 
+/* Icon toggle row (Gradient Shape) */
+.tool-opt-icons {
+  display: flex;
+  gap: 2px;
+}
+.tool-opt-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  line-height: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+}
+.tool-opt-icon:hover {
+  background: var(--bg-3);
+  color: var(--fg);
+}
+.tool-opt-icon[aria-checked='true'],
+.tool-opt-icon[aria-pressed='true'] {
+  background: var(--bg-3);
+  border-color: var(--accent);
+  color: var(--fg);
+}
+.tool-opt-icon svg {
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.tool-opt-button {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-2);
+  color: var(--fg);
+  font-size: 12px;
+  cursor: pointer;
+}
+.tool-opt-button:hover {
+  background: var(--bg-3);
+}
+
+.tool-opt-swatch-box {
+  position: relative;
+}
+.tool-opt-swatch,
+.tool-opt-swatch-item {
+  /* The ramp fills the swatch; a transparent preset's checker layer tiles 4px cells. */
+  background-size: 100% 100%, 8px 8px;
+}
+.tool-opt-swatch {
+  width: 96px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.tool-opt-swatch:hover,
+.tool-opt-swatch[aria-expanded='true'] {
+  border-color: var(--accent);
+}
+.tool-opt-swatch-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.tool-opt-swatch-list[hidden] {
+  display: none;
+}
+.tool-opt-swatch-group {
+  display: grid;
+  grid-template-columns: repeat(6, 32px);
+  gap: 3px;
+}
+.tool-opt-swatch-item {
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.tool-opt-swatch-item:hover,
+.tool-opt-swatch-item:focus-visible {
+  border-color: var(--fg);
+}
+.tool-opt-swatch-item[aria-selected='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
 /* Zoom controls */
 .zoom-group {
   display: flex;
@@ -202,8 +400,8 @@ body {
   flex-shrink: 0;
 }
 .zoom-btn {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--bg-3);
@@ -217,7 +415,7 @@ body {
 #btn-zoom-reset {
   font-size: 12px;
   width: auto;
-  min-width: 26px;
+  min-width: 22px;
   padding: 0 4px;
 }
 .zoom-btn:hover {
@@ -231,45 +429,80 @@ body {
   white-space: nowrap;
 }
 
-/* Action buttons */
-.action-group {
+/* ── Menu bar ───────────────────────────────── */
+
+.menu-bar {
   display: flex;
-  gap: 4px;
-  margin-left: auto;
+  align-items: center;
+  gap: 2px;
+  height: var(--menu-bar-h);
+  /* clear the nav toggle on the left and the share / feedback cluster on the right */
+  padding: 0 80px 0 120px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  height: 30px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  background: var(--bg-3);
+/* Share (🔗) and the related-projects button (Feedback lives in its panel)
+   sit in the menu bar's top-right instead of over the canvas. share.js
+   anchors them bottom-right, so these overrides have to win. */
+.related-projects-container {
+  top: 2px !important;
+  right: 8px !important;
+  bottom: auto !important;
+  display: block !important;
+}
+
+.related-projects-toggle {
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 14px !important;
+}
+
+.related-projects-container .share-fab {
+  top: 0 !important;
+  bottom: auto !important;
+  right: 34px !important;
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 14px !important;
+}
+
+.related-projects-panel {
+  top: 36px !important;
+  bottom: auto !important;
+  transform: translateY(-8px) scale(0.95) !important;
+}
+
+.related-projects-panel.open {
+  transform: translateY(0) scale(1) !important;
+}
+
+.menu-bar-btn {
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
   color: var(--fg);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.1s, border-color 0.1s;
 }
-.action-btn:hover {
-  background: var(--bg-1);
-  border-color: var(--fg-dim);
+.menu-bar-btn:hover,
+.menu-bar-btn[aria-expanded='true'] {
+  background: var(--bg-3);
 }
-.action-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
+
+.menu-bar .action-menu-list {
+  top: calc(100% + 2px);
+  left: 0;
+  right: auto;
 }
-.action-btn.danger:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-.action-caret {
-  font-size: 9px;
-  opacity: 0.7;
-  margin-left: 1px;
+/* Image › Adjustments holds the long adjustment list; it has no flyouts, so it can scroll */
+.has-submenu[data-menu-path='Image > Adjustments'] > .action-submenu {
+  max-height: calc(100vh - var(--menu-bar-h) - 48px);
+  overflow-y: auto;
 }
 
 .action-menu {
@@ -306,6 +539,47 @@ body {
 }
 .action-menu-item:hover {
   background: var(--bg-3);
+}
+.action-menu-item:disabled {
+  opacity: 0.35;
+  cursor: default;
+  background: transparent;
+}
+.action-menu-item.danger:hover {
+  color: var(--danger);
+}
+/* The page title is for Search and screen readers; PhotoCraft's window has no title row. */
+.paint-sr-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.menu-label {
+  flex: 1;
+}
+.menu-shortcut {
+  margin-left: 24px;
+  color: var(--fg-dim);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.action-menu-item[role='menuitemcheckbox']::before,
+.action-menu-item[role='menuitemradio']::before {
+  content: '';
+  width: 12px;
+  margin-left: -4px;
+}
+.action-menu-item[aria-checked='true']::before {
+  content: '✓';
+}
+.action-menu-item[role='menuitemradio'][aria-checked='true']::before {
+  content: '•';
 }
 
 /* Flyout submenu */
@@ -344,6 +618,24 @@ body {
   background: var(--border);
   margin: 4px 0;
 }
+.action-menu-field {
+  display: flex;
+  margin: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  color: var(--fg-dim);
+  font-size: 13px;
+}
+.action-menu-field input {
+  width: 56px;
+  padding: 2px 4px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+  font: inherit;
+}
 
 .adjust-field {
   display: grid;
@@ -367,6 +659,52 @@ body {
 }
 #adjust-modal .modal-box {
   min-width: 360px;
+}
+
+/* Filter › Blur Gallery: the selected pin's sliders at the canvas column's right edge. */
+.blur-gallery-panel {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 20;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+}
+.blur-gallery-panel[hidden] {
+  display: none;
+}
+.blur-gallery-panel .adjust-field {
+  grid-template-columns: 70px 1fr 44px;
+}
+.blur-gallery-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+.blur-gallery-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.blur-gallery-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+/* Filter › Liquify: the tool strip wraps; the chosen tool takes the accent. */
+.liquify-tools {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.liquify-tools button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 #adjust-modal-fields {
   display: flex;
@@ -403,15 +741,26 @@ input[type='file'].hidden-file {
 .paint-body {
   flex: 1;
   display: flex;
+  min-height: 0;
   overflow: hidden;
 }
 
 /* ── Canvas area ────────────────────────────── */
 
+.canvas-column {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 #canvas-area {
   flex: 1;
+  min-height: 0;
   overflow: auto;
-  background: var(--bg-3);
+  background: var(--pc-surround);
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
@@ -559,267 +908,61 @@ input[type='file'].hidden-file {
   background: color-mix(in srgb, var(--accent-primary) 35%, transparent);
 }
 
-/* ── Right panel (always visible) ───────────── */
-
-.right-panel {
-  width: var(--layer-panel-w);
-  background: var(--bg-2);
-  border-left: 1px solid var(--border);
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Accordion sections */
-.panel-section {
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid var(--border);
-  min-height: 0;
-}
-
-.panel-section.expanded {
-  flex: 1;
-}
-
-.panel-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 7px 10px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  color: var(--fg-dim);
-  text-transform: uppercase;
-  flex-shrink: 0;
-  user-select: none;
-}
-.panel-section-header:hover {
+/* Custom tips. The browser's native title waits about a second; this one does not. */
+.paint-tooltip {
+  position: fixed;
+  z-index: 4000;
+  max-width: 280px;
+  padding: 3px 8px;
+  background: var(--bg-1);
   color: var(--fg);
-}
-
-.panel-chevron {
+  border: 1px solid var(--border);
+  border-radius: 3px;
   font-size: 12px;
-  transition: transform 0.15s;
-  color: var(--fg-dim);
+  line-height: 1.3;
+  pointer-events: none;
+  white-space: nowrap;
 }
-.panel-section.collapsed .panel-chevron {
-  transform: rotate(-90deg);
-}
-
-.panel-section-body {
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-}
-.panel-section.collapsed .panel-section-body {
+.paint-tooltip[hidden] {
   display: none;
 }
 
-/* Layers inside panel */
-#layer-list-container {
-  padding: 6px;
-}
+/* ── Tool-column color chips ───────────────── */
 
-.layer-list {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.layer-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 5px;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.1s;
-  min-width: 0;
-}
-.layer-row:hover {
-  background: var(--bg-3);
-}
-.layer-row.active {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
-}
-
-.layer-vis-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
-  padding: 0;
-  flex-shrink: 0;
-  color: var(--fg);
-}
-
-.layer-thumb {
-  flex-shrink: 0;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  image-rendering: pixelated;
-}
-
-.layer-name-wrap {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.layer-name {
-  font-size: 12px;
-  color: var(--fg);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.layer-opacity {
-  width: 100%;
-  height: 3px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-.layer-blend {
-  width: 100%;
-  height: 18px;
-  background: var(--bg-3);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  font-size: 12px;
-  padding: 0 2px;
-  cursor: pointer;
-}
-.layer-blend:hover {
-  border-color: var(--fg-dim);
-}
-
-.layer-move-wrap {
-  display: flex;
-  gap: 2px;
+/* Foreground in front at the top-left, background offset down and right. */
+.fb-wrap {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  /* Room above the chips for the Default / Switch Colors buttons. */
+  margin-top: 24px;
   flex-shrink: 0;
 }
-.layer-move-btn,
-.layer-del-btn {
-  width: 18px;
-  height: 18px;
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  color: var(--fg-dim);
-  cursor: pointer;
-  font-size: 12px;
+/* Default Colors (left) and Switch Colors (right) sit above the chips, as in PhotoCraft. */
+.fb-chip-btn {
+  position: absolute;
+  top: -16px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.layer-move-btn:hover {
-  color: var(--fg);
-  border-color: var(--fg-dim);
-}
-.layer-del-btn:hover {
-  color: var(--danger);
-  border-color: var(--danger);
-}
-.layer-del-btn:disabled,
-.layer-move-btn:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.layer-panel-footer {
-  padding: 6px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.layer-add-btn {
-  width: 100%;
-  padding: 5px;
-  background: var(--bg-3);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--fg);
-  cursor: pointer;
-  font-size: 12px;
-}
-.layer-add-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-/* History panel */
-.history-list {
-  display: flex;
-  flex-direction: column;
-  padding: 4px 6px;
-  gap: 1px;
-}
-
-.history-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 7px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
   color: var(--fg-dim);
-  transition: background 0.1s;
+  line-height: 0;
+  cursor: pointer;
 }
-.history-item:hover {
-  background: var(--bg-3);
-  color: var(--fg);
+.fb-chip-btn:hover {
+  color: var(--pure-white);
 }
-.history-item.current {
-  color: var(--fg);
-  font-weight: 600;
+.fb-default {
+  left: 0;
 }
-.history-item.future {
-  opacity: 0.35;
-}
-
-.history-icon {
-  font-size: 13px;
-  flex-shrink: 0;
-}
-
-/* ── Palette bar ────────────────────────────── */
-
-.palette-bar-outer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  height: var(--palette-h);
-  background: var(--bg-2);
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-#palette-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-}
-
-.fb-wrap {
-  position: relative;
-  width: 44px;
-  height: 34px;
-  flex-shrink: 0;
+.fb-swap {
+  right: 0;
 }
 .fb-swatch {
   position: absolute;
@@ -855,23 +998,29 @@ input[type='file'].hidden-file {
   pointer-events: none;
 }
 
+/* Swatches tab in the dock */
+.palette-dock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+}
+
 .palette-sep {
-  width: 1px;
-  height: 28px;
+  width: 100%;
+  height: 1px;
   background: var(--border);
   flex-shrink: 0;
 }
 
 .swatch-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 16px);
   gap: 2px;
-  flex: 1;
-  min-width: 0;
 }
 .color-swatch {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border: 1px solid var(--hairline);
   border-radius: 2px;
   cursor: pointer;
@@ -886,13 +1035,14 @@ input[type='file'].hidden-file {
 }
 
 .color-history {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 16px);
   gap: 2px;
   flex-shrink: 0;
 }
 .history-swatch {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border: 1px solid var(--hairline-strong);
   border-radius: 2px;
   cursor: pointer;
@@ -905,17 +1055,27 @@ input[type='file'].hidden-file {
   z-index: 1;
 }
 
+/* ── Status bar: last row of the canvas column ── */
+
 .status-bar {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 0 10px;
+  height: var(--status-h);
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
   flex-shrink: 0;
+  overflow: hidden;
   color: var(--fg-dim);
   font-size: 12px;
   white-space: nowrap;
+}
+.status-bar .zoom-group {
   margin-left: auto;
 }
-#status-size:not([hidden])::before {
+#status-size:not([hidden])::before,
+#status-message:not([hidden])::before {
   content: '·';
   margin-right: 8px;
   opacity: 0.5;
@@ -951,6 +1111,59 @@ input[type='file'].hidden-file {
   font-size: 16px;
   font-weight: 600;
 }
+
+/* Layer Style: the effect list beside the selected effect's controls. */
+.layer-style-body {
+  display: flex;
+  gap: 16px;
+  min-height: 220px;
+}
+.layer-style-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  border-right: 1px solid var(--border);
+  padding-right: 12px;
+}
+.layer-style-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+.layer-style-item.active {
+  background: var(--accent);
+}
+.layer-style-name {
+  flex: 1;
+  padding: 2px 0;
+  background: none;
+  border: none;
+  color: var(--fg);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.layer-style-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 240px;
+}
+.layer-style-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.layer-style-label {
+  width: 80px;
+  color: var(--fg-dim);
+  font-size: 13px;
+}
+.layer-style-unit {
+  color: var(--fg-dim);
+  font-size: 12px;
+}
 .modal-row {
   display: flex;
   align-items: center;
@@ -969,6 +1182,160 @@ input[type='file'].hidden-file {
   border-radius: 5px;
   color: var(--fg);
   font-size: 13px;
+}
+#file-info-modal .modal-row {
+  align-items: flex-start;
+}
+#file-info-modal .modal-row label {
+  width: 110px;
+  padding-top: 6px;
+}
+#file-info-modal .modal-row input,
+#file-info-modal .modal-row textarea {
+  flex: 1;
+  min-width: 220px;
+  padding: 6px 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+#shortcuts-modal .modal-box {
+  width: min(520px, 92vw);
+  max-height: 80vh;
+}
+#shortcuts-search {
+  padding: 6px 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+}
+.shortcuts-list {
+  overflow-y: auto;
+  min-height: 120px;
+  font-size: 13px;
+}
+.shortcut-section h3 {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-dim);
+}
+.shortcut-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.shortcut-row[hidden],
+.shortcut-section[hidden] {
+  display: none;
+}
+.shortcut-key {
+  font-family: inherit;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.shortcuts-note {
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+.fill-stroke-modal .modal-row label {
+  width: 70px;
+}
+.fill-stroke-modal select,
+.fill-stroke-modal input[type='color'] {
+  flex: 1;
+  padding: 4px 6px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--fg);
+  font-size: 13px;
+}
+.fill-stroke-modal input[type='color'] {
+  height: 30px;
+}
+.modal-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.modal-group legend {
+  padding: 0 4px;
+  color: var(--fg-dim);
+  font-size: 12px;
+}
+.modal-unit {
+  color: var(--fg-dim);
+  font-size: 12px;
+}
+.modal-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+  font-size: 13px;
+}
+.modal-radios {
+  gap: 16px;
+}
+/* Image › Mode › Color Table: 16 swatches a row, one per entry. */
+.color-table-grid {
+  display: grid;
+  grid-template-columns: repeat(16, 16px);
+  gap: 2px;
+  max-height: 290px;
+  overflow-y: auto;
+}
+.color-table-swatch {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.color-table-swatch:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.color-table-picker {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.modal-fieldset {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.modal-fieldset legend {
+  padding: 0 4px;
+  color: var(--fg-dim);
+  font-size: 12px;
+}
+.fill-stroke-modal .modal-radios label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: auto;
+  color: var(--fg);
 }
 .modal-buttons {
   display: flex;
@@ -1001,6 +1368,15 @@ input[type='file'].hidden-file {
   html[data-nav-size='compact'] .heyming-nav-toggle {
     font-size: 12px;
   }
+  .menu-bar {
+    padding-left: 100px;
+  }
+  .doc-tab {
+    padding-left: 100px;
+  }
+  .options-bar {
+    padding-left: 100px;
+  }
 }
 
 /* ── Mobile ─────────────────────────────────── */
@@ -1008,41 +1384,19 @@ input[type='file'].hidden-file {
   .paint-layout {
     max-width: 100%;
   }
-  .paint-header {
-    height: auto;
-    padding: 6px 8px 6px 100px;
-    gap: 4px;
-  }
-  .paint-seo-intro {
-    display: none;
-  }
-  .header-sep {
-    display: none;
-  }
   #brush-size {
     width: 60px;
   }
   .zoom-group {
     flex-shrink: 1;
   }
-  .action-group {
-    margin-left: 0;
-    flex-wrap: wrap;
-    max-width: 100%;
-    flex-shrink: 1;
+  .fb-wrap {
+    width: 32px;
+    height: 32px;
   }
-  .action-btn span:not(.btn-icon) {
-    display: none;
-  }
-  .action-caret {
-    display: none;
-  }
-  .swatch-grid {
-    gap: 1px;
-  }
-  .color-swatch {
-    width: 16px;
-    height: 16px;
+  .fb-swatch {
+    width: 22px;
+    height: 22px;
   }
   .left-panel {
     width: 40px;
@@ -1053,7 +1407,11 @@ input[type='file'].hidden-file {
     height: 32px;
     font-size: 14px;
   }
-  .right-panel {
+  .tool-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .dock {
     display: none;
   }
   .paint-body {
@@ -1062,10 +1420,8 @@ input[type='file'].hidden-file {
   #canvas-area {
     min-width: 0;
   }
-  .palette-bar-outer {
-    max-width: 100%;
-  }
-  .status-bar {
+  #status-coords,
+  #status-size {
     display: none;
   }
   #adjust-modal .modal-box {
@@ -1076,11 +1432,198 @@ input[type='file'].hidden-file {
 }
 
 @media (max-width: 380px) {
-  .paint-header {
-    padding-left: 76px;
+  .menu-bar-btn {
+    padding: 0 6px;
   }
-  .action-btn {
-    padding: 4px 6px;
-    height: 28px;
-  }
+}
+
+/* Select › Color Range…: the coverage preview (click to sample) and the eyedroppers. */
+.color-range-preview {
+  align-self: center;
+  max-width: 200px;
+  max-height: 200px;
+  border: 1px solid var(--border);
+  background: var(--bg-1);
+  cursor: crosshair;
+}
+.color-range-tools {
+  display: flex;
+  gap: 4px;
+}
+.color-range-tools[hidden] {
+  display: none;
+}
+.color-range-tools button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-1);
+  color: var(--fg);
+}
+.color-range-tools button[aria-checked='true'] {
+  border-color: var(--accent);
+}
+
+/* Select › Edit in Quick Mask Mode: the toolbar button under the color chips, and the red
+   overlay canvas above the layers (and the adjustment composite) */
+.quick-mask-btn {
+  margin-top: 6px;
+}
+.quick-mask-canvas {
+  z-index: 1;
+}
+
+/* Layer Comps panel (layer-comps.js) */
+.comp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.comp-row {
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--fg);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.comp-row:hover {
+  background: var(--bg-3);
+}
+.comp-row[aria-selected='true'] {
+  border-color: var(--accent);
+}
+.comp-last {
+  border-bottom-color: var(--border);
+}
+.comp-marker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+.comp-name {
+  flex: 1;
+  min-width: 0;
+}
+/* View › Screen Mode (paint/view.js screenModeClasses): Full Screen With Menu Bar drops the
+   tool column and dock; Full Screen also drops the menu bar, document tab, and options bar. */
+.paint-layout.screen-full-menu .left-panel,
+.paint-layout.screen-full-menu #dock {
+  display: none;
+}
+.paint-layout.screen-full #menu-bar,
+.paint-layout.screen-full .doc-tab,
+.paint-layout.screen-full #options-bar {
+  display: none;
+}
+
+/* The Zoom tool's drag rectangle, in client pixels (pointer.js showZoomMarquee). */
+.zoom-marquee {
+  position: fixed;
+  z-index: 50;
+  border: 1px dashed #fff;
+  outline: 1px dashed #000;
+  outline-offset: -2px;
+  pointer-events: none;
+}
+
+/* ── View › Rulers and guides (paint/guides-ui.js) ── */
+
+.ruler {
+  display: none;
+  position: absolute;
+  background: var(--bg-2);
+  color: var(--fg-dim);
+  z-index: 3;
+}
+
+.canvas-column.rulers-on .ruler {
+  display: block;
+}
+
+.canvas-column.rulers-on #canvas-area {
+  margin: 16px 0 0 16px;
+}
+
+.ruler-corner {
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+.ruler-top {
+  top: 0;
+  left: 16px;
+  height: 16px;
+  border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
+  cursor: ns-resize;
+}
+
+.ruler-left {
+  top: 16px;
+  left: 0;
+  width: 16px;
+  border-right: 1px solid var(--border);
+  box-sizing: border-box;
+  cursor: ew-resize;
+}
+
+.guide-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.guide {
+  position: absolute;
+}
+
+.guide-layer.guides-movable .guide {
+  pointer-events: auto;
+}
+
+.guide-layer.guides-movable .guide-v {
+  cursor: ew-resize;
+}
+
+.guide-layer.guides-movable .guide-h {
+  cursor: ns-resize;
+}
+
+.guide-line {
+  position: absolute;
+  background: #4affff;
+}
+
+.guide-v .guide-line {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--guide-w, 1px);
+  transform: translateX(-50%);
+}
+
+.guide-h .guide-line {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--guide-w, 1px);
+  transform: translateY(-50%);
 }

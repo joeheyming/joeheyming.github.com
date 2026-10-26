@@ -1,0 +1,83 @@
+/* Paint — View › Show overlays (paint/extras-ui.js). Lengths are document pixels inside the
+   zoomed canvas stack; --extras-w is one screen pixel. */
+
+.extras-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  overflow: hidden;
+  --extras-w: 1px;
+}
+
+.extras-layer > [hidden] {
+  display: none;
+}
+
+/* View › Show › Grid: a solid line every gridline, lighter ones at each subdivision. */
+.extras-grid {
+  position: absolute;
+  inset: 0;
+  --grid-major: 72px;
+  --grid-minor: 18px;
+  --grid-color: rgba(128, 128, 128, 0.85);
+  --grid-sub: rgba(128, 128, 128, 0.4);
+  background-image: linear-gradient(to right, var(--grid-color) var(--extras-w), transparent 0),
+    linear-gradient(to bottom, var(--grid-color) var(--extras-w), transparent 0),
+    linear-gradient(to right, var(--grid-sub) var(--extras-w), transparent 0),
+    linear-gradient(to bottom, var(--grid-sub) var(--extras-w), transparent 0);
+  background-size: var(--grid-major) var(--grid-major), var(--grid-major) var(--grid-major),
+    var(--grid-minor) var(--grid-minor), var(--grid-minor) var(--grid-minor);
+}
+
+/* View › Show › Pixel Grid, above 500%. */
+.extras-pixel-grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.25) var(--extras-w), transparent 0),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.25) var(--extras-w), transparent 0);
+  background-size: 1px 1px;
+  mix-blend-mode: difference;
+}
+
+/* View › Show › Layer Edges: the active layer's pixel bounds. */
+.extras-layer-edges {
+  position: absolute;
+  box-sizing: border-box;
+  border: var(--extras-w) solid var(--accent, #378ef0);
+}
+
+/* View › Show › Smart Guides: magenta alignment lines while a layer moves. */
+.extras-smart-guides {
+  position: absolute;
+  inset: 0;
+}
+
+.smart-guide {
+  position: absolute;
+  background: #ff00ff;
+}
+
+.smart-guide-v {
+  width: var(--extras-w);
+  transform: translateX(-50%);
+}
+
+.smart-guide-h {
+  height: var(--extras-w);
+  transform: translateY(-50%);
+}
+
+/* View › Show › Brush Preview: the tip outline under the pointer. */
+.extras-brush-preview {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: var(--extras-w) solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 var(--extras-w) rgba(0, 0, 0, 0.6);
+}
+
+/* View › Pixel Art Preview: nearest-neighbour pixels at every zoom. */
+.canvas-stack.pixel-art-preview canvas {
+  image-rendering: pixelated;
+}

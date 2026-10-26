@@ -1,8 +1,9 @@
 // Paint — File menu, filename modal, resize modal, and download helpers.
 
 import { flattenToCanvas } from './layers.js';
-import { serializeProject, downloadProject } from './project.js';
 import { drawObjectsOnto } from './objects.js';
+import { closeMenus } from './menu-bar.js';
+import { fileInfoTextEntries, insertPngText } from './file-extras.js';
 
 function exportFlattenOpts(state, transparentBg) {
   return {
@@ -12,18 +13,8 @@ function exportFlattenOpts(state, transparentBg) {
   };
 }
 
-export function toggleFileMenu() {
-  const list = document.getElementById('file-menu-list');
-  const btn = document.getElementById('btn-file');
-  if (!list) return;
-  const willOpen = list.classList.contains('hidden');
-  list.classList.toggle('hidden', !willOpen);
-  btn?.setAttribute('aria-expanded', String(willOpen));
-}
-
 export function closeFileMenu() {
-  document.getElementById('file-menu-list')?.classList.add('hidden');
-  document.getElementById('btn-file')?.setAttribute('aria-expanded', 'false');
+  closeMenus();
 }
 
 let filenameModalCallback = /** @type {((name: string) => void) | null} */ (null);
@@ -82,13 +73,47 @@ export function confirmResize(onApply) {
   closeResizeModal();
 }
 
-export function downloadPNG(filename, state, w, h) {
-  const flat = flattenToCanvas(state.layers, state.bgColor, w, h, exportFlattenOpts(state, true));
+/** A canvas as PNG bytes with the document's File Info written as tEXt chunks. */
+export async function canvasPngBlob(canvas, fileInfo) {
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+  const entries = fileInfoTextEntries(fileInfo);
+  if (!blob || !entries.length) return blob;
+  const bytes = insertPngText(new Uint8Array(await blob.arrayBuffer()), entries);
+  return new Blob([bytes], { type: 'image/png' });
+}
+
+export function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.download = filename;
-  link.href = flat.toDataURL('image/png');
+  link.href = url;
   link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+export async function downloadPNG(filename, state, w, h) {
+  const flat = flattenToCanvas(state.layers, state.bgColor, w, h, exportFlattenOpts(state, true));
+  const blob = await canvasPngBlob(flat, state.fileInfo);
+  if (blob) downloadBlob(blob, filename);
   window.heymingAchievements?.unlockForCurrentApp('canvas-exported');
+}
+
+/**
+ * Export › Layers to Files: one PNG per visible pixel layer, on a transparent canvas with its
+ * own opacity, blend mode, and mask. files is layersToFilesList(state.layers, docName).
+ */
+export async function downloadLayerFiles(files, state, w, h) {
+  for (const { layerIdx, fileName } of files) {
+    const layer = state.layers[layerIdx];
+    const flat = flattenToCanvas([layer], state.bgColor, w, h, { transparentBg: true });
+    const blob = await canvasPngBlob(flat, state.fileInfo);
+    if (blob) downloadBlob(blob, fileName);
+  }
+}
+
+/** The visible composite on transparency, objects included (Edit › Copy Merged). */
+export function mergedCanvas(state, w, h) {
+  return flattenToCanvas(state.layers, state.bgColor, w, h, exportFlattenOpts(state, true));
 }
 
 /** Flatten layers to a PNG Blob (same path as downloadPNG). */
@@ -105,9 +130,4 @@ export function downloadJPEG(filename, state, w, h) {
   link.download = filename;
   link.href = flat.toDataURL('image/jpeg', 0.92);
   link.click();
-}
-
-export function downloadProjectFile(filename, state, w, h) {
-  const data = serializeProject(state, w, h);
-  downloadProject(data, filename);
 }
