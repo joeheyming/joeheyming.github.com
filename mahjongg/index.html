@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#fafafa" />
+    <title>Mahjongg — Match the Tiles 🀄</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🀄</text></svg>"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <script src="../nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+
+    <meta
+      name="description"
+      content="Play Mahjong solitaire in your browser. Match two identical tiles when nothing sits on top and at least one side is open, then clear the board. Four layouts from a short stack to the classic turtle, plus undo, hints, and shuffle. Free, no ads."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="mahjongg, mahjong solitaire, shanghai, tile matching, puzzle game, browser game, free, no ads"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="Mahjongg — Match the Tiles 🀄" />
+    <meta
+      property="og:description"
+      content="Play Mahjong solitaire in your browser. Match free tiles, clear the turtle, and race the clock. Undo, hints, and shuffle."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/mahjongg/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/mahjongg/mahjongg-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Mahjongg — ivory tiles stacked on a green felt table" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="Mahjongg — Match the Tiles 🀄" />
+    <meta
+      name="twitter:description"
+      content="Play Mahjong solitaire in your browser. Match free tiles, clear the turtle, and race the clock."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/mahjongg/mahjongg-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/mahjongg/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "VideoGame",
+            "name": "Mahjongg",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Mahjong solitaire. Match identical free tiles and clear the board. Four layouts, undo, hints, and shuffle.",
+            "url": "https://joeheyming.github.io/mahjongg/",
+            "isBasedOn": "https://apps.gnome.org/Mahjongg/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "gamePlatform": "Web Browser",
+            "genre": "Puzzle",
+            "keywords": "mahjongg, mahjong solitaire, tile matching, puzzle",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "Mahjongg" }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Inter:wght@500;600;700&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-header">
+        <div class="title-row">
+          <h1>Mahjongg</h1>
+          <div class="scores">
+            <div class="score-box" id="time-box">
+              <span class="score-label">Time</span>
+              <span class="score-value" id="time">0:00</span>
+            </div>
+            <div class="score-box">
+              <span class="score-label">Left</span>
+              <span class="score-value" id="left">144</span>
+            </div>
+            <div class="score-box">
+              <span class="score-label">Best</span>
+              <span class="score-value" id="best">—</span>
+            </div>
+          </div>
+        </div>
+        <p class="tagline">Match two free tiles. Clear the board.</p>
+      </header>
+
+      <div class="toolbar">
+        <label class="layout-pick">
+          Layout
+          <select id="layout" aria-label="Layout"></select>
+        </label>
+        <button class="btn primary" id="new-game" type="button">New</button>
+        <button class="btn" id="undo" type="button">Undo</button>
+        <button class="btn" id="hint" type="button" title="Shows a pair and adds 15 seconds">
+          Hint
+        </button>
+        <button class="btn" id="shuffle" type="button">Shuffle</button>
+        <share-button label="Share" theme="primary"></share-button>
+      </div>
+
+      <div class="table-frame">
+        <div class="table-scroll" id="table-scroll">
+          <div class="board" id="board" role="group" aria-label="Mahjongg tiles"></div>
+          <div class="overlay" id="overlay" hidden>
+            <div
+              class="overlay-card"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="overlay-title"
+            >
+              <h2 id="overlay-title">Cleared</h2>
+              <p id="overlay-sub"></p>
+              <div class="overlay-actions">
+                <button class="btn" id="overlay-secondary" type="button">Keep playing</button>
+                <button class="btn primary" id="overlay-primary" type="button">Play again</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="help">
+        A tile is free when nothing is on top of it and at least one side is open. Flowers match any
+        flower, seasons match any season. Arrows move, Enter matches, U undoes, H hints (15
+        seconds). Inspired by
+        <a href="https://apps.gnome.org/Mahjongg/">GNOME Mahjongg.</a>
+      </p>
+      <p class="sr-only" id="live" aria-live="polite"></p>
+    </main>
+
+    <script type="module" src="/gamepad-keys.js"></script>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

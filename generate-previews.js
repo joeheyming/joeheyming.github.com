@@ -1369,6 +1369,12 @@ const PAGES = [
     url: `${BASE_URL}/stepmania/songs/`,
     output: 'stepmania/songs/songs-preview.png',
     title: 'StepMania Charts'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/mahjongg/`,
+    output: 'mahjongg/mahjongg-preview.png',
+    title: 'Mahjongg'
   }
 ];
 

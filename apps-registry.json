@@ -2527,5 +2527,31 @@
     "shareCategory": "utility",
     "appTier": "experience",
     "geo": false
+  },
+  {
+    "id": "mahjongg",
+    "name": "Mahjongg 🀄",
+    "shortName": "Mahjongg",
+    "description": "Match free tiles and clear the board",
+    "detailedDescription": "Mahjong solitaire in the browser. Match identical tiles that are free on one side, then clear the board. Turtle, bridge, pyramid, and easy layouts, with undo, hints, and shuffle. Every deal can be solved.",
+    "icon": "🀄",
+    "path": "./mahjongg/",
+    "category": "game",
+    "gradient": "from-emerald-600/20 to-green-800/20",
+    "border": "border-emerald-700/30 hover:border-emerald-600/50",
+    "taskbarGradient": "from-emerald-700 to-green-900",
+    "taskbarText": "text-white",
+    "defaultWidth": 1000,
+    "defaultHeight": 760,
+    "tags": ["puzzle", "mahjong", "mahjongg", "solitaire", "tiles", "classic"],
+    "related": ["sudoku", "minesweeper", "2048", "untangle"],
+    "shareCategory": "game",
+    "pwaShortcut": {
+      "name": "Mahjongg",
+      "short_name": "Mahjongg",
+      "description": "Match free tiles and clear the board"
+    },
+    "appTier": "experience",
+    "geo": true
   }
 ]

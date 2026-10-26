@@ -203,6 +203,12 @@
       "short_name": "LMATFY",
       "description": "LMGTFY-style links for ChatGPT, Gemini, and Ask Brave",
       "url": "/lmatfy/"
+    },
+    {
+      "name": "Mahjongg",
+      "short_name": "Mahjongg",
+      "description": "Match free tiles and clear the board",
+      "url": "/mahjongg/"
     }
   ]
 }
