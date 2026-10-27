@@ -194,6 +194,9 @@ select:focus-visible {
 
 .table-scroll {
   position: relative;
+  /* Tiles carry their own z-index. Isolate the table so that stays inside
+     the board and the overlay, a sibling, can sit on top of the felt. */
+  isolation: isolate;
   overflow-x: auto;
   overflow-y: hidden;
   border-radius: 18px;
@@ -209,6 +212,7 @@ select:focus-visible {
 
 .board {
   position: relative;
+  z-index: 0;
 }
 
 .tile {
@@ -323,7 +327,7 @@ select:focus-visible {
 .overlay {
   position: absolute;
   inset: 0;
-  z-index: 30;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;

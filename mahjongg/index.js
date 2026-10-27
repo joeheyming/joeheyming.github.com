@@ -359,6 +359,8 @@ function start(layoutId) {
   penaltyMs = 0;
   clockStarted = false;
   timerOn = false;
+  animating = false;
+  window.clearTimeout(hintTimer);
   overlay.hidden = true;
   overlayMode = null;
   render({ dealt: true });
@@ -623,8 +625,10 @@ overlaySecondary.addEventListener('click', onOverlaySecondary);
 
 layoutSelect.addEventListener('change', () => {
   const next = layoutSelect.value;
-  if (next === currentLayout) return;
-  requestNew(next);
+  if (!next || next === currentLayout) return;
+  // The menu picks the board. Deal it immediately. New is what asks
+  // before replacing a game already in progress.
+  start(next);
 });
 
 document.addEventListener('keydown', (event) => {
