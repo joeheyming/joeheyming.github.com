@@ -224,13 +224,83 @@ function resolveColumnIndices(cols) {
 }
 
 /**
+ * The live form's metadata and honeypot question titles are swapped, so the
+ * header row says metadata then honeypot while responses land the other way.
+ * When the column labeled honeypot is post JSON and the one labeled metadata
+ * is not, read them the other way around.
+ * @param {unknown[][]} rows
+ * @param {number} metadataIdx
+ * @param {number} honeyIdx
+ */
+function alignTrapColumns(rows, metadataIdx, honeyIdx) {
+  if (metadataIdx < 0 || honeyIdx < 0 || metadataIdx === honeyIdx) {
+    return { metadataIdx, honeyIdx };
+  }
+  const labeledMeta = postMetadataHits(rows, metadataIdx);
+  const labeledHoney = postMetadataHits(rows, honeyIdx);
+  if (
+    labeledHoney.hits > 0 &&
+    labeledHoney.hits * 2 >= labeledHoney.seen &&
+    labeledMeta.hits === 0
+  ) {
+    return { metadataIdx: honeyIdx, honeyIdx: metadataIdx };
+  }
+  return { metadataIdx, honeyIdx };
+}
+
+/**
+ * @param {unknown[][]} rows
+ * @param {number} col
+ */
+function postMetadataHits(rows, col) {
+  let hits = 0;
+  let seen = 0;
+  for (const row of rows) {
+    if (seen >= 30) break;
+    if (!row || col >= row.length) continue;
+    const cell = row[col];
+    if (cell == null || String(cell).trim() === '') continue;
+    seen += 1;
+    if (isPostMetadataCell(cell)) hits += 1;
+  }
+  return { hits, seen };
+}
+
+/**
+ * @param {unknown} raw
+ */
+function isPostMetadataCell(raw) {
+  const meta = parseMetadata(raw);
+  if (!meta) return false;
+  if (typeof meta.id === 'string' && meta.id) return true;
+  if (
+    (meta.action === 'remove' || meta.action === 'move') &&
+    typeof meta.targetId === 'string' &&
+    meta.targetId
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * @param {string[]} cols
+ * @param {unknown[][]} rows
+ */
+function columnsFor(cols, rows) {
+  const resolved = resolveColumnIndices(cols);
+  const aligned = alignTrapColumns(rows, resolved.metadataIdx, resolved.honeyIdx);
+  return { ...resolved, metadataIdx: aligned.metadataIdx, honeyIdx: aligned.honeyIdx };
+}
+
+/**
  * Build visible remote board posts from a gviz table (moves, removes, chunks).
  * @param {string[]} cols
  * @param {unknown[][]} rows
  * @returns {{ posts: BoardPost[], removedIds: Set<string> }}
  */
 export function parseBoardPosts(cols, rows) {
-  const { tIdx, textIdx, attachIdx, emailIdx, metadataIdx, honeyIdx } = resolveColumnIndices(cols);
+  const { tIdx, textIdx, attachIdx, emailIdx, metadataIdx, honeyIdx } = columnsFor(cols, rows);
 
   /** @type {BoardPost[]} */
   const remote = [];
@@ -366,7 +436,7 @@ export function mergeLocalWithRemote(localPosts, visibleRemote) {
 export async function fetchLatestPost() {
   if (!isConfigured()) return null;
   const { cols, rows } = await fetchTab(CONFIG.responsesTab);
-  const { tIdx, textIdx, attachIdx, emailIdx, metadataIdx, honeyIdx } = resolveColumnIndices(cols);
+  const { tIdx, textIdx, attachIdx, emailIdx, metadataIdx, honeyIdx } = columnsFor(cols, rows);
 
   /** @type {FeedPost[]} */
   const remote = [];

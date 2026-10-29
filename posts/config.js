@@ -31,8 +31,9 @@ export const CONFIG = {
     text: 'entry.947783301',
     attachment: 'entry.103900252',
     email: 'entry.1401609934',
-    // Sheet columns are honeypot then metadata; form display titles are swapped.
-    // Map by where POSTs land in the linked Sheet (Apps Script quarantines by header).
+    // Physical columns are honeypot then metadata. Form question titles are
+    // swapped, so the header row reads metadata then honeypot. These entry
+    // ids follow where responses land, not the title text.
     metadata: 'entry.53437001',
     honeypot: 'entry.2101642131'
   },

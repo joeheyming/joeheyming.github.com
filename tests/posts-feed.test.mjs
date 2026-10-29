@@ -96,6 +96,34 @@ test('parseBoardPosts reassembles chunks and applies moves/removes', () => {
   assert.equal(posts[0].y, 0.8);
 });
 
+test('parseBoardPosts reads notes when metadata and honeypot titles are swapped', () => {
+  const cols = ['Timestamp', 'text', 'attachment', 'name', 'metadata', 'honeypot'];
+  const rows = [
+    [
+      'Date(2026,8,1,9,0,0)',
+      'hello from japan',
+      '',
+      '',
+      '',
+      JSON.stringify({ id: 'post-jp', action: 'post', x: 0.2, y: 0.3 })
+    ],
+    [
+      'Date(2026,8,1,9,1,0)',
+      'spam note',
+      '',
+      '',
+      'http://spam.example',
+      JSON.stringify({ id: 'post-spam', action: 'post', x: 0.4, y: 0.5 })
+    ]
+  ];
+  const { posts } = parseBoardPosts(cols, rows);
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0].id, 'post-jp');
+  assert.equal(posts[0].text, 'hello from japan');
+  assert.equal(posts[0].x, 0.2);
+  assert.equal(posts[0].y, 0.3);
+});
+
 test('remoteSomeMatch and mergeLocalWithRemote keep unmatched pending', () => {
   const remote = [{ id: 'a', text: 'hi', attachments: [], ts: 1000 }];
   const local = [
