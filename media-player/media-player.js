@@ -216,6 +216,7 @@ class MediaPlayer {
     document.addEventListener('keydown', (e) => {
       // Don't capture if typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (/^arrow/i.test(e.key) && window.heymingRemote?.arrowsMoveFocus(e)) return;
       // YouTube has its own keyboard controls
       if (this.isYouTube && e.key !== 'f' && e.key !== 'Escape') return;
 
@@ -239,6 +240,10 @@ class MediaPlayer {
         case 'arrowdown':
           e.preventDefault();
           this.adjustVolume(-0.1);
+          break;
+        case 'j':
+          e.preventDefault();
+          this.skip(-10);
           break;
         case 'l':
           this.toggleLoop();
@@ -501,6 +506,7 @@ class MediaPlayer {
       downAt = { x: e.clientX, y: e.clientY, width: rect.width, height: rect.height };
       this._vizDragging = true;
     });
+    this.vizResize.tabIndex = 0;
     this.vizResize.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!downAt) return;

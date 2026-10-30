@@ -39,6 +39,9 @@ export function createBoxOverlay(box, overlayEl, stageEl) {
 
   const handleDelete = document.createElement('div');
   handleDelete.className = 'text-box-handle handle-delete';
+  handleDelete.tabIndex = 0;
+  handleDelete.setAttribute('role', 'button');
+  handleDelete.setAttribute('aria-label', 'Delete this text box');
   handleDelete.textContent = '×';
   handleDelete.title = 'Delete this text box';
   el.appendChild(handleDelete);
@@ -139,6 +142,7 @@ export function applyBoxStyles(el, box, naturalSize) {
 export function createBoxSidebar(box, listEl) {
   const item = document.createElement('li');
   item.className = 'box-item';
+  item.tabIndex = 0;
   item.dataset.id = box.id;
 
   item.innerHTML = `

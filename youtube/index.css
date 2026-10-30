@@ -911,7 +911,7 @@ body {
  * The 16:10 screen alone is taller than the viewport at this height — shrink
  * it, drop nice-to-have chrome, and squeeze the controls onto one row so the
  * whole TV fits without scrolling. */
-@media (max-height: 520px) and (orientation: landscape) {
+@media (max-height: 560px) and (orientation: landscape) {
   .crt-room {
     padding: 8px 12px 16px;
     gap: 6px;

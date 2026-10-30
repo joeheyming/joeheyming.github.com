@@ -262,3 +262,46 @@ marquee {
     font-size: 0.75rem;
   }
 }
+
+/* The console is a fixed 500px, which is the whole Bravia viewport.
+   Let it fill whatever the header and buttons leave. */
+@media (max-height: 700px) {
+  body {
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding: 8px 12px;
+  }
+
+  .container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header {
+    margin-bottom: 8px;
+    padding: 8px;
+  }
+
+  .header p {
+    display: none;
+  }
+
+  .terminal-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+  }
+
+  .terminal {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+  }
+}

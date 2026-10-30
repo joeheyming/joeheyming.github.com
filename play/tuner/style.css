@@ -694,17 +694,102 @@
   }
 }
 
-/* ---- Mobile: opt out of the shared 100dvh body clamp ----------------- *
- * play/style.css clamps `.instrument-body` to `height: 100dvh; overflow:
- * hidden` on phones so per-instrument stages (piano, guitar, drums, …)
- * can scroll internally. The tuner is a normal scrolling page — when the
- * <details> "Reference pitches" section is opened it grows past the
- * viewport, and we want the page (not an inner stage) to scroll. */
-@media (max-width: 720px), (max-height: 540px) {
+/* Phones in portrait still scroll, so opening Reference pitches can grow
+   the page. A short landscape screen (the TV is 540px tall) keeps the
+   dial as the picture and docks the settings under it. */
+@media (max-width: 720px) and (min-height: 701px) {
   .instrument-body {
     height: auto;
     overflow: visible;
     padding-bottom: 24px;
+  }
+}
+
+@media (max-height: 700px) {
+  .instrument-body {
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .instrument-header {
+    order: 0;
+    padding-top: 4px;
+    padding-bottom: 2px;
+  }
+
+  .instrument-page-title h1 {
+    font-size: 1.25rem;
+  }
+
+  .instrument-help {
+    display: none;
+  }
+
+  .tuner-stage {
+    order: 1;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+    gap: 6px;
+    padding: 2px 12px 6px;
+  }
+
+  .instrument-controls {
+    order: 2;
+    flex-shrink: 0;
+    padding: 4px 12px 8px;
+    gap: 4px 12px;
+  }
+
+  .tuner-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: min(100%, 960px);
+    overflow: hidden;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+  }
+
+  .note-carousel {
+    flex-shrink: 0;
+  }
+
+  .carousel-note-active {
+    font-size: clamp(44px, 10vh, 72px);
+  }
+
+  .tuner-dial {
+    flex: 1 1 auto;
+    align-self: center;
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    min-height: 0;
+    aspect-ratio: 360 / 220;
+  }
+
+  .tuner-readout,
+  .tuner-controls,
+  .reference-section,
+  .string-tabs {
+    flex-shrink: 0;
+  }
+
+  .reference-section {
+    width: min(100%, 960px);
+  }
+
+  .reference-summary {
+    padding: 8px 14px;
+  }
+
+  .primary-btn {
+    padding: 8px 16px;
+    min-width: 160px;
   }
 }
 

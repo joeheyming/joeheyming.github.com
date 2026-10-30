@@ -431,12 +431,10 @@ function setupEventListeners() {
   yearInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       yearInput.blur();
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      // Left and Right change the year. Up and Down move focus.
       e.preventDefault();
-      adjustYear(1);
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      adjustYear(-1);
+      adjustYear(e.key === 'ArrowRight' ? 1 : -1);
     }
   });
 
@@ -720,7 +718,46 @@ function setDisplayMode(mode, updateUrl = true) {
   if (currentEvent) {
     updateCountdown();
   }
+  scheduleDisplayFit();
 }
+
+// Scale a display down until it sits inside the timer stage. A tall
+// graphic (radar, hourglass, ball drop) keeps its shape on a large
+// window and shrinks when the stage is the leftover height of a short one.
+let displayFitTimer = 0;
+
+function fitCountdownDisplay() {
+  const display = activeDisplayComponent;
+  const stage = timerDisplayContainer;
+  if (!display || !stage) return;
+
+  display.style.zoom = '1';
+  const neededH = display.offsetHeight;
+  const neededW = display.offsetWidth;
+  if (neededH < 8 || neededW < 8) return;
+
+  // offsetHeight ignores CSS zoom, so this is the display's natural size.
+  // A short screen gives the stage a fixed slot. Scale down to that slot.
+  // A tall window keeps the natural size; the page can scroll.
+  const stageH = stage.clientHeight;
+  const stageW = stage.clientWidth;
+  let scale = 1;
+  if (stageH > 8 && neededH > stageH + 1) scale = Math.min(scale, stageH / neededH);
+  if (stageW > 8 && neededW > stageW + 1) scale = Math.min(scale, stageW / neededW);
+  if (scale < 1) scale = Math.max(0.2, scale * 0.98);
+  display.style.zoom = scale < 0.995 ? String(Math.round(scale * 1000) / 1000) : '1';
+}
+
+function scheduleDisplayFit() {
+  clearTimeout(displayFitTimer);
+  requestAnimationFrame(fitCountdownDisplay);
+  displayFitTimer = setTimeout(() => {
+    fitCountdownDisplay();
+    displayFitTimer = setTimeout(fitCountdownDisplay, 240);
+  }, 80);
+}
+
+window.addEventListener('resize', scheduleDisplayFit);
 
 // Load display mode preference
 function loadDisplayMode() {

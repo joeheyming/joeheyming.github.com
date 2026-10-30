@@ -1,10 +1,6 @@
 // Channels panel chrome — domain ops stay in channels.js.
 import { iconSvg } from './icons.js';
-import {
-  COLOR_CHANNELS,
-  channelRows,
-  channelThumbPixels
-} from './channels.js';
+import { COLOR_CHANNELS, channelRows, channelThumbPixels } from './channels.js';
 
 const THUMB_SIZE = 28;
 
@@ -191,6 +187,7 @@ export function renderChannelsPanel(container, channels, opts) {
   for (const row of channelRows(channels)) {
     const el = doc.createElement('div');
     el.className = `channel-row ${row.kind}`;
+    el.tabIndex = 0;
     el.setAttribute('role', 'option');
     const target = row.kind === 'alpha' ? row.index === opts.target : opts.target == null;
     el.setAttribute('aria-selected', String(target));

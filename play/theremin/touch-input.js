@@ -225,7 +225,109 @@ export const initTouchInput = ({ padEl, getCfg, getMode, getInputsSuspended, set
     setCrosshair(0, 0, false);
     padEl.classList.remove('is-active');
     setTip?.(null);
+    silenceHand();
   };
+
+  // A remote has no pointer. Arrows move a hand across the pad: left and
+  // right are pitch, up and down are volume (up is louder). Another Up
+  // once the hand is already at the top leaves the pad for the controls.
+  let hand = null;
+
+  const semitoneStep = () => 1 / Math.max(1, getCfg().range * 12);
+
+  const focusControls = () => {
+    const next = document.querySelector(
+      '.instrument-controls select, .instrument-controls button, .instrument-controls input'
+    );
+    if (next) next.focus();
+  };
+
+  const silenceHand = () => {
+    if (hand?.sounding) {
+      try {
+        fadeOutVoice();
+      } catch (_) {
+        /* no Web Audio */
+      }
+    }
+    if (hand) hand = { xNorm: hand.xNorm, yNorm: hand.yNorm, sounding: false };
+    if (pointers.size === 0) {
+      setCrosshair(0, 0, false);
+      padEl.classList.remove('is-active');
+      setTip?.(null);
+    }
+  };
+
+  const placeHand = (xNorm, yNorm, sounding) => {
+    const rect = padEl.getBoundingClientRect();
+    const xPx = xNorm * (rect.width || 0);
+    const yPx = yNorm * (rect.height || 0);
+    setCrosshair(xPx, yPx, true);
+    hand = { xNorm, yNorm, sounding };
+    if (!sounding || pointers.size > 0) return;
+    try {
+      const cfg = getCfg();
+      ensureVoice(xToMidi(0, cfg));
+      resumeIfSuspended();
+      fadeInVoice(yNorm);
+      applyPrimary(xNorm, yNorm, cfg);
+      padEl.classList.add('is-active');
+      setTip?.({ xNorm, yNorm });
+    } catch (_) {
+      /* The hand still moves where Web Audio is missing. */
+    }
+  };
+
+  const onPadKey = (event) => {
+    if (getMode() === 'air' || getInputsSuspended?.() || pointers.size > 0) return;
+    const key = event.key;
+    const arrow =
+      key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown';
+    if (!arrow && key !== 'Enter' && key !== ' ') return;
+    event.preventDefault();
+    event.stopPropagation();
+    const x = hand?.xNorm ?? 0.5;
+    const y = hand?.yNorm ?? 0.35;
+    if (key === 'Enter' || key === ' ') {
+      if (hand?.sounding) silenceHand();
+      else placeHand(x, y, true);
+      return;
+    }
+    const step = semitoneStep();
+    let nextX = x;
+    let nextY = y;
+    if (key === 'ArrowLeft') nextX = x - step;
+    if (key === 'ArrowRight') nextX = x + step;
+    if (key === 'ArrowUp') nextY = y - step;
+    if (key === 'ArrowDown') nextY = y + step;
+    if (key === 'ArrowUp' && nextY < 0) {
+      silenceHand();
+      focusControls();
+      return;
+    }
+    placeHand(Math.max(0, Math.min(1, nextX)), Math.max(0, Math.min(1, nextY)), true);
+  };
+
+  const onMediaKey = (event) => {
+    const key = event.key;
+    if (key !== 'MediaPlayPause' && key !== 'MediaPlay' && key !== 'MediaPause') return;
+    if (getMode() === 'air' || getInputsSuspended?.()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (key === 'MediaPause' || (key === 'MediaPlayPause' && hand?.sounding)) {
+      silenceHand();
+      return;
+    }
+    padEl.focus();
+    placeHand(hand?.xNorm ?? 0.5, hand?.yNorm ?? 0.35, true);
+  };
+
+  if (padEl.tabIndex < 0) padEl.tabIndex = 0;
+  padEl.addEventListener('keydown', onPadKey);
+  document.addEventListener('keydown', onMediaKey, true);
+  padEl.addEventListener('blur', () => {
+    if (hand?.sounding) silenceHand();
+  });
 
   padEl.addEventListener('pointerdown', onPointerDown);
   padEl.addEventListener('pointermove', onPointerMove);

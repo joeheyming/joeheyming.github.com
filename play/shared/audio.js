@@ -209,6 +209,136 @@ export function resumeIfSuspended() {
   if (ctx) unlockOutput(ctx);
 }
 
+/** True once the shared context is actually producing samples. */
+export function isOutputRunning() {
+  return !!(ctx && ctx.state === 'running');
+}
+
+const struckToneUrls = new Map();
+
+/**
+ * One struck-note WAV for engines where Web Audio stays suspended.
+ * The Bravia shell's OK press is an `element.click()` from outside the
+ * page, which is enough for an `<audio>` element (Bad Apple) and not
+ * enough for `AudioContext.resume()`.
+ */
+function struckToneUrl(freq) {
+  const key = Math.round(freq);
+  const cached = struckToneUrls.get(key);
+  if (cached) return cached;
+  const sampleRate = 22050;
+  const seconds = 0.45;
+  const frames = Math.floor(sampleRate * seconds);
+  const dataBytes = frames * 2;
+  const buffer = new ArrayBuffer(44 + dataBytes);
+  const view = new DataView(buffer);
+  const write = (offset, text) => {
+    for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i));
+  };
+  write(0, 'RIFF');
+  view.setUint32(4, 36 + dataBytes, true);
+  write(8, 'WAVE');
+  write(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  write(36, 'data');
+  view.setUint32(40, dataBytes, true);
+  for (let i = 0; i < frames; i += 1) {
+    const t = i / sampleRate;
+    const env = Math.exp(-t * 7);
+    const sample = Math.sin(2 * Math.PI * freq * t) * env * 0.55;
+    const clamped = Math.max(-1, Math.min(1, sample));
+    view.setInt16(44 + i * 2, clamped * 32767, true);
+  }
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  const url = `data:audio/wav;base64,${btoa(binary)}`;
+  struckToneUrls.set(key, url);
+  return url;
+}
+
+/**
+ * False when this click cannot start Web Audio. The TV shell's OK press is
+ * an `element.click()` from outside the page: constructing an AudioContext
+ * there stays suspended and can take the audio session away from the
+ * `<audio>` element that actually makes sound.
+ */
+export function gestureAllowsWebAudio() {
+  if (isOutputRunning()) return true;
+  const activation = typeof navigator !== 'undefined' ? navigator.userActivation : null;
+  if (activation && activation.isActive === false) return false;
+  return true;
+}
+
+/** Create or resume the shared context. False when it still is not running. */
+export function tryStartWebAudio() {
+  try {
+    getCtx();
+    resumeIfSuspended();
+    return isOutputRunning();
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * Play a URL or data-URI through an `<audio>` element. `gain` scales the
+ * page volume slider. `onError` runs when this engine refuses the clip.
+ */
+export function playHtmlClip(url, gain = 1, onError) {
+  if (typeof Audio !== 'function' || !url) {
+    if (onError) onError();
+    return;
+  }
+  try {
+    const audio = new Audio(url);
+    const level = Math.max(0, Math.min(1, masterVolume * gain));
+    audio.volume = level;
+    const played = audio.play();
+    if (played && typeof played.catch === 'function') {
+      played.catch(() => {
+        if (onError) onError();
+      });
+    }
+  } catch (_) {
+    if (onError) onError();
+  }
+}
+
+/** Play one decaying tone through an `<audio>` element. No-op without `Audio`. */
+export function playStruckTone(midi) {
+  playHtmlClip(struckToneUrl(midiToFreq(midi)));
+}
+
+/**
+ * Play notes from a remote click. A real user gesture uses Web Audio via
+ * `play`. The TV shell's click is not a gesture, so each note goes out as
+ * an `<audio>` tone instead of a suspended context.
+ *
+ * @param {number | number[]} midis
+ * @param {() => void} play
+ * @returns {boolean} true when `play` ran
+ */
+export function playRemoteNotes(midis, play) {
+  const notes = (Array.isArray(midis) ? midis : [midis]).filter((midi) => Number.isFinite(midi));
+  if (gestureAllowsWebAudio() && tryStartWebAudio()) {
+    try {
+      play();
+      return true;
+    } catch (_) {
+      /* the media element still gets a chance */
+    }
+  }
+  for (const midi of notes) playStruckTone(midi);
+  return false;
+}
+
 export function setMasterVolume(v) {
   masterVolume = v;
   if (!master) return;

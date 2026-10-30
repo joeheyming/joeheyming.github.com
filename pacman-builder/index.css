@@ -1064,6 +1064,18 @@ kbd {
   }
 }
 
+@media (max-height: 700px) {
+  .app-header {
+    padding-top: 0.6rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .grid-shell {
+    min-height: 160px;
+    height: min(260px, calc(100dvh - 300px));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

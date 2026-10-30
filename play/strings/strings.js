@@ -9,16 +9,11 @@
  * pointer plucks, drive the chord builder (guitar-only), persist prefs,
  * and route MIDI input.
  */
-import { resumeIfSuspended, setMasterVolume } from '../shared/audio.js';
+import { playRemoteNotes, resumeIfSuspended, setMasterVolume } from '../shared/audio.js';
 import { setupMidi } from '../shared/midi.js';
 import { makePrefs } from '../shared/prefs.js';
 import { getInstrument, midiAtCell } from './instruments.js';
-import {
-  ROOTS,
-  QUALITIES,
-  getChordVoicings,
-  formatChordName
-} from './chords.js';
+import { ROOTS, QUALITIES, getChordVoicings, formatChordName } from './chords.js';
 import { StringEngine } from './engine.js';
 import { createFretboardController } from './fretboard.js';
 import { createStrumPopovers } from './strum-popovers.js';
@@ -124,7 +119,9 @@ const setLoadedSong = (song) => {
       : song.title
     : 'Source';
   strumSongLinkEl.textContent = `\u266A ${label}`;
-  strumSongLinkEl.title = `Open original chord page${song.artist ? ` for ${song.artist}` : ''} in a new tab`;
+  strumSongLinkEl.title = `Open original chord page${
+    song.artist ? ` for ${song.artist}` : ''
+  } in a new tab`;
   strumSongLinkEl.hidden = false;
 };
 
@@ -193,7 +190,7 @@ const fretboard = createFretboardController({
   engine,
   cellEls,
   chordShapeCells,
-  getActiveInstrument: () => activeInstrument,
+  getActiveInstrument: () => activeInstrument
 });
 const { build: buildFretboard, flashCell, announceNote } = fretboard;
 
@@ -203,7 +200,7 @@ const { paintChordShape, clearChordShape } = createChordShapePainter({
   fretboardEl,
   cellEls,
   chordShapeCells,
-  getActiveInstrument: () => activeInstrument,
+  getActiveInstrument: () => activeInstrument
 });
 
 // ---------- Chord builder UI ----------
@@ -335,7 +332,7 @@ const playSelectedVoicing = (autoStrum = true) => {
   const notes = v.frets
     .map((f, i) => (f < 0 ? null : midiAtCell(activeInstrument, i, f)))
     .reverse();
-  engine.strum(notes, 'down');
+  playRemoteNotes(notes, () => engine.strum(notes, 'down'));
 
   // Sequential flash on top of the persistent highlight.
   let delay = 0;
@@ -605,8 +602,7 @@ const applyEditToPad = (changes) => {
     return false;
   }
   const newRootPc = changes.rootPc != null ? changes.rootPc : editTarget.rootPc;
-  const newQualityId =
-    changes.qualityId != null ? changes.qualityId : editTarget.qualityId;
+  const newQualityId = changes.qualityId != null ? changes.qualityId : editTarget.qualityId;
   // Resolve the voicing for the edit. Three cases:
   //   - Voicing was explicitly changed → use the new index.
   //   - Quality changed → reset to 0 (shape numbering differs per
@@ -678,7 +674,7 @@ strumClearBtn?.addEventListener('click', clearStrumBar);
 
 const transposeStrumBar = (semitones) => {
   if (!strumBar.length) return;
-  const shift = (((semitones % 12) + 12) % 12);
+  const shift = ((semitones % 12) + 12) % 12;
   if (shift === 0) return;
   for (const entry of strumBar) {
     entry.rootPc = (entry.rootPc + shift) % 12;
@@ -686,7 +682,7 @@ const transposeStrumBar = (semitones) => {
   if (editTarget) {
     editTarget = {
       rootPc: (editTarget.rootPc + shift) % 12,
-      qualityId: editTarget.qualityId,
+      qualityId: editTarget.qualityId
     };
   }
   builderState.rootPc = (builderState.rootPc + shift) % 12;
@@ -711,7 +707,7 @@ initStrumDrag({
   renderStrumBar,
   savePrefs,
   playChordAtPad,
-  removeChordFromBar,
+  removeChordFromBar
 });
 
 // ---------- Strum-bar action popovers ----------
@@ -731,9 +727,8 @@ createStrumPopovers({
   playChordAtPad,
   setEditTarget,
   setLoadedSong,
-  savePrefs,
+  savePrefs
 });
-
 
 // ---------- Tone + instrument switching ----------
 
@@ -742,7 +737,7 @@ const { switchTone, populateToneOptions } = createToneControls({
   toneEl,
   toneStatus,
   getActiveInstrument: () => activeInstrument,
-  tonesPerInstrument,
+  tonesPerInstrument
 });
 
 const applyInstrument = (instrumentId, { warm: warmAudio = false } = {}) => {

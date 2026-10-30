@@ -22,13 +22,17 @@ export function attachKeyboardInput({ keyboard, synth, sustainEl, announceNote, 
   };
 
   const playNote = (midi) => {
+    // A TV OK click, and desktop Enter via remote.js, already started this
+    // note. Starting it again restarts the voice.
+    const alreadyStruck = keyboard.claimRemoteHold?.(midi) === true;
     window.heymingAchievements?.unlockForCurrentApp('first-action');
     keyboard.pressVisual(midi, true);
-    synth.noteOn(midi);
+    if (!alreadyStruck) synth.noteOn(midi);
     announceNote(midi);
   };
 
   const releaseNote = (midi) => {
+    keyboard.releaseRemoteHold?.(midi);
     keyboard.pressVisual(midi, false);
     if (!sustainEl?.checked) synth.noteOff(midi);
     else keyboard.addToSustain(midi);
@@ -36,6 +40,11 @@ export function attachKeyboardInput({ keyboard, synth, sustainEl, announceNote, 
 
   document.addEventListener('keydown', (event) => {
     if (event.repeat) return;
+    // A focused control keeps the arrow keys, on every device, so the
+    // visitor can move to the next key. [ and ] still shift the octave.
+    if (/^Arrow/.test(event.key || '') && window.heymingRemote?.arrowsMoveFocus?.(event)) {
+      return;
+    }
     const target = event.target;
     const isFormField =
       target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);

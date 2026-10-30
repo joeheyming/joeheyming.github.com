@@ -268,6 +268,7 @@ class App {
       t instanceof HTMLTextAreaElement ||
       (t instanceof HTMLElement && t.isContentEditable);
     if (isFormField) return;
+    if (/^arrow/i.test(e.key) && window.heymingRemote?.arrowsMoveFocus(e)) return;
 
     const key = e.key;
 

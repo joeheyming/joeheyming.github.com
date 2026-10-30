@@ -92,8 +92,11 @@ export function createStickerOverlay(sticker, overlayEl, stageEl) {
 
   const handleDelete = document.createElement('div');
   handleDelete.className = 'text-box-handle handle-delete';
+  handleDelete.tabIndex = 0;
   handleDelete.textContent = '×';
   handleDelete.title = 'Remove sticker';
+  handleDelete.setAttribute('role', 'button');
+  handleDelete.setAttribute('aria-label', 'Remove sticker');
   el.appendChild(handleDelete);
 
   overlayEl.appendChild(el);

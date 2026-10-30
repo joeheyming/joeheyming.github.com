@@ -282,7 +282,13 @@
     </section>
 
     <section class="theremin-stage">
-      <div class="theremin-pad" id="theremin-pad" role="application" aria-label="XY pad">
+      <div
+        class="theremin-pad"
+        id="theremin-pad"
+        role="application"
+        tabindex="0"
+        aria-label="Theremin pad. Left and right change pitch, up and down change volume. Up at the top leaves the pad."
+      >
         <video
           id="theremin-video"
           class="theremin-video"
@@ -296,7 +302,7 @@
         <div class="theremin-axis-label theremin-axis-x" aria-hidden="true">PITCH →</div>
         <div class="theremin-axis-label theremin-axis-y" aria-hidden="true">VOLUME →</div>
         <div class="theremin-hint" id="theremin-hint" aria-hidden="true">
-          Drag anywhere · Second finger = vibrato
+          Drag anywhere · Arrows play · Up at the top leaves
         </div>
         <div class="theremin-air-card" id="theremin-air-card" hidden>
           <div class="theremin-air-card-icon" aria-hidden="true">✋</div>

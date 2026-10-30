@@ -383,6 +383,7 @@ export function renderLayerPanel(layers, activeIdx, container, callbacks) {
     const row = document.createElement('div');
     row.className =
       'layer-row' + (isActive && isSelected ? ' active' : '') + (isSelected ? ' selected' : '');
+    row.tabIndex = 0;
     row.setAttribute('aria-selected', String(isSelected));
     row.dataset.index = String(i);
     row.style.setProperty('--layer-depth', String(depth));

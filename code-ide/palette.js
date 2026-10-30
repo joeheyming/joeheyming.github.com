@@ -31,6 +31,7 @@ export const paletteMethods = {
       visible.slice(0, 50).forEach((f, i) => {
         const row = document.createElement('div');
         row.className = 'row' + (i === active ? ' active' : '');
+        row.tabIndex = 0;
         row.innerHTML = `<span>${this.fs.baseName(f)}</span><span class="path">${f}</span>`;
         row.addEventListener('click', () => {
           close();

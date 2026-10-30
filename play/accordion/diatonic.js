@@ -32,7 +32,8 @@
  *   - B/C 2-row — Irish trad standard, semitone offset between rows
  */
 
-import { createPointerSurface } from '../shared/pointer-surface.js';
+import { bindRemoteClick, createPointerSurface } from '../shared/pointer-surface.js';
+import { playRemoteNotes } from '../shared/audio.js';
 import { tap as hapticTap } from '../shared/haptics.js';
 
 const SHARP_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
@@ -288,6 +289,16 @@ export function renderDiatonic(rootEl, opts) {
     onEnter: (btn) => press(btn),
     onLeave: (btn) => release(btn),
     onRelease: (btn) => release(btn)
+  });
+  bindRemoteClick(rootEl, '.diatonic-button', (btn) => {
+    const notes = [btn._midi];
+    if (playRemoteNotes(notes, () => press(btn))) {
+      setTimeout(() => release(btn), 220);
+      return;
+    }
+    btn.classList.add('active');
+    onActivity(btn._midi);
+    setTimeout(() => btn.classList.remove('active'), 220);
   });
 
   const resetMutex = () => {

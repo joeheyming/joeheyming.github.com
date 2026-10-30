@@ -733,7 +733,7 @@ function gradientSwatchControl(opt, initial, fg, bg, onChange, cleanup) {
     const item = document.createElement('div');
     item.className = 'tool-opt-swatch-item';
     item.setAttribute('role', 'option');
-    item.tabIndex = -1;
+    item.tabIndex = 0;
     item.title = o.label;
     item.dataset.value = o.value;
     item.setAttribute('aria-selected', String(o.value === cur));

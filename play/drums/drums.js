@@ -14,7 +14,15 @@
  * silence. The looper records pad ids (not audio), so it survives a kit
  * change mid-loop.
  */
-import { getCtx, getMaster, resumeIfSuspended, setMasterVolume } from '../shared/audio.js';
+import {
+  gestureAllowsWebAudio,
+  getCtx,
+  getMaster,
+  playHtmlClip,
+  resumeIfSuspended,
+  setMasterVolume,
+  tryStartWebAudio
+} from '../shared/audio.js';
 import { SampleKit } from '../shared/samples.js';
 import { makePrefs } from '../shared/prefs.js';
 import { LoopTrack } from '../shared/loop-track.js';
@@ -477,243 +485,375 @@ class DrumKit {
   }
 }
 
-// ---------- Page wiring ----------
-
-const padsContainer = document.getElementById('drum-pads');
-const nowPlaying = document.getElementById('now-playing');
-const volumeEl = document.getElementById('volume');
-const kitEl = document.getElementById('kit');
-const kitStatusEl = document.getElementById('kit-status');
-
-const prefs = Prefs.load();
-if (typeof prefs.volume === 'number') volumeEl.value = String(prefs.volume);
-if (typeof prefs.kit === 'string') {
-  const opt = Array.from(kitEl.options).find((o) => o.value === prefs.kit);
-  if (opt) kitEl.value = prefs.kit;
+/** First sample URL for this pad, or null when the kit is synthesized. */
+export function remoteSampleUrl(kitName, padId) {
+  const catalog = SAMPLED_KIT_CATALOGS[kitName];
+  if (!catalog) return null;
+  const urls = catalog[padId];
+  return Array.isArray(urls) && urls[0] ? urls[0] : null;
 }
 
-const kit = new DrumKit();
-setMasterVolume(Number(volumeEl.value) / 100);
+const synthDrumUrls = new Map();
 
-const updateKitStatus = () => {
-  if (!kitStatusEl) return;
-  if (!kit.isSampledKit()) {
-    kitStatusEl.textContent = '';
-    return;
+function writeWav(samples, sampleRate) {
+  const dataBytes = samples.length * 2;
+  const buffer = new ArrayBuffer(44 + dataBytes);
+  const view = new DataView(buffer);
+  const write = (offset, text) => {
+    for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i));
+  };
+  write(0, 'RIFF');
+  view.setUint32(4, 36 + dataBytes, true);
+  write(8, 'WAVE');
+  write(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  write(36, 'data');
+  view.setUint32(40, dataBytes, true);
+  for (let i = 0; i < samples.length; i += 1) {
+    const clamped = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(44 + i * 2, clamped * 32767, true);
   }
-  const status = kit.sampleKitStatus();
-  if (status === 'loading') kitStatusEl.textContent = 'loading…';
-  else if (status === 'error') kitStatusEl.textContent = 'offline · synth fallback';
-  else kitStatusEl.textContent = '';
-};
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return `data:audio/wav;base64,${btoa(binary)}`;
+}
 
-kit.onStatusChange = (name) => {
-  if (name === kit.kit) updateKitStatus();
-};
-kit.setKit(kitEl.value);
-updateKitStatus();
+/** A short hit for kits that have no sample file. */
+export function synthDrumUrl(padId) {
+  const cached = synthDrumUrls.get(padId);
+  if (cached) return cached;
+  const sampleRate = 22050;
+  const seconds = padId === 'crash' || padId === 'ride' ? 0.45 : 0.28;
+  const frames = Math.floor(sampleRate * seconds);
+  const samples = new Float32Array(frames);
+  for (let i = 0; i < frames; i += 1) {
+    const t = i / sampleRate;
+    const noise = Math.random() * 2 - 1;
+    let sample = noise * Math.exp(-t * 16);
+    if (padId === 'kick') {
+      const freq = 150 * Math.pow(40 / 150, Math.min(1, t / 0.12));
+      sample = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 12);
+    } else if (padId === 'snare' || padId === 'clap') {
+      sample =
+        noise * Math.exp(-t * 14) + Math.sin(2 * Math.PI * 180 * t) * Math.exp(-t * 22) * 0.35;
+    } else if (padId === 'closed-hat' || padId === 'stick') {
+      sample = noise * Math.exp(-t * 48);
+    } else if (
+      padId === 'open-hat' ||
+      padId === 'crash' ||
+      padId === 'ride' ||
+      padId === 'tambourine'
+    ) {
+      sample = noise * Math.exp(-t * 8);
+    } else if (padId === 'cowbell') {
+      const tone =
+        Math.sign(Math.sin(2 * Math.PI * 540 * t)) + Math.sign(Math.sin(2 * Math.PI * 800 * t));
+      sample = tone * 0.25 * Math.exp(-t * 14);
+    } else if (padId === 'low-tom') {
+      sample = Math.sin(2 * Math.PI * 90 * t) * Math.exp(-t * 8);
+    } else if (padId === 'mid-tom') {
+      sample = Math.sin(2 * Math.PI * 140 * t) * Math.exp(-t * 8);
+    }
+    samples[i] = sample;
+  }
+  const url = writeWav(samples, sampleRate);
+  synthDrumUrls.set(padId, url);
+  return url;
+}
 
-// LoopTrack instance — plays back via `playPad` (sound + visuals, no recording).
-const looper = new LoopTrack({ onPlay: (id) => playPad(id) });
+/**
+ * OK on a TV remote clicks the focused pad and does not send a pointer
+ * event. A click that follows a real pointer already struck the pad.
+ */
+export function attachPadClicks(root, onRemote) {
+  let lastPointerMs = 0;
+  root.addEventListener(
+    'pointerdown',
+    () => {
+      lastPointerMs = Date.now();
+    },
+    true
+  );
+  root.addEventListener('click', (event) => {
+    if (Date.now() - lastPointerMs < 700) return;
+    const pad = event.target && event.target.closest && event.target.closest('.drum-pad');
+    if (!pad || !root.contains(pad)) return;
+    onRemote(pad.dataset.id);
+  });
+}
 
-// Build pads
-const padEls = new Map(); // id -> element
-const keyToPad = new Map(); // key -> id
-for (const def of PAD_LAYOUT) {
-  const el = document.createElement('button');
-  el.className = 'drum-pad';
-  el.dataset.id = def.id;
-  el.style.setProperty('--pad-accent', def.accent);
-  el.setAttribute('aria-label', `${def.name} (${def.key.toUpperCase()})`);
-  el.innerHTML = `
+// ---------- Page wiring ----------
+
+function bootDrumsPage() {
+  const padsContainer = document.getElementById('drum-pads');
+  const nowPlaying = document.getElementById('now-playing');
+  const volumeEl = document.getElementById('volume');
+  const kitEl = document.getElementById('kit');
+  const kitStatusEl = document.getElementById('kit-status');
+
+  const prefs = Prefs.load();
+  if (typeof prefs.volume === 'number') volumeEl.value = String(prefs.volume);
+  if (typeof prefs.kit === 'string') {
+    const opt = Array.from(kitEl.options).find((o) => o.value === prefs.kit);
+    if (opt) kitEl.value = prefs.kit;
+  }
+
+  const kit = new DrumKit();
+  setMasterVolume(Number(volumeEl.value) / 100);
+
+  const updateKitStatus = () => {
+    if (!kitStatusEl) return;
+    if (!kit.isSampledKit()) {
+      kitStatusEl.textContent = '';
+      return;
+    }
+    const status = kit.sampleKitStatus();
+    if (status === 'loading') kitStatusEl.textContent = 'loading…';
+    else if (status === 'error') kitStatusEl.textContent = 'offline · synth fallback';
+    else kitStatusEl.textContent = '';
+  };
+
+  kit.onStatusChange = (name) => {
+    if (name === kit.kit) updateKitStatus();
+  };
+  kit.setKit(kitEl.value);
+  updateKitStatus();
+
+  // LoopTrack instance — plays back via `playPad` (sound + visuals, no recording).
+  const looper = new LoopTrack({ onPlay: (id) => playPad(id) });
+
+  // Build pads
+  const padEls = new Map(); // id -> element
+  const keyToPad = new Map(); // key -> id
+  for (const def of PAD_LAYOUT) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'drum-pad';
+    el.dataset.id = def.id;
+    el.style.setProperty('--pad-accent', def.accent);
+    el.setAttribute('aria-label', `${def.name} (${def.key.toUpperCase()})`);
+    el.innerHTML = `
     <span class="drum-pad-key" aria-hidden="true">${def.key.toUpperCase()}</span>
     <span class="drum-pad-emoji" aria-hidden="true">${def.emoji}</span>
     <span class="drum-pad-name">${def.name}</span>
   `;
-  padsContainer.appendChild(el);
-  padEls.set(def.id, el);
-  keyToPad.set(def.key, def.id);
-}
-
-let nowPlayingTimer = null;
-const announcePad = (id) => {
-  const def = PAD_LAYOUT.find((p) => p.id === id);
-  if (!def) return;
-  nowPlaying.textContent = def.name;
-  nowPlaying.classList.add('active');
-  clearTimeout(nowPlayingTimer);
-  nowPlayingTimer = setTimeout(() => {
-    nowPlaying.classList.remove('active');
-  }, 350);
-};
-
-const flashPad = (id) => {
-  const el = padEls.get(id);
-  if (!el) return;
-  el.classList.add('active');
-  setTimeout(() => el.classList.remove('active'), 110);
-};
-
-// Plays a pad with sound + visuals only (no looper recording).
-const playPad = (id) => {
-  kit.hit(id);
-  flashPad(id);
-  announcePad(id);
-};
-
-const triggerPad = (id) => {
-  window.heymingAchievements?.unlockForCurrentApp('first-action');
-  playPad(id);
-  looper.noteHit(id);
-};
-
-// Pointer input — strike-on-enter: trigger on press, and again whenever
-// the pointer drags onto a new pad so a sweep across the kit makes a
-// drumroll. PointerSurface owns per-pointer tracking and drag-cross.
-createPointerSurface(padsContainer, {
-  targetSelector: '.drum-pad',
-  onEnter: (padEl) => {
-    triggerPad(padEl.dataset.id);
+    padsContainer.appendChild(el);
+    padEls.set(def.id, el);
+    keyToPad.set(def.key, def.id);
   }
-});
 
-// Keyboard input
-const heldKeys = new Set();
-document.addEventListener('keydown', (event) => {
-  if (event.repeat) return;
-  const target = event.target;
-  if (target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
-    return;
-  }
-  const key = event.key.toLowerCase();
-  const id = keyToPad.get(key);
-  if (!id) return;
-  if (heldKeys.has(key)) return;
-  heldKeys.add(key);
-  triggerPad(id);
-  event.preventDefault();
-});
+  let nowPlayingTimer = null;
+  const announcePad = (id) => {
+    const def = PAD_LAYOUT.find((p) => p.id === id);
+    if (!def) return;
+    nowPlaying.textContent = def.name;
+    nowPlaying.classList.add('active');
+    clearTimeout(nowPlayingTimer);
+    nowPlayingTimer = setTimeout(() => {
+      nowPlaying.classList.remove('active');
+    }, 350);
+  };
 
-document.addEventListener('keyup', (event) => {
-  heldKeys.delete(event.key.toLowerCase());
-});
+  const flashPad = (id) => {
+    const el = padEls.get(id);
+    if (!el) return;
+    el.classList.add('active');
+    setTimeout(() => el.classList.remove('active'), 110);
+  };
 
-volumeEl.addEventListener('input', () => {
-  setMasterVolume(Number(volumeEl.value) / 100);
-  Prefs.save({ volume: Number(volumeEl.value), kit: kitEl.value });
-});
+  // Plays a pad with sound + visuals only (no looper recording).
+  const playPad = (id) => {
+    kit.hit(id);
+    flashPad(id);
+    announcePad(id);
+  };
 
-kitEl.addEventListener('change', () => {
-  kit.setKit(kitEl.value);
-  updateKitStatus();
-  Prefs.save({ volume: Number(volumeEl.value), kit: kitEl.value });
-});
+  const triggerPad = (id) => {
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
+    playPad(id);
+    looper.noteHit(id);
+  };
 
-window.addEventListener('focus', () => resumeIfSuspended());
-
-// ---------- Looper UI ----------
-
-const recBtn = document.getElementById('loop-record');
-const playBtn = document.getElementById('loop-play');
-const clearBtn = document.getElementById('loop-clear');
-const postBtn = document.getElementById('loop-post');
-const postStatusEl = document.getElementById('loop-post-status');
-
-createLoopTrackController(looper, {
-  recBtn,
-  playBtn,
-  clearBtn,
-  statusEl: document.getElementById('loop-status'),
-  barEl: document.getElementById('loop-bar'),
-  barFillEl: document.getElementById('loop-bar-fill'),
-  playLabelEl: playBtn.querySelector('.loop-btn-label'),
-  playIconEl: playBtn.querySelector('.loop-btn-icon'),
-  onUserAction: () => resumeIfSuspended()
-});
-
-let postBusy = false;
-const updatePostButton = () => {
-  const ready = looper.hasLoop();
-  postBtn.disabled = postBusy || !ready;
-  postBtn.title = postBusy
-    ? 'Preparing post…'
-    : ready
-    ? 'Make a Post'
-    : 'Record a loop first, then make a post';
-};
-looper.on(updatePostButton);
-updatePostButton();
-
-const currentLoopToken = () =>
-  encodeDrumLoop({ loopLength: looper.loopLength, kit: kitEl.value, events: looper.events });
-
-// The Share button and share FAB copy whatever is in the address bar, so the
-// recorded loop has to live there too — not just in the post text.
-let urlToken = null;
-const syncLoopUrl = () => {
-  let token = null;
-  if (looper.hasLoop()) {
-    try {
-      token = currentLoopToken();
-    } catch {
-      // Too long or too busy to encode; a bare Drums link still works.
+  // The remote's OK click is not a user gesture, so Web Audio stays silent.
+  // Play the kit sample (or a short synth hit) through an <audio> element,
+  // which is the path that already works for Bad Apple on this TV.
+  const triggerPadFromRemote = (id) => {
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
+    flashPad(id);
+    announcePad(id);
+    looper.noteHit(id);
+    if (gestureAllowsWebAudio() && tryStartWebAudio()) {
+      try {
+        kit.hit(id);
+        return;
+      } catch (_) {
+        /* fall through to the media element */
+      }
     }
-  }
-  if (token === urlToken) return;
-  urlToken = token;
-  history.replaceState(history.state, '', withLoopToken(window.location.href, token));
-};
-looper.on(syncLoopUrl);
-kitEl.addEventListener('change', syncLoopUrl);
+    const gain = SAMPLE_KIT_GAINS[id] ?? 0.9;
+    const sample = remoteSampleUrl(kit.kit, id);
+    if (sample) playHtmlClip(sample, gain, () => playHtmlClip(synthDrumUrl(id), gain));
+    else playHtmlClip(synthDrumUrl(id), gain);
+  };
 
-const sharedLoop = decodeDrumLoop(
-  new URLSearchParams(window.location.search).get(LOOP_PARAM) || ''
-);
-if (sharedLoop) {
-  kitEl.value = sharedLoop.kit;
-  kit.setKit(sharedLoop.kit);
-  updateKitStatus();
-  looper.load(sharedLoop.events, sharedLoop.loopLength);
-  postStatusEl.textContent = 'Shared loop loaded — press Play';
+  // Pointer input — strike-on-enter: trigger on press, and again whenever
+  // the pointer drags onto a new pad so a sweep across the kit makes a
+  // drumroll. PointerSurface owns per-pointer tracking and drag-cross.
+  createPointerSurface(padsContainer, {
+    targetSelector: '.drum-pad',
+    onEnter: (padEl) => {
+      triggerPad(padEl.dataset.id);
+    }
+  });
+  attachPadClicks(padsContainer, triggerPadFromRemote);
+
+  // Keyboard input
+  const heldKeys = new Set();
+  document.addEventListener('keydown', (event) => {
+    if (event.repeat) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+      return;
+    }
+    const key = event.key.toLowerCase();
+    const id = keyToPad.get(key);
+    if (!id) return;
+    if (heldKeys.has(key)) return;
+    heldKeys.add(key);
+    triggerPad(id);
+    event.preventDefault();
+  });
+
+  document.addEventListener('keyup', (event) => {
+    heldKeys.delete(event.key.toLowerCase());
+  });
+
+  volumeEl.addEventListener('input', () => {
+    setMasterVolume(Number(volumeEl.value) / 100);
+    Prefs.save({ volume: Number(volumeEl.value), kit: kitEl.value });
+  });
+
+  kitEl.addEventListener('change', () => {
+    kit.setKit(kitEl.value);
+    updateKitStatus();
+    Prefs.save({ volume: Number(volumeEl.value), kit: kitEl.value });
+  });
+
+  window.addEventListener('focus', () => resumeIfSuspended());
+
+  // ---------- Looper UI ----------
+
+  const recBtn = document.getElementById('loop-record');
+  const playBtn = document.getElementById('loop-play');
+  const clearBtn = document.getElementById('loop-clear');
+  const postBtn = document.getElementById('loop-post');
+  const postStatusEl = document.getElementById('loop-post-status');
+
+  createLoopTrackController(looper, {
+    recBtn,
+    playBtn,
+    clearBtn,
+    statusEl: document.getElementById('loop-status'),
+    barEl: document.getElementById('loop-bar'),
+    barFillEl: document.getElementById('loop-bar-fill'),
+    playLabelEl: playBtn.querySelector('.loop-btn-label'),
+    playIconEl: playBtn.querySelector('.loop-btn-icon'),
+    onUserAction: () => resumeIfSuspended()
+  });
+
+  let postBusy = false;
+  const updatePostButton = () => {
+    const ready = looper.hasLoop();
+    postBtn.disabled = postBusy || !ready;
+    postBtn.title = postBusy
+      ? 'Preparing post…'
+      : ready
+      ? 'Make a Post'
+      : 'Record a loop first, then make a post';
+  };
+  looper.on(updatePostButton);
+  updatePostButton();
+
+  const currentLoopToken = () =>
+    encodeDrumLoop({ loopLength: looper.loopLength, kit: kitEl.value, events: looper.events });
+
+  // The Share button and share FAB copy whatever is in the address bar, so the
+  // recorded loop has to live there too — not just in the post text.
+  let urlToken = null;
+  const syncLoopUrl = () => {
+    let token = null;
+    if (looper.hasLoop()) {
+      try {
+        token = currentLoopToken();
+      } catch {
+        // Too long or too busy to encode; a bare Drums link still works.
+      }
+    }
+    if (token === urlToken) return;
+    urlToken = token;
+    history.replaceState(history.state, '', withLoopToken(window.location.href, token));
+  };
+  looper.on(syncLoopUrl);
+  kitEl.addEventListener('change', syncLoopUrl);
+
+  const sharedLoop = decodeDrumLoop(
+    new URLSearchParams(window.location.search).get(LOOP_PARAM) || ''
+  );
+  if (sharedLoop) {
+    kitEl.value = sharedLoop.kit;
+    kit.setKit(sharedLoop.kit);
+    updateKitStatus();
+    looper.load(sharedLoop.events, sharedLoop.loopLength);
+    postStatusEl.textContent = 'Shared loop loaded — press Play';
+  }
+
+  postBtn.addEventListener('click', async () => {
+    if (postBusy || !looper.hasLoop()) return;
+    postBusy = true;
+    updatePostButton();
+    postStatusEl.classList.remove('error');
+    postStatusEl.textContent = 'Preparing link…';
+    try {
+      const token = currentLoopToken();
+      postStatusEl.textContent = 'Opening Posts…';
+      const { share } = await import('/posts/share-client.js');
+      await share({
+        text: `🥁 Drum loop\n\n▶ [Play this loop](/play/drums/?loop=${token})\n\nMade with [Drums](/play/drums/)`
+      });
+      window.heymingAchievements?.unlockForCurrentApp('loop-posted');
+    } catch (error) {
+      console.warn('Posting drum loop failed', error);
+      postBusy = false;
+      updatePostButton();
+      postStatusEl.classList.add('error');
+      postStatusEl.textContent = error instanceof Error ? error.message : 'Could not make a post.';
+    }
+  });
+
+  // Keyboard shortcuts: Space = Rec, P = Play/Stop. Skip when typing in inputs.
+  document.addEventListener('keydown', (event) => {
+    if (event.repeat) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+      return;
+    }
+    if (event.code === 'Space') {
+      looper.toggleRecord();
+      event.preventDefault();
+      return;
+    }
+    if (event.key === 'p' || event.key === 'P') {
+      looper.togglePlay();
+      event.preventDefault();
+    }
+  });
 }
 
-postBtn.addEventListener('click', async () => {
-  if (postBusy || !looper.hasLoop()) return;
-  postBusy = true;
-  updatePostButton();
-  postStatusEl.classList.remove('error');
-  postStatusEl.textContent = 'Preparing link…';
-  try {
-    const token = currentLoopToken();
-    postStatusEl.textContent = 'Opening Posts…';
-    const { share } = await import('/posts/share-client.js');
-    await share({
-      text: `🥁 Drum loop\n\n▶ [Play this loop](/play/drums/?loop=${token})\n\nMade with [Drums](/play/drums/)`
-    });
-    window.heymingAchievements?.unlockForCurrentApp('loop-posted');
-  } catch (error) {
-    console.warn('Posting drum loop failed', error);
-    postBusy = false;
-    updatePostButton();
-    postStatusEl.classList.add('error');
-    postStatusEl.textContent = error instanceof Error ? error.message : 'Could not make a post.';
-  }
-});
-
-// Keyboard shortcuts: Space = Rec, P = Play/Stop. Skip when typing in inputs.
-document.addEventListener('keydown', (event) => {
-  if (event.repeat) return;
-  const target = event.target;
-  if (target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
-    return;
-  }
-  if (event.code === 'Space') {
-    looper.toggleRecord();
-    event.preventDefault();
-    return;
-  }
-  if (event.key === 'p' || event.key === 'P') {
-    looper.togglePlay();
-    event.preventDefault();
-  }
-});
+if (typeof document !== 'undefined' && document.getElementById('drum-pads')) bootDrumsPage();

@@ -195,6 +195,7 @@ export const scmMethods = {
       }
       const row = document.createElement('div');
       row.className = 'item';
+      row.tabIndex = 0;
       row.textContent = item.label;
       row.addEventListener('click', () => {
         menu.remove();
@@ -242,6 +243,7 @@ export const scmMethods = {
       visible.forEach((b, i) => {
         const row = document.createElement('div');
         row.className = 'row' + (i === active ? ' active' : '');
+        row.tabIndex = 0;
         row.innerHTML = `<span>${b === current ? '✓ ' : ''}${b}</span><span class="path">branch</span>`;
         row.addEventListener('click', async () => {
           close();

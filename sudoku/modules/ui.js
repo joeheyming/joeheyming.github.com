@@ -262,6 +262,16 @@ export class SudokuUI {
       }
 
       const sel = this.game.selected;
+      const onCell = t && t.closest && t.closest('#board .cell, .sudoku-cell, [data-idx]');
+      if (
+        (e.key === 'ArrowUp' ||
+          e.key === 'ArrowDown' ||
+          e.key === 'ArrowLeft' ||
+          e.key === 'ArrowRight') &&
+        !onCell
+      ) {
+        return;
+      }
       if (sel < 0) return;
       let r = Math.floor(sel / SIZE);
       let c = sel % SIZE;

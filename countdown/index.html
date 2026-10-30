@@ -189,7 +189,7 @@
 
     <!-- Language Selector -->
     <div class="locale-selector-wrapper">
-      <locale-selector></locale-selector>
+      <locale-selector tabindex="0" aria-label="Language"></locale-selector>
     </div>
 
     <div class="container">
@@ -204,6 +204,7 @@
         <div class="event-selector-row">
           <event-autocomplete
             id="eventAutocomplete"
+            tabindex="0"
             placeholder="Search events..."
           ></event-autocomplete>
           <button class="toggle-custom-btn" id="toggleCustomBtn" title="Create custom event">
@@ -253,7 +254,11 @@
         <!-- Display Mode Selector -->
         <div class="display-mode-row">
           <span class="display-mode-label">Display:</span>
-          <display-mode-selector id="displayModeSelector" value="standard"></display-mode-selector>
+          <display-mode-selector
+            id="displayModeSelector"
+            tabindex="0"
+            value="standard"
+          ></display-mode-selector>
         </div>
 
         <!-- Timer Display Components (dynamically inserted) -->
@@ -275,7 +280,11 @@
 
       <!-- Celebration Video Selector -->
       <div class="celebration-video-section">
-        <celebration-video-selector id="celebrationVideoSelector"></celebration-video-selector>
+        <celebration-video-selector
+          id="celebrationVideoSelector"
+          tabindex="0"
+          aria-label="Celebration video"
+        ></celebration-video-selector>
       </div>
 
       <div class="action-section">

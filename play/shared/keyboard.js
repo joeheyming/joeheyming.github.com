@@ -4,7 +4,14 @@
  * Used by piano, accordion, and synth pages. Calls a host-provided synth
  * object that must implement `noteOn(midi)`, `noteOff(midi)`, `allOff()`.
  */
-import { isBlackKey, isC, midiToName } from './audio.js';
+import {
+  gestureAllowsWebAudio,
+  isBlackKey,
+  isC,
+  midiToName,
+  playStruckTone,
+  tryStartWebAudio
+} from './audio.js';
 import { createPointerSurface } from './pointer-surface.js';
 
 /**
@@ -84,6 +91,13 @@ export class Keyboard {
     // whether a pointer is "live" so onRelease can decide noteOff vs hold.
     this._activePointers = new Set();
     this._tapDelayMs = opts.tapDelayMs ?? 80;
+    // OK on a TV remote clicks the focused key and never sends a pointer
+    // event. A click that follows a real pointer is the mouse/touch click
+    // that already started a note, so it must not strike again.
+    this._lastPointerMs = 0;
+    this._remoteStruck = new Set();
+    this._remoteHeld = new Set();
+    this._remoteTapMs = opts.remoteTapMs ?? 200;
 
     this.render();
     this.attachPointerHandlers();
@@ -177,7 +191,9 @@ export class Keyboard {
       el.setAttribute('aria-keyshortcuts', kbd);
       el.classList.add('qwerty-mapped');
     }
-    if (!black) el.setAttribute('tabindex', '0');
+    // Spatial navigation on a TV only lands on focusable elements. Black
+    // keys need this too, or the remote can never play a sharp.
+    el.setAttribute('tabindex', '0');
 
     const label = document.createElement('span');
     label.className = 'key-label';
@@ -237,6 +253,7 @@ export class Keyboard {
       deferScrollOnTouch: true,
       tapDelayMs: this._tapDelayMs,
       onEnter: (target, ptrId) => {
+        this._lastPointerMs = Date.now();
         this._activePointers.add(ptrId);
         const midi = Number(target.dataset.midi);
         this.pressVisual(midi, true);
@@ -257,6 +274,75 @@ export class Keyboard {
         else this._heldBySustain.add(midi);
       }
     });
+
+    this.root.addEventListener(
+      'pointerdown',
+      () => {
+        this._lastPointerMs = Date.now();
+      },
+      true
+    );
+    this.root.addEventListener('click', (event) => {
+      if (Date.now() - this._lastPointerMs < 700) return;
+      const target = event.target && event.target.closest && event.target.closest('.piano-key');
+      if (!target || !this.root.contains(target)) return;
+      const midi = Number(target.dataset.midi);
+      if (!Number.isFinite(midi)) return;
+      this.strikeFromRemote(midi);
+    });
+  }
+
+  /**
+   * A remote OK click has no matching keyup. Play the note now, and
+   * release it on a short timer unless a keyboard hold claims it first
+   * (Enter on a desktop keyboard synthesizes this same click).
+   */
+  strikeFromRemote(midi) {
+    this._remoteStruck.add(midi);
+    this.pressVisual(midi, true);
+    this.onActivity(midi);
+    window.heymingAchievements?.unlockForCurrentApp?.('first-action');
+    if (gestureAllowsWebAudio() && tryStartWebAudio()) {
+      try {
+        this.synth.noteOn(midi);
+      } catch (_) {
+        playStruckTone(midi);
+      }
+    } else {
+      playStruckTone(midi);
+    }
+    queueMicrotask(() => {
+      const held = this._remoteHeld.has(midi);
+      this._remoteStruck.delete(midi);
+      if (held) return;
+      setTimeout(() => {
+        if (this._remoteHeld.has(midi)) return;
+        this.pressVisual(midi, false);
+        if (this._sustain) this._heldBySustain.add(midi);
+        else {
+          try {
+            this.synth.noteOff(midi);
+          } catch (_) {
+            /* the html tone decays on its own */
+          }
+        }
+      }, this._remoteTapMs);
+    });
+  }
+
+  /**
+   * Desktop Enter both clicks the key and holds it until keyup. Returns
+   * true when the click already started this note, so the key handler
+   * must not start it again.
+   */
+  claimRemoteHold(midi) {
+    const struck = this._remoteStruck.has(midi);
+    this._remoteHeld.add(midi);
+    return struck;
+  }
+
+  releaseRemoteHold(midi) {
+    this._remoteHeld.delete(midi);
   }
 
   pressVisual(midi, on) {

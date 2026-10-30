@@ -75,6 +75,16 @@
   }
 })();
 
+// Remote-control helper. Synchronous, like this file, so it exists before
+// app scripts register their own key handlers. Skipped when analytics.js is
+// eval'd (tests have no currentScript).
+(function loadRemoteControls() {
+  var script = document.currentScript;
+  if (!script || !script.src) return;
+  var src = script.src.replace(/analytics\.js(?:\?.*)?$/, 'remote.js');
+  document.write('<script src="' + src + '"><\/script>');
+})();
+
 // assuming google analytics is already loaded
 // onload
 // Normalize page path by removing index.html and ensuring trailing slashes for directories

@@ -39,6 +39,7 @@ export function createTileEl(el, delay) {
 export function createUnmatchedTileEl(letter, delay, onClickCreate) {
   var tile = document.createElement('div');
   tile.className = 'tile-unmatched clickable';
+  tile.tabIndex = 0;
   tile.style.animationDelay = delay + 'ms';
   tile.title = 'Click to create a custom element for "' + letter.toUpperCase() + '"';
 

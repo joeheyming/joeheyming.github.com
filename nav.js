@@ -95,6 +95,9 @@
   drawer.setAttribute('role', 'navigation');
   drawer.setAttribute('aria-label', 'Site apps');
   drawer.setAttribute('aria-hidden', 'true');
+  // Closed drawer links stay in the layout (slid off-screen). Without
+  // inert, the TV's spatial navigation treats all of them as targets.
+  drawer.inert = true;
   drawer.innerHTML = `
     <header class="heyming-nav-drawer-header">
       <a href="/" class="heyming-nav-brand">
@@ -594,6 +597,7 @@
     backdrop.classList.add('open');
     drawer.setAttribute('aria-hidden', 'false');
     backdrop.setAttribute('aria-hidden', 'false');
+    drawer.inert = false;
     toggle.setAttribute('aria-expanded', 'true');
     toggle.setAttribute('aria-label', 'Close navigation menu');
     // Hide the toggle while the drawer is open so the hamburger doesn't
@@ -618,6 +622,7 @@
     backdrop.classList.remove('open');
     drawer.setAttribute('aria-hidden', 'true');
     backdrop.setAttribute('aria-hidden', 'true');
+    drawer.inert = true;
     toggle.setAttribute('aria-expanded', 'false');
     toggle.setAttribute('aria-label', 'Open navigation menu');
     toggle.removeAttribute('hidden');

@@ -4,6 +4,19 @@
 import { BaseCountdownDisplay } from './base-display.js';
 import { hostStyles, hiddenClass, combineStyles } from './shared-styles.js';
 
+const REEL_FACES = [
+  { kind: 'fruit', glyph: '🍒' },
+  { kind: 'fruit', glyph: '🍋' },
+  { kind: 'fruit', glyph: '🍊' },
+  { kind: 'fruit', glyph: '🍇' },
+  { kind: 'fruit', glyph: '🍉' },
+  { kind: 'bell', glyph: '🔔' },
+  { kind: 'bar' },
+  { kind: 'seven' },
+  { kind: 'star', glyph: '⭐' },
+  { kind: 'gem', glyph: '💎' }
+];
+
 class SlotDisplay extends BaseCountdownDisplay {
   constructor() {
     super();
@@ -31,11 +44,16 @@ class SlotDisplay extends BaseCountdownDisplay {
         }
 
         .slot-title {
-          font-family: 'Bangers', cursive, sans-serif;
+          font-family: Impact, 'Arial Black', sans-serif;
           font-size: 1rem;
           color: #fbbf24;
           text-shadow: 2px 2px 0 #e94560;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.12em;
+        }
+
+        .slot-title .title-7 {
+          font-size: 1.35rem;
+          margin: 0 4px;
         }
 
         .reels-container {
@@ -58,13 +76,15 @@ class SlotDisplay extends BaseCountdownDisplay {
         }
 
         .reel {
-          width: clamp(28px, 8vw, 40px);
-          height: clamp(44px, 12vw, 60px);
-          background: linear-gradient(180deg, #0f0f23 0%, #1a1a2e 50%, #0f0f23 100%);
-          border: 2px solid #333;
+          --reel-h: clamp(48px, 12vw, 64px);
+          width: clamp(36px, 8vw, 52px);
+          height: var(--reel-h);
+          background: #1a120c;
+          border: 2px solid #e8c547;
           border-radius: 6px;
           overflow: hidden;
           position: relative;
+          box-shadow: inset 0 0 0 2px #5c3b12;
         }
 
         .reel::before,
@@ -73,7 +93,7 @@ class SlotDisplay extends BaseCountdownDisplay {
           position: absolute;
           left: 0;
           right: 0;
-          height: 30%;
+          height: 16%;
           pointer-events: none;
           z-index: 2;
         }
@@ -94,16 +114,50 @@ class SlotDisplay extends BaseCountdownDisplay {
           transition: transform 0.5s cubic-bezier(0.17, 0.67, 0.12, 1);
         }
 
-        .reel-number {
-          height: clamp(44px, 12vw, 60px);
+        .reel-face {
+          height: var(--reel-h);
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
+          gap: 1px;
+          background: linear-gradient(180deg, #fffdf8 0%, #f3e6c4 100%);
+          line-height: 1;
+        }
+
+        .reel-face .glyph {
+          font-size: clamp(1.05rem, 3.2vw, 1.45rem);
+        }
+
+        .reel-face .digit {
           font-family: 'Orbitron', monospace;
-          font-size: clamp(1.2rem, 4vw, 1.8rem);
+          font-size: 0.55rem;
           font-weight: 700;
-          color: #fff;
-          text-shadow: 0 0 10px rgba(233, 69, 96, 0.8);
+          color: #6b4b16;
+        }
+
+        .lucky-7 {
+          font-family: Impact, 'Arial Black', sans-serif;
+          font-size: clamp(1.35rem, 3.6vw, 1.8rem);
+          color: #e10600;
+          -webkit-text-stroke: 1px #ffe08a;
+          paint-order: stroke fill;
+          text-shadow:
+            1px 1px 0 #7f1d1d,
+            0 0 8px rgba(225, 6, 0, 0.55);
+          transform: rotate(-8deg);
+        }
+
+        .bar-tile {
+          font-family: Impact, 'Arial Black', sans-serif;
+          font-size: clamp(0.62rem, 1.8vw, 0.78rem);
+          letter-spacing: 0.06em;
+          color: #f6e27a;
+          background: #111;
+          border: 1px solid #f6e27a;
+          border-radius: 2px;
+          padding: 2px 3px 1px;
+          line-height: 1;
         }
 
         .reel.spinning .reel-strip {
@@ -112,7 +166,7 @@ class SlotDisplay extends BaseCountdownDisplay {
 
         @keyframes spin {
           0% { transform: translateY(0); }
-          100% { transform: translateY(-60px); }
+          100% { transform: translateY(calc(var(--reel-h) * -1)); }
         }
 
         .reel-label {
@@ -166,7 +220,7 @@ class SlotDisplay extends BaseCountdownDisplay {
 
       <div class="slot-machine">
         <div class="slot-header">
-          <div class="slot-title">⭐ COUNTDOWN ⭐</div>
+          <div class="slot-title"><span class="lucky-7 title-7">7</span> COUNTDOWN <span class="lucky-7 title-7">7</span></div>
         </div>
 
         <div class="reels-container">
@@ -233,20 +287,37 @@ class SlotDisplay extends BaseCountdownDisplay {
       reel.className = 'reel';
       reel.id = `${id}-${i}`;
 
-      // Create strip with numbers 0-9 repeated
+      // One face per digit. 7 is the lucky 7, 6 is a BAR tile, the rest are fruit.
       const strip = document.createElement('div');
       strip.className = 'reel-strip';
       for (let n = 0; n <= 10; n++) {
-        const num = document.createElement('div');
-        num.className = 'reel-number';
-        num.textContent = n % 10;
-        strip.appendChild(num);
+        strip.appendChild(this.createFace(n % 10));
       }
       reel.appendChild(strip);
       container.appendChild(reel);
 
       this._prevValues[`${id}-${i}`] = '0';
     }
+  }
+
+  createFace(digit) {
+    const face = REEL_FACES[digit];
+    const el = document.createElement('div');
+    el.className = `reel-face ${face.kind}`;
+    if (face.kind === 'seven') {
+      el.innerHTML = '<span class="lucky-7">7</span>';
+    } else if (face.kind === 'bar') {
+      el.innerHTML = '<span class="bar-tile">BAR</span><span class="digit">6</span>';
+    } else {
+      const glyph = document.createElement('span');
+      glyph.className = 'glyph';
+      glyph.textContent = face.glyph;
+      const number = document.createElement('span');
+      number.className = 'digit';
+      number.textContent = String(digit);
+      el.append(glyph, number);
+    }
+    return el;
   }
 
   spinTo(reelId, digit) {
@@ -258,13 +329,15 @@ class SlotDisplay extends BaseCountdownDisplay {
 
     const strip = reel.querySelector('.reel-strip');
     const digitNum = parseInt(digit, 10);
-    const height = reel.offsetHeight;
+    const faceHeight = strip.querySelector('.reel-face')?.offsetHeight || 0;
+    if (!faceHeight || Number.isNaN(digitNum)) return;
 
     // Spin animation
     reel.classList.add('spinning');
 
     setTimeout(() => {
       reel.classList.remove('spinning');
+      const height = strip.querySelector('.reel-face')?.offsetHeight || faceHeight;
       strip.style.transform = `translateY(-${digitNum * height}px)`;
       this._prevValues[reelId] = digit;
     }, 200 + Math.random() * 200);

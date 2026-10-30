@@ -46,6 +46,7 @@ export function renderTiles(ctx) {
     const color = colorForIndex(idx);
     const tile = document.createElement('div');
     tile.className = 'quote-tile';
+    tile.tabIndex = 0;
     tile.dataset.symbol = entry.symbol;
     tile.draggable = true;
 
@@ -139,6 +140,7 @@ export function renderHeatmap(ctx) {
     const series = seriesBySymbol.get(entry.symbol);
     const tile = document.createElement('div');
     tile.className = 'heatmap-tile';
+    tile.tabIndex = 0;
 
     const { last, prev, currency } = quoteFromSeries(series);
     /** @type {number} */

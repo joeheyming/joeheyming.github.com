@@ -7,7 +7,8 @@ import {
   onClickOutside,
   dropdownStyles,
   chevronStyles,
-  selectorButtonStyles
+  selectorButtonStyles,
+  dropdownArrow
 } from './shared-styles.js';
 
 class LocaleSelector extends HTMLElement {
@@ -19,6 +20,8 @@ class LocaleSelector extends HTMLElement {
   }
 
   async connectedCallback() {
+    if (this.tabIndex < 0) this.tabIndex = 0;
+    this._highlighted = 0;
     await localeService.ready();
     this.render();
     this.setupEventListeners();
@@ -149,6 +152,41 @@ class LocaleSelector extends HTMLElement {
     this._clickOutsideCleanup = onClickOutside(this, () => {
       if (this.isOpen) this.close();
     });
+
+    // Arrow navigation stops on this host. The button inside the shadow
+    // is invisible to it. OK clicks the host and opens the list.
+    this.addEventListener('click', (event) => {
+      if (event.composedPath()[0] !== this) return;
+      if (!this.isOpen) {
+        this.open();
+        return;
+      }
+      const item = this.dropdown.querySelectorAll('.dropdown-item')[this._highlighted];
+      if (!item) {
+        this.close();
+        return;
+      }
+      localeService.locale = item.dataset.locale;
+      this.close();
+    });
+
+    this.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && this.isOpen) {
+        event.preventDefault();
+        this.close();
+        return;
+      }
+      if (!this.isOpen) return;
+      const items = [...this.dropdown.querySelectorAll('.dropdown-item')];
+      const next = dropdownArrow(event, this._highlighted, items.length);
+      if (next === null) return;
+      if (next === 'leave') {
+        this.close();
+        return;
+      }
+      this._highlighted = next;
+      this._paintHighlight(items);
+    });
   }
 
   toggle() {
@@ -159,6 +197,20 @@ class LocaleSelector extends HTMLElement {
     this.isOpen = true;
     this.dropdown.classList.add('open');
     this.chevron.classList.add('open');
+    const items = [...this.dropdown.querySelectorAll('.dropdown-item')];
+    const selected = items.findIndex((item) => item.classList.contains('selected'));
+    this._highlighted = selected >= 0 ? selected : 0;
+    this._paintHighlight(items);
+  }
+
+  _paintHighlight(items) {
+    items.forEach((item, index) => {
+      item.classList.toggle('highlighted', index === this._highlighted);
+    });
+    const current = items[this._highlighted];
+    if (current && typeof current.scrollIntoView === 'function') {
+      current.scrollIntoView({ block: 'nearest' });
+    }
   }
 
   close() {

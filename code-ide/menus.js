@@ -30,6 +30,7 @@ export const menuMethods = {
       row.className = 'item' + (item.danger ? ' danger' : '') + (item.disabled ? ' disabled' : '');
       row.textContent = item.label;
       if (!item.disabled) {
+        row.tabIndex = 0;
         row.addEventListener('click', () => {
           menu.remove();
           try {
@@ -255,6 +256,7 @@ export const menuMethods = {
           }
           const row = document.createElement('div');
           row.className = 'item';
+          row.tabIndex = 0;
           row.innerHTML = `<span>${item.label}</span>${
             item.kbd ? `<span class="kbd">${item.kbd}</span>` : ''
           }`;

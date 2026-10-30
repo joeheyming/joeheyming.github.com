@@ -147,24 +147,41 @@
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
     <style>
+      html,
+      body {
+        height: 100%;
+      }
       body {
         font-family: monospace;
         background: black;
         color: white;
+        box-sizing: border-box;
+        height: 100vh;
+        height: 100dvh;
         margin: 0;
-        padding: 20px;
+        padding: 8px 12px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        overflow: hidden;
         text-align: center;
       }
       h1 {
-        margin: 20px 0;
+        order: 0;
+        flex-shrink: 0;
+        margin: 0;
+        font-size: 1.25rem;
+        line-height: 1.1;
       }
       #controls {
-        margin: 20px 0;
+        order: 2;
+        flex-shrink: 0;
+        margin: 0;
       }
       button {
-        margin: 5px;
-        padding: 10px 20px;
-        font-size: 16px;
+        margin: 0 4px;
+        padding: 6px 14px;
+        font-size: 14px;
         background: #333;
         color: white;
         border: 1px solid #666;
@@ -183,14 +200,17 @@
         font-size: 14px;
       }
       #frame-display {
+        order: 1;
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+        max-width: none;
         white-space: pre;
         font-size: 6px;
-        line-height: 6px;
-        margin: 20px auto;
+        line-height: 1;
+        margin: 0;
         background: black;
-        padding: 10px;
-        max-width: 1200px;
-        min-height: 420px;
+        padding: 0;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -204,8 +224,7 @@
         display: none;
       }
       hr {
-        border: 1px solid #333;
-        margin: 30px 0;
+        display: none;
       }
       a {
         color: #66aaff;
@@ -220,9 +239,13 @@
 
       /* Playback Controls */
       #playback-controls {
-        max-width: 600px;
-        margin: 20px auto;
-        padding: 15px;
+        order: 3;
+        flex-shrink: 0;
+        max-width: 960px;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0 auto;
+        padding: 8px 12px;
         background: #1a1a1a;
         border-radius: 8px;
         border: 1px solid #333;
@@ -232,7 +255,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 15px;
+        margin-bottom: 8px;
       }
 
       #time-display {
@@ -343,6 +366,22 @@
         border: none;
       }
 
+      @media (max-height: 700px) {
+        body {
+          padding: 6px 8px;
+          gap: 6px;
+        }
+        h1 {
+          font-size: 1.05rem;
+        }
+        button {
+          padding: 4px 10px;
+        }
+        #playback-controls {
+          padding: 6px 8px;
+        }
+      }
+
       @media (max-width: 480px) {
         #speed-controls {
           width: 100%;
@@ -385,7 +424,14 @@
     <div id="playback-controls">
       <div id="progress-container">
         <span id="time-display">0:00 / 0:00</span>
-        <div id="progress-bar" onclick="seek(event)">
+        <div
+          id="progress-bar"
+          role="slider"
+          tabindex="0"
+          aria-label="Seek"
+          onclick="seek(event)"
+          onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();skip(-10)}else if(event.key==='ArrowRight'){event.preventDefault();skip(10)}"
+        >
           <div id="progress-fill"></div>
         </div>
       </div>
@@ -417,7 +463,7 @@
       </div>
     </div>
 
-    <div id="frame-display" />
+    <div id="frame-display"></div>
 
     <hr />
 
@@ -623,6 +669,7 @@
       }
 
       async function seek(event) {
+        if (!event.clientX && !event.clientY) return;
         const rect = progressBar.getBoundingClientRect();
         const percent = (event.clientX - rect.left) / rect.width;
         const newTime = percent * (audio.duration || DURATION);
@@ -693,8 +740,39 @@
         }
       });
 
-      // Keyboard controls
+      // 240 columns by 84 rows. Font size tracks the stage so the picture
+      // fills whatever space the controls leave, instead of a fixed 6px.
+      const FRAME_COLS = 240;
+      const FRAME_ROWS = 84;
+
+      function fitFrame() {
+        const availW = frameDisplay.clientWidth;
+        const availH = frameDisplay.clientHeight;
+        if (availW < 8 || availH < 8) return;
+        const probe = document.createElement('span');
+        probe.textContent = 'M'.repeat(50);
+        probe.style.cssText =
+          'position:absolute;visibility:hidden;font:100px "Courier New",Monaco,monospace;white-space:pre';
+        document.body.appendChild(probe);
+        const charWidth = probe.getBoundingClientRect().width / 50;
+        probe.remove();
+        if (!(charWidth > 0)) return;
+        const size = Math.min(availW / (FRAME_COLS * (charWidth / 100)), availH / FRAME_ROWS);
+        const px = Math.max(1, Math.floor(size * 100) / 100);
+        frameDisplay.style.fontSize = px + 'px';
+        frameDisplay.style.lineHeight = px + 'px';
+      }
+
+      window.addEventListener('resize', fitFrame);
+      if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(fitFrame).observe(frameDisplay);
+      }
+      fitFrame();
+
+      // Keyboard controls. Arrow keys still seek and change volume, unless
+      // the remote is moving between the buttons.
       document.addEventListener('keydown', (e) => {
+        if (/^arrow/i.test(e.key) && window.heymingRemote?.arrowsMoveFocus(e)) return;
         switch (e.code) {
           case 'Space':
             e.preventDefault();

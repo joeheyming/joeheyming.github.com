@@ -554,3 +554,27 @@ body {
   background: var(--st-cloud, rgba(150, 170, 200, 0.4));
   border-radius: 50%;
 }
+
+@media (max-height: 700px) {
+  body {
+    justify-content: flex-start;
+    padding-top: 8px;
+  }
+
+  .title {
+    font-size: 1.5rem;
+    margin: 4px 0;
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .trombone-container {
+    margin: 8px 0;
+  }
+
+  .stats {
+    display: none;
+  }
+}

@@ -117,6 +117,7 @@ export class FileTree {
   async renderNode(node, parent, depth) {
     const row = document.createElement('div');
     row.className = 'tree-node';
+    row.tabIndex = 0;
     row.dataset.path = node.path;
     row.dataset.dir = node.isDirectory ? '1' : '0';
     row.style.paddingLeft = 4 + depth * 14 + 'px';

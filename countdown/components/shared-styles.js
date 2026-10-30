@@ -25,6 +25,32 @@ export function onClickOutside(element, callback) {
   return () => document.removeEventListener('click', handler);
 }
 
+/**
+ * Arrow keys inside an open menu. Up and Down move the highlight. Left,
+ * Right, and an arrow past either end leave the menu so focus can move.
+ *
+ * @param {KeyboardEvent} event
+ * @param {number} index
+ * @param {number} length
+ * @returns {number|'leave'|null} the next index, 'leave', or null if this key is not an arrow
+ */
+export function dropdownArrow(event, index, length) {
+  const key = event.key;
+  if (key === 'ArrowLeft' || key === 'ArrowRight') {
+    event.heymingNavigate = true;
+    return 'leave';
+  }
+  if (key !== 'ArrowUp' && key !== 'ArrowDown') return null;
+  const next = index + (key === 'ArrowDown' ? 1 : -1);
+  if (length <= 0 || next < 0 || next >= length) {
+    event.heymingNavigate = true;
+    return 'leave';
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  return next;
+}
+
 // ============================================================================
 // DROPDOWN STYLES (shared across selector components)
 // ============================================================================
@@ -45,7 +71,7 @@ export const dropdownStyles = `
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     display: none;
     overflow: hidden;
-    max-height: 320px;
+    max-height: min(320px, 50vh);
     overflow-y: auto;
     z-index: 100;
   }
@@ -171,6 +197,15 @@ export const hostStyles = (minHeight = 120) => `
     align-items: center;
     justify-content: center;
     min-height: ${minHeight}px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  @media (max-height: 700px) {
+    :host {
+      min-height: 0;
+      max-width: 100%;
+    }
   }
 `;
 

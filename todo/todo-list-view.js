@@ -152,6 +152,7 @@ export function createTodoListView(opts) {
 
         const displayTitle = (todo.title || '').trim() || '—';
         const line = document.createElement('div');
+        line.tabIndex = 0;
         line.className =
           'min-w-0 flex-1 cursor-pointer touch-manipulation break-words pr-1 text-[0.95rem] [-webkit-tap-highlight-color:transparent]';
         line.addEventListener('click', () => {

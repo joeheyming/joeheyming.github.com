@@ -530,3 +530,34 @@ button:disabled {
     font-size: 0.8rem;
   }
 }
+
+@media (max-height: 700px) {
+  .app-shell {
+    padding: 12px 0;
+  }
+
+  .app-header {
+    margin-bottom: 8px;
+    padding-left: 120px;
+  }
+
+  .eyebrow,
+  .safety-note {
+    display: none;
+  }
+
+  .video-card {
+    min-height: 0;
+    height: min(200px, 34dvh);
+  }
+
+  .video-card--remote,
+  .video-card--local {
+    aspect-ratio: auto;
+  }
+
+  .chat-panel {
+    max-height: 140px;
+    overflow: auto;
+  }
+}

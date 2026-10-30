@@ -3,14 +3,25 @@
  * Handles all DOM rendering and updates
  */
 
-import {
-  CELL_SIZE,
-  MIN_CELL_SIZE,
-  MIN_CELL_SIZE_EXPERT,
-  MAX_CELL_SIZE,
-  FACES,
-  SYMBOLS
-} from './config.js';
+import { MIN_CELL_SIZE, MIN_CELL_SIZE_EXPERT, MAX_CELL_SIZE, FACES, SYMBOLS } from './config.js';
+
+/**
+ * Pick a cell size that stays inside the leftover viewport.
+ * A short screen must not fall back to the touch minimum: that minimum
+ * is what pushes a 9×9 beginner board off a 540px-tall TV.
+ * @param {number} idealSize
+ * @param {boolean} isLargeBoard
+ * @returns {number}
+ */
+export function fitCellSize(idealSize, isLargeBoard) {
+  const preferredMin = isLargeBoard ? MIN_CELL_SIZE_EXPERT : MIN_CELL_SIZE;
+  const absoluteFloor = 14;
+  if (!Number.isFinite(idealSize) || idealSize <= 0) return absoluteFloor;
+  const capped = Math.min(MAX_CELL_SIZE, Math.floor(idealSize));
+  if (capped >= preferredMin) return capped;
+  if (capped >= absoluteFloor) return capped;
+  return absoluteFloor;
+}
 
 export class UI {
   constructor(elements) {
@@ -21,6 +32,7 @@ export class UI {
     this.currentRows = 0;
     this.currentCols = 0;
     this.currentCellSize = 54;
+    this.cursor = { row: 0, col: 0 };
   }
 
   /**
@@ -38,28 +50,10 @@ export class UI {
    * Calculate optimal cell size to fit the viewport
    */
   calculateCellSize(rows, cols) {
-    const header = document.querySelector('.game-header');
-    const controls = document.querySelector('.controls');
-    const statusBar = document.querySelector('.status-bar');
+    const { gameBoard } = this.elements;
     const helpText = document.querySelector('.help-text');
     const gameContainer = document.querySelector('.game-container');
-
-    const headerHeight = header?.offsetHeight || 48;
-    const controlsHeight = controls?.offsetHeight || 50;
-    const statusBarHeight = statusBar?.offsetHeight || 80;
-    const helpTextHeight = helpText?.offsetHeight || 30;
-    const containerPadding = 16 + 8 + 6; // game-container padding + border + board border
-    const wrapperGap = 12 * 4;
-    const bodyPadding = 24;
-
-    const verticalPadding =
-      headerHeight +
-      controlsHeight +
-      statusBarHeight +
-      helpTextHeight +
-      containerPadding +
-      wrapperGap +
-      bodyPadding;
+    const wrapper = document.querySelector('.game-wrapper');
 
     // Horizontal chrome: body padding + game-container + board border/padding
     const bodyStyles = getComputedStyle(document.body);
@@ -79,26 +73,23 @@ export class UI {
       0,
       window.innerWidth - bodyPadX - containerChrome - boardChrome
     );
-    const availableHeight = window.innerHeight - verticalPadding;
+
+    // Measure from where the board actually starts, so a short TV viewport
+    // (960×540) subtracts the real header, difficulty row, and status bar
+    // instead of a guess that comes out smaller than the painted chrome.
+    const boardTop = gameBoard?.getBoundingClientRect().top ?? 0;
+    const helpHeight = helpText?.offsetHeight || 0;
+    const padBottom = parseFloat(bodyStyles.paddingBottom) || 0;
+    const gapBelow = wrapper ? parseFloat(getComputedStyle(wrapper).rowGap) || 0 : 12;
+    let availableHeight =
+      window.innerHeight - boardTop - helpHeight - gapBelow - padBottom - boardChrome;
+    if (boardTop < 8) availableHeight = window.innerHeight - 280;
 
     const maxCellWidth = Math.floor(availableWidth / cols);
     const maxCellHeight = Math.floor(availableHeight / rows);
     const idealSize = Math.min(maxCellWidth, maxCellHeight);
-
-    // Large boards (expert 16×30) keep a touch-friendly floor and scroll inside
-    // .game-container. Smaller boards shrink below the soft min so the document
-    // never needs horizontal scrolling on narrow phones (e.g. 320px).
     const isLargeBoard = cols >= 20 || rows >= 16;
-    const preferredMin = isLargeBoard ? MIN_CELL_SIZE_EXPERT : MIN_CELL_SIZE;
-    const absoluteFloor = 18;
-
-    if (idealSize >= preferredMin) {
-      return Math.min(MAX_CELL_SIZE, idealSize);
-    }
-    if (!isLargeBoard && idealSize >= absoluteFloor) {
-      return idealSize;
-    }
-    return preferredMin;
+    return fitCellSize(idealSize, isLargeBoard);
   }
 
   /**
@@ -126,6 +117,7 @@ export class UI {
       for (let c = 0; c < cols; c++) {
         const cell = document.createElement('div');
         cell.className = 'cell';
+        cell.tabIndex = 0;
         cell.dataset.row = r;
         cell.dataset.col = c;
 
@@ -158,6 +150,10 @@ export class UI {
 
         gameBoard.appendChild(cell);
       }
+    }
+
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => this.resizeBoard());
     }
 
     // Global mouseup/mouseleave for face reset
@@ -282,18 +278,56 @@ export class UI {
   }
 
   /**
+   * Move the remote cursor onto a square and keep it in view.
+   * @param {number} row
+   * @param {number} col
+   */
+  focusCell(row, col) {
+    const cell = this.getCell(row, col, this.currentCols);
+    if (!cell) return;
+    this.cursor = { row, col };
+    cell.focus({ preventScroll: true });
+    cell.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }
+
+  /**
+   * Flag the square the remote is on. Used by the Flag button, which
+   * has to stand in for a right-click the D-pad cannot send.
+   */
+  flagCursor() {
+    const { row, col } = this.cursor;
+    if (row == null || col == null) return;
+    this.cellRightClickHandler?.(row, col);
+    this.focusCell(row, col);
+  }
+
+  /**
    * Set up global event listeners
    */
   setupGlobalListeners(handlers) {
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'F2') {
-        e.preventDefault();
-        handlers.onNewGame?.();
-      }
-      if (e.key === 'Escape') {
-        this.hideAllModals();
-      }
+    // Keyboard shortcuts. Arrow keys move square to square once the
+    // cursor is on the board. Down from the difficulty row or the face
+    // enters the board; the TV's spatial navigation never does, because
+    // the overflowing grid is not a candidate.
+    window.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key === 'F2') {
+          e.preventDefault();
+          handlers.onNewGame?.();
+          return;
+        }
+        if (e.key === 'Escape') {
+          this.hideAllModals();
+          return;
+        }
+        this.handleRemoteKey(e);
+      },
+      true
+    );
+
+    this.elements.flagBtn?.addEventListener('click', () => {
+      this.flagCursor();
     });
 
     // Difficulty buttons
@@ -330,6 +364,58 @@ export class UI {
         this.resizeBoard();
       }, 100);
     });
+
+    document.fonts?.ready?.then(() => {
+      this.resizeBoard();
+    });
+  }
+
+  /**
+   * D-pad movement. Arrows are only taken when they stay on the board
+   * or step onto it from the controls, so the difficulty buttons and
+   * the Flag button remain reachable.
+   * @param {KeyboardEvent} e
+   */
+  handleRemoteKey(e) {
+    const target = e.target && typeof e.target.closest === 'function' ? e.target : null;
+    if (!target || target.closest('input, textarea, select') || target.isContentEditable) return;
+
+    const step = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    const delta = step[e.key];
+    const cell = target.closest('.cell');
+
+    if ((e.key === 'f' || e.key === 'F') && cell) {
+      e.preventDefault();
+      this.cursor = { row: Number(cell.dataset.row), col: Number(cell.dataset.col) };
+      this.flagCursor();
+      return;
+    }
+
+    if (!delta) return;
+
+    if (cell && cell.closest('#game-board')) {
+      const row = Number(cell.dataset.row) + delta[0];
+      const col = Number(cell.dataset.col) + delta[1];
+      e.preventDefault();
+      if (row >= 0 && col >= 0 && row < this.currentRows && col < this.currentCols) {
+        this.focusCell(row, col);
+        return;
+      }
+      if (e.key === 'ArrowUp') this.elements.faceBtn?.focus();
+      if (e.key === 'ArrowDown') this.elements.flagBtn?.focus();
+      return;
+    }
+
+    if (e.key === 'ArrowDown' && target.closest('.controls, .status-bar, .game-header')) {
+      e.preventDefault();
+      this.focusCell(this.cursor.row || 0, this.cursor.col || 0);
+      return;
+    }
+
+    if (e.key === 'ArrowUp' && (target.closest('.help-text') || target === this.elements.flagBtn)) {
+      e.preventDefault();
+      this.focusCell(this.currentRows - 1, this.cursor.col || 0);
+    }
   }
 
   /**
@@ -356,6 +442,7 @@ export function getUIElements() {
     gameBoard: document.getElementById('game-board'),
     faceBtn: document.getElementById('face-btn'),
     minesDisplay: document.getElementById('mines-display'),
-    timerDisplay: document.getElementById('timer-display')
+    timerDisplay: document.getElementById('timer-display'),
+    flagBtn: document.getElementById('flag-btn')
   };
 }

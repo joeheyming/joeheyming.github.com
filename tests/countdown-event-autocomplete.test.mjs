@@ -17,7 +17,7 @@ function createAutocomplete() {
     url: 'https://joeheyming.github.io/countdown/'
   });
   const source = readFileSync(path.join(ROOT, 'countdown/event-autocomplete.js'), 'utf8')
-    .replace(/^import .*;\n/gm, '')
+    .replace(/^import [\s\S]*?;\n/gm, '')
     .replace(
       'export default EventAutocomplete;',
       'window.EventAutocompleteForTest = EventAutocomplete;'
@@ -46,6 +46,16 @@ function createAutocomplete() {
   dom.window.onClickOutside = () => () => {};
   dom.window.dropdownStyles = '';
   dom.window.chevronStyles = '';
+  dom.window.dropdownArrow = (event, index, length) => {
+    const key = event.key;
+    if (key === 'ArrowLeft' || key === 'ArrowRight') return 'leave';
+    if (key !== 'ArrowUp' && key !== 'ArrowDown') return null;
+    const next = index + (key === 'ArrowDown' ? 1 : -1);
+    if (length <= 0 || next < 0 || next >= length) return 'leave';
+    event.preventDefault();
+    event.stopPropagation();
+    return next;
+  };
   dom.window.HTMLElement.prototype.scrollIntoView = () => {};
   dom.window.eval(source);
 
@@ -137,6 +147,53 @@ test('arrow and enter keys synchronously flush pending filtering', async () => {
 
   await delay(150);
   assert.equal(filterCalls, 3);
+  dom.window.close();
+});
+
+test('focus and arrows do not open the list; space and ok do', () => {
+  const { autocomplete, dom } = createAutocomplete();
+  autocomplete.setSelectedEvent(autocomplete.events[0]);
+  autocomplete.input.dispatchEvent(new dom.window.FocusEvent('focus'));
+  assert.equal(autocomplete.isOpen, false);
+
+  const down = new dom.window.KeyboardEvent('keydown', {
+    key: 'ArrowDown',
+    bubbles: true,
+    cancelable: true
+  });
+  autocomplete.input.dispatchEvent(down);
+  assert.equal(down.defaultPrevented, false);
+  assert.equal(autocomplete.isOpen, false);
+  assert.equal(autocomplete.getSelectedEvent().id, 'alpha');
+
+  const space = new dom.window.KeyboardEvent('keydown', {
+    key: ' ',
+    bubbles: true,
+    cancelable: true
+  });
+  autocomplete.input.dispatchEvent(space);
+  assert.equal(space.defaultPrevented, true);
+  assert.equal(autocomplete.isOpen, true);
+  assert.equal(autocomplete.getSelectedEvent().id, 'alpha');
+  dom.window.close();
+});
+
+test('ok opens the list and left and right do not change the event', () => {
+  const { autocomplete, dom } = createAutocomplete();
+  autocomplete.setSelectedEvent(autocomplete.events[0]);
+  autocomplete.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  assert.equal(autocomplete.isOpen, true);
+  assert.equal(autocomplete.getSelectedEvent().id, 'alpha');
+
+  const right = new dom.window.KeyboardEvent('keydown', {
+    key: 'ArrowRight',
+    bubbles: true,
+    cancelable: true
+  });
+  autocomplete.dispatchEvent(right);
+  assert.equal(right.defaultPrevented, false);
+  assert.equal(autocomplete.getSelectedEvent().id, 'alpha');
+  assert.equal(autocomplete.isOpen, false);
   dom.window.close();
 });
 

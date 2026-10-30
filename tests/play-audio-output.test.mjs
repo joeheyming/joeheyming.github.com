@@ -169,6 +169,35 @@ test('a capture claimed before the context is built survives getCtx', async () =
   assert.equal(session.type, 'auto');
 });
 
+test('a struck tone plays through an audio element while Web Audio is suspended', async () => {
+  const created = [];
+  globalThis.Audio = class {
+    constructor(src) {
+      this.src = src;
+      this.volume = 1;
+      created.push(this);
+    }
+    play() {
+      return Promise.resolve();
+    }
+  };
+  const audio = await loadAudio();
+  audio.setMasterVolume(0.4);
+  audio.playStruckTone(69);
+  assert.equal(audio.isOutputRunning(), false);
+  assert.equal(created.length, 1);
+  assert.equal(created[0].volume, 0.4);
+  assert.match(created[0].src, /^data:audio\/wav;base64,/);
+  const bytes = Buffer.from(created[0].src.slice('data:audio/wav;base64,'.length), 'base64');
+  assert.equal(bytes.subarray(0, 4).toString('ascii'), 'RIFF');
+});
+
+test('an inactive user gesture does not allow Web Audio', async () => {
+  const audio = await loadAudio();
+  globalThis.navigator.userActivation = { isActive: false };
+  assert.equal(audio.gestureAllowsWebAudio(), false);
+});
+
 test('engines without navigator.audioSession are left alone', async () => {
   const audio = await loadAudio({ coarse: true, audioSession: undefined });
   audio.getCtx();

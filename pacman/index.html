@@ -244,6 +244,8 @@
             <div
               id="camera-toggle"
               class="text-pac-cyan font-mono text-sm cursor-pointer pointer-events-auto active:opacity-70"
+              role="button"
+              tabindex="0"
               aria-label="Cycle view"
             >
               👁 View:
@@ -315,6 +317,9 @@
       <div
         id="intro-screen"
         class="absolute inset-0 bg-surface-0/60 flex flex-col items-center justify-center z-20 hidden cursor-pointer"
+        role="button"
+        tabindex="0"
+        aria-label="Skip intro"
       >
         <div id="intro-countdown" class="text-6xl font-bold text-pac-yellow-bright animate-pulse">
           READY!
@@ -325,6 +330,9 @@
       <div
         id="pause-screen"
         class="absolute inset-0 bg-surface-0/70 flex flex-col items-center justify-center z-20 hidden cursor-pointer"
+        role="button"
+        tabindex="0"
+        aria-label="Resume"
       >
         <h2 class="text-4xl font-bold text-text-1 mb-4">PAUSED</h2>
         <p class="text-text-2">Click or press ESC to resume</p>

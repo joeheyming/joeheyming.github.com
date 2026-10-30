@@ -459,3 +459,43 @@
     transition: none;
   }
 }
+
+/* 540px-tall TV: keep the tracker on one screen. The channel list and
+   the pitch grid scroll inside their panes instead of growing the page. */
+@media (max-height: 700px) {
+  .instrument-body {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .chip-toolbar {
+    padding: 0.35rem 0.75rem;
+  }
+
+  .chip-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .chip-sidebar {
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .chip-sidebar .hint {
+    display: none;
+  }
+
+  .grid-wrap {
+    max-height: none;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .arrangement-bar {
+    padding: 0.35rem 0.75rem;
+  }
+}

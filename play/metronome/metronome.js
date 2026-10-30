@@ -9,7 +9,15 @@
  * on the beat. The visual pulse is dispatched via setTimeout aligned to
  * the same audio time.
  */
-import { getCtx, getMaster, resumeIfSuspended, setMasterVolume } from '../shared/audio.js';
+import {
+  gestureAllowsWebAudio,
+  getCtx,
+  getMaster,
+  playHtmlClip,
+  playStruckTone,
+  resumeIfSuspended,
+  setMasterVolume
+} from '../shared/audio.js';
 import { SampleKit, playBuffer } from '../shared/samples.js';
 import { makePrefs } from '../shared/prefs.js';
 
@@ -226,6 +234,17 @@ function cowbell(ctx, master, t, isDown, isSub) {
   void oscs;
 }
 
+function playHtmlClick(kind, sound) {
+  const isDown = kind === 'downbeat';
+  const isSub = kind === 'sub';
+  const catalog = SAMPLE_CLICK_CATALOG[sound];
+  if (catalog) {
+    playHtmlClip(catalog.url, gainFor(isDown, isSub));
+    return;
+  }
+  playStruckTone(isDown ? 96 : isSub ? 72 : 84);
+}
+
 // ---------- Scheduler ---------------------------------------------------
 
 class Metronome {
@@ -237,7 +256,10 @@ class Metronome {
     this.accentDownbeat = true;
 
     this._intervalId = null;
+    this._htmlTimer = null;
+    this._htmlMode = false;
     this._nextTick = 0; // AudioContext time of the next subdivision tick
+    this._nextWall = 0; // performance.now() of the next tick when Web Audio cannot start
     this._subIndex = 0; // 0..(beatsPerMeasure*subdivision - 1)
     this._listeners = new Set();
     this.running = false;
@@ -281,15 +303,24 @@ class Metronome {
 
   start() {
     if (this.running) return;
-    resumeIfSuspended();
-    const ctx = getCtx();
     this.running = true;
     window.heymingAchievements?.unlockForCurrentApp('first-action');
     this._subIndex = 0;
-    // Tiny lead so the very first click isn't clipped by a still-warming graph.
-    this._nextTick = ctx.currentTime + 0.06;
-    this._scheduleAhead();
-    this._intervalId = setInterval(() => this._scheduleAhead(), SCHEDULER_INTERVAL_MS);
+    if (gestureAllowsWebAudio()) {
+      this._htmlMode = false;
+      resumeIfSuspended();
+      const ctx = getCtx();
+      // Tiny lead so the very first click isn't clipped by a still-warming graph.
+      this._nextTick = ctx.currentTime + 0.06;
+      this._scheduleAhead();
+      this._intervalId = setInterval(() => this._scheduleAhead(), SCHEDULER_INTERVAL_MS);
+    } else {
+      // The TV shell's OK click is not a user gesture. Scheduling on a
+      // suspended context stays silent and can take the audio session.
+      this._htmlMode = true;
+      this._nextWall = performance.now();
+      this._pumpHtml();
+    }
     this._emit({ type: 'start' });
   }
 
@@ -300,6 +331,11 @@ class Metronome {
       clearInterval(this._intervalId);
       this._intervalId = null;
     }
+    if (this._htmlTimer != null) {
+      clearTimeout(this._htmlTimer);
+      this._htmlTimer = null;
+    }
+    this._htmlMode = false;
     this._emit({ type: 'stop' });
   }
 
@@ -332,6 +368,29 @@ class Metronome {
       this._subIndex = (this._subIndex + 1) % (this.beatsPerMeasure * this.subdivision);
       this._nextTick += this._tickInterval();
     }
+  }
+
+  _pumpHtml() {
+    if (!this.running || !this._htmlMode) return;
+    const wait = this._nextWall - performance.now();
+    if (wait > 12) {
+      this._htmlTimer = setTimeout(() => this._pumpHtml(), wait);
+      return;
+    }
+    const subIndex = this._subIndex;
+    const beatIndex = Math.floor(subIndex / this.subdivision);
+    const isBeat = subIndex % this.subdivision === 0;
+    const isDownbeat = this.accentDownbeat && beatIndex === 0 && isBeat;
+    const kind = isDownbeat ? 'downbeat' : isBeat ? 'beat' : 'sub';
+    playHtmlClick(kind, this.sound);
+    this._emit({ type: 'tick', kind, beatIndex, subIndex, time: performance.now() / 1000 });
+    this._subIndex = (this._subIndex + 1) % (this.beatsPerMeasure * this.subdivision);
+    this._nextWall += this._tickInterval() * 1000;
+    if (this._nextWall < performance.now() - 40) this._nextWall = performance.now();
+    this._htmlTimer = setTimeout(
+      () => this._pumpHtml(),
+      Math.max(0, this._nextWall - performance.now())
+    );
   }
 }
 
@@ -617,6 +676,26 @@ updateStartStopUI();
 
 // ---- Keyboard shortcuts ----
 
+// The TV remote sends Play / Pause before any click. Handle them here so
+// Start and Stop respond even though the button is not labelled Play.
+document.addEventListener(
+  'keydown',
+  (event) => {
+    if (event.repeat) return;
+    const key = event.key;
+    if (key !== 'MediaPlayPause' && key !== 'MediaPlay' && key !== 'MediaPause') return;
+    if (key === 'MediaPause') {
+      if (metronome.running) metronome.stop();
+    } else if (key === 'MediaPlay') {
+      if (!metronome.running) metronome.start();
+    } else {
+      metronome.toggle();
+    }
+    event.preventDefault();
+  },
+  true
+);
+
 document.addEventListener('keydown', (event) => {
   if (event.repeat) return;
   const target = event.target;
@@ -627,6 +706,23 @@ document.addEventListener('keydown', (event) => {
     ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) &&
     target.id !== 'bpm';
   if (isInput) return;
+  const step = event.shiftKey ? 5 : 1;
+  // Left and Right change the tempo while the BPM number is focused.
+  // Up and Down move focus to the next control.
+  if (
+    target instanceof HTMLElement &&
+    target.id === 'bpm' &&
+    (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+  ) {
+    metronome.setBpm(metronome.bpm + (event.key === 'ArrowRight' ? step : -step));
+    tempoSync();
+    savePrefs();
+    event.preventDefault();
+    return;
+  }
+  // A focused control keeps the arrow keys for focus movement. From the
+  // page background, arrows still nudge the tempo.
+  if (/^Arrow/.test(event.key || '') && window.heymingRemote?.arrowsMoveFocus?.(event)) return;
 
   if (event.code === 'Space') {
     metronome.toggle();
@@ -638,7 +734,6 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault();
     return;
   }
-  const step = event.shiftKey ? 5 : 1;
   if (event.key === 'ArrowUp') {
     metronome.setBpm(metronome.bpm + step);
     tempoSync();

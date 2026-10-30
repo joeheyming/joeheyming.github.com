@@ -99,6 +99,7 @@ export function renderLayerCompsPanel(container, comps, opts) {
   const row = (name, selected, onClick) => {
     const el = doc.createElement('div');
     el.className = 'comp-row';
+    el.tabIndex = 0;
     el.setAttribute('role', 'option');
     el.setAttribute('aria-selected', String(selected));
     const marker = doc.createElement('span');

@@ -42,7 +42,7 @@ class StandardDisplay extends BaseCountdownDisplay {
 
         .time-value {
           font-family: 'Share Tech Mono', ui-monospace, 'Menlo', monospace;
-          font-size: clamp(2.5rem, 10vw, 5rem);
+          font-size: var(--cd-digit-size, clamp(2.5rem, 10vw, 5rem));
           font-weight: 700;
           color: #f8fafc;
           line-height: 1;
@@ -71,7 +71,7 @@ class StandardDisplay extends BaseCountdownDisplay {
 
         .time-separator {
           font-family: 'Orbitron', monospace;
-          font-size: clamp(2rem, 6vw, 3.5rem);
+          font-size: var(--cd-separator-size, clamp(2rem, 6vw, 3.5rem));
           color: #f59e0b;
           opacity: 0.6;
           animation: blink 1s infinite;

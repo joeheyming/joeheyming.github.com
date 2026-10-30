@@ -5,6 +5,8 @@
     "sync:catalog": "node scripts/sync-portfolio-metadata.mjs",
     "sync:emulator": "node scripts/sync-emulator-shell.mjs",
     "indexnow": "node scripts/indexnow-submit.mjs",
+    "scan:remote": "node scripts/remote-a11y-scan.mjs",
+    "scan:a11y": "node scripts/a11y-scan.mjs",
     "lint": "eslint app.js mime-handlers.js generate-previews.js share.js google-db todo",
     "lint:fix": "eslint --fix .",
     "format:check": "prettier --check app.js mime-handlers.js generate-previews.js share.js google-db todo",
@@ -18,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "axe-core": "^4.14.0",
     "eslint": "^8.20.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",

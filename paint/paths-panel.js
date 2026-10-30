@@ -86,6 +86,7 @@ export function renderPathsPanel(container, paths, opts) {
   for (const row of rows) {
     const el = doc.createElement('div');
     el.className = `path-row${row.key === 'work' ? ' work' : ''}`;
+    el.tabIndex = 0;
     el.setAttribute('role', 'option');
     el.setAttribute('aria-selected', String(row.key === paths.target));
     el.dataset.path = String(row.key);

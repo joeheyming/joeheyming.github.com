@@ -21,10 +21,11 @@ import {
   setMasterVolume,
   midiToFreq,
   midiToName,
-  NOTE_NAMES
+  NOTE_NAMES,
+  playRemoteNotes
 } from '../shared/audio.js';
 import { makePrefs } from '../shared/prefs.js';
-import { createPointerSurface } from '../shared/pointer-surface.js';
+import { bindRemoteClick, createPointerSurface } from '../shared/pointer-surface.js';
 
 const Prefs = makePrefs('play.harp.prefs.v1');
 
@@ -203,6 +204,7 @@ const renderStrings = () => {
     if (isFourth) el.classList.add('fourth');
     el.dataset.midi = String(midi);
     el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
     const noteName = midiToName(midi);
     el.setAttribute('aria-label', `Pluck ${noteName}`);
 
@@ -282,7 +284,9 @@ const pluckString = (stringEl) => {
   stringEl.offsetWidth;
   stringEl.classList.add('plucked');
 
-  pluck(midi);
+  if (stringEl.dataset.remote === '1') playRemoteNotes(midi, () => pluck(midi));
+  else pluck(midi);
+  delete stringEl.dataset.remote;
   window.heymingAchievements?.unlockForCurrentApp('first-action');
   announceNote(midi);
 
@@ -306,6 +310,10 @@ surface = createPointerSurface(stringsContainer, {
   onRelease: (stringEl) => {
     if (stringEl && stringEl.isConnected) pluckString(stringEl);
   }
+});
+bindRemoteClick(stringsContainer, '.harp-string', (stringEl) => {
+  stringEl.dataset.remote = '1';
+  pluckString(stringEl);
 });
 
 // Deflect updates while the finger stays on one string. PointerSurface

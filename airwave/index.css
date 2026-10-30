@@ -574,3 +574,29 @@ body {
     padding-top: 36px;
   }
 }
+
+/* A 540px screen cannot hold a 280px cover plus the queue.
+   Shrink the art so the transport stays on screen. */
+@media (max-height: 700px) {
+  .aw-shell {
+    padding: 8px 16px 16px;
+    gap: 8px;
+  }
+
+  .aw-header {
+    padding-top: 0;
+  }
+
+  .aw-title {
+    font-size: 1.4rem;
+    margin: 0;
+  }
+
+  .aw-subtitle {
+    display: none;
+  }
+
+  .aw-art-wrap {
+    width: 96px;
+  }
+}

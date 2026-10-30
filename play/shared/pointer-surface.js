@@ -258,3 +258,30 @@ export function createPointerSurface(rootEl, opts = {}) {
     }
   };
 }
+
+/**
+ * OK on a TV remote clicks the focused element and does not send a pointer
+ * event. A click that follows a real pointer already played, so it is ignored.
+ *
+ * @param {Element} rootEl
+ * @param {string} targetSelector
+ * @param {(target: Element, event: MouseEvent) => void} onActivate
+ */
+export function bindRemoteClick(rootEl, targetSelector, onActivate) {
+  if (!rootEl || typeof onActivate !== 'function') return;
+  let lastPointerMs = 0;
+  rootEl.addEventListener(
+    'pointerdown',
+    () => {
+      lastPointerMs = Date.now();
+    },
+    true
+  );
+  rootEl.addEventListener('click', (event) => {
+    if (Date.now() - lastPointerMs < 700) return;
+    const node = event.target;
+    const target = node && node.closest && node.closest(targetSelector);
+    if (!target || !rootEl.contains(target)) return;
+    onActivate(target, event);
+  });
+}

@@ -38,6 +38,14 @@ function setupDom() {
   return window;
 }
 
+async function useRemote(window) {
+  if (!globalThis.__heymingRemote) {
+    await import(pathToFileURL(join(__dirname, '..', 'remote.js')).href);
+    globalThis.__heymingRemote = globalThis.window.heymingRemote;
+  }
+  window.heymingRemote = globalThis.__heymingRemote;
+}
+
 function dispatchKey(window, type, { key, code, repeat = false } = {}) {
   const event = new window.KeyboardEvent(type, {
     key,
@@ -56,6 +64,7 @@ describe('attachKeyboardInput', () => {
   let window;
   let played;
   let released;
+  let shifted;
   let keyboard;
   let synth;
 
@@ -63,6 +72,7 @@ describe('attachKeyboardInput', () => {
     window = setupDom();
     played = [];
     released = [];
+    shifted = [];
     keyboard = {
       midiForKbd(rawKey) {
         const map = { a: 60, s: 62, d: 64, f: 65 };
@@ -89,7 +99,10 @@ describe('attachKeyboardInput', () => {
       keyboard,
       synth,
       sustainEl: null,
-      announceNote() {}
+      announceNote() {},
+      shiftOctave(direction) {
+        shifted.push(direction);
+      }
     });
   });
 
@@ -129,6 +142,35 @@ describe('attachKeyboardInput', () => {
     assert.deepEqual(played, [65]);
     dispatchKey(window, 'keyup', { key: 'f' });
     assert.deepEqual(released, [65]);
+  });
+
+  it('off a remote, ArrowRight shifts the octave up', () => {
+    dispatchKey(window, 'keydown', { key: 'ArrowRight' });
+    assert.deepEqual(shifted, [1]);
+  });
+
+  it('a focused key keeps the arrow instead of shifting the octave', async () => {
+    await useRemote(window);
+    const key = window.document.querySelector('.piano-key');
+    key.focus();
+    key.dispatchEvent(
+      new window.KeyboardEvent('keydown', {
+        key: 'ArrowRight',
+        bubbles: true,
+        cancelable: true
+      })
+    );
+    assert.deepEqual(shifted, []);
+    dispatchKey(window, 'keydown', { key: ']' });
+    assert.deepEqual(shifted, [1]);
+  });
+
+  it('arrows from the page still shift the octave', async () => {
+    await useRemote(window);
+    window.document.documentElement.dataset.shell = 'android-tv';
+    dispatchKey(window, 'keydown', { key: 'ArrowRight' });
+    dispatchKey(window, 'keydown', { key: 'ArrowLeft' });
+    assert.deepEqual(shifted, [1, -1]);
   });
 
   it('Shift letter keydown still releases on unshifted keyup', () => {

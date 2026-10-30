@@ -295,6 +295,7 @@ export function createZeniusContentCard(browser, item, currentPath) {
   } else {
     const itemEl = document.createElement('div');
     itemEl.className = 'content-item';
+    itemEl.tabIndex = 0;
 
     itemEl.innerHTML = `
     <div class="content-icon">${item.icon}</div>

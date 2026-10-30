@@ -389,6 +389,100 @@
   }
 }
 
+/* Short screens, including a 540px-tall TV: the pendulum is the picture.
+   Tempo and the start button stay with it; the settings dock underneath. */
+@media (max-height: 700px) {
+  .instrument-header {
+    order: 0;
+    padding-top: 4px;
+    padding-bottom: 2px;
+  }
+
+  .instrument-page-title h1 {
+    font-size: 1.25rem;
+  }
+
+  .metronome-stage {
+    order: 1;
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    justify-content: center;
+    gap: 6px;
+    padding: 2px 12px 6px;
+  }
+
+  .instrument-controls {
+    order: 2;
+    flex-shrink: 0;
+    padding: 4px 12px 8px;
+    gap: 4px 12px;
+  }
+
+  .metronome-tempo {
+    flex-shrink: 0;
+    gap: 4px;
+  }
+
+  #bpm {
+    width: 150px;
+    font-size: clamp(40px, 9vh, 64px);
+  }
+
+  .tempo-row {
+    justify-content: center;
+  }
+
+  /* The − / + buttons used to sit on the BPM number, so Left and Right
+     landed on them. Park them on the start row instead. */
+  .tempo-btn {
+    position: absolute;
+    bottom: 6px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+
+  #bpm-down {
+    left: 8px;
+  }
+
+  #bpm-up {
+    right: 8px;
+  }
+
+  .metronome-pendulum {
+    flex: 1 1 auto;
+    width: min(100%, 42vh);
+    height: auto;
+    min-height: 120px;
+  }
+
+  .pendulum-arm {
+    height: calc(100% - 28px);
+  }
+
+  .pendulum-base {
+    width: 72%;
+  }
+
+  .beat-dots {
+    flex-shrink: 0;
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .metronome-buttons {
+    flex-shrink: 0;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    padding: 8px 16px;
+  }
+}
+
 @media (max-width: 480px) {
   #bpm {
     /* Mobile font tops out around 56-58px (12vw of 480px = 57.6px),

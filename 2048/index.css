@@ -43,8 +43,13 @@
   --tile-super-fg: var(--g2048-text-light);
 
   /* Board sizing: vmin keeps it square-friendly on tall phones, and the
-   * single --cell-size formula is what tile transforms key off of. */
+   * single --cell-size formula is what tile transforms key off of.
+   * The vh cap leaves room for the header and buttons. Tiles are placed
+   * from --cell-size, so the box must actually be --board-size — a flex
+   * shrink on a short TV would leave the bottom row outside the frame.
+   * The first line is the fallback when min()/max() cannot nest. */
   --board-size: min(92vmin, 480px);
+  --board-size: min(92vmin, 480px, max(160px, calc(100vh - 250px)));
   --grid: 4;
   --gap: clamp(6px, 2vmin, 12px);
   --cell-size: calc((var(--board-size) - var(--gap) * (var(--grid) + 1)) / var(--grid));
@@ -76,6 +81,8 @@ body {
   min-height: 100dvh;
   padding: max(8px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
 }
 
@@ -86,6 +93,7 @@ body {
   gap: 14px;
   width: 100%;
   max-width: 540px;
+  flex-shrink: 0;
 }
 
 /* Header */
@@ -243,6 +251,7 @@ body {
   position: relative;
   width: var(--board-size);
   height: var(--board-size);
+  flex-shrink: 0;
   /* Dropping a soft glow under the board ties the page chrome to the
    * neon palette without painting on the play surface itself. */
   filter: drop-shadow(0 12px 32px color-mix(in srgb, var(--tile-2048-bg) 18%, transparent));

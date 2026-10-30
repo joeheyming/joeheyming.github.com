@@ -133,16 +133,21 @@ speedRange.addEventListener('input', () => {
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
+  if (/^arrow/i.test(e.key) && window.heymingRemote?.arrowsMoveFocus(e)) return;
   switch (e.key) {
     case ' ':
       e.preventDefault();
       togglePlayPause();
       break;
     case 'ArrowLeft':
+    case 'j':
+    case 'J':
       e.preventDefault();
       stepFrame(-1);
       break;
     case 'ArrowRight':
+    case 'l':
+    case 'L':
       e.preventDefault();
       stepFrame(1);
       break;

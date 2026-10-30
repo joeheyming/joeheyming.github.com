@@ -24,10 +24,11 @@ import {
   setMasterVolume,
   midiToFreq,
   midiToName,
-  NOTE_NAMES
+  NOTE_NAMES,
+  playRemoteNotes
 } from '../shared/audio.js';
 import { makePrefs } from '../shared/prefs.js';
-import { createPointerSurface } from '../shared/pointer-surface.js';
+import { bindRemoteClick, createPointerSurface } from '../shared/pointer-surface.js';
 
 const Prefs = makePrefs('play.steeldrum.prefs.v1');
 
@@ -308,7 +309,9 @@ const triggerStrike = (tongueEl) => {
   tongueEl.offsetWidth;
   tongueEl.classList.add('struck');
 
-  strike(midi);
+  if (tongueEl.dataset.remote === '1') playRemoteNotes(midi, () => strike(midi));
+  else strike(midi);
+  delete tongueEl.dataset.remote;
   window.heymingAchievements?.unlockForCurrentApp('first-action');
   announceNote(midi);
 
@@ -333,6 +336,10 @@ surface = createPointerSurface(bowl, {
   onEnter: (tongue) => {
     triggerStrike(tongue);
   }
+});
+bindRemoteClick(bowl, '.hang-tongue', (tongue) => {
+  tongue.dataset.remote = '1';
+  triggerStrike(tongue);
 });
 
 renderTongues();

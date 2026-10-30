@@ -261,6 +261,12 @@ body {
   background: var(--surface-light);
 }
 
+.cell:focus-visible {
+  outline: 3px solid #ffbf47;
+  outline-offset: -3px;
+  z-index: 1;
+}
+
 .cell:active:not(.revealed):not(.flagged) {
   border-color: var(--shadow) var(--shadow) var(--shadow) var(--shadow);
   border-width: 1px;
@@ -327,6 +333,27 @@ body {
   border: 2px solid;
   border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
   font-family: 'VT323', monospace;
+}
+
+.help-remote {
+  display: none;
+}
+
+.flag-btn {
+  font-family: 'VT323', monospace;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 4px 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid;
+  border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  cursor: pointer;
+}
+
+.flag-btn:focus-visible {
+  outline: 3px solid #ffbf47;
+  outline-offset: 2px;
 }
 
 /* Modal */
@@ -576,6 +603,65 @@ body {
     height: 44px;
     font-size: 1.5rem;
     flex-shrink: 0;
+  }
+}
+
+/* Bravia CSS viewport is 960×540: wide enough to miss the phone
+   rules, short enough that the desktop title and LCD push the grid
+   off the panel. Compact the chrome and swap in remote hints. */
+@media (max-height: 700px) {
+  body {
+    padding: 8px;
+  }
+
+  .game-wrapper {
+    gap: 8px;
+    max-height: none;
+  }
+
+  .game-header h1 {
+    font-size: 2rem;
+  }
+
+  .diff-btn {
+    padding: 6px 16px;
+    font-size: 1.35rem;
+  }
+
+  .game-container {
+    padding: 6px;
+  }
+
+  .status-bar {
+    padding: 4px;
+    margin-bottom: 6px;
+  }
+
+  .counter-value {
+    font-size: 2rem;
+  }
+
+  .counter-label {
+    font-size: 1.25rem;
+  }
+
+  .face-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.75rem;
+  }
+
+  .help-text {
+    gap: 10px;
+    font-size: 1.15rem;
+  }
+
+  .help-mouse {
+    display: none;
+  }
+
+  .help-remote {
+    display: inline;
   }
 }
 

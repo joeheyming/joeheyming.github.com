@@ -932,4 +932,141 @@ body.fullscreen-mode .locale-selector-wrapper {
   }
 }
 
+/* A short screen, the same shape as Bad Apple: the digits are the
+   picture and fill whatever is left, and the event picker and the
+   celebrate buttons dock where a remote can reach them. */
+@media (max-height: 700px) {
+  html,
+  body {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .container {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    align-items: center;
+    height: 100%;
+    max-width: none;
+    min-height: 0;
+    padding: 8px 16px;
+    gap: 8px 12px;
+  }
+
+  .header {
+    display: none;
+  }
+
+  .event-selector {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+    padding: 6px 10px;
+  }
+
+  .countdown-display {
+    grid-column: 1 / -1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    padding: 8px 16px;
+    /* backdrop-filter would trap position:fixed inside the card. */
+    backdrop-filter: none;
+    --cd-digit-size: clamp(3.2rem, 22vh, 6.5rem);
+    --cd-separator-size: clamp(2.2rem, 14vh, 4.2rem);
+  }
+
+  .event-name-row {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    margin: 0;
+  }
+
+  .event-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.05rem;
+  }
+
+  .display-mode-row {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    justify-content: flex-end;
+  }
+
+  .timer-display-container {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-height: 0;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .progress-container {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin: 4px 0;
+  }
+
+  .target-date {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+
+  .celebration-video-section {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: start;
+    min-width: 0;
+    margin: 0 0 0 48px;
+  }
+
+  .celebration-video-section celebration-video-selector {
+    max-width: 280px;
+  }
+
+  .action-section {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: end;
+    flex-wrap: nowrap;
+    gap: 10px;
+    margin: 0 48px 0 0;
+  }
+
+  .final-countdown-btn,
+  .celebrate-btn {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+  }
+
+  /* The − / + buttons used to sit on the year, so Up and Down landed
+     on them. Park them on the bottom button row instead. */
+  .year-btn {
+    position: fixed;
+    bottom: 12px;
+    z-index: 5;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+
+  #yearDown {
+    left: 16px;
+  }
+
+  #yearUp {
+    right: 16px;
+  }
+}
+
 /* Firework particles for celebration */

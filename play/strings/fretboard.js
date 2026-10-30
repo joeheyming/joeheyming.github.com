@@ -18,8 +18,8 @@
  * state (the engine, the active-instrument accessor, the now-playing
  * label) without this module reaching for module-level globals.
  */
-import { midiToName } from '../shared/audio.js';
-import { createPointerSurface } from '../shared/pointer-surface.js';
+import { midiToName, playRemoteNotes } from '../shared/audio.js';
+import { bindRemoteClick, createPointerSurface } from '../shared/pointer-surface.js';
 import { midiAtCell } from './instruments.js';
 
 /**
@@ -57,11 +57,15 @@ export function createFretboardController({
     setTimeout(() => el.classList.remove('active'), 280);
   };
 
-  const playFret = (stringIdx, fret) => {
+  const playFret = (stringIdx, fret, remote = false) => {
     const instrument = getActiveInstrument();
     const midi = midiAtCell(instrument, stringIdx, fret);
     if (midi == null) return;
-    if (!engine.pluck(midi)) return;
+    if (remote) {
+      playRemoteNotes(midi, () => {
+        engine.pluck(midi);
+      });
+    } else if (!engine.pluck(midi)) return;
     flashCell(stringIdx, fret);
     announceNote(midi);
   };
@@ -145,6 +149,9 @@ export function createFretboardController({
         if (!isUnavailable) {
           const midi = str.midi + (fret - startFret);
           cell.dataset.midi = String(midi);
+          cell.setAttribute('role', 'button');
+          cell.setAttribute('tabindex', '0');
+          cell.setAttribute('aria-label', `Play ${midiToName(midi)}`);
           const labelText =
             isOpen || isStartOfDrone ? str.name : midiToName(midi).replace(/\d+$/, '');
           const labelSpan = document.createElement('span');
@@ -176,6 +183,11 @@ export function createFretboardController({
     onEnter: (cell) => {
       pluckFromCell(cell);
     }
+  });
+  bindRemoteClick(fretboardEl, '.fret-cell:not(.unavailable)', (cell) => {
+    const stringIdx = Number(cell.dataset.string);
+    const fret = Number(cell.dataset.fret);
+    playFret(stringIdx, fret, true);
   });
 
   return { build, playFret, flashCell, announceNote };

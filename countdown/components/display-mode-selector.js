@@ -3,7 +3,7 @@
  * A dropdown for selecting countdown display modes
  */
 import { localeService } from '../i18n/locale-service.js';
-import { onClickOutside, dropdownStyles, chevronStyles } from './shared-styles.js';
+import { onClickOutside, dropdownStyles, chevronStyles, dropdownArrow } from './shared-styles.js';
 
 // Display mode definitions with icons
 const DISPLAY_MODE_DEFS = [
@@ -51,6 +51,7 @@ class DisplayModeSelector extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this.isOpen = false;
     this.selectedMode = 'standard';
+    this._highlighted = 0;
     this._ready = false;
     this._clickOutsideCleanup = null;
   }
@@ -60,6 +61,7 @@ class DisplayModeSelector extends HTMLElement {
   }
 
   async connectedCallback() {
+    if (this.tabIndex < 0) this.tabIndex = 0;
     // Wait for translations to be loaded before rendering
     await localeService.ready();
     this._ready = true;
@@ -272,27 +274,36 @@ class DisplayModeSelector extends HTMLElement {
       if (this.isOpen) this.close();
     });
 
-    // Keyboard navigation
-    this.btn.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const modes = getDisplayModes();
-        const currentIndex = modes.findIndex((m) => m.id === this.selectedMode);
-        let newIndex;
-        if (e.key === 'ArrowDown') {
-          newIndex = (currentIndex + 1) % modes.length;
-        } else {
-          newIndex = currentIndex === 0 ? modes.length - 1 : currentIndex - 1;
-        }
-        this.selectedMode = modes[newIndex].id;
-        this.updateDisplay();
-        this.dispatchEvent(
-          new CustomEvent('mode-change', {
-            detail: { mode: this.selectedMode },
-            bubbles: true
-          })
-        );
+    // OK clicks this element. The button inside handles its own click.
+    this.addEventListener('click', (event) => {
+      if (event.composedPath()[0] !== this) return;
+      if (!this.isOpen) {
+        this.open();
+        return;
       }
+      const item = [...this.dropdown.querySelectorAll('.dropdown-item')][this._highlighted];
+      if (item) item.click();
+      else this.close();
+    });
+
+    // A closed menu lets arrows move focus. An open menu uses Up and Down
+    // to move through the list, and any other arrow closes it and moves on.
+    this.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isOpen) {
+        e.preventDefault();
+        this.close();
+        return;
+      }
+      if (!this.isOpen) return;
+      const items = [...this.dropdown.querySelectorAll('.dropdown-item')];
+      const next = dropdownArrow(e, this._highlighted, items.length);
+      if (next === null) return;
+      if (next === 'leave') {
+        this.close();
+        return;
+      }
+      this._highlighted = next;
+      this._paintHighlight(items);
     });
   }
 
@@ -305,6 +316,20 @@ class DisplayModeSelector extends HTMLElement {
     this.dropdown.classList.add('open');
     this.chevron.classList.add('open');
     this.btn.setAttribute('aria-expanded', 'true');
+    const items = [...this.dropdown.querySelectorAll('.dropdown-item')];
+    const selected = items.findIndex((item) => item.classList.contains('selected'));
+    this._highlighted = selected >= 0 ? selected : 0;
+    this._paintHighlight(items);
+  }
+
+  _paintHighlight(items) {
+    items.forEach((item, index) => {
+      item.classList.toggle('highlighted', index === this._highlighted);
+    });
+    const current = items[this._highlighted];
+    if (current && typeof current.scrollIntoView === 'function') {
+      current.scrollIntoView({ block: 'nearest' });
+    }
   }
 
   close() {

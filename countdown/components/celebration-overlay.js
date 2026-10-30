@@ -63,7 +63,9 @@ class CelebrationOverlay extends HTMLElement {
       this.dismissBtn.textContent = localeService.str('ui.dismiss');
     }
     if (this.closeBtn) {
-      this.closeBtn.title = localeService.str('ui.close');
+      const label = localeService.str('ui.close');
+      this.closeBtn.title = label;
+      this.closeBtn.setAttribute('aria-label', label);
     }
   }
 
@@ -131,56 +133,6 @@ class CelebrationOverlay extends HTMLElement {
           align-items: center;
           justify-content: center;
           z-index: 5;
-        }
-
-        .dismiss-btn {
-          background: rgba(245, 158, 11, 0.15);
-          border: 1px solid #f59e0b;
-          color: #fbbf24;
-          padding: 14px 40px;
-          border-radius: 12px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 1rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          margin-top: 24px;
-          z-index: 5;
-        }
-
-        .dismiss-btn:hover {
-          background: linear-gradient(135deg, #f59e0b, #fbbf24);
-          color: #030712;
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
-        }
-
-        .close-btn {
-          position: absolute;
-          top: 20px;
-          right: 20px;
-          background: rgba(245, 158, 11, 0.15);
-          border: 1px solid rgba(245, 158, 11, 0.3);
-          color: #fbbf24;
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-          z-index: 10;
-        }
-
-        .close-btn:hover {
-          background: rgba(245, 158, 11, 0.25);
-          border-color: #f59e0b;
-        }
-
-        .close-btn svg {
-          width: 20px;
-          height: 20px;
         }
 
         @keyframes shimmer {
@@ -283,21 +235,95 @@ class CelebrationOverlay extends HTMLElement {
       </style>
 
       <div class="overlay" id="overlay">
-        <button class="close-btn" id="closeBtn" title="${localeService.str('ui.close')}">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <slot name="close"></slot>
         <div class="message" id="message">${this.message}</div>
         <div class="youtube-slot"><slot name="youtube"></slot></div>
-        <button class="dismiss-btn" id="dismissBtn">${localeService.str('ui.dismiss')}</button>
+        <slot name="dismiss"></slot>
       </div>
     `;
 
     this.overlayEl = this.shadowRoot.getElementById('overlay');
     this.messageEl = this.shadowRoot.getElementById('message');
-    this.dismissBtn = this.shadowRoot.getElementById('dismissBtn');
-    this.closeBtn = this.shadowRoot.getElementById('closeBtn');
+    this.ensureControls();
+  }
+
+  // Page button defaults beat ::slotted() rules, so the look lives in the document.
+  ensureControlStyles() {
+    if (document.getElementById('celebration-overlay-controls')) return;
+    const style = document.createElement('style');
+    style.id = 'celebration-overlay-controls';
+    style.textContent = `
+      celebration-overlay > button.dismiss-btn {
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid #f59e0b;
+        color: #fbbf24;
+        padding: 14px 40px;
+        border-radius: 12px;
+        font-family: 'Outfit', sans-serif;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        margin-top: 24px;
+        z-index: 5;
+      }
+      celebration-overlay > button.dismiss-btn:hover,
+      celebration-overlay > button.dismiss-btn:focus-visible {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: #030712;
+        box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+      }
+      celebration-overlay > button.close-btn {
+        position: absolute;
+        top: 76px;
+        right: 20px;
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: #fbbf24;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+      }
+      celebration-overlay > button.close-btn:hover,
+      celebration-overlay > button.close-btn:focus-visible {
+        background: rgba(245, 158, 11, 0.25);
+        border-color: #f59e0b;
+      }
+      celebration-overlay > button.close-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // These buttons stay in the light DOM. Arrow navigation does not enter a shadow root.
+  ensureControls() {
+    this.ensureControlStyles();
+    if (!this.closeBtn) {
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'close-btn';
+      closeBtn.slot = 'close';
+      closeBtn.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>';
+      this.appendChild(closeBtn);
+      this.closeBtn = closeBtn;
+    }
+    if (!this.dismissBtn) {
+      const dismissBtn = document.createElement('button');
+      dismissBtn.type = 'button';
+      dismissBtn.className = 'dismiss-btn';
+      dismissBtn.slot = 'dismiss';
+      this.appendChild(dismissBtn);
+      this.dismissBtn = dismissBtn;
+    }
+    this.updateLabels();
   }
 
   updateMessage() {
@@ -322,6 +348,12 @@ class CelebrationOverlay extends HTMLElement {
         this.hide();
       }
     });
+
+    this.addEventListener('keydown', (event) => {
+      if (!this._isVisible || event.key !== 'Escape') return;
+      event.preventDefault();
+      this.hide();
+    });
   }
 
   show() {
@@ -330,8 +362,12 @@ class CelebrationOverlay extends HTMLElement {
 
     this._isVisible = true;
     this.setAttribute('visible', '');
+    this.setPageInert(true);
     this.launchFireworks();
     this.loadYouTube();
+    requestAnimationFrame(() => {
+      if (this._isVisible) this.dismissBtn?.focus();
+    });
     this.dispatchEvent(new CustomEvent('celebration-show', { bubbles: true, composed: true }));
   }
 
@@ -339,7 +375,28 @@ class CelebrationOverlay extends HTMLElement {
     this.cleanup();
     this._isVisible = false;
     this.removeAttribute('visible');
+    this.setPageInert(false);
     this.dispatchEvent(new CustomEvent('celebration-dismiss', { bubbles: true, composed: true }));
+  }
+
+  // Keep arrow navigation inside the celebration. Controls behind the overlay stay out of the way.
+  setPageInert(inert) {
+    if (!inert) {
+      for (const el of this._blocked || []) el.inert = false;
+      this._blocked = [];
+      return;
+    }
+    const blocked = [];
+    let node = this;
+    while (node.parentElement) {
+      for (const sibling of node.parentElement.children) {
+        if (sibling !== node) blocked.push(sibling);
+      }
+      if (node.parentElement === document.body) break;
+      node = node.parentElement;
+    }
+    for (const el of blocked) el.inert = true;
+    this._blocked = blocked;
   }
 
   cleanup() {
@@ -370,6 +427,8 @@ class CelebrationOverlay extends HTMLElement {
 
     this.appendChild(player);
     player.play(this.videoId, true);
+    const iframe = player.querySelector('iframe');
+    if (iframe) iframe.tabIndex = -1;
   }
 
   unloadYouTube() {

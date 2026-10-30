@@ -1,4 +1,5 @@
-import { createPointerSurface } from '../shared/pointer-surface.js';
+import { bindRemoteClick, createPointerSurface } from '../shared/pointer-surface.js';
+import { playRemoteNotes } from '../shared/audio.js';
 import { tap as hapticTap } from '../shared/haptics.js';
 import { SHARP_NAMES, FLAT_NAMES, notesForButton } from './stradella-chords.js';
 
@@ -347,6 +348,16 @@ export function renderStradella(rootEl, opts) {
     onEnter: (btn) => press(btn),
     onLeave: (btn) => release(btn),
     onRelease: (btn) => release(btn)
+  });
+  bindRemoteClick(rootEl, '.stradella-button', (btn) => {
+    const notes = btn._notes || [];
+    if (playRemoteNotes(notes, () => press(btn))) {
+      setTimeout(() => release(btn), 220);
+      return;
+    }
+    btn.classList.add('active');
+    if (notes.length) onActivity(notes[0]);
+    setTimeout(() => btn.classList.remove('active'), 220);
   });
 
   build();

@@ -29,9 +29,11 @@ import {
   endAudioCapture,
   getCtx,
   getMaster,
+  playRemoteNotes,
   resumeIfSuspended,
   setMasterVolume
 } from '../shared/audio.js';
+import { bindRemoteClick } from '../shared/pointer-surface.js';
 import { makePrefs } from '../shared/prefs.js';
 import {
   PitchDetector,
@@ -671,6 +673,18 @@ function buildReferenceGrid() {
     refGridEl.appendChild(btn);
   }
 }
+
+bindRemoteClick(refGridEl, '.ref-btn', (btn) => {
+  const pc = Number(btn.dataset.pc);
+  const wasActive = activeRefBtn === btn;
+  stopRefVoice({ immediate: wasActive });
+  if (wasActive) return;
+  const midi = effectiveRefMidi(pc);
+  if (!playRemoteNotes(midi, () => startRefVoice(midi, btn))) {
+    activeRefBtn = btn;
+    btn.setAttribute('aria-pressed', 'true');
+  }
+});
 
 function refreshRefBtnLabel(btn) {
   const pc = Number(btn.dataset.pc);

@@ -46,8 +46,9 @@
   --sud-selected-ring: #f59e0b;
   --sud-won: #fde047;
 
-  /* Cell size is set by JS-free CSS clamp: fits both width and height. */
-  --board-max-w: min(96vw, 540px);
+  /* Cell size is set by JS-free CSS clamp: fits both width and height.
+     The third term keeps a 9×9 board under the toolbar on a 540px-tall TV. */
+  --board-max-w: min(96vw, 540px, max(160px, calc(100dvh - 320px)));
   --cell-size: calc(var(--board-max-w) / 9);
 }
 
@@ -744,6 +745,37 @@ body {
   border-color: transparent;
 }
 
+@media (max-height: 700px) {
+  :root {
+    --board-max-w: min(96vw, max(160px, calc(100dvh - 210px)));
+  }
+
+  .page {
+    gap: 4px;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .page-header {
+    gap: 2px;
+  }
+
+  .page-header h1 {
+    font-size: 1.15rem;
+  }
+
+  .badges,
+  .settings-row,
+  .help {
+    display: none;
+  }
+
+  .toolbar,
+  .status-bar {
+    gap: 4px;
+  }
+}
+
 /* Mobile tuning */
 @media (max-width: 480px) {
   :root {
@@ -785,10 +817,13 @@ body {
   }
 }
 
-/* Landscape mobile / short screens: side-by-side board + numpad */
+/* Landscape mobile / short screens: side-by-side board + numpad.
+   The message sits between them in the markup; keep it on its own
+   last row so it does not wrap the pad below a board that is
+   already as tall as the screen. */
 @media (max-height: 640px) and (orientation: landscape) {
   :root {
-    --board-max-w: min(70vw, 420px);
+    --board-max-w: min(70vw, 420px, max(160px, calc(100dvh - 170px)));
   }
 
   .page {
@@ -796,15 +831,24 @@ body {
     flex-wrap: wrap;
     max-width: none;
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .page-header,
   .toolbar,
   .status-bar,
   .settings-row,
-  .help,
+  .help {
+    flex-basis: 100%;
+  }
+
+  .board-wrap,
+  .numpad {
+    order: 2;
+  }
+
   .message {
+    order: 3;
     flex-basis: 100%;
   }
 

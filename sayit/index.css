@@ -608,6 +608,83 @@ body {
   color: var(--si-blue, #1a73e8);
 }
 
+/* A 540px-tall TV cannot spare the subtitle and the drawing essay.
+   Dock the tools and let the canvas fill whatever height is left. */
+@media (max-height: 700px) {
+  body {
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+
+  .header {
+    margin-bottom: 6px;
+  }
+
+  .header p {
+    display: none;
+  }
+
+  .header h1 {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+
+  .mode-selector {
+    margin-top: 6px;
+    gap: 6px;
+  }
+
+  .mode-button {
+    padding: 6px 12px;
+  }
+
+  .canvas-instructions,
+  .instructions {
+    display: none;
+  }
+
+  .canvas-container {
+    flex: 1;
+    min-height: 0;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .canvas-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+    padding: 6px 8px;
+  }
+
+  .canvas-wrapper {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .canvas-stack {
+    max-height: 100%;
+  }
+
+  .canvas-stack #drawingCanvas,
+  .canvas-stack .eraser-hover-overlay {
+    width: auto;
+    height: min(400px, calc(100dvh - 200px));
+    max-width: 100%;
+    aspect-ratio: 2 / 1;
+  }
+}
+
 .drop-zone {
   border: 3px dashed var(--hairline-strong);
   border-radius: 10px;

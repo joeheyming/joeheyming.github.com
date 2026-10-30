@@ -1,7 +1,12 @@
 import dayjs from 'dayjs';
 import { getLocalizedEventLabel, CATEGORY_EMOJIS } from './events.js';
 import { localeService } from './i18n/locale-service.js';
-import { onClickOutside, dropdownStyles, chevronStyles } from './components/shared-styles.js';
+import {
+  onClickOutside,
+  dropdownStyles,
+  chevronStyles,
+  dropdownArrow
+} from './components/shared-styles.js';
 
 const FILTER_DEBOUNCE_MS = 120;
 
@@ -24,6 +29,7 @@ class EventAutocomplete extends HTMLElement {
   }
 
   async connectedCallback() {
+    if (this.tabIndex < 0) this.tabIndex = 0;
     // Wait for translations before rendering
     await localeService.ready();
     this.render();
@@ -180,6 +186,7 @@ class EventAutocomplete extends HTMLElement {
 
         .dropdown {
           z-index: 9999;
+          max-height: min(320px, 50vh);
         }
 
         .item {
@@ -476,11 +483,10 @@ class EventAutocomplete extends HTMLElement {
     // Track if we should select on mouseup (for click-to-select-all behavior)
     let shouldSelectAll = false;
 
-    // Focus to open dropdown
+    // Focus selects the text. It does not open the list: an arrow must be
+    // able to leave, and only Enter, Space, or OK opens the menu.
     this.input.addEventListener('focus', () => {
       shouldSelectAll = true;
-      this.open();
-      // Use setTimeout to select after browser has finished focus handling
       setTimeout(() => {
         if (shouldSelectAll) {
           this.input.select();
@@ -522,30 +528,42 @@ class EventAutocomplete extends HTMLElement {
       // User is typing without modifiers, don't auto-select on next focus
       shouldSelectAll = false;
 
-      const flushedPendingFilter = ['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)
-        ? this.flushPendingFilter()
-        : false;
+      if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
+        this.flushPendingFilter();
+      }
 
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          if (!this.isOpen) {
-            this.open(!flushedPendingFilter);
-          } else {
-            this.highlightedIndex = Math.min(
-              this.highlightedIndex + 1,
-              this.filteredEvents.length - 1
-            );
-            this.renderDropdown();
-            this.scrollToHighlighted();
-          }
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          this.highlightedIndex = Math.max(this.highlightedIndex - 1, 0);
+      // A closed field lets arrows move focus. Enter and Space open it.
+      if (!this.isOpen && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        this.open();
+        return;
+      }
+
+      if (!this.isOpen && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        return;
+      }
+
+      if (
+        this.isOpen &&
+        (e.key === 'ArrowUp' ||
+          e.key === 'ArrowDown' ||
+          e.key === 'ArrowLeft' ||
+          e.key === 'ArrowRight')
+      ) {
+        const next = dropdownArrow(e, this.highlightedIndex, this.filteredEvents.length);
+        if (next === 'leave') {
+          this.close();
+          return;
+        }
+        if (typeof next === 'number') {
+          this.highlightedIndex = next;
           this.renderDropdown();
           this.scrollToHighlighted();
-          break;
+        }
+        return;
+      }
+
+      switch (e.key) {
         case 'Enter':
           e.preventDefault();
           if (this.highlightedIndex >= 0 && this.filteredEvents[this.highlightedIndex]) {
@@ -565,6 +583,33 @@ class EventAutocomplete extends HTMLElement {
     // Click outside to close (with cleanup)
     this._clickOutsideCleanup = onClickOutside(this, () => {
       if (this.isOpen) this.close();
+    });
+
+    // OK on a remote clicks this field, not the input inside it.
+    // That click opens the list. A second OK chooses the highlighted event.
+    // Left and Right do not change the event.
+    this.addEventListener('click', (event) => {
+      if (event.composedPath()[0] !== this) return;
+      if (!this.isOpen) {
+        this.open();
+        return;
+      }
+      const choice = this.filteredEvents[this.highlightedIndex];
+      if (choice) this.selectEvent(choice.id);
+      else this.close();
+    });
+
+    this.addEventListener('keydown', (event) => {
+      if (!this.isOpen || event.defaultPrevented) return;
+      const next = dropdownArrow(event, this.highlightedIndex, this.filteredEvents.length);
+      if (next === null) return;
+      if (next === 'leave') {
+        this.close();
+        return;
+      }
+      this.highlightedIndex = next;
+      this.renderDropdown();
+      this.scrollToHighlighted();
     });
 
     // Dropdown item interactions
