@@ -291,8 +291,7 @@ class SongManager {
     let audioLoaded = false;
 
     if (audioUrl) {
-      // Try direct proxy download first. corsproxy.io stays in the default
-      // order; deferring it made mobile downloads fail before they reached it.
+      // Try the shared proxy list. It leads with the high-quota hosts.
       try {
         onProgress?.('Downloading audio file...', 35);
 

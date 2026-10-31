@@ -27,9 +27,9 @@ export function getVideoId(url) {
 /**
  * Heuristic: are we running in a mobile browser?
  *
- * The bug we're working around is that the CORS proxies (corsproxy.io,
- * proxy.corsfix.com) forward the *client* User-Agent upstream to YouTube.
- * From a mobile browser that means YouTube returns the m.youtube.com
+ * The bug we're working around is that the CORS proxies forward the
+ * client User-Agent upstream to YouTube. From a mobile browser that means
+ * YouTube returns the m.youtube.com
  * channel page, which uses singleColumnBrowseResultsRenderer and ships
  * NO videoIds in its initial HTML — the mobile site paints the video list
  * client-side after hydration. The HTML scrape therefore returns 0 videos.
@@ -51,13 +51,10 @@ export function isMobileUserAgent() {
  * Fetch the channel listing HTML through the shared cross-origin proxy.
  * YouTube blocks CORS for browsers, so we always skip the direct attempt.
  *
- * Only called from the desktop branch of loadVideos(). On mobile, all of
- * our usable proxies (corsproxy.io is explicit about it; corsfix does it
- * in practice) forward the client User-Agent upstream, so the mobile path
+ * Only called from the desktop branch of loadVideos(). On mobile, the
+ * proxies forward the client User-Agent upstream, so YouTube returns the
+ * mobile channel HTML and the scrape finds no video ids. The mobile path
  * uses the RSS feed instead — see isMobileUserAgent.
- *
- * corsproxy.io stays deferred so that any quirky desktop UA still has the
- * other proxies tried first; it's a no-op in the common case.
  */
 export async function fetchChannelHtml() {
   if (!window.proxyService || typeof window.proxyService.fetchWithProxy !== 'function') {
@@ -66,8 +63,7 @@ export async function fetchChannelHtml() {
   return window.proxyService.fetchWithProxy(CHANNEL_URL, {
     skipDirect: true,
     timeout: 20000,
-    maxRetries: 2,
-    deferProxies: ['https://corsproxy.io/']
+    maxRetries: 2
   });
 }
 

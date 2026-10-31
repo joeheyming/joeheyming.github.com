@@ -12,6 +12,7 @@ import vm from 'node:vm';
 const SOURCE = await readFile(new URL('../proxy.js', import.meta.url), 'utf8');
 
 const HEXLET = 'https://allorigins.hexlet.app/raw?url=';
+const CORS_DEV = 'https://proxy.cors.dev/?url=';
 const CORS_EU = 'https://cors.eu.org/';
 const JSON_URL = 'https://api.example.com/data.json';
 const ROM_URL = 'https://cdn.example.com/game.rom';
@@ -155,14 +156,10 @@ describe('ProxyService Adapter seams', () => {
     const fetched = [];
     const fetchImpl = async (url) => {
       fetched.push(String(url));
-      if (String(url).startsWith(HEXLET)) {
+      if (String(url).startsWith(CORS_DEV)) {
         throw new TypeError('Failed to fetch');
       }
-      if (
-        String(url).startsWith(CORS_EU) ||
-        String(url).includes('proxy') ||
-        String(url).includes('cors')
-      ) {
+      if (String(url).startsWith(HEXLET) || String(url).includes('cors')) {
         return textResponse('{"ok":true,"source":"fallback"}');
       }
       throw new TypeError('unexpected URL: ' + url);
@@ -175,11 +172,11 @@ describe('ProxyService Adapter seams', () => {
     assert.equal(data.ok, true);
     assert.equal(data.source, 'fallback');
     assert.ok(
-      fetched.some((u) => u.startsWith(HEXLET)),
-      'should have tried the first (hexlet) proxy'
+      fetched.some((u) => u.startsWith(CORS_DEV)),
+      'should have tried the first (cors.dev) proxy'
     );
     assert.ok(
-      fetched.some((u) => !u.startsWith(HEXLET)),
+      fetched.some((u) => !u.startsWith(CORS_DEV)),
       'should have fallen through to a later proxy'
     );
   });
@@ -204,8 +201,10 @@ describe('ProxyService Adapter seams', () => {
     };
 
     const service = createProxyService({ fetchImpl, storageImpl: storage });
-    // Avoid cooldown / retry sleeps.
+    // Avoid cooldown / retry sleeps. Pin hexlet first so the paywall body
+    // is the one that gets banned regardless of pool order.
     service.proxyCooldownMs = 0;
+    service.proxyOptions.forEach((p) => service.proxyScores.set(p, p === HEXLET ? 2 : 1));
 
     const first = await service.fetchBinary(ROM_URL, { maxRetries: 0, timeout: 1000 });
     assert.equal(first.length, 8);
@@ -241,7 +240,9 @@ describe('ProxyService Adapter seams', () => {
 
     const service = createProxyService({ fetchImpl, storageImpl: storage });
     service.proxyCooldownMs = 0;
-    // Order by score so corsproxy.io is reached on the first pass.
+    // The host is no longer in the live pool. The signature still has to
+    // ban it if a response with this body ever shows up.
+    if (!service.proxyOptions.includes(CORSPROXY)) service.proxyOptions.push(CORSPROXY);
     service.proxyOptions.forEach((p) => service.proxyScores.set(p, p === CORSPROXY ? 2 : 1));
 
     await service.fetchJson(JSON_URL, { maxRetries: 0, timeout: 1000 });
@@ -289,6 +290,7 @@ describe('ProxyService Adapter seams', () => {
 
     const first = createProxyService({ fetchImpl, storageImpl: storage });
     first.proxyCooldownMs = 0;
+    first.proxyOptions.forEach((p) => first.proxyScores.set(p, p === HEXLET ? 2 : 1));
     await first.fetchBinary(ROM_URL, { maxRetries: 0, timeout: 1000 });
     assert.equal(first.isProxyDead(HEXLET, 'binary'), true);
 
@@ -302,6 +304,44 @@ describe('ProxyService Adapter seams', () => {
       storageImpl: storage
     });
     assert.equal(second.isProxyDead(HEXLET, 'binary'), true, 'ban should reload from storageImpl');
+  });
+
+  it('bans cors.dev for binary only when a body exceeds 6 MiB', async () => {
+    const tooBig =
+      '{"error":"response_too_large","message":"The upstream response exceeds the response size limit."}';
+    const fetchImpl = async (url) => {
+      const u = String(url);
+      if (u === ROM_URL || u.startsWith('https://cdn.example.com/')) {
+        throw new TypeError('Failed to fetch');
+      }
+      if (u.startsWith(CORS_DEV)) {
+        return {
+          ok: false,
+          status: 502,
+          headers: {
+            get: (name) =>
+              String(name).toLowerCase() === 'content-type' ? 'application/json' : null
+          },
+          text: async () => tooBig,
+          arrayBuffer: async () => new TextEncoder().encode(tooBig).buffer
+        };
+      }
+      return binaryResponse();
+    };
+
+    const service = createProxyService({ fetchImpl, storageImpl: storage });
+    service.proxyCooldownMs = 0;
+    service.proxyOptions.forEach((p) => service.proxyScores.set(p, p === CORS_DEV ? 2 : 1));
+
+    const data = await service.fetchBinary(ROM_URL, { maxRetries: 0, timeout: 1000 });
+    assert.equal(data.length, 8);
+    assert.equal(service.isProxyDead(CORS_DEV, 'binary'), true);
+    assert.equal(service.isProxyDead(CORS_DEV, 'text'), false);
+    assert.equal(
+      service.proxyConsecutiveHardFailures.get(`${CORS_DEV}|binary`) || 0,
+      0,
+      'a recognized size cap is not a hard failure'
+    );
   });
 
   it('throws ProxyExhaustedError when every proxy fails', async () => {

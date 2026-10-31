@@ -29,15 +29,15 @@
 // =============================================================================
 // Agnostic of target origin; callers pass options for behavior:
 //   options.skipDirect: true — skip direct fetch (use when origin blocks CORS).
-//   options.deferProxies: string[] — try these proxy URL prefixes last (e.g. ['https://corsproxy.io/']).
+//   options.deferProxies: string[] — try these proxy URL prefixes last.
 //
 // Auto-invalidation: proxies that return well-known "dead" response bodies
 // (paywall blobs, "domain not registered", "bad request" landing JSON) are
 // banned for a long TTL so we don't burn budget hammering services that
 // pulled the rug. Bans are scoped by mode ('text' | 'binary' | '*') because
-// some proxies (e.g. corsproxy.io as of mid-2026) work fine for text but
-// have paywalled binary content types. Bans persist via storageImpl (default
-// localStorage) so a reload doesn't re-probe the same dead services.
+// a host can be fine for HTML and useless for a ROM (cors.dev's 6 MiB cap
+// is the current case). Bans persist via storageImpl (default localStorage)
+// so a reload doesn't re-probe the same dead services.
 
 const PROXY_HEALTH_STORAGE_KEY = 'heyming.proxyService.v1';
 const DEAD_PROXY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -168,13 +168,22 @@ const DEAD_PROXY_SIGNATURES = [
   },
   // blkproxy.vercel.app blocks video/audio content types, .mp4/.mp3
   // extensions, and range requests with this body. Scoped to 'binary'
-  // because text mode never asks for media URLs; the ban lets
-  // stepmania/archive.org sessions fall through to hexlet instead of
-  // re-probing blkproxy every 30s.
+  // because text mode never asks for media URLs. The host itself was
+  // pruned in October 2026 (Vercel firewall deny); the signature stays
+  // so a re-add doesn't cache that body as a ROM.
   {
     name: 'blkproxy_media_blocked',
     mode: 'binary',
     re: /Media files are not supported/i
+  },
+  // proxy.cors.dev free tier caps responses at 6 MiB and answers oversize
+  // requests in a few hundred milliseconds with HTTP 502 and this JSON.
+  // Binary-only: HTML and JSON stay on this host (it has the highest
+  // anonymous rate limit in the pool). The next binary call skips it.
+  {
+    name: 'cors_dev_response_too_large',
+    mode: 'binary',
+    re: /"error"\s*:\s*"response_too_large"/i
   }
 ];
 
@@ -266,60 +275,44 @@ class ProxyService {
     //
     // Note: Free proxies can become unreliable - check/update periodically.
     this.proxyOptions = [
-      // Working for both text + binary (re-verified July 2026 against
-      // example.com HTML and httpbin.org/bytes/1024 payloads).
-      'https://allorigins.hexlet.app/raw?url=', // Hexlet-hosted allorigins fork; serves real binary bodies.
-      // Cloudflare-fronted; very fast for IA CDN hosts (dn*.archive.org)
-      // once metadata has resolved the redirect. archive.org/download/…
-      // URLs are flakier (occasional 502 HTML) — fine as a fallback after
-      // the emulator's CDN resolve path.
-      'https://cors.eu.org/',
-      // Vercel-hosted; fastest of the alternatives (~130ms typical
-      // response) and serves both text and binary. Caveat: blocks
-      // media extensions (.mp4/.mp3/etc.) and audio/video content types
-      // with a 403 "Media files are not supported." body — the
-      // blkproxy_media_blocked signature auto-bans it for mode='binary'
-      // the first time this fires, so stepmania songs and archive.org
-      // videos naturally route to hexlet instead. Also caps responses
-      // at 5MB, so large binaries fall through to the next proxy.
-      'https://blkproxy.vercel.app/api/proxy?url=',
-      // Working for text only from browser origins. Server-side callers
-      // get a 403 "server-side requests are not allowed" (harmless — the
-      // auto-ban catches it via the corsproxy_paywall_serverside
-      // signature). Binary content types are paywalled on the free plan
-      // and get auto-banned for mode='binary' on the first request via
-      // the corsproxy_paywall_content_type signature.
-      'https://corsproxy.io/?',
-      // CorsBridge (Syrins). Reliable "unlimited free public API" with
-      // no rate limits observed in our probe. Slower than the others
-      // (~400ms warm, ~1300ms cold) so it lives at the bottom as a
-      // last-resort fallback. Works for both text and binary.
-      'https://api.cors.syrins.tech/?url='
-      // Pruned July 2026 (see git log for the probe results):
-      //   - corsmirror.com/v1?url=   — /v1 handler returns HTTP 404 for every URL
-      //     (including their own documented "Try it out" example). Service is up,
-      //     proxy endpoint is not.
-      //   - api.codetabs.com/v1/proxy?quest= — chronic 12s+ timeouts,
-      //     Cloudflare 522 when it does respond.
-      //   - api.allorigins.win/raw?url= — chronic 10-12s timeouts,
-      //     occasional 502. Distinct from the Hexlet-hosted fork above.
-      //   - proxy.corsfix.com/?url= — requires the calling domain to be
-      //     registered with a paid corsfix plan.
-      //   - thingproxy.freeboard.io/fetch/ — DNS ENOTFOUND, domain gone.
-      //   - api.cors.lol/?url= — works, but per-IP rate limits (HTTP 429)
-      //     are aggressive. Real users each get their own budget, but a
-      //     single user doing 3+ requests in quick succession triggers
-      //     the limit and there's no way to distinguish that from a
-      //     genuinely dead proxy. Skipped for now.
-      //   - proxy.cors.sh/ — returns HTTP 401 whenever the request has an
-      //     `Origin` header (which browsers always send) unless a valid
-      //     API key is supplied. Their free tier requires signup with a
-      //     GitHub-hosted project registered. Not usable without setup.
-      //   - creprox.vercel.app/ — text-only, uses an unusual URL shape
-      //     (no `https://` prefix on the target) that doesn't fit the
-      //     `prefix + encodedUrl` contract this file assumes.
-      //   - corsproxy.org/? — redirects to hide.mn (dead / hijacked).
-      // If any of these come back online, add them back here.
+      // Re-verified 31 Oct 2026 with Origin https://joeheyming.github.io.
+      // Ordered so the generous anonymous quota is tried before hosts that
+      // Cloudflare-rate-limit the whole internet.
+      //
+      // cors.dev: 600 requests/minute per IP, no daily or monthly quota.
+      // GET and HEAD only. Echoes our origin. Text ~80–180ms. Bodies over
+      // 6 MiB return HTTP 502 response_too_large in ~250ms; that signature
+      // bans this prefix for binary only, and hexlet/corsmirror take the file.
+      'https://proxy.cors.dev/?url=',
+      // corsmirror /v1 was a 404 for every URL in July 2026 and is serving
+      // real text and binary again. An 8-request burst did not 429.
+      'https://corsmirror.com/v1?url=',
+      // Hexlet allorigins fork. Slower (~0.7–1.5s) but returns real bodies
+      // past cors.dev's 6 MiB cap, which is what ROMs and long songs need.
+      'https://allorigins.hexlet.app/raw?url=',
+      // Cloudflare-fronted and fast when it isn't saturated. On 31 Oct 2026
+      // it answered 429 "temporarily rate limited" with no ACAO header.
+      // Last in line; the cors_eu_rate_limited signature parks it for 15m
+      // once a response body is readable.
+      'https://cors.eu.org/'
+      // Pruned 31 Oct 2026:
+      //   - corsproxy.io/? — anonymous ?<url> retired Sept 2026
+      //     (403 keyless_legacy_url). A key would not be safe in this file.
+      //   - api.cors.syrins.tech/?url= — DNS does not resolve.
+      //   - blkproxy.vercel.app/api/proxy?url= — Vercel firewall
+      //     (x-vercel-mitigated: deny) rejects the request before the function.
+      // Pruned July 2026, still true in the October re-probe unless noted:
+      //   - api.codetabs.com/v1/proxy?quest= — 12s timeouts.
+      //   - api.allorigins.win/raw?url= — works, but 2.5–3.5s. Not worth a
+      //     slot ahead of the hosts above. Distinct from the Hexlet fork.
+      //   - proxy.corsfix.com/?url= — domain_not_registered without a paid plan.
+      //   - thingproxy.freeboard.io/fetch/ — DNS gone.
+      //   - api.cors.lol/?url= — one success, then 429 "Rate limit exceeded"
+      //     with no ACAO. Still too aggressive.
+      //   - proxy.cors.sh/ — DNS gone (was 401 on any Origin without a key).
+      //   - creprox.vercel.app/ — URL shape doesn't fit prefix + encodedUrl.
+      //   - corsproxy.org/? — still returns its own HTML, no ACAO.
+      // corsmirror.com/v1?url= was on the July prune list and is back above.
     ];
     this.cache = new Map();
     /** @type {number | null} */
@@ -483,8 +476,8 @@ class ProxyService {
    * success (via `updateProxyScore(_, true, _)`) resets the counter, so an
    * intermittent hiccup on a mostly-healthy proxy doesn't accumulate.
    *
-   * Binary 502s must not ban a proxy for text (corsproxy.io is a common
-   * case: fine for HTML, useless for ZIP).
+   * Binary 502s must not ban a proxy for text. A size cap or a content-type
+   * paywall should only take that host out of the binary rotation.
    *
    * @param {string} proxy
    * @param {string} failureType — short human-readable tag ("timeout",
@@ -975,11 +968,10 @@ class ProxyService {
     const maxRetries = options.maxRetries ?? this.maxRetries;
     let lastError = null;
 
-    // POST-capable proxies (not all support POST)
-    const postCapableProxies = [
-      'https://corsproxy.io/?', // Supports POST
-      'https://proxy.cors.sh/' // May support POST
-    ];
+    // No anonymous POST proxy is left in the pool. cors.dev's free tier is
+    // GET/HEAD only, corsproxy.io now requires a key, and proxy.cors.sh
+    // does not resolve. Nothing in the site calls this method.
+    const postCapableProxies = [];
 
     console.log(`Trying POST request to: ${url.substring(0, 80)}...`);
 
@@ -1076,13 +1068,11 @@ class ProxyService {
     const maxRetries = options.maxRetries ?? this.maxRetries;
     let lastError = null;
 
-    // corsproxy.io free plan is text-oriented; it often 502s on ZIP/ROM
-    // downloads. Defer it so hexlet/syrins get first crack unless the
-    // caller already set deferProxies.
+    // Oversized bodies are rejected by cors.dev's own signature (binary
+    // ban) and the chain continues. Callers can still pass deferProxies.
     const binaryOpts = {
       ...options,
-      mode: 'binary',
-      deferProxies: options.deferProxies || ['https://corsproxy.io/?']
+      mode: 'binary'
     };
     const orderedProxies = this.getOrderedProxies(binaryOpts);
 
@@ -1281,8 +1271,7 @@ class ProxyService {
 
     const orderedProxies = this.getOrderedProxies({
       ...options,
-      mode: 'binary',
-      deferProxies: options.deferProxies || ['https://corsproxy.io/?']
+      mode: 'binary'
     });
     let lastError = null;
     for (let retry = 0; retry <= maxRetries; retry += 1) {
@@ -1310,6 +1299,9 @@ class ProxyService {
           if (err && err.name === 'AbortError') throw err;
           lastError = err;
           console.warn(`Streamed proxy ${proxy} failed:`, err && err.message);
+          if (err && err.proxyBody && this._maybeMarkDeadFromBody(proxy, err.proxyBody)) {
+            continue;
+          }
           this.updateProxyScore(proxy, false);
           this._noteProxyFailure(proxy, 'binary');
           // `_streamToBlob` throws `new Error('HTTP ${status}')` for
@@ -1362,7 +1354,21 @@ class ProxyService {
         ...headers
       }
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      // Buffered fetches read this body and match DEAD_PROXY_SIGNATURES.
+      // Streaming has to do the same, or a fast 502 response_too_large
+      // would count as a hard failure and drag the text score down.
+      let errBody = '';
+      try {
+        const text = await res.text();
+        errBody = text.length > 4096 ? text.slice(0, 4096) : text;
+      } catch {
+        /* ignore */
+      }
+      const err = new Error(`HTTP ${res.status}`);
+      err.proxyBody = errBody;
+      throw err;
+    }
     if (!res.body) throw new Error('No response body');
     const total = Number(res.headers.get('content-length')) || 0;
     const reader = res.body.getReader();

@@ -221,7 +221,6 @@ class VideoConverter {
       if (videoUrl.includes('zenius-i-vanisher.com')) {
         const arrayBuffer = await window.proxyService.fetchBinaryWithProxy(videoUrl, {
           skipDirect: true,
-          deferProxies: ['https://corsproxy.io/'],
           headers: {
             Referer: 'https://zenius-i-vanisher.com/',
             Origin: 'https://zenius-i-vanisher.com'
