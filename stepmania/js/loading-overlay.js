@@ -196,6 +196,10 @@ class LoadingOverlayElement extends HTMLElement {
           color: var(--text-on-accent);
         }
         button:hover { filter: brightness(0.92); }
+        button:focus-visible, .difficulty-select:focus-visible {
+          outline: 3px solid #ffbf47;
+          outline-offset: 3px;
+        }
         .btn-play {
           background: var(--success);
         }
@@ -272,7 +276,13 @@ class LoadingOverlayElement extends HTMLElement {
         }
       </style>
 
-      <div class="overlay ${isHidden ? 'hidden' : ''}" id="overlay">
+      <div
+        class="overlay ${isHidden ? 'hidden' : ''}"
+        id="overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="title"
+      >
         <div class="content">
           <!-- Spinner -->
           <div class="spinner ${!isLoading ? 'hidden' : ''}" id="spinner"></div>
@@ -394,6 +404,67 @@ class LoadingOverlayElement extends HTMLElement {
         if (this._onDifficultyChange) this._onDifficultyChange(index);
       });
     }
+
+    const overlay = this.shadowRoot.getElementById('overlay');
+    overlay?.addEventListener('keydown', (e) => {
+      if (this._state === STATES.HIDDEN) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        const backId =
+          this._state === STATES.READY
+            ? 'ready-back-btn'
+            : this._state === STATES.ERROR
+            ? 'back-btn'
+            : 'loading-browse-btn';
+        this.shadowRoot.getElementById(backId)?.click();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const controls = this.visibleControls();
+      if (controls.length === 0) return;
+      const active = this.shadowRoot.activeElement;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+  }
+
+  visibleControls() {
+    const overlay = this.shadowRoot.getElementById('overlay');
+    if (!overlay) return [];
+    return [...overlay.querySelectorAll('button, select, a[href], input, textarea')].filter(
+      (el) => {
+        if (!(el instanceof HTMLElement) || el.disabled) return false;
+        let node = el;
+        while (node && node !== overlay.parentElement) {
+          if (node.hidden) return false;
+          const style = getComputedStyle(node);
+          if (style.display === 'none' || style.visibility === 'hidden') return false;
+          node = node.parentElement;
+        }
+        return true;
+      }
+    );
+  }
+
+  focusPrimaryAction() {
+    const id =
+      this._state === STATES.READY
+        ? 'play-btn'
+        : this._state === STATES.ERROR
+        ? 'retry-btn'
+        : this._state === STATES.LOADING
+        ? 'loading-browse-btn'
+        : '';
+    const target = id ? this.shadowRoot.getElementById(id) : null;
+    if (target) target.focus({ focusVisible: true });
   }
 
   // ============================================================================
@@ -413,6 +484,7 @@ class LoadingOverlayElement extends HTMLElement {
     this._progress = progress;
     this.render();
     this.bindEvents();
+    this.focusPrimaryAction();
   }
 
   /**
@@ -463,6 +535,7 @@ class LoadingOverlayElement extends HTMLElement {
 
     this.render();
     this.bindEvents();
+    this.focusPrimaryAction();
   }
 
   /**
@@ -501,6 +574,7 @@ class LoadingOverlayElement extends HTMLElement {
 
     this.render();
     this.bindEvents();
+    this.focusPrimaryAction();
   }
 
   /**

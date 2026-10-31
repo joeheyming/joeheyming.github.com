@@ -11,6 +11,23 @@ body {
   padding: 72px 24px 64px;
 }
 
+.songs-back {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 18px;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 45%, transparent);
+  border-radius: 8px;
+  color: var(--text-1);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.songs-back:hover,
+.songs-back:focus-visible {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent);
+}
+
 .songs-kicker {
   margin: 0 0 8px;
   color: var(--accent-primary);
@@ -30,13 +47,26 @@ h1 {
   line-height: 1.5;
 }
 
-.songs-lead a,
-.songs-list a {
+.songs-lead a {
   color: var(--accent-primary);
 }
 
 .songs-list {
   margin: 0;
-  padding-left: 1.3rem;
-  line-height: 1.8;
+  padding-left: 1.6rem;
+  line-height: 1.4;
+}
+
+.songs-list a {
+  display: block;
+  margin: 2px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+.songs-list a:hover,
+.songs-list a:focus-visible {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent);
 }

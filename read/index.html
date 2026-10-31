@@ -192,16 +192,22 @@
       <!-- Reading progress indicator (thin top strip) -->
       <div id="reading-progress" aria-hidden="true"></div>
 
-      <!-- Tap zones: left = page back, right = page forward (Kindle-style) -->
-      <div class="page-zone" id="zone-prev" aria-label="Previous page" role="button" tabindex="0">
+      <!-- Edge buttons: Enter turns the page. Arrows move to the bar. -->
+      <button type="button" class="page-zone" id="zone-prev" aria-label="Previous page">
         <span class="page-chevron" aria-hidden="true">‹</span>
-      </div>
-      <div class="page-zone" id="zone-next" aria-label="Next page" role="button" tabindex="0">
+      </button>
+      <button type="button" class="page-zone" id="zone-next" aria-label="Next page">
         <span class="page-chevron" aria-hidden="true">›</span>
-      </div>
+      </button>
 
-      <!-- Floating settings toolbar (auto-hides; tap top of screen to show) -->
-      <div id="reader-controls" role="toolbar" aria-label="Reading settings">
+      <!-- Floating settings toolbar. Hidden controls are inert so they are skipped. -->
+      <div
+        id="reader-controls"
+        class="controls-hidden"
+        inert
+        role="toolbar"
+        aria-label="Reading settings"
+      >
         <span id="reader-title"></span>
 
         <button
@@ -242,17 +248,32 @@
       </div>
 
       <!-- Scrollable text -->
-      <div id="reader-container" role="main" tabindex="0" aria-label="Book content"></div>
+      <div id="reader-container" role="main" aria-label="Book content"></div>
 
       <!-- Always-visible bottom navigation bar -->
       <div id="reader-nav-bar" role="navigation" aria-label="Reader navigation">
-        <button class="reader-nav-btn" id="btn-close-reader" aria-label="Back to library">
+        <button
+          type="button"
+          class="reader-nav-btn"
+          id="btn-close-reader"
+          aria-label="Back to library"
+        >
           ← Library
         </button>
 
         <span id="reader-progress-pct" class="reader-nav-progress" aria-live="polite"></span>
 
         <button
+          type="button"
+          class="reader-nav-btn"
+          id="btn-reader-text"
+          aria-label="Reading settings"
+        >
+          Aa
+        </button>
+
+        <button
+          type="button"
           class="reader-nav-btn reader-nav-btn-toc"
           id="btn-toc"
           aria-label="Table of contents"

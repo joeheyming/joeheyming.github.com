@@ -848,6 +848,12 @@ game-over-modal.visible {
   pointer-events: auto;
 }
 
+.fullscreen-toggle-btn:focus,
+.fullscreen-toggle-btn:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .fullscreen-toggle-btn:hover {
   background: color-mix(in srgb, var(--accent-primary) 70%, transparent); /* accent-primary @ 0.7 */
   border-color: color-mix(

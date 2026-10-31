@@ -184,10 +184,9 @@ function escapeHtml(str) {
 // --- Book cards ---
 
 function createBookCard(book, resumeData = null) {
-  const card = document.createElement('div');
+  const card = document.createElement('button');
+  card.type = 'button';
   card.className = 'book-card';
-  card.setAttribute('role', 'button');
-  card.tabIndex = 0;
 
   const cover = getCoverUrl(book);
 
@@ -207,11 +206,54 @@ function createBookCard(book, resumeData = null) {
   `;
 
   card.addEventListener('click', () => openBook(book));
-  card.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') openBook(book);
-  });
 
   return card;
+}
+
+function focusIfIdle(el, force = false) {
+  const focus = window.heymingRemote;
+  if (focus && typeof focus.focusIfIdle === 'function') return focus.focusIfIdle(el, force);
+  if (!el) return false;
+  if (!force) {
+    const active = document.activeElement;
+    const idle =
+      !active ||
+      active === document.body ||
+      active === document.documentElement ||
+      active.classList.contains('heyming-nav-toggle');
+    if (!idle) return false;
+  }
+  el.focus({ preventScroll: true });
+  return true;
+}
+
+function focusFirstCard(root, force = false) {
+  let card = null;
+  for (const candidate of root.querySelectorAll('button.book-card, button.continue-item')) {
+    if (candidate.closest('.hidden')) continue;
+    card = candidate;
+    break;
+  }
+  if (!card || !focusIfIdle(card, force)) return;
+  if (typeof card.scrollIntoView === 'function') {
+    card.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+}
+
+function showGridMessage(grid, message, onRetry) {
+  grid.replaceChildren();
+  const p = document.createElement('p');
+  p.className = 'empty-message';
+  p.textContent = message;
+  grid.appendChild(p);
+  if (!onRetry) return;
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'retry-btn';
+  retry.textContent = 'Try again';
+  retry.addEventListener('click', onRetry);
+  grid.appendChild(retry);
+  focusIfIdle(retry);
 }
 
 // --- Continue listening ---
@@ -225,10 +267,12 @@ function renderContinueSection() {
   continueSection.classList.remove('hidden');
   continueList.innerHTML = '';
   for (const entry of recent) {
-    const item = document.createElement('div');
+    const slot = document.createElement('div');
+    slot.className = 'continue-slot';
+    const item = document.createElement('button');
+    item.type = 'button';
     item.className = 'continue-item';
-    item.setAttribute('role', 'button');
-    item.tabIndex = 0;
+    item.setAttribute('aria-keyshortcuts', 'Delete Backspace');
 
     const pct =
       entry.totalSections > 1
@@ -251,25 +295,36 @@ function renderContinueSection() {
           <div class="continue-progress-fill" style="width:${pct}%"></div>
         </div>
       </div>
-      <button class="card-remove-btn" aria-label="Remove from continue listening" title="Remove">✕</button>
     `;
 
-    item.querySelector('.card-remove-btn').addEventListener('click', (e) => {
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'card-remove-btn';
+    remove.tabIndex = -1;
+    remove.setAttribute('aria-label', 'Remove from continue listening');
+    remove.title = 'Remove';
+    remove.textContent = '✕';
+    remove.addEventListener('click', (e) => {
       e.stopPropagation();
       clearProgress(entry.id);
       renderContinueSection();
     });
 
+    item.addEventListener('keydown', (e) => {
+      if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+      e.preventDefault();
+      e.stopPropagation();
+      remove.click();
+    });
+
     item.addEventListener('click', () =>
       fetchAndResumeBook(entry.id, entry.sectionIndex, entry.position)
     );
-    item.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ')
-        fetchAndResumeBook(entry.id, entry.sectionIndex, entry.position);
-    });
 
-    continueList.appendChild(item);
+    slot.append(item, remove);
+    continueList.appendChild(slot);
   }
+  focusFirstCard(continueList);
 }
 
 async function fetchAndResumeBook(identifier, sectionIndex, position) {
@@ -299,16 +354,19 @@ async function renderBrowse() {
     const books = await fetchRecentBooks();
     browseGrid.innerHTML = '';
     if (!books.length) {
-      browseGrid.innerHTML = '<p class="empty-message">No books found.</p>';
+      showGridMessage(browseGrid, 'No books found.', () => renderBrowse());
       return;
     }
     for (const book of books) {
       browseGrid.appendChild(createBookCard(book));
     }
   } catch {
-    browseGrid.innerHTML =
-      '<p class="empty-message">Couldn\'t load books. Check your connection.</p>';
+    showGridMessage(browseGrid, "Couldn't load books. Check your connection.", () =>
+      renderBrowse()
+    );
+    return;
   }
+  focusFirstCard(browseGrid);
 }
 
 // --- Search ---
@@ -332,17 +390,16 @@ async function runSearch(query) {
     const books = await searchBooks(query);
     searchResultsGrid.innerHTML = '';
     if (!books.length) {
-      searchResultsGrid.innerHTML = `<p class="empty-message">No results for "<em>${escapeHtml(
-        query
-      )}</em>".</p>`;
+      showGridMessage(searchResultsGrid, `No results for "${query}".`);
       return;
     }
     for (const book of books) {
       searchResultsGrid.appendChild(createBookCard(book));
     }
   } catch (err) {
-    searchResultsGrid.innerHTML =
-      '<p class="empty-message">Search failed. Check your connection.</p>';
+    showGridMessage(searchResultsGrid, 'Search failed. Check your connection.', () =>
+      runSearch(query)
+    );
     console.error('Search error:', err);
   }
 }
@@ -378,6 +435,10 @@ async function openBook(book, startSectionIndex = null, startPosition = 0) {
     setBookIdInUrl(book.identifier);
     showDetailView(book, sectionIndex);
     loadBookIntoPlayer(book, sectionIndex, position);
+    // The player bar was display:none. Focus Play on the next frame.
+    requestAnimationFrame(() => {
+      if (!playerBar.classList.contains('hidden')) btnPlayPause.focus({ preventScroll: true });
+    });
   } catch (err) {
     showToast(err.message || 'Could not load book.', 'error');
   } finally {
@@ -438,12 +499,12 @@ function renderChapterList(sections, activeIndex) {
 
   sections.forEach((section, i) => {
     const li = document.createElement('li');
-    li.className = 'chapter-item' + (i === activeIndex ? ' active' : '');
-    li.dataset.index = String(i);
-    li.setAttribute('role', 'button');
-    li.tabIndex = 0;
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'chapter-item' + (i === activeIndex ? ' active' : '');
+    item.dataset.index = String(i);
 
-    li.innerHTML = `
+    item.innerHTML = `
       <span class="chapter-number">${i + 1}</span>
       <span class="chapter-name">${escapeHtml(section.title || `Chapter ${i + 1}`)}</span>
       ${
@@ -453,19 +514,13 @@ function renderChapterList(sections, activeIndex) {
       }
     `;
 
-    li.addEventListener('click', () => {
+    item.addEventListener('click', () => {
       player.goToChapter(i);
       highlightActiveChapter(i);
       closeChapterSheet();
     });
-    li.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        player.goToChapter(i);
-        highlightActiveChapter(i);
-        closeChapterSheet();
-      }
-    });
 
+    li.appendChild(item);
     ul.appendChild(li);
   });
 
@@ -510,18 +565,16 @@ function startProgressSaving() {
 
 // --- Player bar event handlers ---
 
-btnPlayPause.addEventListener('pointerdown', (e) => {
-  e.preventDefault();
+// Click, not pointerdown. Keyboard activation calls click().
+btnPlayPause.addEventListener('click', () => {
   player.togglePlayPause();
 });
 
-btnPrev.addEventListener('pointerdown', (e) => {
-  e.preventDefault();
+btnPrev.addEventListener('click', () => {
   player.prevChapter();
 });
 
-btnNext.addEventListener('pointerdown', (e) => {
-  e.preventDefault();
+btnNext.addEventListener('click', () => {
   player.nextChapter();
 });
 
@@ -529,17 +582,18 @@ seekBar.addEventListener('pointerdown', () => {
   isSeeking = true;
 });
 seekBar.addEventListener('pointerup', () => {
-  if (!isSeeking) return;
   isSeeking = false;
-  player.seek((parseFloat(seekBar.value) / 1000) * player.duration);
 });
 seekBar.addEventListener('pointercancel', () => {
   isSeeking = false;
 });
 seekBar.addEventListener('input', () => {
-  if (!isSeeking) return;
   const t = (parseFloat(seekBar.value) / 1000) * player.duration;
   timeDisplay.textContent = `${formatTime(t)} / ${formatTime(player.duration)}`;
+});
+seekBar.addEventListener('change', () => {
+  isSeeking = false;
+  player.seek((parseFloat(seekBar.value) / 1000) * player.duration);
 });
 
 speedSelect.addEventListener('change', () => {
@@ -601,15 +655,16 @@ function openChapterSheet() {
   // Scroll the active chapter into view inside the sheet
   requestAnimationFrame(() => {
     const active = chapterList.querySelector('.chapter-item.active');
-    active?.scrollIntoView({ block: 'center' });
+    (active || btnCloseChapters).focus({ preventScroll: true });
+    active?.scrollIntoView?.({ block: 'center' });
   });
-  // trap focus: close on Escape
-  chapterSheet.focus();
 }
 
 function closeChapterSheet() {
+  const restore = chapterSheet.contains(document.activeElement);
   chapterSheet.classList.add('hidden');
   chapterSheetOverlay.classList.add('hidden');
+  if (restore) (playerBar.classList.contains('hidden') ? btnOpenChapters : btnPlayPause).focus();
 }
 
 btnOpenChapters.addEventListener('click', openChapterSheet);
@@ -631,6 +686,18 @@ backBtn.addEventListener('click', () => {
 });
 
 searchInput.addEventListener('input', handleSearchInput);
+
+searchInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  const query = searchInput.value.trim();
+  clearTimeout(searchDebounce);
+  if (!query) {
+    focusFirstCard(document.getElementById('browse-view'));
+    return;
+  }
+  runSearch(query).then(() => focusFirstCard(searchResultsGrid, true));
+});
 
 searchClear.addEventListener('click', () => {
   searchInput.value = '';

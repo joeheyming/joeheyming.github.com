@@ -179,10 +179,29 @@
         } else {
           btn.textContent = key;
         }
+        // Touch keeps a sticky :hover/:focus, so a second tap can re-hit this
+        // key instead of the one under the finger. A click with no touch
+        // keeps focus here. blur() would drop it back to the page.
+        var fromTouch = false;
+        btn.addEventListener(
+          'touchstart',
+          function () {
+            fromTouch = true;
+          },
+          { passive: true }
+        );
+        btn.addEventListener('pointerdown', function (event) {
+          fromTouch = event.pointerType === 'touch';
+        });
         btn.addEventListener('click', function () {
+          var touch = fromTouch;
+          fromTouch = false;
           handleKey(key);
-          // Mobile: blur so a second tap isn't a button re-activation.
-          btn.blur();
+          if (touch) {
+            btn.blur();
+          } else {
+            btn.focus();
+          }
         });
         rowEl.appendChild(btn);
       });
@@ -347,6 +366,18 @@
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
     var dialog = document.getElementById('dialog');
     if (dialog && dialog.style.display !== 'none') return;
+
+    // Enter or Space on New Game or a keyboard key is that button's click.
+    // preventDefault here would cancel it, and treating it as a guess
+    // submit would fire the wrong action.
+    if (
+      target &&
+      typeof target.closest === 'function' &&
+      target.closest('#wordle-game button') &&
+      (e.key === 'Enter' || e.key === ' ')
+    ) {
+      return;
+    }
 
     if (e.key === 'Enter') {
       e.preventDefault();

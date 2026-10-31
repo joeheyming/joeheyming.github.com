@@ -21,6 +21,7 @@ import {
 } from '../mahjongg/engine.js';
 import { faceLabel, faceMarkup } from '../mahjongg/faces.js';
 import { LAYOUTS, layoutById } from '../mahjongg/layouts.js';
+import { nearestInDirection, tileFocusPoint } from '../mahjongg/navigate.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -190,6 +191,62 @@ test('a hint names a free matching pair and odd layouts are rejected', () => {
   assert.equal(isFree(game.tiles, pair[1]), true);
   assert.equal(facesMatch(game.tiles[pair[0]].face, game.tiles[pair[1]].face), true);
   assert.throws(() => createGame([{ x: 0, y: 0, z: 0 }], 1));
+});
+
+test('arrow moves follow the drawn tiles, so the turtle cap is reachable', () => {
+  const game = createGame(layoutById('turtle').slots, 1);
+  const at = (x, y, z) => game.tiles.find((tile) => tile.x === x && tile.y === y && tile.z === z);
+  const cap = at(13, 7, 4);
+  const free = game.tiles.filter((tile) => isFree(game.tiles, tile.id));
+  const dirs = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1]
+  ];
+  const slotPoints = free.map((tile) => ({ id: tile.id, x: tile.x, y: tile.y }));
+  const hitsCap = (points, id) =>
+    dirs.some(([dx, dy]) => nearestInDirection(points, id, dx, dy) === cap.id);
+  assert.equal(
+    free.some((tile) => tile.id !== cap.id && hitsCap(slotPoints, tile.id)),
+    false
+  );
+
+  const tileW = 62;
+  const tileH = 76;
+  const metrics = {
+    tileW,
+    tileH,
+    liftX: Math.max(2, Math.round(tileW * 0.08)),
+    liftY: Math.max(3, Math.round(tileH * 0.1)),
+    originX: 0,
+    originY: 0
+  };
+  const drawn = free.map((tile) => tileFocusPoint(tile, metrics));
+  assert.equal(nearestInDirection(drawn, at(10, 6, 2).id, 1, 0), cap.id);
+  assert.equal(nearestInDirection(drawn, at(16, 6, 2).id, -1, 0), cap.id);
+
+  const step = (id) => {
+    const next = new Set();
+    for (const [dx, dy] of dirs) {
+      const hit = nearestInDirection(drawn, id, dx, dy);
+      if (hit != null) next.add(hit);
+    }
+    return next;
+  };
+  for (const start of free) {
+    const seen = new Set([start.id]);
+    const pending = [start.id];
+    while (pending.length) {
+      const id = pending.pop();
+      for (const next of step(id)) {
+        if (seen.has(next)) continue;
+        seen.add(next);
+        pending.push(next);
+      }
+    }
+    assert.equal(seen.has(cap.id), true, `${start.x},${start.y},${start.z}`);
+  }
 });
 
 test('the page is indexable and the title matches the social cards', () => {

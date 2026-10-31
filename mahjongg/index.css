@@ -246,12 +246,12 @@ select:focus-visible {
 }
 
 .tile:focus {
-  outline: none;
-}
-
-.tile:focus-visible {
   outline: 3px solid #1d4ed8;
   outline-offset: 2px;
+}
+
+.tile:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .tile-face {

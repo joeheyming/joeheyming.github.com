@@ -17,6 +17,10 @@ class ShareButtonElement extends HTMLElement {
     this._urlGenerator = null;
     this._textGenerator = null;
     this._titleGenerator = null;
+    this.addEventListener('click', (e) => {
+      const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+      if (path[0] === this) this.shadowRoot.getElementById('share-btn')?.click();
+    });
   }
 
   connectedCallback() {
@@ -24,6 +28,10 @@ class ShareButtonElement extends HTMLElement {
       this.style.display = 'none';
       return;
     }
+    // One tab stop. Enter and Space activate this host, so the inner button
+    // is not a second stop.
+    this.tabIndex = 0;
+    this.setAttribute('role', 'button');
     this.render();
     this.bindEvents();
   }
@@ -135,6 +143,7 @@ class ShareButtonElement extends HTMLElement {
   }
 
   render() {
+    this.setAttribute('aria-label', this.label);
     this.shadowRoot.innerHTML = `
       <style>
         /* Reset the gradient-text trick (-webkit-background-clip: text +
@@ -218,7 +227,7 @@ class ShareButtonElement extends HTMLElement {
         .tooltip.success { background: var(--success, #10b981); color: #fff; }
         .tooltip.error { background: var(--danger, #ef4444); color: #fff; }
       </style>
-      <button type="button" class="share-btn" id="share-btn" aria-label="Share this page">
+      <button type="button" class="share-btn" id="share-btn" tabindex="-1" aria-hidden="true">
         <span class="icon-only">${this.extractIcon(this.label)}</span>
         <span class="text-label">${this.extractText(this.label)}</span>
       </button>
@@ -293,7 +302,15 @@ class ShareButtonElement extends HTMLElement {
     const rect = button.getBoundingClientRect();
     tooltip.style.left = `${rect.left + rect.width / 2}px`;
     tooltip.style.top = `${rect.top - 40}px`;
-    setTimeout(() => tooltip.classList.remove('show'), 2000);
+    // The host is the button, so the status node inside it is not announced.
+    const previous = this.getAttribute('aria-label');
+    this.setAttribute('aria-label', message);
+    setTimeout(() => {
+      tooltip.classList.remove('show');
+      if (this.getAttribute('aria-label') === message && previous) {
+        this.setAttribute('aria-label', previous);
+      }
+    }, 2000);
   }
 }
 

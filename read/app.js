@@ -159,10 +159,9 @@ function showToast(msg, type = 'info') {
 // --- Book cards ---
 
 function createBookCard(book) {
-  const card = document.createElement('div');
+  const card = document.createElement('button');
+  card.type = 'button';
   card.className = 'book-card';
-  card.setAttribute('role', 'button');
-  card.tabIndex = 0;
 
   const cover = getCoverUrl(book);
   const author = formatAuthor(book.authors);
@@ -184,11 +183,54 @@ function createBookCard(book) {
   `;
 
   card.addEventListener('click', () => openBook(book));
-  card.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') openBook(book);
-  });
 
   return card;
+}
+
+function focusIfIdle(el, force = false) {
+  const focus = window.heymingRemote;
+  if (focus && typeof focus.focusIfIdle === 'function') return focus.focusIfIdle(el, force);
+  if (!el) return false;
+  if (!force) {
+    const active = document.activeElement;
+    const idle =
+      !active ||
+      active === document.body ||
+      active === document.documentElement ||
+      active.classList.contains('heyming-nav-toggle');
+    if (!idle) return false;
+  }
+  el.focus({ preventScroll: true });
+  return true;
+}
+
+function focusFirstCard(root, force = false) {
+  let card = null;
+  for (const candidate of root.querySelectorAll('button.book-card')) {
+    if (candidate.closest('.hidden')) continue;
+    card = candidate;
+    break;
+  }
+  if (!card || !focusIfIdle(card, force)) return;
+  if (typeof card.scrollIntoView === 'function') {
+    card.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+}
+
+function showGridMessage(grid, message, onRetry) {
+  grid.replaceChildren();
+  const p = document.createElement('p');
+  p.className = 'empty-message';
+  p.textContent = message;
+  grid.appendChild(p);
+  if (!onRetry) return;
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'retry-btn';
+  retry.textContent = 'Try again';
+  retry.addEventListener('click', onRetry);
+  grid.appendChild(retry);
+  focusIfIdle(retry);
 }
 
 // --- Shelf ---
@@ -202,10 +244,12 @@ function renderShelf() {
   shelfSection.classList.remove('hidden');
   shelfGrid.innerHTML = '';
   for (const entry of books) {
-    const card = document.createElement('div');
+    const slot = document.createElement('div');
+    slot.className = 'book-slot';
+    const card = document.createElement('button');
+    card.type = 'button';
     card.className = 'book-card shelf-card';
-    card.setAttribute('role', 'button');
-    card.tabIndex = 0;
+    card.setAttribute('aria-keyshortcuts', 'Delete Backspace');
 
     card.innerHTML = `
       <div class="book-cover" aria-hidden="true">
@@ -220,13 +264,26 @@ function renderShelf() {
         <p class="book-author">${escapeHtml(entry.author)}</p>
         <p class="book-meta">Resume reading</p>
       </div>
-      <button class="card-remove-btn" aria-label="Remove from shelf" title="Remove">✕</button>
     `;
 
-    card.querySelector('.card-remove-btn').addEventListener('click', (e) => {
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'card-remove-btn';
+    remove.tabIndex = -1;
+    remove.setAttribute('aria-label', 'Remove from shelf');
+    remove.title = 'Remove';
+    remove.textContent = '✕';
+    remove.addEventListener('click', (e) => {
       e.stopPropagation();
       removeFromShelf(entry.id);
       renderShelf();
+    });
+
+    card.addEventListener('keydown', (e) => {
+      if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+      e.preventDefault();
+      e.stopPropagation();
+      remove.click();
     });
 
     card.addEventListener('click', async () => {
@@ -239,12 +296,11 @@ function renderShelf() {
         openBookFromShelf(entry);
       }
     });
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') card.click();
-    });
 
-    shelfGrid.appendChild(card);
+    slot.append(card, remove);
+    shelfGrid.appendChild(slot);
   }
+  focusFirstCard(shelfGrid);
 }
 
 function openBookFromShelf(entry) {
@@ -265,13 +321,20 @@ async function renderFeatured() {
   try {
     const books = await fetchFeaturedBooks();
     featuredGrid.innerHTML = '';
+    if (!books.length) {
+      showGridMessage(featuredGrid, 'No books found.', () => renderFeatured());
+      return;
+    }
     for (const book of books) {
       featuredGrid.appendChild(createBookCard(book));
     }
   } catch {
-    featuredGrid.innerHTML =
-      '<p class="empty-message">Could not load books. Check your connection.</p>';
+    showGridMessage(featuredGrid, 'Could not load books. Check your connection.', () =>
+      renderFeatured()
+    );
+    return;
   }
+  focusFirstCard(featuredGrid);
 }
 
 // --- Search ---
@@ -294,6 +357,18 @@ searchClear.addEventListener('click', () => {
   searchInput.focus();
 });
 
+searchInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  const query = searchInput.value.trim();
+  clearTimeout(searchDebounce);
+  if (!query) {
+    focusFirstCard(featuredGrid);
+    return;
+  }
+  runSearch(query).then(() => focusFirstCard(searchResultsGrid, true));
+});
+
 async function runSearch(query) {
   searchResultsSection.classList.remove('hidden');
   searchResultsGrid.innerHTML = '<div class="grid-loading">Searching…</div>';
@@ -301,17 +376,16 @@ async function runSearch(query) {
     const books = await searchBooks(query);
     searchResultsGrid.innerHTML = '';
     if (!books.length) {
-      searchResultsGrid.innerHTML = `<p class="empty-message">No results for "<em>${escapeHtml(
-        query
-      )}</em>".</p>`;
+      showGridMessage(searchResultsGrid, `No results for "${query}".`);
       return;
     }
     for (const book of books) {
       searchResultsGrid.appendChild(createBookCard(book));
     }
   } catch {
-    searchResultsGrid.innerHTML =
-      '<p class="empty-message">Search failed. Check your connection.</p>';
+    showGridMessage(searchResultsGrid, 'Search failed. Check your connection.', () =>
+      runSearch(query)
+    );
   }
 }
 
@@ -328,20 +402,15 @@ function openTocSheet() {
     ul.className = 'toc-items';
     for (const entry of entries) {
       const li = document.createElement('li');
-      li.className = `toc-item toc-level-${entry.level}`;
-      li.setAttribute('role', 'button');
-      li.tabIndex = 0;
-      li.textContent = entry.text;
-      li.addEventListener('click', () => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = `toc-item toc-level-${entry.level}`;
+      item.textContent = entry.text;
+      item.addEventListener('click', () => {
         reader.scrollToHeading(entry.id);
         closeTocSheet();
       });
-      li.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          reader.scrollToHeading(entry.id);
-          closeTocSheet();
-        }
-      });
+      li.appendChild(item);
       ul.appendChild(li);
     }
     tocList.appendChild(ul);
@@ -349,12 +418,17 @@ function openTocSheet() {
 
   tocSheet.classList.remove('hidden');
   tocSheetOverlay.classList.remove('hidden');
-  requestAnimationFrame(() => tocSheet.focus());
+  requestAnimationFrame(() => {
+    const first = tocList.querySelector('button.toc-item');
+    (first || btnCloseToc).focus();
+  });
 }
 
 function closeTocSheet() {
+  const restore = tocSheet.contains(document.activeElement);
   tocSheet.classList.add('hidden');
   tocSheetOverlay.classList.add('hidden');
+  if (restore) btnToc.focus();
 }
 
 btnToc.addEventListener('click', openTocSheet);
@@ -377,8 +451,14 @@ async function openBook(book) {
   readerView.classList.remove('hidden');
   window.scrollTo({ top: 0 });
 
-  // Start with settings toolbar hidden — nav bar is always visible
-  readerControls.classList.add('controls-hidden');
+  // Settings stay out of tab order until Aa is pressed. The next-page
+  // button takes focus so Enter turns the page and arrows reach the bar.
+  reader.hideControls(true);
+  // The reader was display:none. Focus on the next frame so the chevron
+  // actually receives it and Enter turns the page.
+  requestAnimationFrame(() => {
+    document.getElementById('zone-next')?.focus({ preventScroll: true });
+  });
 
   const savedPos = getScrollPosition(book.id);
 
@@ -412,6 +492,20 @@ btnCloseReader.addEventListener('click', () => {
   browseView.classList.remove('hidden');
   setBookIdInUrl(null);
   renderShelf();
+});
+
+document.getElementById('btn-reader-text').addEventListener('click', () => {
+  reader.showControls();
+  btnFontDec.focus();
+});
+
+window.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (!tocSheet.classList.contains('hidden')) return;
+  if (readerControls.classList.contains('controls-hidden')) return;
+  if (!readerControls.contains(document.activeElement)) return;
+  reader.hideControls(true);
+  document.getElementById('btn-reader-text').focus();
 });
 
 btnFontDec.addEventListener('click', () => reader.setFontSize(-2));

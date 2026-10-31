@@ -2,6 +2,7 @@
 // Manages keyboard, gamepad, and touch input with configurable key bindings
 
 import { audioManager } from './audioManager.js';
+import { homeMenuOwnsArrows } from './homeScreen.js';
 
 /**
  * Column indices for the 4 arrow directions
@@ -463,13 +464,56 @@ class InputManager {
   }
 
   /**
+   * The element the key was aimed at, including a button inside a
+   * shadow root. document listeners otherwise see the host.
+   * @param {Event} event
+   * @returns {Element|null}
+   */
+  _eventTarget(event) {
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : null;
+    const el = path && path.length ? path[0] : event.target;
+    if (!el || el.nodeType !== 1) return null;
+    return /** @type {Element} */ (el);
+  }
+
+  /**
+   * Buttons, links, fields, and the audio bar keep their keys.
+   * A plain tabindex region (the score panel) does not: during a chart
+   * those arrows are still steps.
+   * @param {Event} event
+   * @returns {boolean}
+   */
+  _isUiControl(event) {
+    const el = this._eventTarget(event);
+    if (!el || !el.tagName) return false;
+    const tag = el.tagName;
+    if (
+      tag === 'BUTTON' ||
+      tag === 'A' ||
+      tag === 'INPUT' ||
+      tag === 'SELECT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SUMMARY' ||
+      tag === 'AUDIO' ||
+      tag === 'VIDEO'
+    ) {
+      return true;
+    }
+    return !!el.isContentEditable;
+  }
+
+  /**
    * Handle keydown events
    * @param {KeyboardEvent} event
    */
   _onKeyDown(event) {
-    if (!this.enabled || this._isInputField(event)) return;
+    if (!this.enabled || this._isInputField(event) || this._isUiControl(event)) return;
 
     const keyCode = event.which || event.keyCode;
+
+    // The song picker is a menu. Bound arrows stay quiet there so they
+    // can move focus, and become steps once a chart is on screen.
+    if (homeMenuOwnsArrows() && this.keyBindings[keyCode] !== undefined) return;
 
     // Check for column binding
     const column = this.keyBindings[keyCode];
@@ -513,9 +557,10 @@ class InputManager {
    * @param {KeyboardEvent} event
    */
   _onKeyUp(event) {
-    if (!this.enabled || this._isInputField(event)) return;
+    if (!this.enabled || this._isInputField(event) || this._isUiControl(event)) return;
 
     const keyCode = event.which || event.keyCode;
+    if (homeMenuOwnsArrows() && this.keyBindings[keyCode] !== undefined) return;
 
     // Check for column binding
     const column = this.keyBindings[keyCode];

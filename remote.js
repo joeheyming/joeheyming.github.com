@@ -1,8 +1,8 @@
 // Keyboard access shared by every page.
 //
 // Arrow keys move focus between controls in any browser and at any window
-// size. A button, link, or closed select does not keep the arrow. Space,
-// Enter, and a remote OK activate a select or autocomplete; arrows never do.
+// size. A button, link, or closed select does not keep the arrow. Space
+// and Enter activate a select or autocomplete; arrows never do.
 // Up and Down leave a number, a slider, or a one-line field. Left and Right
 // still edit those. A game surface keeps its arrows. Play and Pause hit the
 // play control.
@@ -97,8 +97,8 @@
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key !== 'Enter' && event.key !== ' ') return;
     // A key that starts inside a shadow input retargets to the host.
-    // Space and Enter still belong to that input. OK on the host itself
-    // (the remote focuses the host) opens the widget.
+    // Space and Enter still belong to that input. On the host itself
+    // they activate the widget.
     var path = typeof event.composedPath === 'function' ? event.composedPath() : null;
     var inner = path && path.length ? path[0] : event.target;
     if (!inner || inner.nodeType !== 1) return;
@@ -158,9 +158,27 @@
     return el;
   }
 
+  // closest() stops at a shadow root, so a closed menu's buttons would
+  // still look focusable. Walk out through each host.
+  function concealed(el) {
+    var node = el;
+    while (node && node.nodeType === 1) {
+      if (node.hidden) return true;
+      if (node.getAttribute('inert') !== null) return true;
+      var style = getComputedStyle(node);
+      if (style.display === 'none' || style.visibility === 'hidden') return true;
+      if (node.parentElement) {
+        node = node.parentElement;
+        continue;
+      }
+      var root = typeof node.getRootNode === 'function' ? node.getRootNode() : null;
+      node = root && root.host ? root.host : null;
+    }
+    return false;
+  }
+
   function isFocusable(el) {
-    if (!el || el.disabled || el.hidden) return false;
-    if (el.closest && el.closest('[hidden], [inert]')) return false;
+    if (!el || el.disabled) return false;
     var tag = el.tagName;
     if (tag === 'INPUT' && el.type === 'hidden') return false;
     var tabindex = el.getAttribute('tabindex');
@@ -173,27 +191,146 @@
       tag === 'TEXTAREA' ||
       tag === 'SUMMARY';
     if (!native && (tabindex === null || tabindex === '')) return false;
-    var style = getComputedStyle(el);
-    return style.display !== 'none' && style.visibility !== 'hidden';
+    return !concealed(el);
   }
 
-  function focusableList() {
-    var nodes = document.querySelectorAll(
-      'button, a[href], input, select, textarea, summary, [tabindex]'
-    );
+  var FOCUSABLE_SELECTOR = 'button, a[href], input, select, textarea, summary, [tabindex]';
+
+  // Shadow hosts, so an arrow does not query every element on the page.
+  // attachShadow is wrapped for hosts created after this file loads. Hosts
+  // that already exist are collected once, on the first arrow.
+  var shadowHosts = [];
+  var shadowHostsSeeded = false;
+
+  function trackShadowHosts() {
+    var ElementRef = window.Element;
+    if (
+      !ElementRef ||
+      !ElementRef.prototype ||
+      typeof ElementRef.prototype.attachShadow !== 'function'
+    ) {
+      return;
+    }
+    var proto = ElementRef.prototype;
+    if (proto.attachShadow.__heymingTracked) return;
+    var orig = proto.attachShadow;
+    function trackedAttachShadow(init) {
+      var root = orig.call(this, init);
+      if (shadowHosts.indexOf(this) < 0) shadowHosts.push(this);
+      return root;
+    }
+    trackedAttachShadow.__heymingTracked = true;
+    proto.attachShadow = trackedAttachShadow;
+  }
+
+  function ensureShadowHosts() {
+    trackShadowHosts();
+    if (shadowHostsSeeded) return;
+    shadowHostsSeeded = true;
+    var stack = [document];
+    while (stack.length) {
+      var root = stack.pop();
+      if (!root || !root.querySelectorAll) continue;
+      var all = root.querySelectorAll('*');
+      for (var i = 0; i < all.length; i += 1) {
+        if (!all[i].shadowRoot) continue;
+        if (shadowHosts.indexOf(all[i]) < 0) shadowHosts.push(all[i]);
+        stack.push(all[i].shadowRoot);
+      }
+    }
+  }
+
+  function hostsIn(root) {
+    ensureShadowHosts();
     var out = [];
+    for (var i = 0; i < shadowHosts.length; i += 1) {
+      var host = shadowHosts[i];
+      if (!host.shadowRoot || !host.isConnected) continue;
+      if (host.getRootNode && host.getRootNode() === root) out.push(host);
+    }
+    return out;
+  }
+
+  function collectFocusable(root, out) {
+    if (!root || !root.querySelectorAll) return;
+    var nodes = root.querySelectorAll(FOCUSABLE_SELECTOR);
     for (var i = 0; i < nodes.length; i += 1) {
       if (isFocusable(nodes[i])) out.push(nodes[i]);
     }
+    // A focusable host is one tab stop. Enter and Space activate it
+    // (see onActivate); arrows do not walk into its shadow. An open
+    // dialog is its own root.
+    var hosts = hostsIn(root);
+    for (var j = 0; j < hosts.length; j += 1) {
+      if (!isFocusable(hosts[j])) collectFocusable(hosts[j].shadowRoot, out);
+    }
+  }
+
+  // An open modal lives in a shadow root, so a page-level query misses it.
+  // While one is open, arrows stay inside it instead of landing on the
+  // page underneath.
+  function openDialog(root) {
+    if (!root || !root.querySelectorAll) return null;
+    var nodes = root.querySelectorAll('[role="dialog"][aria-modal="true"]');
+    for (var i = 0; i < nodes.length; i += 1) {
+      if (!concealed(nodes[i])) return nodes[i];
+    }
+    var hosts = hostsIn(root);
+    for (var j = 0; j < hosts.length; j += 1) {
+      var found = openDialog(hosts[j].shadowRoot);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  // One dialog lookup per key. pullIntoDialog and moveFocus share it.
+  var arrowRootByEvent = typeof WeakMap === 'function' ? new WeakMap() : null;
+
+  function arrowRoot(event) {
+    if (event && arrowRootByEvent && arrowRootByEvent.has(event)) {
+      return arrowRootByEvent.get(event);
+    }
+    var root = openDialog(document) || document;
+    if (event && arrowRootByEvent) arrowRootByEvent.set(event, root);
+    return root;
+  }
+
+  function focusableList(event) {
+    var out = [];
+    collectFocusable(arrowRoot(event), out);
     return out;
+  }
+
+  function pullIntoDialog(event) {
+    var dialog = arrowRoot(event);
+    if (dialog === document) return false;
+    var el = eventTargetElement(event);
+    if (el && dialog.contains(el)) return false;
+    var list = [];
+    collectFocusable(dialog, list);
+    if (!list.length) return false;
+    event.preventDefault();
+    event.stopPropagation();
+    list[0].focus();
+    return true;
+  }
+
+  // A control can be focused and still be a bad arrow target: the
+  // fullscreen button is opacity 0 until hover, and a link inside a
+  // sentence sits on top of the real buttons. A link that is its own
+  // list row stays reachable.
+  function poorArrowTarget(el) {
+    var style = getComputedStyle(el);
+    if (style.opacity === '0' || style.pointerEvents === 'none') return true;
+    return el.tagName === 'A' && style.display === 'inline' && !!el.closest('p');
   }
 
   /**
    * Move focus to the nearest control in this arrow's direction.
    * With no layout boxes, fall back to tab order.
    */
-  function moveFocus(from, key) {
-    var list = focusableList();
+  function moveFocus(from, key, event) {
+    var list = focusableList(event);
     var index = list.indexOf(from);
     if (index < 0) return;
     var origin = from.getBoundingClientRect();
@@ -204,7 +341,7 @@
     if (origin.width >= 2 && origin.height >= 2) {
       for (var i = 0; i < list.length; i += 1) {
         var el = list[i];
-        if (el === from) continue;
+        if (el === from || poorArrowTarget(el)) continue;
         var rect = el.getBoundingClientRect();
         if (rect.width < 2 || rect.height < 2) continue;
         var ahead = vertical
@@ -233,14 +370,32 @@
       }
     }
     if (!best) {
-      var next = index + (forward ? 1 : -1);
+      var step = forward ? 1 : -1;
+      var next = index + step;
+      while (next >= 0 && next < list.length && poorArrowTarget(list[next])) next += step;
       if (next >= 0 && next < list.length) best = list[next];
     }
     if (best) best.focus();
   }
 
   // A closed select changes its value on an arrow and never shows the list.
-  // Move focus instead. Space, Enter, and a remote OK still open it.
+  // Move focus instead. Space and Enter still open it.
+  function stepSelect(el, delta) {
+    var options = el.options;
+    if (!options || !options.length) return;
+    var i = el.selectedIndex;
+    while (i >= -1 && i < options.length) {
+      i += delta;
+      if (i < 0 || i >= options.length) return;
+      var opt = options[i];
+      if (!opt || opt.disabled || opt.value === '') continue;
+      el.selectedIndex = i;
+      var view = el.ownerDocument && el.ownerDocument.defaultView;
+      if (view) el.dispatchEvent(new view.Event('change', { bubbles: true }));
+      return;
+    }
+  }
+
   function nativePicker(el) {
     if (!el || !el.tagName) return false;
     if (el.tagName === 'SELECT') return !el.multiple && !(el.size > 1);
@@ -282,7 +437,46 @@
   function takeArrow(event, el) {
     event.preventDefault();
     event.stopPropagation();
-    moveFocus(el, event.key);
+    moveFocus(el, event.key, event);
+  }
+
+  /**
+   * Focus el when nothing else is focused, or when force is set.
+   * The nav toggle does not count: it takes focus on load and would
+   * otherwise hide the first card.
+   * @param {Element|null} el
+   * @param {boolean} [force]
+   * @param {boolean} [visible]
+   * @returns {boolean}
+   */
+  function focusIfIdle(el, force, visible) {
+    if (!el || typeof el.focus !== 'function') return false;
+    if (!force) {
+      var active = document.activeElement;
+      var idle =
+        !active ||
+        active === document.body ||
+        active === document.documentElement ||
+        (active.classList && active.classList.contains('heyming-nav-toggle'));
+      if (!idle) return false;
+    }
+    try {
+      el.focus(visible ? { preventScroll: true, focusVisible: true } : { preventScroll: true });
+    } catch (err) {
+      try {
+        el.focus();
+      } catch (err2) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Pages mark their main control with data-initial-focus. Same idea as a
+  // game focusing its first button when the menu appears.
+  function focusInitial() {
+    var start = document.querySelector('[data-initial-focus]');
+    if (start) focusIfIdle(start, false, true);
   }
 
   // Page shortcuts listen on document or window and preventDefault every
@@ -293,10 +487,22 @@
     'keydown',
     function (event) {
       if (!plainArrow(event)) return;
+      if (pullIntoDialog(event)) return;
       var el = eventTargetElement(event);
       if (!el) return;
       var tag = el.tagName;
-      if (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY' || nativePicker(el)) {
+      if (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY') {
+        takeArrow(event, el);
+        return;
+      }
+      if (nativePicker(el)) {
+        // Left and Right change a closed list. Up and Down leave it.
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+          event.preventDefault();
+          event.stopPropagation();
+          stepSelect(el, event.key === 'ArrowRight' ? 1 : -1);
+          return;
+        }
         takeArrow(event, el);
         return;
       }
@@ -341,10 +547,20 @@
 
   window.heymingRemote = {
     arrowsMoveFocus: arrowsMoveFocus,
+    plainArrow: plainArrow,
+    eventTarget: eventTargetElement,
+    focusIfIdle: focusIfIdle,
     moveFocus: function (event) {
       var el = eventTargetElement(event);
       if (!el || !plainArrow(event)) return;
       takeArrow(event, el);
     }
   };
+
+  trackShadowHosts();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', focusInitial);
+  } else {
+    focusInitial();
+  }
 })();

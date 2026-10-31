@@ -59,7 +59,90 @@ export function refreshHomeLists() {
   }
 }
 
+/**
+ * True while the song picker is the surface that should receive arrows.
+ * A chart, the library modal, and the keybinding sheet take over from it.
+ * @returns {boolean}
+ */
+export function homeMenuOwnsArrows() {
+  if (typeof document === 'undefined') return false;
+  const home = document.getElementById('sm-home');
+  if (!home || home.hidden) return false;
+  if (document.querySelector('zenius-browser.modal-open')) return false;
+  const sheet = document.querySelector('sm-settings-sheet');
+  if (sheet && !sheet.hidden) return false;
+  return true;
+}
+
+/**
+ * These already move focus, or edit a value, on their own.
+ * @param {Element|null} el
+ * @returns {boolean}
+ */
+function controlKeepsArrow(el) {
+  if (!el || !el.tagName) return false;
+  const tag = el.tagName;
+  return (
+    tag === 'BUTTON' ||
+    tag === 'A' ||
+    tag === 'INPUT' ||
+    tag === 'SELECT' ||
+    tag === 'TEXTAREA' ||
+    tag === 'SUMMARY' ||
+    tag === 'AUDIO' ||
+    tag === 'VIDEO' ||
+    !!el.isContentEditable
+  );
+}
+
+let homeArrowsBound = false;
+
+function onHomeArrow(event) {
+  const focus = window.heymingRemote;
+  const isPlain =
+    focus && typeof focus.plainArrow === 'function'
+      ? focus.plainArrow(event)
+      : /^arrow/i.test(event.key || '') &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey;
+  if (!homeMenuOwnsArrows() || !isPlain || event.defaultPrevented) return;
+  const el = focus && typeof focus.eventTarget === 'function' ? focus.eventTarget(event) : null;
+  if (controlKeepsArrow(el)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const tag = el && el.tagName;
+  if (!el || tag === 'BODY' || tag === 'HTML') {
+    const browse = document.getElementById('sm-home-browse');
+    if (browse) browse.focus();
+    return;
+  }
+  const before = document.activeElement;
+  if (focus && typeof focus.moveFocus === 'function') {
+    focus.moveFocus(event);
+  }
+  if (document.activeElement === before) {
+    const browse = document.getElementById('sm-home-browse');
+    if (browse) browse.focus();
+  }
+}
+
+function bindHomeArrows() {
+  if (homeArrowsBound) return;
+  homeArrowsBound = true;
+  document.addEventListener('keydown', onHomeArrow, true);
+}
+
+function focusHomeBrowse() {
+  if (!homeMenuOwnsArrows()) return;
+  const browse = document.getElementById('sm-home-browse');
+  if (browse) browse.focus();
+}
+
 export function bindHomeScreen(handlers = {}) {
+  bindHomeArrows();
+  focusHomeBrowse();
   const browse = document.getElementById('sm-home-browse');
   if (browse) {
     browse.addEventListener('click', () => {
@@ -107,6 +190,7 @@ export function showHomeScreen() {
   refreshHomeLists();
   if (home) {
     home.hidden = false;
+    focusHomeBrowse();
   }
 }
 

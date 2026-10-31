@@ -643,6 +643,17 @@ label.form-input,
 
 /* ─── Wordle clone (Play Wordle mode) ──────────────────────────────── */
 
+/* Full-size stack (header through the keyboard) is about 800px. A short
+   viewport, including one zoomed for large text, clips the bottom rows.
+   Shrink tiles and keys with the viewport; cap at the desktop size.
+   100vh is the fallback when svh is missing. */
+body.wordle-playing {
+  --wg-tile: clamp(30px, calc((100vh - 500px) / 6), 56px);
+  --wg-tile: clamp(30px, calc((100svh - 500px) / 6), 56px);
+  --wg-key-h: clamp(34px, calc((100vh - 520px) / 5), 52px);
+  --wg-key-h: clamp(34px, calc((100svh - 520px) / 5), 52px);
+}
+
 #wordle-game {
   align-items: center;
   gap: 12px;
@@ -842,6 +853,16 @@ label.form-input,
   gap: 4px;
 }
 
+body.wordle-playing .wg-tile {
+  width: var(--wg-tile);
+  height: var(--wg-tile);
+  font-size: calc(var(--wg-tile) * 0.5);
+}
+
+body.wordle-playing .wg-key {
+  min-height: var(--wg-key-h);
+}
+
 .wg-key {
   flex: 1 1 0;
   min-width: 0;
@@ -861,6 +882,14 @@ label.form-input,
 
 .wg-key:hover {
   background-color: var(--surface-1);
+}
+
+/* A pointer click does not match :focus-visible. Keep a ring on :focus
+   so the current key stays visible. */
+.wg-key:focus {
+  outline: 3px solid #ffbf47;
+  outline-offset: 2px;
+  z-index: 1;
 }
 
 .wg-key.wg-key-wide {
@@ -886,6 +915,39 @@ label.form-input,
   color: var(--wordle-text-on-tile);
 }
 
+/* Short viewport: tighten the chrome above the board so the keyboard
+   still clears the bottom of the window and the puzzle-date row. */
+@media (max-height: 860px) {
+  body.wordle-playing .wordle-app-header {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    margin-bottom: 0;
+  }
+
+  body.wordle-playing > hr {
+    margin: 4px 0;
+  }
+
+  body.wordle-playing .form-row {
+    margin-bottom: 4px;
+  }
+
+  body.wordle-playing #wordle-game {
+    gap: 6px;
+    padding-bottom: 8px;
+  }
+
+  body.wordle-playing .wg-header {
+    min-height: 36px;
+  }
+
+  body.wordle-playing .wg-board,
+  body.wordle-playing .wg-row,
+  body.wordle-playing .wg-keyboard {
+    gap: 4px;
+  }
+}
+
 @media screen and (max-width: 479px) {
   .wg-tile {
     width: 52px;
@@ -908,6 +970,22 @@ label.form-input,
     width: 44px;
     height: 44px;
     font-size: 22px;
+  }
+}
+
+/* Play-mode tile size follows viewport height, which would override the
+   narrow-screen caps above. Keep those caps so a phone row still fits. */
+@media screen and (max-width: 479px) {
+  body.wordle-playing {
+    --wg-tile: clamp(30px, calc((100vh - 500px) / 6), 52px);
+    --wg-tile: clamp(30px, calc((100svh - 500px) / 6), 52px);
+  }
+}
+
+@media screen and (max-width: 360px) {
+  body.wordle-playing {
+    --wg-tile: clamp(30px, calc((100vh - 500px) / 6), 44px);
+    --wg-tile: clamp(30px, calc((100svh - 500px) / 6), 44px);
   }
 }
 

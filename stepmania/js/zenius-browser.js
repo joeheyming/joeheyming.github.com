@@ -19,6 +19,17 @@ import {
 } from './zeniusRender.js';
 import { formatLoadError } from './songLoader.js';
 
+/**
+ * Letters stay in the field so they don't hit game shortcuts. Arrows,
+ * Escape, and Tab leave so the dialog can move focus or close.
+ * @param {KeyboardEvent} event
+ */
+function leaveFieldKeys(event) {
+  if (event.key === 'Escape' || event.key === 'Tab') return;
+  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') return;
+  event.stopPropagation();
+}
+
 class ZeniusBrowserElement extends HTMLElement {
   /** @type {ZeniusBrowserElement|null} */
   static _instance = null;
@@ -85,6 +96,7 @@ class ZeniusBrowserElement extends HTMLElement {
     this._favoritesViewActive = false;
     this._onModalKeydownBound = (e) => this.handleModalKeydown(e);
     this._onGridKeydownBound = (e) => this.handleGridKeydown(e);
+    this._onDocFocusBound = () => this.keepFocusInModal();
     this._lastSimfileListForSort = [];
     this._lastListPath = '';
     this._searchReqId = 0;
@@ -95,9 +107,14 @@ class ZeniusBrowserElement extends HTMLElement {
     /** @type {'zenius'|'local'} */
     this._searchMode = 'zenius';
     this.attachShadow({ mode: 'open' });
+    this.addEventListener('click', (e) => {
+      const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+      if (path[0] === this) this.shadowRoot.getElementById('open-zenius-browser')?.click();
+    });
   }
 
   connectedCallback() {
+    this.setClosedStop(true);
     this.render();
     this.init();
     adoptSharedStyles(this.shadowRoot);
@@ -111,7 +128,8 @@ class ZeniusBrowserElement extends HTMLElement {
 
   bindEvents() {
     // Open browser
-    this.shadowRoot.getElementById('open-zenius-browser').addEventListener('click', () => {
+    const openButton = this.shadowRoot.getElementById('open-zenius-browser');
+    openButton.addEventListener('click', () => {
       // Changing the host to a fixed full-screen element also hides this
       // button. Do that after click dispatch so the browser can finish the
       // button's activation/focus work against a stable event target.
@@ -144,8 +162,7 @@ class ZeniusBrowserElement extends HTMLElement {
         this.handleSearch(q);
       }, 300);
     });
-    // Stop keyboard events from bubbling to prevent triggering game hotkeys (like 'f' for fullscreen)
-    searchInput.addEventListener('keydown', (e) => e.stopPropagation());
+    searchInput.addEventListener('keydown', (e) => leaveFieldKeys(e));
 
     // Search tabs
     this.shadowRoot.querySelectorAll('.search-tab').forEach((tab) => {
@@ -187,24 +204,28 @@ class ZeniusBrowserElement extends HTMLElement {
     zeniusArtistInput.addEventListener('input', () => debounceZeniusSearch());
 
     zeniusTitleInput.addEventListener('keydown', (e) => {
-      e.stopPropagation();
       if (e.key === 'Enter') {
+        e.stopPropagation();
         if (this._searchDebounceTimer) {
           clearTimeout(this._searchDebounceTimer);
           this._searchDebounceTimer = null;
         }
         this.runZeniusSearch();
+        return;
       }
+      leaveFieldKeys(e);
     });
     zeniusArtistInput.addEventListener('keydown', (e) => {
-      e.stopPropagation();
       if (e.key === 'Enter') {
+        e.stopPropagation();
         if (this._searchDebounceTimer) {
           clearTimeout(this._searchDebounceTimer);
           this._searchDebounceTimer = null;
         }
         this.runZeniusSearch();
+        return;
       }
+      leaveFieldKeys(e);
     });
 
     this.shadowRoot.getElementById('zenius-sort-select').addEventListener('change', () => {
@@ -222,7 +243,7 @@ class ZeniusBrowserElement extends HTMLElement {
       });
 
     const modal = this.shadowRoot.getElementById('zenius-browser-modal');
-    modal.addEventListener('keydown', this._onModalKeydownBound);
+    modal.addEventListener('keydown', this._onModalKeydownBound, true);
 
     this.shadowRoot
       .getElementById('content-grid')
@@ -237,11 +258,31 @@ class ZeniusBrowserElement extends HTMLElement {
     });
   }
 
+  /**
+   * Closed, this host is one tab stop and Enter opens the library.
+   * A button role while the dialog is open would hide that dialog, because
+   * a button's descendants are presentational.
+   * @param {boolean} closed
+   */
+  setClosedStop(closed) {
+    if (closed) {
+      this.tabIndex = 0;
+      this.setAttribute('role', 'button');
+      this.setAttribute('aria-label', 'Songs');
+      return;
+    }
+    this.tabIndex = -1;
+    this.removeAttribute('role');
+    this.removeAttribute('aria-label');
+  }
+
   async showBrowser() {
     this._previouslyFocused = /** @type {HTMLElement|null} */ (document.activeElement);
+    this.setClosedStop(false);
     this.classList.add('modal-open');
     const modal = this.shadowRoot.getElementById('zenius-browser-modal');
     modal.classList.add('show');
+    document.addEventListener('focusin', this._onDocFocusBound, true);
     updateZeniusBrowserLayout(this);
 
     // Let the modal shell paint before rebuilding a potentially large cached
@@ -263,11 +304,26 @@ class ZeniusBrowserElement extends HTMLElement {
     }
 
     requestAnimationFrame(() => {
-      this.moveFocusIntoModal();
+      this.keepFocusInModal();
     });
   }
 
+  /**
+   * Hiding the Songs button drops focus back on the page. Put it on the
+   * title field unless the user is already inside the dialog.
+   */
+  keepFocusInModal() {
+    if (this._focusingModal || !this.classList.contains('modal-open')) return;
+    const modal = this.shadowRoot.getElementById('zenius-browser-modal');
+    const active = this.shadowRoot.activeElement;
+    if (active && modal.contains(active)) return;
+    this._focusingModal = true;
+    this.moveFocusIntoModal();
+    this._focusingModal = false;
+  }
+
   hideBrowser() {
+    document.removeEventListener('focusin', this._onDocFocusBound, true);
     if (this._spotlightAbort) {
       this._spotlightAbort.abort();
       this._spotlightAbort = null;
@@ -277,6 +333,7 @@ class ZeniusBrowserElement extends HTMLElement {
       this._searchAbortController = null;
     }
     this.classList.remove('modal-open');
+    this.setClosedStop(true);
     this.shadowRoot.getElementById('zenius-browser-modal').classList.remove('show');
     this.hideLoading();
     if (this._previouslyFocused && typeof this._previouslyFocused.focus === 'function') {
@@ -305,12 +362,12 @@ class ZeniusBrowserElement extends HTMLElement {
   updateBreadcrumbs() {
     const breadcrumbEl = this.shadowRoot.getElementById('breadcrumb');
 
-    let html = '<span class="breadcrumb-item" data-path="">🏠 Home</span>';
+    let html = '<button type="button" class="breadcrumb-item" data-path="">🏠 Home</button>';
 
     if (this.currentPath.startsWith('categoryid=')) {
-      html += `<span class="breadcrumb-separator">/</span><span class="breadcrumb-item" data-path="${
+      html += `<span class="breadcrumb-separator">/</span><button type="button" class="breadcrumb-item" data-path="${
         this.currentPath
-      }">${this.currentCategoryName || 'Category'}</span>`;
+      }">${this.currentCategoryName || 'Category'}</button>`;
     }
 
     breadcrumbEl.innerHTML = html;
@@ -612,8 +669,16 @@ class ZeniusBrowserElement extends HTMLElement {
   initGridRovingTabIndex() {
     const grid = this.shadowRoot.getElementById('content-grid');
     const items = /** @type {HTMLElement[]} */ (Array.from(grid.querySelectorAll('.content-item')));
-    items.forEach((el, i) => {
-      el.setAttribute('tabindex', i === 0 ? '0' : '-1');
+    let firstFolder = true;
+    items.forEach((el) => {
+      // A song card's link, star, and Zenius link are the stops. A folder
+      // is one stop, moved with the arrows below.
+      if (el.querySelector('a.content-item-body')) {
+        el.removeAttribute('tabindex');
+        return;
+      }
+      el.setAttribute('tabindex', firstFolder ? '0' : '-1');
+      firstFolder = false;
     });
   }
 
@@ -625,12 +690,25 @@ class ZeniusBrowserElement extends HTMLElement {
     if (!(t instanceof HTMLElement) || !t.classList.contains('content-item')) {
       return;
     }
-    const navKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter'];
+    const navKeys = [
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'Home',
+      'End',
+      'Enter',
+      ' '
+    ];
     if (!navKeys.includes(e.key)) {
       return;
     }
     const grid = this.shadowRoot.getElementById('content-grid');
-    const items = /** @type {HTMLElement[]} */ (Array.from(grid.querySelectorAll('.content-item')));
+    const items = /** @type {HTMLElement[]} */ (
+      Array.from(grid.querySelectorAll('.content-item')).filter(
+        (el) => !el.querySelector('a.content-item-body')
+      )
+    );
     if (items.length === 0) {
       return;
     }
@@ -640,7 +718,7 @@ class ZeniusBrowserElement extends HTMLElement {
     }
     e.preventDefault();
     e.stopPropagation();
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' || e.key === ' ') {
       const play = t.querySelector('a.content-item-body');
       if (play) {
         play.click();
@@ -712,10 +790,13 @@ class ZeniusBrowserElement extends HTMLElement {
   }
 
   moveFocusIntoModal() {
-    const t = this.shadowRoot.getElementById('close-zenius-browser');
-    if (t) {
-      t.focus();
+    const title = this.shadowRoot.getElementById('zenius-song-title');
+    if (title) {
+      title.focus({ focusVisible: true });
+      return;
     }
+    const close = this.shadowRoot.getElementById('close-zenius-browser');
+    if (close) close.focus();
   }
 
   render() {

@@ -11,6 +11,10 @@ class FeedbackButtonElement extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    this.addEventListener('click', (e) => {
+      const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+      if (path[0] === this) this.shadowRoot.getElementById('feedback-btn')?.click();
+    });
   }
 
   connectedCallback() {
@@ -18,6 +22,11 @@ class FeedbackButtonElement extends HTMLElement {
       this.style.display = 'none';
       return;
     }
+    // One tab stop. Enter and Space activate this host, so the inner button
+    // is not a second stop. A button role is safe here: the shadow holds
+    // only that button, not a dialog.
+    this.tabIndex = 0;
+    this.setAttribute('role', 'button');
     this.render();
     this.bindEvents();
   }
@@ -102,6 +111,7 @@ class FeedbackButtonElement extends HTMLElement {
   }
 
   render() {
+    this.setAttribute('aria-label', this.label);
     this.shadowRoot.innerHTML = `
       <style>
         /* See the matching note in share.js: -webkit-text-fill-color is
@@ -188,7 +198,7 @@ class FeedbackButtonElement extends HTMLElement {
         }
       </style>
 
-      <button type="button" class="feedback-btn" id="feedback-btn" aria-label="Open feedback form in a new tab">
+      <button type="button" class="feedback-btn" id="feedback-btn" tabindex="-1" aria-hidden="true">
         <span class="icon-only">${this.extractIcon(this.label)}</span>
         <span class="text-label">${this.extractText(this.label)}</span>
       </button>

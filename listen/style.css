@@ -132,7 +132,18 @@ body {
   }
 }
 
+.book-slot {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
 .book-card {
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   background: var(--surface-1);
   border: 1px solid var(--hairline-strong);
   border-radius: 0.75rem;
@@ -150,7 +161,6 @@ body {
 .book-card:focus-visible {
   transform: translateY(-2px);
   border-color: var(--accent-primary-bg);
-  outline: none;
 }
 
 .book-card:active {
@@ -233,13 +243,22 @@ body {
   margin-bottom: 1.5rem;
 }
 
+.continue-slot {
+  position: relative;
+  flex: 0 0 260px;
+  scroll-snap-align: start;
+  display: flex;
+}
+
 .continue-list::-webkit-scrollbar {
   display: none;
 }
 
 .continue-item {
-  flex: 0 0 260px;
-  scroll-snap-align: start;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   background: var(--surface-1);
   border: 1px solid var(--hairline-strong);
   border-radius: 0.75rem;
@@ -257,7 +276,6 @@ body {
 .continue-item:hover,
 .continue-item:focus-visible {
   border-color: var(--accent-primary-bg);
-  outline: none;
 }
 
 .continue-item:active {
@@ -357,8 +375,10 @@ body {
   }
 }
 
-.book-card:hover .card-remove-btn,
-.continue-item:hover .card-remove-btn {
+.book-slot:hover .card-remove-btn,
+.book-slot:focus-within .card-remove-btn,
+.continue-slot:hover .card-remove-btn,
+.continue-slot:focus-within .card-remove-btn {
   opacity: 0.7;
 }
 
@@ -660,16 +680,25 @@ body {
   padding-bottom: 2rem;
 }
 
+.chapter-items li {
+  margin: 0;
+  padding: 0;
+}
+
 .chapter-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
   /* 52px min touch target */
   min-height: 52px;
   padding: 0.6rem 0.85rem;
   border-radius: 0.5rem;
   background: var(--surface-1);
   border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   -webkit-tap-highlight-color: transparent;
@@ -679,7 +708,6 @@ body {
 .chapter-item:hover,
 .chapter-item:focus-visible {
   border-color: var(--accent-primary-bg);
-  outline: none;
 }
 
 .chapter-item:active {
@@ -726,9 +754,25 @@ body {
 }
 
 .empty-message {
+  grid-column: 1 / -1;
   color: var(--text-3);
   font-size: 0.9rem;
   padding: 1.5rem 0;
+}
+
+.retry-btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+  min-height: 44px;
+  margin: 0 0 1rem;
+  padding: 0 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* ===== Loading overlay ===== */
@@ -997,5 +1041,67 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* A short viewport: the catalog row stays on screen, and Play stays in the bar. */
+@media (max-height: 700px) {
+  body {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-header {
+    padding-top: 0.4rem;
+    padding-bottom: 0.15rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .app-subtitle {
+    display: none;
+  }
+
+  .search-wrap {
+    margin: 0.35rem 0 0.75rem;
+  }
+
+  #search-input {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+  }
+
+  .section-title {
+    margin-bottom: 0.4rem;
+  }
+
+  .books-grid {
+    margin-bottom: 1rem;
+  }
+
+  .book-cover {
+    height: 120px;
+    aspect-ratio: auto;
+  }
+
+  #player-bar {
+    padding-top: 0.25rem;
+    padding-bottom: calc(0.35rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  #btn-play-pause {
+    width: 48px;
+    height: 48px;
+    font-size: 1.3rem;
+  }
+
+  .ctrl-btn-sm {
+    width: 44px;
+    height: 44px;
+  }
+
+  #toast-stack {
+    bottom: calc(112px + env(safe-area-inset-bottom, 0px));
   }
 }

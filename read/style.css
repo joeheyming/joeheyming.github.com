@@ -167,7 +167,18 @@ body {
   }
 }
 
+.book-slot {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
 .book-card {
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   background: var(--surface-1);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg);
@@ -185,7 +196,6 @@ body {
 .book-card:focus-visible {
   transform: translateY(-2px);
   border-color: var(--accent-primary-bg);
-  outline: none;
 }
 
 .book-card:active {
@@ -276,8 +286,8 @@ body {
   }
 }
 
-.book-card:hover .card-remove-btn,
-.continue-item:hover .card-remove-btn {
+.book-slot:hover .card-remove-btn,
+.book-slot:focus-within .card-remove-btn {
   opacity: 0.7;
 }
 
@@ -303,9 +313,25 @@ body {
 }
 
 .empty-message {
+  grid-column: 1 / -1;
   color: var(--text-3);
   font-size: 0.9rem;
   padding: 1.5rem 0;
+}
+
+.retry-btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+  min-height: 44px;
+  margin: 0 0 1rem;
+  padding: 0 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* ===== Reader view ===== */
@@ -386,7 +412,6 @@ body {
 .reader-ctrl-btn:focus-visible {
   background: color-mix(in srgb, var(--read-night-surface) 95%, transparent);
   border-color: var(--accent-primary-bg);
-  outline: none;
 }
 
 .reader-ctrl-btn:active {
@@ -484,7 +509,6 @@ body {
 .reader-nav-btn:focus-visible {
   background: color-mix(in srgb, var(--read-night-surface) 95%, transparent);
   border-color: var(--accent-primary-bg);
-  outline: none;
 }
 
 .reader-nav-btn:active {
@@ -568,11 +592,17 @@ body {
   position: absolute;
   top: 0;
   bottom: 52px;
-  width: 44px;
+  width: 56px;
   z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   cursor: pointer;
@@ -953,11 +983,21 @@ body {
   padding: 0;
 }
 
+.toc-items li {
+  margin: 0;
+  padding: 0;
+}
+
 .toc-item {
+  width: 100%;
   padding: 0.75rem 1.25rem;
+  font: inherit;
   font-size: 0.9rem;
   line-height: 1.4;
+  text-align: left;
   cursor: pointer;
+  background: transparent;
+  border: none;
   border-bottom: 1px solid color-mix(in srgb, var(--hairline-strong) 35%, transparent);
   transition: background 0.12s;
   -webkit-tap-highlight-color: transparent;
@@ -976,7 +1016,6 @@ body {
 .toc-item:hover,
 .toc-item:focus-visible {
   background: color-mix(in srgb, var(--read-night-accent) 15%, transparent);
-  outline: none;
 }
 
 .toc-item:active {
@@ -1078,5 +1117,43 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* A short viewport (about 540px tall): keep search and one row of books on screen. */
+@media (max-height: 700px) {
+  .app-header {
+    padding-top: 0.4rem;
+    padding-bottom: 0.15rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .app-subtitle {
+    display: none;
+  }
+
+  .search-wrap {
+    margin: 0.35rem 0 0.75rem;
+  }
+
+  #search-input {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+  }
+
+  .section-title {
+    margin-bottom: 0.4rem;
+  }
+
+  .books-grid {
+    margin-bottom: 1rem;
+  }
+
+  .book-cover {
+    height: 120px;
+    aspect-ratio: auto;
   }
 }

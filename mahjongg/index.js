@@ -2,6 +2,7 @@
 
 import { faceLabel, faceMarkup } from './faces.js';
 import { LAYOUTS, layoutById } from './layouts.js';
+import { nearestInDirection, tileFocusPoint, tileOffset } from './navigate.js';
 import {
   createGame,
   hintPair,
@@ -226,10 +227,9 @@ function tileButton(tile, metrics, exiting, dealt) {
   btn.tabIndex = free ? 0 : -1;
   btn.setAttribute('aria-pressed', tile.id === game.selectedId ? 'true' : 'false');
   btn.setAttribute('aria-label', `${faceLabel(tile.face)}, ${free ? 'free' : 'blocked'}`);
-  const left = metrics.originX + (tile.x / 2) * metrics.tileW - tile.z * metrics.liftX;
-  const top = metrics.originY + (tile.y / 2) * metrics.tileH - tile.z * metrics.liftY;
-  btn.style.left = `${left}px`;
-  btn.style.top = `${top}px`;
+  const offset = tileOffset(tile, metrics);
+  btn.style.left = `${offset.left}px`;
+  btn.style.top = `${offset.top}px`;
   btn.style.width = `${metrics.tileW}px`;
   btn.style.height = `${metrics.tileH}px`;
   btn.style.zIndex = String(tile.id === game.selectedId ? 8000 : tile.z * 100 + tile.y);
@@ -394,9 +394,10 @@ function shake(id) {
 }
 
 /**
- * Prefer a free tile in the direction of travel. Score is distance plus a
- * penalty for being off-axis, so a diagonal only wins when nothing sits
- * closer to the arrow.
+ * Prefer a free tile in the direction of travel, measured where the tile is
+ * drawn. Slot coordinates hide the top of a stack: the turtle cap is the only
+ * tile on its layer, and the free tiles beside it are a row away on the grid,
+ * so every arrow skips it.
  *
  * @param {number} id
  * @param {number} dx
@@ -404,21 +405,17 @@ function shake(id) {
  */
 function neighbor(id, dx, dy) {
   const from = game.tiles[id];
-  if (!from) return null;
-  let best = null;
-  let bestScore = Infinity;
+  if (!from || from.removed) return null;
+  const layout = layoutById(currentLayout);
+  if (!layout) return null;
+  const metrics = measure(layout.slots);
+  const points = [];
   for (const tile of game.tiles) {
-    if (tile.removed || tile.id === id || !isFree(game.tiles, tile.id)) continue;
-    const vx = tile.x - from.x;
-    const vy = tile.y - from.y;
-    if (vx * dx + vy * dy <= 0) continue;
-    const score = Math.hypot(vx, vy) + Math.abs(vx * dy - vy * dx) * 3;
-    if (score < bestScore) {
-      bestScore = score;
-      best = tile.id;
-    }
+    if (tile.removed || !isFree(game.tiles, tile.id)) continue;
+    points.push(tileFocusPoint(tile, metrics));
   }
-  return best;
+  if (!points.some((point) => point.id === id)) points.push(tileFocusPoint(from, metrics));
+  return nearestInDirection(points, id, dx, dy);
 }
 
 function topFree() {

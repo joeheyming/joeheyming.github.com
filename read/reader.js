@@ -45,10 +45,13 @@ export class Reader {
     this._applyTheme();
     this._applyFont();
     this._setupControlsAutoHide();
+    this._setupControlsFocus();
+    this._setupArrowPaging();
     this._setupResizeObserver();
     this._setupScrollTracking();
     this._setupUnloadSave();
     this._setupIntervalSave();
+    this.hideControls(true);
   }
 
   // ---------------------------------------------------------------------------
@@ -83,21 +86,24 @@ export class Reader {
     }
   }
 
-  nextPage() {
-    this.goToPage(this._currentPage + 1);
+  nextPage(behavior = 'smooth') {
+    this.goToPage(this._currentPage + 1, behavior);
   }
 
-  prevPage() {
-    this.goToPage(this._currentPage - 1);
+  prevPage(behavior = 'smooth') {
+    this.goToPage(this._currentPage - 1, behavior);
   }
 
-  goToPage(n) {
+  goToPage(n, behavior = 'smooth') {
     if (!this._stepHeight || !this._totalPages) return;
     const page = Math.max(0, Math.min(n, this._totalPages - 1));
     const scrollable = this.container.scrollHeight - this.container.clientHeight;
     const target = Math.min(page * this._stepHeight, Math.max(0, scrollable));
-    this.container.scrollTo({ top: target, behavior: 'smooth' });
-    // _currentPage is updated by the scroll listener.
+    // Count the page now so a held arrow advances once per key, instead of
+    // waiting for the scroll event to catch up.
+    this._currentPage = page;
+    this.container.scrollTo({ top: target, behavior });
+    this._emitPageChange();
   }
 
   scrollToHeading(id) {
@@ -130,18 +136,69 @@ export class Reader {
       flash(nextEl);
       this.nextPage();
     });
-    prevEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        this.prevPage();
-      }
-    });
-    nextEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        this.nextPage();
-      }
-    });
+  }
+
+  /**
+   * Left and Right turn pages from the page buttons or the page background.
+   * The listener is on window so it runs before the shared arrow handler
+   * moves focus. Up and Down still move among Library, settings, and Contents.
+   */
+  _setupArrowPaging() {
+    window.addEventListener(
+      'keydown',
+      (event) => {
+        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+        const key = event.key;
+        const horizontal = key === 'ArrowLeft' || key === 'ArrowRight';
+        const vertical = key === 'PageUp' || key === 'PageDown';
+        if (!horizontal && !vertical) return;
+        const view = document.getElementById('reader-view');
+        if (!view || view.classList.contains('hidden')) return;
+        const toc = document.getElementById('toc-sheet');
+        if (toc && !toc.classList.contains('hidden')) return;
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) {
+          return;
+        }
+        if (target.closest('#reader-controls') && !this.controls.inert) return;
+        if (horizontal) {
+          const onPage =
+            target === document.body ||
+            target === document.documentElement ||
+            target.closest('.page-zone');
+          if (!onPage) return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const back = key === 'ArrowLeft' || key === 'PageUp';
+        if (back) this.prevPage('auto');
+        else this.nextPage('auto');
+      },
+      true
+    );
+  }
+
+  showControls() {
+    clearTimeout(this._hideControlsTimer);
+    this.controls.inert = false;
+    this.controls.classList.remove('controls-hidden');
+    // tabindex="-1" covers engines that ignore inert. Buttons are focusable
+    // again once the toolbar is open.
+    for (const button of this.controls.querySelectorAll('button')) {
+      button.removeAttribute('tabindex');
+    }
+  }
+
+  hideControls(force = false) {
+    clearTimeout(this._hideControlsTimer);
+    if (!force && this.controls.contains(document.activeElement)) return;
+    this.controls.classList.add('controls-hidden');
+    this.controls.inert = true;
+    for (const button of this.controls.querySelectorAll('button')) {
+      button.tabIndex = -1;
+    }
   }
 
   setTheme(theme) {
@@ -342,7 +399,9 @@ export class Reader {
     }
     try {
       doc.querySelectorAll('pre:has(a)').forEach((el) => el.remove());
-    } catch {}
+    } catch {
+      /* :has() fallback */
+    }
     doc.querySelectorAll('script, style, link, meta, noscript').forEach((el) => el.remove());
     return doc.body ? doc.body.innerHTML : doc.documentElement.innerHTML;
   }
@@ -512,21 +571,21 @@ export class Reader {
         if (this.controls.classList.contains('controls-hidden')) {
           this._showControls();
         } else {
-          this._hideControls();
+          this.hideControls(true);
         }
       }
     });
   }
 
   _showControls() {
-    this.controls.classList.remove('controls-hidden');
-    clearTimeout(this._hideControlsTimer);
-    this._hideControlsTimer = setTimeout(() => this._hideControls(), 4000);
+    this.showControls();
+    this._hideControlsTimer = setTimeout(() => this.hideControls(false), 4000);
   }
 
-  _hideControls() {
-    clearTimeout(this._hideControlsTimer);
-    this.controls.classList.add('controls-hidden');
+  _setupControlsFocus() {
+    this.controls.addEventListener('focusout', () => {
+      setTimeout(() => this.hideControls(false), 0);
+    });
   }
 
   // ---------------------------------------------------------------------------

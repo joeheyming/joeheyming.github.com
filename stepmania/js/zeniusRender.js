@@ -69,16 +69,28 @@ export const ZENIUS_BROWSER_SHADOW_HTML = `      <style>
         }
       </style>
       <div class="zenius-browser-container">
-        <button class="zenius-browser-btn" id="open-zenius-browser">
+        <button
+          type="button"
+          class="zenius-browser-btn"
+          id="open-zenius-browser"
+          tabindex="-1"
+          aria-hidden="true"
+        >
           <span class="icon-only">🎵</span>
           <span class="text-label">Songs</span>
         </button>
       </div>
       
-      <div class="modal" id="zenius-browser-modal">
+      <div
+        class="modal"
+        id="zenius-browser-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="zenius-browser-title"
+      >
         <div class="modal-content">
           <div class="modal-header">
-            <h2 class="modal-title">Song Library Browser</h2>
+            <h2 class="modal-title" id="zenius-browser-title">Song Library Browser</h2>
           </div>
           
           <div class="modal-body">
@@ -89,29 +101,32 @@ export const ZENIUS_BROWSER_SHADOW_HTML = `      <style>
               </div>
               <div class="search-fields hidden" id="local-search-fields">
                 <div class="breadcrumb" id="breadcrumb">
-                  <span class="breadcrumb-item" data-path="">🏠 Home</span>
+                  <button type="button" class="breadcrumb-item" data-path="">🏠 Home</button>
                 </div>
                 <p class="category-filter-hint" id="category-filter-hint">
                   Filter applies only to <strong>pages you have already opened</strong> this session. Use Search for the full site index.
                 </p>
-                <input 
-                  type="text" 
-                  class="search-input" 
-                  id="search-input" 
+                <input
+                  type="text"
+                  class="search-input"
+                  id="search-input"
+                  aria-label="Filter loaded songs and folders"
                   placeholder="Filter loaded songs and folders in cache…"
                 >
               </div>
               <div class="search-fields" id="zenius-search-fields">
-                <input 
-                  type="text" 
-                  class="search-input" 
-                  id="zenius-song-title" 
+                <input
+                  type="text"
+                  class="search-input"
+                  id="zenius-song-title"
+                  aria-label="Song title"
                   placeholder="Song title..."
                 >
-                <input 
-                  type="text" 
-                  class="search-input" 
-                  id="zenius-song-artist" 
+                <input
+                  type="text"
+                  class="search-input"
+                  id="zenius-song-artist"
+                  aria-label="Artist"
                   placeholder="Artist (optional)..."
                 >
                 <button class="search-btn" id="zenius-search-btn">🔍 Search</button>
@@ -255,6 +270,11 @@ export function createZeniusContentCard(browser, item, currentPath) {
       ext = extEl;
     }
 
+    mainLink.addEventListener('keydown', (e) => {
+      if (e.key !== ' ') return;
+      e.preventDefault();
+      mainLink.click();
+    });
     mainLink.addEventListener('click', () => {
       if (browser.currentPath.startsWith('categoryid=')) {
         browser.lastBrowsedCategoryId = browser.currentPath.replace('categoryid=', '');
@@ -603,7 +623,7 @@ export function displayZeniusFavoritesGrid(browser) {
   browser.shadowRoot.getElementById('current-path').textContent = 'Saved';
   browser.shadowRoot.getElementById('content-grid').innerHTML = '';
   browser.shadowRoot.getElementById('breadcrumb').innerHTML =
-    '<span class="breadcrumb-item" data-path="">🏠 Home</span>';
+    '<button type="button" class="breadcrumb-item" data-path="">🏠 Home</button>';
 
   if (favs.length === 0) {
     browser.shadowRoot.getElementById('list-toolbar').classList.add('hidden');
