@@ -1,4 +1,5 @@
 import { CONFIG, isConfigured } from './config.js';
+import { cursorKey, isCursorKey, nextCell } from './navigate.js';
 import { OUTLINE_NAMES, buildOutlines, outlineAt } from './outlines.js';
 
 const N = CONFIG.N;
@@ -252,6 +253,10 @@ function buildTiles() {
   // Document height just changed — keep the scrubber's 0..1000 scale
   // aligned with the new maxScrollY.
   updateScrubFromScroll();
+  ensureCursor();
+  placeCursor();
+  grid.setAttribute('aria-rowcount', String(ROWS));
+  grid.setAttribute('aria-colcount', String(COLS));
 }
 
 function mountTile(tile) {
@@ -413,25 +418,130 @@ function updateChecked() {
 }
 
 // ---------------------------------------------------------------------
-// Click handling. We delegate from the grid container, do hit-testing
-// against the 25px checkbox (skipping the gutter around it), and flip
-// the bit + submit.
+// Keyboard cursor. The grid is one focus stop. Arrows move the gold
+// ring; Enter, Space, and the remote's OK (a scripted click on the
+// grid) flip that box. A fresh arrow on the edge moves focus out to
+// the page controls. A held arrow speeds up and stops at the edge.
 // ---------------------------------------------------------------------
-grid.addEventListener('click', (e) => {
+let cursor = 0;
+let heldKey = '';
+let heldRepeats = 0;
+/** @type {'off' | 'mono' | 'rgb'} */
+let imageMode = 'off';
+/** @type {HTMLElement | null} */
+let cursorEl = null;
+const cursorLive = /** @type {HTMLElement | null} */ (document.getElementById('cb-cursor-live'));
+
+function ensureCursor() {
+  if (cursorEl && cursorEl.parentNode === grid) return cursorEl;
+  cursorEl = document.createElement('div');
+  cursorEl.className = 'cb-cursor';
+  cursorEl.setAttribute('aria-hidden', 'true');
+  grid.appendChild(cursorEl);
+  return cursorEl;
+}
+
+function placeCursor() {
+  const el = ensureCursor();
+  if (COLS < 1) return;
+  const row = Math.floor(cursor / COLS);
+  const col = cursor % COLS;
+  const pad = 4;
+  el.style.left = `${col * PITCH + BOX_INSET - pad}px`;
+  el.style.top = `${row * PITCH + BOX_INSET - pad}px`;
+  el.style.width = `${BOX + pad * 2}px`;
+  el.style.height = `${BOX + pad * 2}px`;
+}
+
+function scrollCursorIntoView() {
+  if (COLS < 1) return;
+  const row = Math.floor(cursor / COLS);
+  const gridTop = grid.getBoundingClientRect().top + window.scrollY;
+  const cellTop = gridTop + row * PITCH;
+  const cellBottom = cellTop + PITCH;
+  // The sticky title, the menu, and the image button cover the top
+  // of the viewport. Keep the highlighted box below them.
+  const headerClear = 210;
+  const viewTop = window.scrollY + headerClear;
+  const viewBottom = window.scrollY + window.innerHeight - 24;
+  if (cellTop >= viewTop && cellBottom <= viewBottom) return;
+  const next = cellTop - Math.max(headerClear, (window.innerHeight - headerClear) / 2);
+  window.scrollTo({ top: Math.max(0, next), behavior: 'auto' });
+}
+
+function announceCursor() {
+  if (!cursorLive || COLS < 1) return;
+  const row = Math.floor(cursor / COLS) + 1;
+  const col = (cursor % COLS) + 1;
+  const mark = getBit(cursor) ? 'checked' : 'not checked';
+  cursorLive.textContent = `Checkbox ${(
+    cursor + 1
+  ).toLocaleString()}, row ${row}, column ${col}, ${mark}`;
+}
+
+/**
+ * @param {HTMLElement | null} el
+ */
+function focusEl(el) {
+  if (!el || typeof el.focus !== 'function') return;
+  try {
+    el.focus({ preventScroll: true, focusVisible: true });
+  } catch {
+    try {
+      el.focus();
+    } catch {
+      // The control went away between the key and the focus call.
+    }
+  }
+}
+
+/**
+ * @param {number} cellId
+ * @param {{ scroll?: boolean, focus?: boolean }} [opts]
+ */
+function moveCursorTo(cellId, opts = {}) {
+  if (cellId < 0 || cellId >= N || COLS < 1) return;
+  cursor = cellId;
+  placeCursor();
+  if (opts.scroll !== false) scrollCursorIntoView();
+  if (opts.focus) {
+    grid.classList.add('is-keyed');
+    focusEl(grid);
+  }
+}
+
+function toggleCell(cellId) {
+  if (cellId < 0 || cellId >= N) return;
+  const next = !getBit(cellId);
+  setBit(cellId, next);
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
+  cellLastTs[cellId] = Date.now();
+  if (CONFIGURED) enqueueWrite(cellId, next);
+  paintCellId(cellId);
+  updateChecked();
+  announceCursor();
+}
+
+/**
+ * Pointer hit test. The 25px checkbox takes the click; the gutter
+ * and the colored frame do not.
+ *
+ * @param {MouseEvent} e
+ * @returns {number | null}
+ */
+function cellFromPointer(e) {
   const target = /** @type {HTMLElement} */ (e.target);
-  const tileEl = target.closest('.cb-tile');
-  if (!(tileEl instanceof HTMLElement)) return;
+  const tileEl = target.closest?.('.cb-tile');
+  if (!(tileEl instanceof HTMLElement)) return null;
   const tileIndex = Number(tileEl.getAttribute('data-tile'));
   const tile = tiles[tileIndex];
-  if (!tile) return;
+  if (!tile) return null;
   const rect = tileEl.getBoundingClientRect();
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
   const col = Math.floor(px / PITCH);
   const rowInTile = Math.floor(py / PITCH);
-  if (col < 0 || col >= COLS) return;
-  // The clickable control is the 25px checkbox, not the gutter or the
-  // colored frame that hangs past it (that frame doesn't take clicks).
+  if (col < 0 || col >= COLS) return null;
   const inCellX = px - col * PITCH;
   const inCellY = py - rowInTile * PITCH;
   if (
@@ -440,24 +550,118 @@ grid.addEventListener('click', (e) => {
     inCellX > BOX_INSET + BOX ||
     inCellY > BOX_INSET + BOX
   ) {
+    return null;
+  }
+  const row = tile.startRow + rowInTile;
+  const cellId = row * COLS + col;
+  if (cellId < 0 || cellId >= N) return null;
+  return cellId;
+}
+
+/**
+ * Where a fresh arrow goes when it leaves the grid.
+ *
+ * @param {string} key
+ * @returns {HTMLElement | null}
+ */
+function exitTarget(key) {
+  if (key === 'ArrowUp' || key === 'PageUp') {
+    return /** @type {HTMLElement | null} */ (document.getElementById('cb-image-open'));
+  }
+  if (key === 'ArrowDown' || key === 'PageDown') {
+    return /** @type {HTMLElement | null} */ (document.getElementById('cb-jump-input'));
+  }
+  if (key === 'ArrowLeft') {
+    const nav = document.querySelector('.heyming-nav-toggle');
+    if (nav instanceof HTMLElement && !nav.hidden) return nav;
+    return /** @type {HTMLElement | null} */ (document.getElementById('cb-info-btn'));
+  }
+  if (key === 'ArrowRight') {
+    return /** @type {HTMLElement | null} */ (document.getElementById('cb-info-btn'));
+  }
+  return null;
+}
+
+function cursorPage() {
+  return Math.max(1, Math.floor((window.innerHeight - 234) / PITCH));
+}
+
+grid.addEventListener('pointerdown', () => {
+  grid.classList.remove('is-keyed');
+});
+
+grid.addEventListener('focus', () => {
+  if (grid.matches(':focus-visible')) grid.classList.add('is-keyed');
+  announceCursor();
+});
+
+grid.addEventListener('blur', () => {
+  grid.classList.remove('is-keyed');
+});
+
+grid.addEventListener('click', (e) => {
+  // OK on a remote clicks the focused grid and does not land on a box.
+  if (!e.isTrusted) {
+    toggleCell(cursor);
+    return;
+  }
+  const cellId = cellFromPointer(e);
+  if (cellId == null) return;
+  cursor = cellId;
+  placeCursor();
+  toggleCell(cellId);
+});
+
+grid.addEventListener('keydown', (e) => {
+  if (e.altKey) return;
+  if (imageMode !== 'off') return;
+  if (document.querySelector('dialog[open]')) return;
+
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    e.stopPropagation();
+    grid.classList.add('is-keyed');
+    toggleCell(cursor);
     return;
   }
 
-  const row = tile.startRow + rowInTile;
-  const cellId = row * COLS + col;
-  if (cellId < 0 || cellId >= N) return;
+  const modified = e.ctrlKey || e.metaKey;
+  if (modified && e.key !== 'Home' && e.key !== 'End' && !e.key.startsWith('Arrow')) return;
+  if (!isCursorKey(e.key) && !(modified && (e.key === 'Home' || e.key === 'End'))) return;
 
-  const next = !getBit(cellId);
-  setBit(cellId, next);
-  window.heymingAchievements?.unlockForCurrentApp('first-action');
-  cellLastTs[cellId] = Date.now();
+  let key = e.key;
+  if (modified && key === 'ArrowLeft') key = 'Home';
+  else if (modified && key === 'ArrowRight') key = 'End';
+  else if (modified && key === 'ArrowUp') key = 'PageUp';
+  else if (modified && key === 'ArrowDown') key = 'PageDown';
+  else key = cursorKey(key);
 
-  if (CONFIGURED) {
-    enqueueWrite(cellId, next);
+  if (e.repeat && e.key === heldKey) heldRepeats += 1;
+  else heldRepeats = 0;
+  heldKey = e.key;
+
+  const next = nextCell(cursor, COLS, N, key, {
+    repeats: heldRepeats,
+    page: cursorPage(),
+    ends: modified && (e.key === 'Home' || e.key === 'End')
+  });
+  e.preventDefault();
+  grid.classList.add('is-keyed');
+  if (next == null) {
+    const dest = exitTarget(key);
+    if (dest) focusEl(dest);
+    return;
   }
+  moveCursorTo(next);
+});
 
-  paintCellId(cellId);
-  updateChecked();
+grid.addEventListener('keyup', (e) => {
+  if (!isCursorKey(e.key)) return;
+  if (e.key === heldKey) {
+    heldKey = '';
+    heldRepeats = 0;
+  }
+  announceCursor();
 });
 
 // ---------------------------------------------------------------------
@@ -483,6 +687,9 @@ function jumpToCell(cellId) {
   // getBoundingClientRect to get the real document-relative position.
   const gridRect = grid.getBoundingClientRect();
   const targetY = gridRect.top + window.scrollY + y - window.innerHeight / 2 + PITCH / 2;
+  // Focus before scrolling. Focusing the tall grid can pull the page
+  // back to the top; the scroll after it is the one that should stick.
+  moveCursorTo(cellId, { scroll: false, focus: true });
   window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
 
   showJumpHighlight(x, y);
@@ -598,6 +805,33 @@ if (scrubInputEl && scrubEl) {
     scrubEl.classList.remove('is-scrubbing');
     updateScrubFromScroll();
   });
+  scrubInputEl.addEventListener(
+    'keydown',
+    (e) => {
+      // The slider is vertical, and up/down are reserved for leaving it.
+      // Left and right are what actually scrub.
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      e.preventDefault();
+      scrubbing = true;
+      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      const step = e.repeat ? 25 : 1;
+      const next = Math.max(0, Math.min(SCRUB_MAX, Number(scrubInputEl.value) + dir * step));
+      scrubInputEl.value = String(next);
+      scrubEl.classList.add('is-scrubbing');
+      scrubToValue(next);
+    },
+    true
+  );
+  scrubInputEl.addEventListener('keyup', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    scrubbing = false;
+    scrubEl.classList.remove('is-scrubbing');
+  });
+  scrubInputEl.addEventListener('blur', () => {
+    scrubbing = false;
+    scrubEl.classList.remove('is-scrubbing');
+  });
   scrubInputEl.addEventListener('input', () => {
     scrubbing = true;
     scrubEl.classList.add('is-scrubbing');
@@ -617,6 +851,8 @@ window.addEventListener('resize', () => {
     const oldCols = COLS;
     computeLayout();
     if (COLS !== oldCols) buildTiles();
+    else placeCursor();
+    placeImageCursor();
   }, 200);
 });
 
@@ -1120,8 +1356,13 @@ const imageCtx =
     ? /** @type {CanvasRenderingContext2D | null} */ (imageCanvas.getContext('2d'))
     : null;
 
-/** @type {'off' | 'mono' | 'rgb'} */
-let imageMode = 'off';
+let imageCursor = 0;
+let imageHeldKey = '';
+let imageHeldRepeats = 0;
+const imageCursorEl = /** @type {HTMLElement | null} */ (
+  document.getElementById('cb-image-cursor')
+);
+const imageHint = /** @type {HTMLElement | null} */ (document.getElementById('cb-image-hint'));
 
 function renderImageView() {
   if (imageMode === 'off' || !imageCanvas || !imageCtx) return;
@@ -1183,19 +1424,127 @@ function renderImageView() {
   }
 }
 
-function setImageMode(mode) {
+/**
+ * The image view is a div, not a <dialog>, so the browser will not
+ * inert the page on its own. Hide every other control from the remote
+ * while it is open, and put back whatever inert state they had.
+ *
+ * @param {boolean} on
+ */
+const inertBeforeImage = new WeakMap();
+function setPageInert(on) {
+  if (!imageOverlay) return;
+  for (const child of document.body.children) {
+    if (child === imageOverlay || !(child instanceof HTMLElement)) continue;
+    if (on) {
+      if (!inertBeforeImage.has(child)) inertBeforeImage.set(child, child.inert);
+      child.inert = true;
+    } else if (inertBeforeImage.has(child)) {
+      child.inert = inertBeforeImage.get(child) === true;
+      inertBeforeImage.delete(child);
+    }
+  }
+}
+
+function placeImageCursor() {
+  if (!imageCursorEl || !imageCanvas) return;
+  const frame = imageCanvas.parentElement;
+  if (imageMode !== 'mono' || !(frame instanceof HTMLElement)) {
+    imageCursorEl.hidden = true;
+    return;
+  }
+  const width = frame.clientWidth;
+  const height = frame.clientHeight;
+  if (width < 2 || height < 2) {
+    imageCursorEl.hidden = true;
+    return;
+  }
+  const col = imageCursor % MONO_SIDE;
+  const row = Math.floor(imageCursor / MONO_SIDE);
+  const cellW = width / MONO_SIDE;
+  const cellH = height / MONO_SIDE;
+  const sizeW = Math.max(cellW, 8);
+  const sizeH = Math.max(cellH, 8);
+  imageCursorEl.hidden = false;
+  imageCursorEl.style.width = `${sizeW}px`;
+  imageCursorEl.style.height = `${sizeH}px`;
+  imageCursorEl.style.left = `${col * cellW + (cellW - sizeW) / 2}px`;
+  imageCursorEl.style.top = `${row * cellH + (cellH - sizeH) / 2}px`;
+}
+
+/**
+ * @param {'off' | 'mono' | 'rgb'} mode
+ * @param {{ focus?: boolean }} [opts]
+ */
+function setImageMode(mode, opts = {}) {
+  const prev = imageMode;
   imageMode = mode;
   if (!imageOverlay || !imageLabel) return;
   if (mode === 'off') {
     imageOverlay.hidden = true;
+    setPageInert(false);
+    grid.setAttribute('data-initial-focus', '');
+    imageCanvas?.removeAttribute('data-initial-focus');
+    if (imageCursorEl) imageCursorEl.hidden = true;
+    if (prev !== 'off' && opts.focus !== false) {
+      focusEl(/** @type {HTMLElement | null} */ (document.getElementById('cb-image-open')));
+    }
     return;
   }
   imageOverlay.hidden = false;
+  setPageInert(true);
+  grid.removeAttribute('data-initial-focus');
   imageLabel.textContent =
     mode === 'mono'
       ? `${MONO_SIDE}×${MONO_SIDE} mono · 1 bit/pixel`
       : `${RGB_SIDE}×${RGB_SIDE} rgb · 24 bits/pixel`;
+  if (imageHint) {
+    imageHint.textContent =
+      mode === 'mono' ? 'Arrows move. OK jumps to that box.' : 'OK closes this view.';
+  }
+  imageCanvas?.setAttribute(
+    'aria-label',
+    mode === 'mono'
+      ? 'Checkboxes as pixels. Arrow keys move. Enter or OK jumps to that box.'
+      : 'Checkboxes as a color image. Enter or OK closes this view.'
+  );
   renderImageView();
+  requestAnimationFrame(() => placeImageCursor());
+  const fromControl =
+    document.activeElement instanceof HTMLElement &&
+    imageOverlay.contains(document.activeElement) &&
+    document.activeElement !== imageCanvas;
+  if (opts.focus === false || fromControl) return;
+  if (mode === 'mono' && imageCanvas) {
+    imageCanvas.setAttribute('data-initial-focus', '');
+    focusEl(imageCanvas);
+  } else {
+    focusEl(/** @type {HTMLElement | null} */ (document.getElementById('cb-image-close')));
+  }
+}
+
+/**
+ * @param {number} cellId
+ */
+function jumpFromImage(cellId) {
+  if (cellId < 0 || cellId >= N) return;
+  setImageMode('off', { focus: false });
+  // Defer the jump one frame so the overlay's display:none commit
+  // happens before getBoundingClientRect inside jumpToCell.
+  requestAnimationFrame(() => jumpToCell(cellId));
+}
+
+/**
+ * @param {MouseEvent} e
+ * @returns {number}
+ */
+function imageCellFromPointer(e) {
+  if (!imageCanvas) return -1;
+  const rect = imageCanvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return -1;
+  const px = Math.floor(((e.clientX - rect.left) * imageCanvas.width) / rect.width);
+  const py = Math.floor(((e.clientY - rect.top) * imageCanvas.height) / rect.height);
+  return py * MONO_SIDE + px;
 }
 
 document.addEventListener('keydown', (e) => {
@@ -1205,6 +1554,7 @@ document.addEventListener('keydown', (e) => {
   const t = e.target;
   if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return;
   if (t instanceof HTMLElement && t.isContentEditable) return;
+  if (document.querySelector('dialog[open]')) return;
 
   if (e.key === 'i' || e.key === 'I') {
     // No modifier — Ctrl/Cmd+I is browser-reserved (italic, dev tools).
@@ -1218,22 +1568,107 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+if (imageOverlay) {
+  imageOverlay.addEventListener('keydown', (e) => {
+    if (imageMode === 'off') return;
+    const target = e.target;
+    if (target instanceof HTMLElement && target.closest('button, input, textarea, a')) return;
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (imageMode === 'mono') jumpFromImage(imageCursor);
+      else setImageMode('off');
+      return;
+    }
+
+    if (imageMode === 'rgb') {
+      if (!e.key.startsWith('Arrow')) return;
+      e.preventDefault();
+      const dest =
+        e.key === 'ArrowUp' || e.key === 'ArrowLeft'
+          ? document.getElementById('cb-image-cycle')
+          : document.getElementById('cb-image-close');
+      focusEl(/** @type {HTMLElement | null} */ (dest));
+      return;
+    }
+
+    if (!isCursorKey(e.key) || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.repeat && e.key === imageHeldKey) imageHeldRepeats += 1;
+    else imageHeldRepeats = 0;
+    imageHeldKey = e.key;
+
+    const total = Math.min(N, MONO_SIDE * MONO_SIDE);
+    const key = cursorKey(e.key);
+    const next = nextCell(imageCursor, MONO_SIDE, total, key, {
+      repeats: imageHeldRepeats,
+      page: Math.max(1, Math.floor(MONO_SIDE / 8))
+    });
+    e.preventDefault();
+    if (next == null) {
+      const up = key === 'ArrowUp' || key === 'ArrowLeft' || key === 'PageUp';
+      focusEl(
+        /** @type {HTMLElement | null} */ (
+          document.getElementById(up ? 'cb-image-cycle' : 'cb-image-close')
+        )
+      );
+      return;
+    }
+    imageCursor = next;
+    placeImageCursor();
+  });
+
+  imageOverlay.addEventListener('keyup', (e) => {
+    if (e.key === imageHeldKey) {
+      imageHeldKey = '';
+      imageHeldRepeats = 0;
+    }
+  });
+}
+
+document.getElementById('cb-image-open')?.addEventListener('click', () => {
+  setImageMode(imageMode === 'off' ? 'mono' : imageMode);
+});
+document.getElementById('cb-image-cycle')?.addEventListener('click', () => {
+  const next = imageMode === 'mono' ? 'rgb' : imageMode === 'rgb' ? 'off' : 'mono';
+  setImageMode(next);
+});
+document.getElementById('cb-image-close')?.addEventListener('click', () => {
+  setImageMode('off');
+});
+
+document.addEventListener('focusin', (e) => {
+  if (imageMode === 'off' || !imageOverlay) return;
+  const target = e.target;
+  if (!(target instanceof Node) || imageOverlay.contains(target)) return;
+  if (imageMode === 'mono' && imageCanvas) focusEl(imageCanvas);
+  else focusEl(/** @type {HTMLElement | null} */ (document.getElementById('cb-image-close')));
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (imageMode !== 'off') setPageInert(true);
+});
+
 // Click-to-jump in mono view: pixel coords map 1:1 to cellId (since
 // MONO_SIDE * MONO_SIDE = N). Translate the click from CSS-display
-// coords back to the canvas's logical 1000×1000 grid.
+// coords back to the canvas's logical 1000×1000 grid. A remote OK
+// clicks the canvas with no coordinates, so that uses the pixel cursor.
 if (imageCanvas) {
   imageCanvas.addEventListener('click', (e) => {
+    if (!e.isTrusted) {
+      if (imageMode === 'mono') jumpFromImage(imageCursor);
+      else if (imageMode === 'rgb') setImageMode('off');
+      return;
+    }
+    if (imageMode === 'rgb') {
+      setImageMode('off');
+      return;
+    }
     if (imageMode !== 'mono') return;
-    const rect = imageCanvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
-    const px = Math.floor(((e.clientX - rect.left) * imageCanvas.width) / rect.width);
-    const py = Math.floor(((e.clientY - rect.top) * imageCanvas.height) / rect.height);
-    const cellId = py * MONO_SIDE + px;
+    const cellId = imageCellFromPointer(e);
     if (cellId < 0 || cellId >= N) return;
-    setImageMode('off');
-    // Defer the jump one frame so the overlay's display:none commit
-    // happens before getBoundingClientRect inside jumpToCell.
-    requestAnimationFrame(() => jumpToCell(cellId));
+    imageCursor = cellId;
+    jumpFromImage(cellId);
   });
 }
 

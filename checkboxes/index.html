@@ -118,7 +118,7 @@
                 "name": "What do the i and esc keys do?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Press i to see the grid rendered as a 1000×1000 image at one bit per pixel — the mono view a group of teenagers in a Discord server used to hide URLs, QR codes, and pixel art inside the original. Press i again for the 24-bit RGB view they invented to embed color, or esc to return to the grid."
+                  "text": "Arrow keys move from box to box, and Enter or OK checks the highlighted box. Hold an arrow to cross the grid. Press i, or View as image, to see the grid rendered as a 1000×1000 image at one bit per pixel — the mono view a group of teenagers in a Discord server used to hide URLs, QR codes, and pixel art inside the original. Press i again for the 24-bit RGB view they invented to embed color, or esc to return to the grid."
                 }
               },
               {
@@ -178,6 +178,8 @@
           <span id="cb-total">…</span>
           boxes are ✅
         </p>
+        <button type="button" id="cb-image-open" class="cb-image-open">View as image</button>
+        <p id="cb-cursor-live" class="visually-hidden" aria-live="polite"></p>
       </header>
 
       <div id="cb-banner" class="cb-banner" hidden>
@@ -189,7 +191,16 @@
         </span>
       </div>
 
-      <section id="cb-grid" class="cb-grid" role="group" aria-label="Shared checkboxes"></section>
+      <section
+        id="cb-grid"
+        class="cb-grid"
+        tabindex="0"
+        data-initial-focus
+        role="application"
+        aria-roledescription="checkbox grid"
+        aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter"
+        aria-label="Shared checkboxes. Arrow keys move between boxes. Enter or OK checks the highlighted box. Hold an arrow to move faster. Press an arrow again at the edge to leave the grid."
+      ></section>
 
       <footer class="cb-footer" aria-live="polite">
         <span id="cb-status">connecting…</span>
@@ -246,7 +257,8 @@
         max="1000"
         value="0"
         step="1"
-        aria-label="Scroll through checkboxes"
+        aria-keyshortcuts="ArrowLeft ArrowRight"
+        aria-label="Scroll through checkboxes. Left and right move through the grid. Up and down leave this slider."
         aria-valuemin="0"
         aria-valuemax="1000"
         aria-valuenow="0"
@@ -306,7 +318,13 @@
          prettier-ignore on the paragraphs below keeps long inline links
          on one line — wrapping them would produce a leading/trailing
          space inside the <a> that browsers render with an underline. -->
-    <dialog id="cb-info" class="cb-info" aria-labelledby="cb-info-title">
+    <dialog
+      id="cb-info"
+      class="cb-info"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cb-info-title"
+    >
       <h2 id="cb-info-title">A tribute</h2>
       <!-- prettier-ignore -->
       <p>
@@ -319,7 +337,7 @@
       </p>
       <!-- prettier-ignore -->
       <p>
-        Press <kbd>i</kbd> to see the grid as a 1000×1000 image — the rendering a group of teenagers in a Discord server used to hide URLs, QR codes, and pixel art inside the original. Press <kbd>i</kbd> again for the 24‑bit RGB view they invented for color, or <kbd>esc</kbd> to come back. <a href="https://eieio.games/blog/the-secret-inside-one-million-checkboxes/" target="_blank" rel="noopener noreferrer">Read the story.</a>
+        Arrow keys move from box to box. Enter or OK checks the highlighted one. Hold an arrow to cross the grid, then press it once more at the edge to leave. Press <kbd>i</kbd> or View as image to see the grid as a 1000×1000 image — the rendering a group of teenagers in a Discord server used to hide URLs, QR codes, and pixel art inside the original. Press <kbd>i</kbd> again for the 24‑bit RGB view they invented for color, or <kbd>esc</kbd> to come back. <a href="https://eieio.games/blog/the-secret-inside-one-million-checkboxes/" target="_blank" rel="noopener noreferrer">Read the story.</a>
       </p>
       <p>
         Go read Nolen's
@@ -336,30 +354,45 @@
          teens did this manually by hand-counting; we get to be lazy).
          The bitmap is the same `state` Uint8Array the canvas grid
          renders from — this is purely a different view, not a copy. -->
-    <div id="cb-image-overlay" class="cb-image-overlay" hidden>
+    <div
+      id="cb-image-overlay"
+      class="cb-image-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cb-image-label"
+      hidden
+    >
       <div class="cb-image-stage">
-        <canvas
-          id="cb-image-canvas"
-          class="cb-image-canvas"
-          aria-label="Checkboxes rendered as a grid of pixels"
-        ></canvas>
+        <div class="cb-image-frame">
+          <canvas
+            id="cb-image-canvas"
+            class="cb-image-canvas"
+            tabindex="0"
+            aria-label="Checkboxes rendered as a grid of pixels. Arrow keys move. Enter or OK jumps to that box."
+          ></canvas>
+          <div id="cb-image-cursor" class="cb-image-cursor" hidden></div>
+        </div>
       </div>
       <div class="cb-image-hud">
         <span id="cb-image-label" class="cb-image-label">mono</span>
-        <span class="cb-image-hint">
-          press
-          <kbd>i</kbd>
-          to cycle ·
-          <kbd>esc</kbd>
-          to exit
-        </span>
+        <span id="cb-image-hint" class="cb-image-hint">Arrows move. OK jumps to that box.</span>
+        <div class="cb-image-actions">
+          <button type="button" id="cb-image-cycle">Next view</button>
+          <button type="button" id="cb-image-close">Close</button>
+        </div>
       </div>
     </div>
 
     <!-- Achievement modal. Auto-shown by index.js the moment the live
          count of checked cells crosses to N (i.e. every box is checked).
          Closes on ESC, the close button, or backdrop click. -->
-    <dialog id="cb-meme" class="cb-meme" aria-labelledby="cb-meme-title">
+    <dialog
+      id="cb-meme"
+      class="cb-meme"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cb-meme-title"
+    >
       <h2 id="cb-meme-title" class="visually-hidden">One Million Checkboxes!</h2>
       <img
         src="dr-evil-million.png"
