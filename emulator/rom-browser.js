@@ -5,9 +5,9 @@
 // a console has no Internet Archive collection wired up, the element
 // hides itself so the boot card just shows the local-file picker.
 //
-// Search is metadata-only. Picking a result opens the download handoff
-// (Archive link + local file picker) — the browser never fetches ROM
-// bytes into the page. See the policy note in emulator/rom-acquire.js.
+// Picking a result plays it in the page. Disc collections marked
+// iaExternalDownload without iaAllowInBrowser (Sega CD, Saturn) open the
+// download handoff instead — those images are too large to stream.
 //
 // Lean-back (TV): cards are focusable with roving tabindex, search is
 // demoted behind a toggle, Escape/Backspace closes the modal.
@@ -23,6 +23,7 @@ class RomBrowserElement extends HTMLElement {
     this.filteredRoms = [];
     this._romRoving = null;
     this._onModalKey = null;
+    this._romLoadController = null;
     this.attachShadow({ mode: 'open' });
   }
 
@@ -55,6 +56,7 @@ class RomBrowserElement extends HTMLElement {
   }
 
   disconnectedCallback() {
+    if (this._romLoadController) this._romLoadController.abort();
     this.teardownModalKeys();
     if (this._romRoving) {
       this._romRoving.dispose();
@@ -74,6 +76,7 @@ class RomBrowserElement extends HTMLElement {
 
     const tv = this.isTv;
     const isDisc = !!cfg.iaExternalDownload;
+    const downloadOnly = isDisc && !cfg.iaAllowInBrowser;
 
     // All chrome reads from /brand.css through the host page; identity
     // colors (`--accent-bright`, `--accent-gold`) are set on `:root` by
@@ -396,9 +399,11 @@ class RomBrowserElement extends HTMLElement {
             <h2 class="modal-title" id="romBrowserTitle">${cfg.title} ${
       isDisc ? 'Disc Browser' : 'ROM Browser'
     }</h2>
-            <p class="modal-subtitle">Search Internet Archive, download the ${
-              isDisc ? 'disc' : 'ROM'
-            }, then load the saved file from your device</p>
+            <p class="modal-subtitle">${
+              downloadOnly
+                ? 'Search Internet Archive, download the disc, then load it locally'
+                : 'Play in browser, or Download instead if it is slow'
+            }</p>
           </div>
           <div class="modal-body">
             <div class="search-container" id="searchContainer" ${tv ? 'hidden' : ''}>
@@ -590,7 +595,7 @@ class RomBrowserElement extends HTMLElement {
     const romGrid = document.createElement('div');
     romGrid.className = 'rom-grid';
     const cfg = this.consoleConfig;
-    const isDisc = !!(cfg && cfg.iaExternalDownload);
+    const allowInBrowser = !(cfg && cfg.iaExternalDownload && !cfg.iaAllowInBrowser);
 
     shown.forEach((rom) => {
       const romCard = document.createElement('div');
@@ -604,17 +609,17 @@ class RomBrowserElement extends HTMLElement {
         <div class="rom-info">${description}</div>
         <div class="rom-size">${size}</div>
         <div class="rom-actions">
-          <button type="button" data-action="get-rom">${
-            isDisc ? 'Get this disc' : 'Get this ROM'
+          <button type="button" data-action="play-rom">${
+            allowInBrowser ? 'Play in browser' : 'Get this disc'
           }</button>
           <a href="${this._escapeHtml(
             rom.downloadUrl || '#'
-          )}" target="_blank" rel="noopener noreferrer">Download from Archive</a>
+          )}" target="_blank" rel="noopener noreferrer">Download instead</a>
         </div>
       `;
       romCard
-        .querySelector('[data-action="get-rom"]')
-        ?.addEventListener('click', () => this.selectRom(rom));
+        .querySelector('[data-action="play-rom"]')
+        ?.addEventListener('click', () => this.loadRom(rom));
       romGrid.appendChild(romCard);
     });
 
@@ -637,25 +642,108 @@ class RomBrowserElement extends HTMLElement {
     const lb = window.emulatorLeanback;
     if (lb && typeof lb.applyRovingTabindex === 'function') {
       this._romRoving = lb.applyRovingTabindex(romGrid, {
-        selector: '[data-action="get-rom"]'
+        selector: '[data-action="play-rom"]'
       });
       if (this.isTv) this._romRoving.focusFirst();
     } else if (this.isTv) {
-      const first = romGrid.querySelector('[data-action="get-rom"]');
+      const first = romGrid.querySelector('[data-action="play-rom"]');
       if (first) first.focus({ preventScroll: false });
     }
   }
 
-  /**
-   * Picking a result never streams the game. Show the Archive download
-   * handoff so the visitor saves the file and re-enters it through the
-   * local picker (emulator/rom-acquire.js policy).
-   */
-  selectRom(rom) {
+  async loadRom(rom) {
+    const contentArea = this.shadowRoot.getElementById('contentArea');
     const restoreList = () => {
       this.renderRoms(this.filteredRoms.length ? this.filteredRoms : this.allRoms);
     };
-    this.showExternalDownload(rom, restoreList);
+
+    const cfg = this.consoleConfig;
+    if (cfg && cfg.iaExternalDownload && !cfg.iaAllowInBrowser) {
+      this.showExternalDownload(rom, restoreList);
+      return;
+    }
+
+    if (this._romLoadController) this._romLoadController.abort();
+    const controller = new AbortController();
+    this._romLoadController = controller;
+
+    try {
+      if (contentArea) {
+        contentArea.innerHTML =
+          `<div class="loading">Loading ${this._escapeHtml(rom.title)}…` +
+          '<div class="loading-hint">Large games can take a minute.</div>' +
+          '<div class="error-actions"><button type="button" data-action="cancel-rom">Cancel — back to game list</button></div></div>';
+        contentArea.querySelector('[data-action="cancel-rom"]')?.addEventListener('click', () => {
+          controller.abort();
+          restoreList();
+        });
+      }
+
+      const ia = this.iaClient;
+      if (!ia) {
+        throw new Error('ROM source unavailable.');
+      }
+
+      const romData = await ia.loadRom(rom, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+
+      // Wrap in a File so EmulatorJS sees a real filename — libretro cores
+      // detect format from the suffix. Shared helper keeps deep-link and
+      // browser paths identical.
+      const acquire = window.emulatorRomAcquire;
+      const romFile =
+        acquire && typeof acquire.fileFromRomBytes === 'function'
+          ? acquire.fileFromRomBytes(romData, rom)
+          : new File([romData], `${rom.title}${rom.fileExtension || '.zip'}`, {
+              type:
+                (rom.fileExtension || '.zip') === '.zip'
+                  ? 'application/zip'
+                  : 'application/octet-stream'
+            });
+
+      this.closeBrowser();
+
+      if (typeof window.launchEmulator === 'function') {
+        window.launchEmulator(romFile, romFile.name);
+      } else {
+        console.error('launchEmulator not available on window');
+        alert('Emulator not ready. Please reload the page and try again.');
+      }
+    } catch (error) {
+      if (controller.signal.aborted || (error && error.name === 'AbortError')) return;
+      console.error('Error loading ROM:', error);
+      const canDownload = !!(cfg && cfg.iaBaseUrl && rom.downloadUrl);
+      const downloadAction = canDownload
+        ? `<a class="primary" href="${this._escapeHtml(
+            rom.downloadUrl
+          )}" target="_blank" rel="noopener noreferrer">Download instead</a>` +
+          '<button type="button" data-action="load-local">Load saved ROM</button>'
+        : '';
+      if (contentArea) {
+        contentArea.innerHTML =
+          `<div class="error">Could not load ${this._escapeHtml(rom.title)}.` +
+          '<div class="error-detail">Try again, or download the file and load it from your device.</div>' +
+          '<div class="error-actions">' +
+          '<button type="button" class="primary" data-action="retry-rom">Try again</button>' +
+          downloadAction +
+          '<button type="button" data-action="back-list">Back to list</button>' +
+          '</div></div>';
+        contentArea.querySelector('[data-action="retry-rom"]')?.addEventListener('click', () => {
+          this.loadRom(rom);
+        });
+        contentArea
+          .querySelector('[data-action="back-list"]')
+          ?.addEventListener('click', restoreList);
+        contentArea.querySelector('[data-action="load-local"]')?.addEventListener('click', () => {
+          this.closeBrowser();
+          document.getElementById('romFileInput')?.click();
+        });
+      } else {
+        alert('Could not load this game. Try again or load a saved file.');
+      }
+    } finally {
+      if (this._romLoadController === controller) this._romLoadController = null;
+    }
   }
 
   /** Hand the user the Archive URL, then offer the local file picker. */
@@ -673,10 +761,10 @@ class RomBrowserElement extends HTMLElement {
         : 'size unavailable';
     const href = rom.downloadUrl || '#';
     const explanation = isDisc
-      ? `Games are never streamed into the page. Download this ${this._escapeHtml(
+      ? `${this._escapeHtml(
           cfg.title
-        )} disc from Internet Archive in a new tab, then load the saved file here. Chromebooks with little disk space may not have room.`
-      : 'Games are never streamed into the page. Download this ROM from Internet Archive in a new tab, then load the saved file here.';
+        )} discs are too large to load in the page. Download from Internet Archive in a new tab, then load the saved file here. Chromebooks with little disk space may not have room.`
+      : 'Download this ROM directly from Internet Archive, then load the saved file here.';
 
     contentArea.innerHTML = `
       <div class="external-download">

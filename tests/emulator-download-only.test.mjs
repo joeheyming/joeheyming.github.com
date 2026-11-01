@@ -77,7 +77,7 @@ function stubIaClient(window) {
     };
     this.loadRom = async () => {
       spy.loadRomCalls += 1;
-      throw new Error('loadRom must never be called for a ROM');
+      return new Uint8Array([1, 2, 3, 4]);
     };
     this.clearListCache = () => {};
   };
@@ -140,50 +140,38 @@ describe('rom-browser hands off downloads instead of loading ROMs', () => {
     assert.equal(ia.loadRomCalls, 0);
   });
 
-  it('offers a download handoff on every card, never an in-page play', async () => {
+  it('plays a cartridge in the page from the card', async () => {
     const el = await mountBrowser(NES_CFG);
     const card = el.shadowRoot.querySelector('.rom-card');
-
-    assert.equal(el.shadowRoot.querySelectorAll('[data-action="play-rom"]').length, 0);
-    assert.equal(el.shadowRoot.querySelectorAll('.rom-card[role="button"]').length, 0);
-
-    const getBtn = card.querySelector('[data-action="get-rom"]');
-    assert.ok(getBtn, 'card needs a get-rom action');
-    assert.equal(getBtn.textContent.trim(), 'Get this ROM');
+    const play = card.querySelector('[data-action="play-rom"]');
+    assert.equal(play.textContent.trim(), 'Play in browser');
+    assert.equal(card.querySelector('a').textContent.trim(), 'Download instead');
     assert.equal(card.querySelector('a').getAttribute('href'), ROMS[0].downloadUrl);
+
+    play.click();
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+    assert.equal(ia.loadRomCalls, 1);
+    assert.deepEqual(launched, ['Metroid.zip']);
+    assert.equal(el.shadowRoot.querySelector('.external-download'), null);
   });
 
-  it('shows the Archive link and local picker when a result is picked', async () => {
-    const el = await mountBrowser(NES_CFG);
-    el.shadowRoot.querySelector('[data-action="get-rom"]').click();
-
-    assert.equal(ia.loadRomCalls, 0, 'picking a ROM must not fetch its bytes');
-    assert.deepEqual(launched, [], 'picking a ROM must not start the emulator');
-
-    const panel = el.shadowRoot.querySelector('.external-download');
-    assert.ok(panel, 'expected the external download panel');
-    assert.equal(panel.querySelector('[data-action="open-ia"]').href, ROMS[0].downloadUrl);
-    assert.match(panel.textContent, /never streamed into the page/i);
-
-    panel.querySelector('[data-action="load-local"]').click();
-    assert.equal(filePickerClicks, 1, 'handoff must route through the local file picker');
-    assert.equal(ia.loadRomCalls, 0);
-    assert.deepEqual(launched, []);
-  });
-
-  it('keeps the same handoff for disc-sized collections', async () => {
+  it('keeps the download handoff for disc-sized collections', async () => {
     const el = await mountBrowser(SEGACD_CFG);
-    const getBtn = el.shadowRoot.querySelector('[data-action="get-rom"]');
-    assert.equal(getBtn.textContent.trim(), 'Get this disc');
+    const play = el.shadowRoot.querySelector('[data-action="play-rom"]');
+    assert.equal(play.textContent.trim(), 'Get this disc');
 
-    getBtn.click();
+    play.click();
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
     assert.equal(ia.loadRomCalls, 0);
     assert.deepEqual(launched, []);
-    assert.ok(el.shadowRoot.querySelector('.external-download'));
+    const panel = el.shadowRoot.querySelector('.external-download');
+    assert.ok(panel);
+    assert.match(panel.textContent, /too large to load in the page/i);
   });
 });
 
-describe('?rom= deep links resolve to a download, not a launch', () => {
+describe('?rom= deep links launch cartridges and hand off discs', () => {
   /** @type {import('jsdom').DOMWindow} */
   let window;
   /** @type {{ loadRomCalls: number, listCalls: number }} */
@@ -221,23 +209,13 @@ describe('?rom= deep links resolve to a download, not a launch', () => {
     }
   }
 
-  it('offers the Archive download plus the local picker for a known title', async () => {
+  it('fetches a known cartridge and starts it', async () => {
     await bootShell('https://x/emulator/nes/?rom=Zelda');
 
-    assert.equal(ia.listCalls, 1, 'deep link should still search collection metadata');
-    assert.equal(ia.loadRomCalls, 0, 'deep link must not fetch ROM bytes');
-    assert.deepEqual(launched, [], 'deep link must not start the emulator');
-
-    const panel = window.document.querySelector('#boot-card .deeplink-handoff');
-    assert.ok(panel, 'expected a deep-link download handoff');
-    assert.equal(
-      panel.querySelector('#deeplinkDownloadLink').getAttribute('href'),
-      ROMS[1].downloadUrl
-    );
-    assert.ok(panel.querySelector('#deeplinkLoadLocalBtn'));
-    assert.match(panel.textContent, /never streamed into the page/i);
-    // The regular boot card (browser + file picker) is still underneath.
-    assert.ok(window.document.querySelector('#boot-card rom-browser'));
+    assert.equal(ia.listCalls, 1, 'deep link should search collection metadata');
+    assert.equal(ia.loadRomCalls, 1, 'deep link should fetch the ROM bytes');
+    assert.deepEqual(launched, ['Zelda.zip']);
+    assert.equal(window.document.querySelector('.deeplink-handoff'), null);
   });
 
   it('falls back to the boot card when the title is not in the collection', async () => {
@@ -248,34 +226,20 @@ describe('?rom= deep links resolve to a download, not a launch', () => {
     assert.equal(window.document.querySelector('.deeplink-handoff'), null);
     const note = window.document.querySelector('#boot-card .deeplink-error');
     assert.ok(note, 'expected an explanatory note');
-    assert.match(note.textContent, /Pick a game from the collection/i);
+    assert.match(note.textContent, /Pick a ROM from the collection/i);
   });
 });
 
-describe('emulator shell source has no remote ROM launch path', () => {
-  it('never calls loadRom on the IA client', () => {
-    for (const [name, src] of [
-      ['rom-browser.js', romBrowserSrc],
-      ['launch.js', launchSrc]
-    ]) {
-      assert.ok(!/\.loadRom\s*\(/.test(src), `${name} must not call loadRom`);
-    }
+describe('emulator shell launches streamed ROMs and still fetches BIOS', () => {
+  it('calls loadRom from the browser and from deep links', () => {
+    assert.match(romBrowserSrc, /\.loadRom\s*\(/);
+    assert.match(launchSrc, /\.loadRom\s*\(/);
+    assert.match(romAcquireSrc, /fileFromRomBytes/);
   });
 
-  it('never wraps fetched bytes into a ROM File', () => {
-    for (const [name, src] of [
-      ['rom-browser.js', romBrowserSrc],
-      ['launch.js', launchSrc],
-      ['rom-acquire.js', romAcquireSrc]
-    ]) {
-      assert.ok(!src.includes('fileFromRomBytes'), `${name} must not build a ROM File`);
-      assert.ok(!/new File\(\s*\[\s*rom/.test(src), `${name} must not build a ROM File`);
-    }
-  });
-
-  it('leaves launching to the local file picker inside launch.js', () => {
-    assert.ok(!romBrowserSrc.includes('launchEmulator'), 'rom-browser must not launch games');
-    assert.match(launchSrc, /romFileInput[\s\S]*?launchEmulator|launchEmulator/);
+  it('keeps disc consoles on the download handoff', () => {
+    assert.match(romBrowserSrc, /iaExternalDownload && !cfg\.iaAllowInBrowser/);
+    assert.match(launchSrc, /iaExternalDownload && !cfg\.iaAllowInBrowser/);
   });
 
   it('keeps BIOS auto-fetch untouched', () => {

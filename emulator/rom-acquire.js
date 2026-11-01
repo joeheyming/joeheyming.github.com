@@ -1,7 +1,7 @@
-// Shared Internet Archive metadata client for the /emulator/ shell.
+// Shared Internet Archive client + ROM File helpers for the /emulator/ shell.
 //
-// Used by launch.js deep links and <rom-browser>. Both only ever use the IA
-// client for *metadata* — listing and searching a collection. Loaded before
+// Used by launch.js deep links and <rom-browser> so both wrap IA bytes into
+// a File with the same filename / MIME rules libretro expects. Loaded before
 // rom-browser.js and launch.js.
 //
 // Public surface: window.emulatorRomAcquire
@@ -22,9 +22,25 @@
   }
 
   /**
+   * Wrap downloaded ROM bytes in a File so EmulatorJS / libretro cores see a
+   * real filename. Preserve the archive extension: .zip collections unzip
+   * inside the core; raw .gb / .gbc must keep their suffix.
+   *
+   * @param {ArrayBuffer|Uint8Array|Blob} romData
+   * @param {{ title?: string, name?: string, fileExtension?: string }} rom
+   * @returns {File}
+   */
+  function fileFromRomBytes(romData, rom) {
+    const ext = (rom && rom.fileExtension) || '.zip';
+    const mimeType = ext === '.zip' ? 'application/zip' : 'application/octet-stream';
+    const title = (rom && (rom.title || rom.name)) || 'rom';
+    const filename = `${title}${ext}`;
+    return new File([romData], filename, { type: mimeType });
+  }
+
+  /**
    * Match a deep-link `?rom=` query against an IA list entry by name, title,
-   * or name+extension. Resolves which download link to offer — it never
-   * starts a download.
+   * or name+extension.
    *
    * @param {Array<{ name: string, title: string, fileExtension?: string }>} roms
    * @param {string} wanted
@@ -45,6 +61,7 @@
 
   window.emulatorRomAcquire = {
     createIaClient,
+    fileFromRomBytes,
     findRomByQuery
   };
 })();

@@ -341,23 +341,36 @@
       return `${cdnBase}/${filePath.split('/').map(encodeURIComponent).join('/')}`;
     }
 
+    /**
+     * Packaging directories that ship beside the games (theme zips, box art,
+     * BIOS). Game folders such as Translations/ and Rare Games/ stay.
+     * @param {string} filename
+     */
+    _isListableGamePath(filename) {
+      const parts = String(filename).split('/').filter(Boolean);
+      if (parts.length === 0) return false;
+      const dirs = parts.slice(0, -1);
+      return !dirs.some((dir) =>
+        /bios|artwork|themes?|thumbs?|thumbnails|manuals?|screenshots?|covers?/i.test(dir)
+      );
+    }
+
     parseRomListFromMetadata(meta, baseUrl, cdnBase) {
       const roms = [];
       const files = (meta && meta.files) || [];
+      const declared = Number(meta && meta.files_count);
+      if (Number.isFinite(declared) && declared > files.length) {
+        console.warn(
+          `Internet Archive metadata returned ${files.length} of ${declared} files for ${baseUrl}`
+        );
+      }
       const base = (cdnBase || String(baseUrl)).replace(/\/$/, '');
-      // Some IA items nest games under `…/roms/…` (and also ship theme/artwork
-      // zips). When a roms/ folder exists, only index those files.
-      const hasRomsDir = files.some((f) => f && f.name && /\/roms\//i.test(String(f.name)));
+      // Index every matching game file the metadata payload lists, including
+      // subfolders. Archive's metadata `files` array is the whole item.
 
       for (const file of files) {
         const filename = file && file.name;
-        if (!filename) continue;
-        if (hasRomsDir) {
-          if (!/\/roms\//i.test(String(filename))) continue;
-        } else if (String(filename).includes('/')) {
-          // Flat collections (nes-collection style): skip nested metadata noise.
-          continue;
-        }
+        if (!filename || !this._isListableGamePath(filename)) continue;
         const lower = String(filename).toLowerCase();
         const ext = this.fileExtensions.find((e) => lower.endsWith(e));
         if (!ext) continue;
@@ -440,10 +453,9 @@
     }
 
     /**
-     * Binary fetch. The /emulator/ shell never calls this — ROMs are
-     * downloaded from Archive and re-entered through the local file picker
-     * (see emulator/rom-acquire.js). /flash/ still uses it for .swf files,
-     * which are small enough to stream.
+     * Binary fetch. The /emulator/ shell calls this for Play in browser
+     * (cartridges, and discs that set iaAllowInBrowser). Sega CD and Saturn
+     * stay on the download handoff. /flash/ uses the same path for .swf files.
      */
     async loadRom(rom, opts) {
       opts = opts || {};

@@ -102,25 +102,25 @@ describe('emulator console registry', () => {
     }
   });
 
-  it('keeps every Internet Archive collection on the download-then-load path', () => {
-    // The shell never fetches ROM bytes (emulator/rom-acquire.js). A console
-    // record must not imply otherwise, in config or in boot-card copy.
+  it('plays cartridge collections in the page and keeps oversized discs on download', () => {
     for (const cfg of Object.values(consoles)) {
       if (!cfg.iaBaseUrl) continue;
-      assert.ok(
-        !('iaAllowInBrowser' in cfg),
-        `${cfg.id}: iaAllowInBrowser cannot re-enable in-page ROM loading`
-      );
-      assert.ok(
-        !('iaAllowExternalDownload' in cfg),
-        `${cfg.id}: external download is the only path, so the opt-in is dead config`
-      );
-      assert.ok(
-        /download/i.test(cfg.romHelp || ''),
-        `${cfg.id}: romHelp must tell the player to download first`
-      );
+      const streams = !(cfg.iaExternalDownload && !cfg.iaAllowInBrowser);
       const copy = `${cfg.romHelp || ''} ${(cfg.howto || []).join(' ')}`;
-      assert.ok(!/play in browser/i.test(copy), `${cfg.id}: copy still promises in-browser play`);
+      if (streams) {
+        assert.ok(/play in browser/i.test(copy), `${cfg.id}: copy must offer Play in browser`);
+      } else {
+        assert.equal(
+          cfg.iaAllowInBrowser,
+          undefined,
+          `${cfg.id}: disc-only consoles do not stream`
+        );
+        assert.ok(/download/i.test(copy), `${cfg.id}: disc copy must say to download`);
+        assert.ok(
+          !/play in browser/i.test(copy),
+          `${cfg.id}: disc-only copy must not promise in-browser play`
+        );
+      }
     }
   });
 

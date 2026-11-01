@@ -15,16 +15,14 @@
 // the game library (PS1: games are local-only, BIOS still auto-loads).
 //
 // EmulatorJS core IDs come from https://emulatorjs.org/docs/Options#ejs_core.
-// `iaBaseUrl` is the Internet Archive collection the ROM browser searches;
+// `iaBaseUrl` is the Internet Archive collection used by the ROM browser;
 // leave it `null` and the ROM browser silently hides itself so the user
 // is steered to the local-file picker instead.
 //
-// Collections are search-only for every console: a result hands the visitor
-// an Archive download link and the game re-enters through the local file
-// picker. No console record can opt into fetching ROM bytes in the page —
-// see the policy note in emulator/rom-acquire.js. Keep `romHelp` / `howto`
-// copy on that flow. `iaExternalDownload` only marks disc-sized items so the
-// UI says "disc" and warns about the download size.
+// A result plays in the page: the shell fetches the bytes and hands EmulatorJS
+// a File. `iaExternalDownload` marks a disc-sized collection. Those stay on
+// the download-then-load handoff unless `iaAllowInBrowser` is also set (PS1),
+// in which case Play in browser is best-effort and Download instead remains.
 (function () {
   'use strict';
 
@@ -42,13 +40,14 @@
       // the EJS chrome (EJS_color). Sega / GB get their own hue below.
       accentHex: '#dc2626',
       accentGoldHex: '#7c2d12',
-      // Per-game .zip listing. `nes-collection` still appears in IA search but
-      // metadata/files APIs return empty / "Couldn't locate item" (darked or
-      // deranged item). `NintendoEntertainmentSystem` serves a real file list.
-      iaBaseUrl: 'https://archive.org/download/NintendoEntertainmentSystem',
+      // Flat per-game .zip set (A–Z, including Zelda) plus a Translations/
+      // folder. `NintendoEntertainmentSystem` is a Hyperspin pack whose game
+      // zips stop in the A's, so that item can never list the rest.
+      iaBaseUrl: 'https://archive.org/download/nes-collection',
+      iaFileExtensions: ['.zip'],
       iaDescriptionPrefix: 'Classic NES game',
       romHelp:
-        'Bring your own .nes dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here.',
+        'Bring your own .nes dump, or browse the collection and choose Play in browser. If that is slow, use Download instead and load the saved file here.',
       // Keyboard help — EmulatorJS default bindings (EJS_defaultControls = 1).
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
@@ -75,7 +74,7 @@
       iaBaseUrl: 'https://archive.org/download/sega-genesis-romset-ultra-usa',
       iaDescriptionPrefix: 'Classic Sega Genesis game',
       romHelp:
-        'Bring your own .md / .bin / .gen dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here.',
+        'Bring your own .md / .bin / .gen dump, or browse the collection and choose Play in browser. If that is slow, use Download instead and load the saved file here.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
@@ -109,7 +108,7 @@
       iaPreferMetadata: true,
       iaExcludeNames: ['[BIOS] Sega Game Gear (USA)'],
       romHelp:
-        'Bring your own .gg dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here.',
+        'Bring your own .gg dump, or browse the collection and choose Play in browser. If that is slow, use Download instead and load the saved file here.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'Button 1', key: 'Z' },
@@ -141,7 +140,7 @@
       audioNote:
         'Click the game once if it is silent. 32X music is often missing in the browser; sound effects may still play.',
       romHelp:
-        'Bring your own .32x / .bin dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here.',
+        'Bring your own .32x / .bin dump, or browse the collection and choose Play in browser. If that is slow, use Download instead and load the saved file here.',
       iaExcludeNames: [
         '[BIOS] 32X M68000 (USA)',
         '[BIOS] 32X SH-2 Master (USA)',
@@ -298,7 +297,7 @@
       ],
       iaDescriptionPrefix: 'Classic Game Boy / Color game',
       romHelp:
-        'Bring your own .gb / .gbc dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here.',
+        'Bring your own .gb / .gbc dump, or browse the collection and choose Play in browser. If that is slow, use Download instead and load the saved file here.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
@@ -327,11 +326,11 @@
       iaDescriptionPrefix: 'Game Boy Advance game',
       iaPreferMetadata: true,
       howto: [
-        'Tap a game to get its Archive download link, then load the saved .gba file.',
+        'Tap a game, then Play in browser, or load your own .gba file.',
         'Game Boy and Game Boy Color carts belong on the Game Boy page.'
       ],
       romHelp:
-        'Bring your own .gba dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here.',
+        'This is GBA, not Game Boy. Carts usually Play in browser. For GB/GBC use the Game Boy page.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
@@ -367,14 +366,15 @@
       iaBaseUrl: 'https://archive.org/download/pack-roms-nintendo-ds-eu-usa-jap-rabbits-games',
       iaDescriptionPrefix: 'Nintendo DS game',
       iaPreferMetadata: true,
+      iaBinaryTimeout: 180000,
       howto: [
         'Both screens stack inside the one window. The lower screen is the touch screen.',
         'Click, tap, or drag on the lower screen to use the stylus.',
-        'Tap a game to get its Internet Archive download link, then load the saved .zip.',
+        'Tap a game, then Play in browser. If it stalls, use Download instead and load the saved file.',
         'If a game refuses to boot, switch from melonDS to DeSmuME under the settings gear.'
       ],
       romHelp:
-        'Bring your own .nds dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here. Most games are 10–60 MB. Click or tap the lower screen to use the stylus.',
+        'Bring your own .nds dump, or choose Play in browser from the collection. Most games are 10–60 MB. Click or tap the lower screen to use the stylus.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
@@ -415,11 +415,11 @@
       // Short steps on the boot card — keep it terse.
       howto: [
         'Wait for BIOS “ready”.',
-        'Browse Collection, download the set from Internet Archive, then load the saved .zip.',
+        'Browse Collection, then Play in browser, or load a saved .zip.',
         'Skip random ROM sites — .bin dumps usually fail.'
       ],
       romHelp:
-        'Neo Geo needs a matching FBNeo arcade .zip. Pick one from the collection, download it from Internet Archive, then load the saved file here.',
+        'Neo Geo needs a matching FBNeo arcade .zip. Choose Play in browser from the collection, or load a saved .zip.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
@@ -449,11 +449,11 @@
       iaBaseUrl: 'https://archive.org/download/Neo-GeoPocketColorRomCollectionByGhostware',
       iaDescriptionPrefix: 'Neo Geo Pocket Color game',
       howto: [
-        'Tap a game to get its Archive download link, then load the saved .ngp / .ngc file.',
+        'Tap a game, then Play in browser, or load your own .ngp / .ngc file.',
         'AES and MVS arcade sets belong on the Neo Geo page.'
       ],
       romHelp:
-        'Bring your own .ngp / .ngc dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here.',
+        'This is the handheld, not the arcade AES/MVS. Carts usually Play in browser. For arcade titles use the Neo Geo page.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
@@ -479,7 +479,7 @@
       iaBaseUrl: 'https://archive.org/download/snes-collection_202406',
       iaDescriptionPrefix: 'Classic SNES game',
       romHelp:
-        'Bring your own .sfc / .smc dump, or browse the collection: pick a game, download it from Internet Archive, then load the saved file here.',
+        'Bring your own .sfc / .smc dump, or browse the collection and choose Play in browser. If that is slow, use Download instead and load the saved file here.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'X' },
@@ -506,18 +506,19 @@
       // Nintendo 64 logo red and deep blue.
       accentHex: '#e60012',
       accentGoldHex: '#1d4ed8',
-      // Flat, per-game BigEndian ROMs, usually 8–64 MB — the browser only
-      // reads the listing; the file itself comes straight from Archive.
+      // Flat, per-game BigEndian ROMs. Files are usually 8–64 MB, so try
+      // the proxy first but always offer the direct Archive download too.
       iaBaseUrl: 'https://archive.org/download/pack-roms-nintendo-64-eu-us-jap',
       iaDescriptionPrefix: 'Nintendo 64 game',
       iaFileExtensions: ['.z64'],
+      iaBinaryTimeout: 180000,
       howto: [
-        'Tap a game to get its Internet Archive download link.',
-        'Wait for the file to save, then Load saved ROM.',
+        'Tap a game, then Play in browser.',
+        'If it hangs, tap Download instead, wait for the file, then Load saved ROM.',
         'A gamepad helps. Keyboard still works for menus.'
       ],
       romHelp:
-        'These games are big (often 8–64 MB). Download from Internet Archive, then load the saved .z64 here.',
+        'These games are big (often 8–64 MB). If Play in browser times out, use Download instead, then Load saved ROM.',
       controls: [
         { label: 'Analog stick', key: 'Arrow keys' },
         { label: 'A / B', key: 'X / Z' },
@@ -544,14 +545,17 @@
       accentHex: '#0070d1',
       accentGoldHex: '#003791',
       // Curated Redump → CHD set (single-file discs EmulatorJS can load).
-      // Raw .iso dumps are rare as flat IA listings; CHD is the searchable
-      // stand-in. Disc images run 100–500+ MB, so they are downloaded from
-      // Archive and loaded back through the picker.
+      // Raw .iso dumps are rare as flat IA listings; CHD is the searchable stand-in.
+      // Disc images are 100–500+ MB. Direct play is best-effort; downloading
+      // locally remains available when browser proxies cannot ferry the file.
       iaBaseUrl: 'https://archive.org/download/CuratedPSXRedumpCHDs',
       iaDescriptionPrefix: 'PlayStation game',
       iaFileExtensions: ['.chd'],
       iaPreferMetadata: true,
       iaExternalDownload: true,
+      iaAllowInBrowser: true,
+      iaBinaryTimeout: 300000,
+      iaMaxRetries: 1,
       biosRequired: true,
       // Canonical name for pcsx_rearmed; IA source file is renamed on fetch.
       biosFileName: 'scph5501.bin',
@@ -563,12 +567,12 @@
         'US BIOS auto-loads once, then stays in this browser. EU/JP: load scph5502.bin / scph5500.bin manually.',
       howto: [
         'Wait for BIOS “ready”.',
-        'Browse Collection, download the disc from Internet Archive, then Load local disc.',
+        'Browse Collection → Play in browser, or Download instead then Load local disc.',
         'Use Save (F5) / Load (F9) on the bar — that is a quick save, not the in-game memory card menu.',
         'Gamepad recommended.'
       ],
       romHelp:
-        'PS1 discs are large and are never streamed into the page. Download from Internet Archive, then load the saved .chd here. F5 quick-saves; F9 loads it. That is not the in-game memory card menu.',
+        'PS1 discs are large. If Play in browser times out, Download instead, then Load local disc. F5 quick-saves; F9 loads it. That is not the in-game memory card menu.',
       showSaveStates: true,
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
