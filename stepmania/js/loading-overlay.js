@@ -25,6 +25,40 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * @param {string} difficulty
+ * @returns {string}
+ */
+function difficultyTone(difficulty) {
+  const tones = {
+    beginner: 'b',
+    easy: 'l',
+    basic: 'l',
+    light: 'l',
+    medium: 's',
+    difficult: 's',
+    standard: 's',
+    another: 's',
+    hard: 'h',
+    expert: 'h',
+    heavy: 'h',
+    challenge: 'c',
+    edit: 'e'
+  };
+  return tones[String(difficulty || '').toLowerCase()] || 'u';
+}
+
+/**
+ * @param {{ difficulty?: string, rating?: number }|undefined} chart
+ * @returns {string}
+ */
+function startLabel(chart) {
+  if (!chart) return 'Start';
+  const name = chart.difficulty || 'Chart';
+  const rating = Number(chart.rating);
+  return Number.isFinite(rating) && rating > 0 ? `Start · ${name} ${rating}` : `Start · ${name}`;
+}
+
 class LoadingOverlayElement extends HTMLElement {
   /** @type {LoadingOverlayElement|null} */
   static _instance = null;
@@ -62,7 +96,10 @@ class LoadingOverlayElement extends HTMLElement {
     this._onBrowse = null;
     this._onRetry = null;
     this._onBack = null;
+    this._onCancel = null;
     this._onDifficultyChange = null;
+    this._allowRetry = true;
+    this._artist = '';
   }
 
   connectedCallback() {
@@ -79,264 +116,250 @@ class LoadingOverlayElement extends HTMLElement {
     const isLoading = this._state === STATES.LOADING;
     const isError = this._state === STATES.ERROR;
     const isReady = this._state === STATES.READY;
-
-    const difficultyClass = !isReady || this._charts.length === 0 ? 'hidden' : '';
-    const difficultyOptions = this._charts
-      .map((chart, i) => {
-        const selected = i === this._currentDifficulty ? 'selected' : '';
-        return `<option value="${i}" ${selected}>${escapeHtml(chart.difficulty)} (${escapeHtml(
-          chart.rating
-        )})</option>`;
+    const showCharts = isReady && this._charts.length > 0;
+    const showVideo =
+      isReady &&
+      this._hasVideo &&
+      (this._videoStatus === 'pending' || this._videoStatus === 'loading');
+    const chart = this._charts[this._currentDifficulty];
+    const chartsHtml = this._charts
+      .map((item, i) => {
+        const tone = difficultyTone(item.difficulty);
+        const pressed = i === this._currentDifficulty ? 'true' : 'false';
+        return `<button type="button" class="chart-choice tone-${tone}" data-index="${i}" aria-pressed="${pressed}">
+          <span class="chart-name">${escapeHtml(item.difficulty || 'Chart')}</span>
+          <span class="chart-rating">${escapeHtml(item.rating ?? '')}</span>
+        </button>`;
       })
       .join('');
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host {
-          display: block;
-        }
-        /* All chrome routes through /brand.css custom properties (which
-         * inherit through the shadow boundary). The previous palette
-         * (purple #a855f7, gray-700 #374151, etc.) was a fixed dark
-         * theme — this version reuses brand surfaces so a theme swap
-         * re-tints the loading overlay without touching this module. */
+        :host { display: block; }
         .overlay {
           position: fixed;
           inset: 0;
-          background: var(--scrim-strong);
           z-index: 70;
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: 1.25rem;
+          background: color-mix(in srgb, var(--pure-black) 62%, transparent);
+          backdrop-filter: blur(8px);
         }
-        .overlay.hidden {
-          display: none;
-        }
-        .content {
+        .overlay.hidden { display: none; }
+        .card {
+          width: min(100%, 32rem);
+          padding: 1.6rem 1.35rem 1.2rem;
+          border-radius: 1.25rem;
+          border: 1px solid var(--hairline-accent);
+          background: linear-gradient(180deg, var(--surface-1), var(--surface-0));
+          box-shadow: 0 28px 70px color-mix(in srgb, var(--pure-black) 45%, transparent);
           text-align: center;
-          max-width: 28rem;
-          padding: 1rem;
         }
         .spinner {
-          display: inline-block;
-          width: 4rem;
-          height: 4rem;
-          border: 4px solid var(--accent-primary);
-          border-top-color: transparent;
+          width: 2.4rem;
+          height: 2.4rem;
+          margin: 0 auto 1rem;
+          border: 3px solid color-mix(in srgb, var(--accent-primary) 35%, transparent);
+          border-top-color: var(--accent-primary);
           border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 1.5rem;
+          animation: spin 0.8s linear infinite;
         }
-        .spinner.hidden { display: none; }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .error-icon {
-          display: inline-flex;
-          width: 4rem;
-          height: 4rem;
-          background: var(--danger);
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-mark {
+          width: 2.6rem;
+          height: 2.6rem;
+          margin: 0 auto 0.9rem;
           border-radius: 50%;
-          margin-bottom: 1.5rem;
+          display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.5rem;
+          background: color-mix(in srgb, var(--danger) 18%, transparent);
+          color: var(--danger);
+          font-weight: 800;
+          font-size: 1.25rem;
         }
-        .error-icon.hidden { display: none; }
         .title {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--pure-white);
-          margin-bottom: 0.5rem;
+          margin: 0;
+          font-size: 1.55rem;
+          line-height: 1.2;
+          font-weight: 750;
+          color: var(--text-1);
+          overflow-wrap: anywhere;
+        }
+        .artist {
+          margin: 0.35rem 0 0;
+          color: var(--text-2);
+          font-size: 0.95rem;
         }
         .status {
-          color: var(--pure-white);
-          opacity: 0.85;
-          margin-bottom: 1rem;
+          margin: 0.7rem 0 0;
+          color: var(--text-2);
+          font-size: 0.95rem;
+          line-height: 1.45;
           overflow-wrap: anywhere;
-          word-break: break-word;
         }
-        .progress-container {
-          margin-top: 1rem;
-          width: 16rem;
-          background: var(--surface-2);
-          border-radius: 9999px;
-          height: 0.5rem;
-          margin-left: auto;
-          margin-right: auto;
+        .chart-list {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 0.5rem;
+          margin: 1.1rem 0 0.2rem;
         }
-        .progress-container.hidden { display: none; }
-        .progress-bar {
-          background: var(--accent-primary);
-          height: 0.5rem;
-          border-radius: 9999px;
-          transition: width 0.3s ease;
-        }
-        .buttons {
-          margin-top: 1rem;
+        .chart-choice {
+          flex: 1 1 4.5rem;
+          max-width: 6.2rem;
+          min-width: 4.4rem;
+          padding: 0.45rem 0.55rem 0.4rem;
+          border: 0;
+          border-radius: 0.8rem;
+          cursor: pointer;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.05rem;
+          box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pure-black) 18%, transparent);
         }
-        @media (min-width: 640px) {
-          .buttons {
-            flex-direction: row;
-            justify-content: center;
-          }
-        }
-        .buttons.hidden { display: none; }
-        button {
-          padding: 0.5rem 1.5rem;
-          font-weight: 600;
-          border-radius: 0.5rem;
-          border: none;
-          cursor: pointer;
-          transition: filter 0.2s;
-          color: var(--text-on-accent);
-        }
-        button:hover { filter: brightness(0.92); }
-        button:focus-visible, .difficulty-select:focus-visible {
-          outline: 3px solid #ffbf47;
+        .chart-choice[aria-pressed="true"] {
+          outline: 2px solid var(--text-1);
           outline-offset: 3px;
         }
-        .btn-play {
-          background: var(--success);
+        .chart-choice:focus-visible {
+          outline: 3px solid var(--warning);
+          outline-offset: 3px;
         }
-        .btn-browse {
-          background: var(--accent-primary);
+        .chart-name {
+          font-size: 0.65rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
         }
-        .btn-retry {
-          background: var(--accent-primary);
+        .chart-rating {
+          font-size: 1.25rem;
+          font-weight: 800;
+          line-height: 1.1;
         }
-        .btn-back {
-          background: var(--surface-2);
-          color: var(--text-1);
+        .tone-b {
+          background: linear-gradient(135deg, var(--sm-badge-sky-lo, #0ea5e9), var(--sm-badge-sky-hi, #38bdf8));
+          color: var(--pure-black);
         }
-        .hidden { display: none !important; }
-        .difficulty-container {
-          margin-top: 1rem;
-          text-align: center;
+        .tone-l {
+          background: linear-gradient(135deg, var(--sm-badge-orange-lo, #f97316), var(--sm-badge-orange-hi, #fb923c));
+          color: var(--pure-black);
         }
-        .difficulty-container.hidden { display: none; }
-        .difficulty-label {
-          display: block;
-          font-size: 0.875rem;
-          font-weight: 500;
+        .tone-s {
+          background: linear-gradient(135deg, var(--sm-badge-red-lo, #dc2626), var(--sm-badge-red-hi, #ef4444));
           color: var(--pure-white);
-          opacity: 0.85;
-          margin-bottom: 0.5rem;
         }
-        .difficulty-select {
-          padding: 0.5rem 1rem;
-          background: var(--surface-1);
-          border: 1px solid var(--hairline-strong);
-          border-radius: 0.5rem;
-          color: var(--text-1);
-          font-size: 1rem;
+        .tone-h {
+          background: linear-gradient(135deg, var(--sm-badge-green-lo, #16a34a), var(--sm-badge-green-hi, #22c55e));
+          color: var(--pure-black);
         }
-        .difficulty-select:focus {
-          outline: none;
-          box-shadow: 0 0 0 2px var(--accent-primary);
-          border-color: transparent;
+        .tone-c {
+          background: linear-gradient(135deg, var(--sm-badge-purple-lo, #9333ea), var(--sm-badge-purple-hi, #a855f7));
+          color: var(--pure-white);
+        }
+        .tone-e {
+          background: linear-gradient(135deg, var(--sm-badge-teal-lo, #0d9488), var(--sm-badge-teal-hi, #14b8a6));
+          color: var(--pure-white);
+        }
+        .tone-u {
+          background: linear-gradient(135deg, var(--text-3), var(--text-2));
+          color: var(--pure-black);
+        }
+        .actions {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0.15rem;
+          margin-top: 1rem;
+        }
+        button {
+          font: inherit;
+          cursor: pointer;
+          border: 0;
+        }
+        /* Dark-theme --success (#56d364) is too light for white type (~2:1).
+           The accent, pulled toward black, keeps --text-on-accent readable. */
+        .btn-play, .btn-solid {
+          width: 100%;
+          padding: 0.85rem 1rem;
+          border-radius: 0.85rem;
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--text-on-accent);
+          background: color-mix(in srgb, var(--accent-primary) 62%, var(--pure-black));
+        }
+        .btn-play:hover, .btn-solid:hover {
+          background: color-mix(in srgb, var(--accent-primary) 78%, var(--pure-black));
+        }
+        .btn-text {
+          background: transparent;
+          color: var(--text-2);
+          font-weight: 600;
+          font-size: 0.92rem;
+          padding: 0.55rem 0.4rem;
+        }
+        .btn-text:hover { color: var(--text-1); }
+        button:focus-visible {
+          outline: 3px solid var(--warning);
+          outline-offset: 3px;
         }
         .video-status {
-          margin-top: 1rem;
-          padding: 0.5rem 1rem;
-          border-radius: 0.5rem;
-          font-size: 0.875rem;
-          display: block;
-          max-width: 100%;
-          line-height: 1.45;
-          text-align: left;
+          margin: 0.85rem 0 0;
+          color: var(--text-3);
+          font-size: 0.8rem;
+          line-height: 1.4;
         }
-        .video-status.hidden {
-          display: none;
-        }
-        .video-pending {
-          background: var(--surface-2);
-          color: var(--text-2);
-        }
-        .video-loading {
-          background: var(--accent-primary-soft);
-          color: var(--accent-primary);
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-        .video-ready {
-          background: var(--success-soft);
-          color: var(--success);
-        }
-        .video-failed {
-          background: var(--danger-soft);
-          color: var(--danger);
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
-        }
+        .hidden { display: none !important; }
       </style>
-
       <div
         class="overlay ${isHidden ? 'hidden' : ''}"
         id="overlay"
         role="dialog"
         aria-modal="true"
         aria-labelledby="title"
+        ${!isReady && this._status ? 'aria-describedby="status"' : ''}
+        tabindex="-1"
       >
-        <div class="content">
-          <!-- Spinner -->
-          <div class="spinner ${!isLoading ? 'hidden' : ''}" id="spinner"></div>
-          
-          <!-- Error Icon -->
-          <div class="error-icon ${!isError ? 'hidden' : ''}" id="error-icon">⚠️</div>
-          
-          <!-- Title & Status -->
+        <div class="card">
+          <div class="spinner ${isLoading ? '' : 'hidden'}" id="spinner" aria-hidden="true"></div>
+          <div class="error-mark ${
+            isError ? '' : 'hidden'
+          }" id="error-icon" aria-hidden="true">!</div>
           <h2 class="title" id="title">${escapeHtml(this._title)}</h2>
-          <p class="status" id="status">${escapeHtml(this._status)}</p>
-          
-          <!-- Progress Bar -->
-          <div class="progress-container ${!isLoading ? 'hidden' : ''}" id="progress-container">
-            <div class="progress-bar" id="progress-bar" style="width: ${this._progress}%"></div>
+          <p class="artist ${isReady && this._artist ? '' : 'hidden'}" id="artist">${escapeHtml(
+      this._artist
+    )}</p>
+          <p class="status ${isReady ? 'hidden' : ''}" id="status" aria-live="polite">${escapeHtml(
+      this._status
+    )}</p>
+          <div class="chart-list ${
+            showCharts ? '' : 'hidden'
+          }" id="chart-list" role="group" aria-label="Difficulty">
+            ${chartsHtml}
           </div>
-          
-          <!-- Loading Cancel Button -->
-          <div class="buttons ${
-            !isLoading ? 'hidden' : ''
-          }" id="loading-buttons" style="margin-top: 1rem;">
-            <button class="btn-browse" id="loading-browse-btn">📚 Choose Different Song</button>
+          <div class="actions ${isLoading ? '' : 'hidden'}" id="loading-buttons">
+            <button type="button" class="btn-text" id="loading-browse-btn">Pick a different song</button>
           </div>
-          
-          <!-- Error Buttons -->
-          <div class="buttons ${!isError ? 'hidden' : ''}" id="error-buttons">
-            <button class="btn-retry" id="retry-btn">Retry</button>
-            <button class="btn-back" id="back-btn">Back to Browser</button>
+          <div class="actions ${isError ? '' : 'hidden'}" id="error-buttons">
+            <button type="button" class="btn-solid ${
+              this._allowRetry ? '' : 'hidden'
+            }" id="retry-btn">Retry</button>
+            <button type="button" class="${
+              this._allowRetry ? 'btn-text' : 'btn-solid'
+            }" id="back-btn">Pick a different song</button>
           </div>
-          
-          <!-- Ready Buttons -->
-          <div class="buttons ${!isReady ? 'hidden' : ''}" id="ready-buttons">
-            <button class="btn-play" id="play-btn">🎵 Start Playing</button>
-            <button class="btn-browse" id="browse-btn">📚 Song Browser</button>
+          <div class="actions ${isReady ? '' : 'hidden'}" id="ready-buttons">
+            <button type="button" class="btn-play" id="play-btn">${escapeHtml(
+              startLabel(chart)
+            )}</button>
+            <button type="button" class="btn-text" id="ready-back-btn">Pick a different song</button>
           </div>
-          
-          <!-- Back button for ready state -->
-          <div class="buttons ${!isReady ? 'hidden' : ''}" style="margin-top: 0.5rem;">
-            <button class="btn-back" id="ready-back-btn">← Back</button>
-          </div>
-          
-          <!-- Difficulty Selector -->
-          <div class="difficulty-container ${difficultyClass}" id="difficulty-container">
-            <label class="difficulty-label" for="difficulty-select">Select Difficulty:</label>
-            <select class="difficulty-select" id="difficulty-select" aria-label="Difficulty">
-              ${difficultyOptions}
-            </select>
-          </div>
-          
-          <!-- Video Status -->
-          <div id="video-status" class="video-status ${
-            this._hasVideo ? 'video-pending' : 'hidden'
-          }">
-            ${this._hasVideo ? '🎬 Preparing video...' : ''}
-          </div>
+          <p id="video-status" class="video-status ${showVideo ? 'video-note' : 'hidden'}">${
+      showVideo ? 'Background video still converting' : ''
+    }</p>
         </div>
       </div>
     `;
@@ -347,22 +370,15 @@ class LoadingOverlayElement extends HTMLElement {
    */
   bindEvents() {
     const playBtn = this.shadowRoot.getElementById('play-btn');
-    const browseBtn = this.shadowRoot.getElementById('browse-btn');
     const retryBtn = this.shadowRoot.getElementById('retry-btn');
     const backBtn = this.shadowRoot.getElementById('back-btn');
     const readyBackBtn = this.shadowRoot.getElementById('ready-back-btn');
     const loadingBrowseBtn = this.shadowRoot.getElementById('loading-browse-btn');
-    const difficultySelect = this.shadowRoot.getElementById('difficulty-select');
+    const chartList = this.shadowRoot.getElementById('chart-list');
 
     if (playBtn) {
       playBtn.addEventListener('click', () => {
         if (this._onPlay) this._onPlay();
-      });
-    }
-
-    if (browseBtn) {
-      browseBtn.addEventListener('click', () => {
-        if (this._onBrowse) this._onBrowse();
       });
     }
 
@@ -384,24 +400,37 @@ class LoadingOverlayElement extends HTMLElement {
       });
     }
 
-    // Loading state browse button - opens song browser
     if (loadingBrowseBtn) {
       loadingBrowseBtn.addEventListener('click', () => {
+        if (this._onCancel) {
+          this._onCancel();
+          return;
+        }
         this.hide();
         const zeniusBrowser = document.querySelector('zenius-browser');
         if (zeniusBrowser && typeof zeniusBrowser.showBrowser === 'function') {
           zeniusBrowser.showBrowser();
         }
-        // Clear URL params to prevent reloading the same song
         window.history.pushState({}, '', window.location.pathname);
       });
     }
 
-    if (difficultySelect) {
-      difficultySelect.addEventListener('change', (e) => {
-        const index = parseInt(e.target.value);
-        this._currentDifficulty = index;
-        if (this._onDifficultyChange) this._onDifficultyChange(index);
+    if (chartList) {
+      chartList.addEventListener('click', (event) => {
+        const button =
+          event.target instanceof Element ? event.target.closest('.chart-choice') : null;
+        if (!(button instanceof HTMLElement)) return;
+        this.selectChart(Number(button.dataset.index));
+      });
+      chartList.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+        event.preventDefault();
+        const count = this._charts.length;
+        if (!count) return;
+        const delta = event.key === 'ArrowRight' ? 1 : -1;
+        const next = (this._currentDifficulty + delta + count) % count;
+        this.selectChart(next);
+        this.shadowRoot.querySelector('.chart-choice[data-index="' + next + '"]')?.focus();
       });
     }
 
@@ -436,6 +465,20 @@ class LoadingOverlayElement extends HTMLElement {
     });
   }
 
+  /**
+   * @param {number} index
+   */
+  selectChart(index) {
+    if (!Number.isInteger(index) || index < 0 || index >= this._charts.length) return;
+    this._currentDifficulty = index;
+    this.shadowRoot.querySelectorAll('.chart-choice').forEach((button, i) => {
+      button.setAttribute('aria-pressed', i === index ? 'true' : 'false');
+    });
+    const playBtn = this.shadowRoot.getElementById('play-btn');
+    if (playBtn) playBtn.textContent = startLabel(this._charts[index]);
+    if (this._onDifficultyChange) this._onDifficultyChange(index);
+  }
+
   visibleControls() {
     const overlay = this.shadowRoot.getElementById('overlay');
     if (!overlay) return [];
@@ -455,79 +498,89 @@ class LoadingOverlayElement extends HTMLElement {
   }
 
   focusPrimaryAction() {
+    if (this._state === STATES.LOADING) {
+      this.shadowRoot.getElementById('overlay')?.focus();
+      return;
+    }
     const id =
       this._state === STATES.READY
         ? 'play-btn'
         : this._state === STATES.ERROR
-        ? 'retry-btn'
-        : this._state === STATES.LOADING
-        ? 'loading-browse-btn'
+        ? this._allowRetry
+          ? 'retry-btn'
+          : 'back-btn'
         : '';
     const target = id ? this.shadowRoot.getElementById(id) : null;
     if (target) target.focus({ focusVisible: true });
   }
 
-  // ============================================================================
-  // PUBLIC API
-  // ============================================================================
-
   /**
-   * Show loading state with progress
-   * @param {string} songTitle - Song being loaded
-   * @param {string} status - Status message
-   * @param {number} progress - Progress 0-100
+   * @param {string} songTitle
+   * @param {string} [status]
    */
-  showLoading(songTitle, status = 'Preparing audio and charts...', progress = 0) {
+  showLoading(songTitle, status = 'Getting the chart') {
     this._state = STATES.LOADING;
-    this._title = `Loading ${songTitle}...`;
-    this._status = status;
-    this._progress = progress;
+    this._title = songTitle || 'Song';
+    this._artist = '';
+    this._status = status || 'Getting the chart';
+    this._charts = [];
+    this._hasVideo = false;
+    this._videoStatus = null;
     this.render();
     this.bindEvents();
     this.focusPrimaryAction();
   }
 
   /**
-   * Update progress during loading
-   * @param {string} status - New status message
-   * @param {number} progress - Progress 0-100
+   * The ready screen owns its copy. Later setup work must not rewrite it.
+   * @param {string} status
    */
-  updateProgress(status, progress) {
+  updateProgress(status) {
+    if (this._state === STATES.READY || this._state === STATES.HIDDEN) return;
     this._status = status;
-    this._progress = progress;
-
     const statusEl = this.shadowRoot.getElementById('status');
-    const progressBar = this.shadowRoot.getElementById('progress-bar');
-
     if (statusEl) statusEl.textContent = status;
-    if (progressBar) progressBar.style.width = `${progress}%`;
   }
 
   /**
-   * Show error state
-   * @param {string} title - Error title
-   * @param {string} message - Error message
-   * @param {Object} options - Optional callbacks
-   * @param {Function} options.onRetry - Retry callback
-   * @param {Function} options.onBack - Back callback
+   * @param {string} title
+   */
+  setTitle(title) {
+    const next = String(title || '').trim();
+    if (!next || this._state === STATES.READY) return;
+    this._title = next;
+    const el = this.shadowRoot?.getElementById('title');
+    if (el) el.textContent = next;
+  }
+
+  /**
+   * @param {Function} onCancel
+   */
+  setCancelHandler(onCancel) {
+    this._onCancel = onCancel;
+  }
+
+  /**
+   * @param {string} title
+   * @param {string} message
+   * @param {{ onRetry?: Function, onBack?: Function, allowRetry?: boolean }} [options]
    */
   showError(title, message, options = {}) {
     this._state = STATES.ERROR;
     this._title = title;
+    this._artist = '';
     this._status = message;
+    this._allowRetry = options.allowRetry !== false;
 
-    // Set callbacks with defaults
     this._onRetry = options.onRetry || (() => window.location.reload());
     this._onBack =
       options.onBack ||
       (() => {
-        // Default: open the zenius browser dialog
         const zeniusBrowser = document.querySelector('zenius-browser');
         if (zeniusBrowser && typeof zeniusBrowser.showBrowser === 'function') {
           this.hide();
           zeniusBrowser.showBrowser();
         } else {
-          // Fallback: just hide and go to base URL
           this.hide();
           window.history.pushState({}, '', window.location.pathname);
         }
@@ -539,17 +592,21 @@ class LoadingOverlayElement extends HTMLElement {
   }
 
   /**
-   * Show ready to play state
-   * @param {Object} options - Configuration
-   * @param {Function} options.onPlay - Play callback
-   * @param {Function} options.onBrowse - Browse callback
-   * @param {Function} options.onBack - Back callback
-   * @param {Function} options.onDifficultyChange - Difficulty change callback
-   * @param {Array} options.charts - Available charts
-   * @param {number} options.currentDifficulty - Current difficulty index
+   * @param {Object} options
+   * @param {string} [options.songTitle]
+   * @param {string} [options.artist]
+   * @param {Function} [options.onPlay]
+   * @param {Function} [options.onBrowse]
+   * @param {Function} [options.onBack]
+   * @param {Function} [options.onDifficultyChange]
+   * @param {Array} [options.charts]
+   * @param {number} [options.currentDifficulty]
+   * @param {boolean} [options.hasVideo]
    */
   showReadyToPlay(options = {}) {
     const {
+      songTitle = 'Song',
+      artist = '',
       onPlay,
       onBrowse,
       onBack,
@@ -560,16 +617,19 @@ class LoadingOverlayElement extends HTMLElement {
     } = options;
 
     this._state = STATES.READY;
-    this._title = 'Ready to Play!';
-    this._status = 'Click the Start Playing button to begin';
+    this._title = songTitle || 'Song';
+    this._artist = artist || '';
+    this._status = '';
     this._charts = charts;
-    this._currentDifficulty = currentDifficulty;
+    const index = Number(currentDifficulty);
+    this._currentDifficulty =
+      Number.isInteger(index) && index >= 0 && index < charts.length ? index : 0;
     this._onPlay = onPlay;
     this._onBrowse = onBrowse;
     this._onBack = onBack;
     this._onDifficultyChange = onDifficultyChange;
     this._hasVideo = hasVideo;
-    this._videoStatus = hasVideo ? 'pending' : null; // pending, loading, ready, failed, unavailable
+    this._videoStatus = hasVideo ? 'pending' : null;
     this._videoProgress = 0;
 
     this.render();
@@ -578,48 +638,31 @@ class LoadingOverlayElement extends HTMLElement {
   }
 
   /**
-   * Update video loading status
-   * @param {string} status - 'loading', 'ready', 'failed', 'unavailable'
-   * @param {number} progress - Progress percentage (0-100) for loading status
+   * @param {string} status
+   * @param {number} [progress]
    */
   updateVideoStatus(status, progress = 0) {
     this._videoStatus = status;
     this._videoProgress = progress;
 
     let statusText = '';
-    let statusClass = '';
+    let statusClass = 'hidden';
 
-    switch (status) {
-      case 'loading':
-        statusText = `🎬 Converting video... ${progress}%`;
-        statusClass = 'video-loading';
-        break;
-      case 'ready':
-        statusText = '🎬 Video ready!';
-        statusClass = 'video-ready';
-        break;
-      case 'failed':
-        statusText = '🎬 Video unavailable (using background)';
-        statusClass = 'video-failed';
-        break;
-      case 'unavailable':
-        statusText = videoContextStatusMessage('preloadOverlay');
-        statusClass = 'video-failed';
-        break;
-      default:
-        statusText = '🎬 Preparing video...';
-        statusClass = 'video-pending';
+    if (status === 'loading' || status === 'pending') {
+      statusText =
+        progress > 0
+          ? `Background video still converting · ${progress}%`
+          : 'Background video still converting';
+      statusClass = 'video-note';
     }
 
-    // Source-of-truth log: always runs when the overlay line changes (avoids missing callers / log level).
     logVideoLoad('overlay.updateVideoStatus', {
       status,
       progress,
-      statusText,
+      statusText: statusText || videoContextStatusMessage('preloadOverlay'),
       hasShadowRoot: !!this.shadowRoot
     });
 
-    // Update the video status element if it exists
     const videoStatusEl = this.shadowRoot?.getElementById('video-status');
     if (videoStatusEl) {
       videoStatusEl.textContent = statusText;
@@ -632,9 +675,6 @@ class LoadingOverlayElement extends HTMLElement {
     }
   }
 
-  /**
-   * Hide the overlay
-   */
   hide() {
     this._state = STATES.HIDDEN;
     const overlay = this.shadowRoot.getElementById('overlay');
@@ -642,9 +682,8 @@ class LoadingOverlayElement extends HTMLElement {
   }
 
   /**
-   * Set retry/back handlers
-   * @param {Function} onRetry - Retry callback
-   * @param {Function} onBack - Back callback
+   * @param {Function} onRetry
+   * @param {Function} onBack
    */
   setErrorHandlers(onRetry, onBack) {
     this._onRetry = onRetry;
@@ -652,7 +691,6 @@ class LoadingOverlayElement extends HTMLElement {
   }
 
   /**
-   * Get current state
    * @returns {string}
    */
   get state() {
@@ -660,10 +698,8 @@ class LoadingOverlayElement extends HTMLElement {
   }
 }
 
-// Register the web component
 customElements.define('loading-overlay', LoadingOverlayElement);
 
-// Create proxy for singleton access: LoadingOverlay.showLoading(...) instead of LoadingOverlay.get()?.showLoading(...)
 export const LoadingOverlay = createComponentProxy(LoadingOverlayElement);
 
 export default LoadingOverlay;

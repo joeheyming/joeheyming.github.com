@@ -8,8 +8,10 @@ import {
   fetchZeniusSimfile,
   parseZeniusSimfile,
   fetchZeniusAudioFromZip,
-  formatLoadError
+  formatLoadError,
+  isStructuralSongFailure
 } from './songLoader.js';
+import { rememberUnplayable } from './zeniusLibraryStorage.js';
 import { DifficultySelector } from './difficulty-selector.js';
 import { ZeniusBrowser } from './zenius-browser.js';
 import { getURLParams, updateURLParams, clearURLParams } from './urlUtils.js';
@@ -104,6 +106,11 @@ export class MainPageController {
       });
     }
 
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay && typeof overlay.setCancelHandler === 'function') {
+      overlay.setCancelHandler(() => this.handleBackToBrowser());
+    }
+
     const settingsBtn = document.getElementById('settings-btn');
     const settingsSheet = document.getElementById('settings-sheet');
     if (settingsBtn && settingsSheet) {
@@ -166,18 +173,15 @@ export class MainPageController {
     let simfileId = null;
 
     try {
-      LoadingOverlay.showLoading('from Song Library', 'Parsing song URL...', 5);
+      LoadingOverlay.showLoading('Song', 'Getting the chart');
 
       simfileId = extractSimfileId(zeniusUrl);
       if (!simfileId) {
         throw new Error('Could not extract simfile ID from song URL');
       }
 
-      LoadingOverlay.updateProgress('Fetching simfile data...', 15);
-
       const simfileData = await fetchZeniusSimfile(simfileId, songManager.getProxyTransport());
-
-      LoadingOverlay.updateProgress('Parsing simfile charts...', 50);
+      LoadingOverlay.setTitle(simfileData.title || 'Song');
 
       const { songKey, songData, parsedData } = parseZeniusSimfile(simfileData, simfileId);
 
@@ -199,8 +203,6 @@ export class MainPageController {
         ZeniusBrowser.rememberCategory(simfileData.categoryId, simfileData.categoryName);
       }
 
-      LoadingOverlay.updateProgress('Setting up song...', 70);
-
       this.setCurrentSong(songKey, songData);
       this.setCurrentDifficulty(difficulty || 0);
 
@@ -209,7 +211,7 @@ export class MainPageController {
 
       updateURLParams({ zenius: zeniusUrl, difficulty: difficulty || 0 });
 
-      LoadingOverlay.updateProgress('Starting game...', 85);
+      LoadingOverlay.updateProgress('Getting the audio');
       document.getElementById('sub-title').textContent = simfileData.title;
       if (!document.documentElement.dataset.baseTitle) {
         document.documentElement.dataset.baseTitle = document.title;
@@ -220,10 +222,12 @@ export class MainPageController {
       LoadingOverlay.hide();
       console.error('Error loading from Song Library URL:', error);
       this.trackZeniusSongLoad('failed', 'song-data', error, simfileId);
-      LoadingOverlay.showError(
-        'Could not load song',
-        formatLoadError(error) || 'Network error — try again or return to the song browser'
-      );
+      const message =
+        formatLoadError(error) || 'Network error — try again or return to the song browser';
+      if (simfileId && isStructuralSongFailure(message)) {
+        rememberUnplayable(simfileId, message);
+      }
+      this.presentLoadError('Download failed', message);
       showHomeScreen();
       return false;
     } finally {
@@ -238,7 +242,7 @@ export class MainPageController {
     hideHomeScreen();
     this.lastZeniusUrl = null;
     try {
-      LoadingOverlay.showLoading(file.name, 'Reading pack...', 10);
+      LoadingOverlay.showLoading(file.name, 'Getting the chart');
       const name = file.name.toLowerCase();
       let pack;
       if (name.endsWith('.sm') || name.endsWith('.ssc')) {
@@ -253,7 +257,7 @@ export class MainPageController {
     } catch (error) {
       LoadingOverlay.hide();
       console.error('Error loading local pack:', error);
-      LoadingOverlay.showError('Could not load pack', formatLoadError(error) || String(error));
+      this.presentLoadError("Couldn't open that pack", formatLoadError(error) || String(error));
       showHomeScreen();
       return false;
     }
@@ -268,7 +272,7 @@ export class MainPageController {
     this.lastZeniusUrl = null;
     this.lastLocalId = localId;
     try {
-      LoadingOverlay.showLoading('local pack', 'Opening saved draft...', 10);
+      LoadingOverlay.showLoading('Saved draft', 'Getting the chart');
       const draft = await loadDraft(localId);
       if (!draft?.zipBlob) {
         throw new Error('That editor draft was not found on this device.');
@@ -279,7 +283,7 @@ export class MainPageController {
     } catch (error) {
       LoadingOverlay.hide();
       console.error('Error loading local draft:', error);
-      LoadingOverlay.showError('Could not load draft', formatLoadError(error) || String(error));
+      this.presentLoadError("Couldn't open that pack", formatLoadError(error) || String(error));
       showHomeScreen();
       return false;
     }
@@ -292,7 +296,7 @@ export class MainPageController {
    */
   async playLoadedPack(pack, songKey, opts = {}) {
     revokePackObjectUrls();
-    LoadingOverlay.updateProgress('Parsing charts...', 40);
+    LoadingOverlay.updateProgress('Getting the chart');
     const { songData, parsedData } = songFromPack(pack, songKey);
     if (!parsedData.charts.length) {
       throw new Error('This pack has no dance-single charts to play.');
@@ -311,7 +315,6 @@ export class MainPageController {
     });
     const subTitle = document.getElementById('sub-title');
     if (subTitle) subTitle.textContent = parsedData.title;
-    LoadingOverlay.updateProgress('Starting game...', 70);
     await this.startSelectedSong(true, true);
   }
 
@@ -430,11 +433,12 @@ export class MainPageController {
         songManager.setCurrentDifficulty(0);
       } else {
         console.error('No charts available in this simfile');
+        const message = 'This simfile has no playable charts. Try a different song.';
         this.trackZeniusSongLoad('failed', 'charts', new Error('No playable charts'));
-        LoadingOverlay.showError(
-          'No Charts Available',
-          'This simfile has no playable charts. Try a different song.'
-        );
+        if (currentSong.key.startsWith('zenius_')) {
+          rememberUnplayable(currentSong.key.replace('zenius_', ''), message);
+        }
+        this.presentLoadError("This chart can't be played here", message);
         this._isLoadingSong = false;
         return false;
       }
@@ -443,31 +447,14 @@ export class MainPageController {
     try {
       if (!loadingAlreadyShown) {
         if (useMainLoading) {
-          LoadingOverlay.showLoading(currentSong.data.title, 'Loading audio and charts...', 10);
+          LoadingOverlay.showLoading(currentSong.data.title, 'Getting the audio');
         }
       }
 
-      const startProgress = loadingAlreadyShown ? 50 : 30;
-      const loaded = await this.loadSongIntoGame(
-        parsedData,
-        selectedChart,
-        startProgress,
-        useMainLoading
-      );
+      const loaded = await this.loadSongIntoGame(parsedData, selectedChart, useMainLoading);
       if (!loaded) {
         return false;
       }
-
-      if (useMainLoading) {
-        LoadingOverlay.updateProgress('Starting game...', 90);
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      if (useMainLoading) {
-        LoadingOverlay.updateProgress('Ready!', 100);
-      }
-      await new Promise((resolve) => setTimeout(resolve, 300));
       return true;
     } catch (error) {
       if (useMainLoading) {
@@ -480,13 +467,7 @@ export class MainPageController {
     }
   }
 
-  async loadSongIntoGame(parsedData, chart, startProgress = 30, useMainLoading = false) {
-    if (useMainLoading) {
-      LoadingOverlay.updateProgress('Setting up game data...', startProgress);
-    }
-
-    // The chart's timing model owns freezes and warps; #OFFSET stays
-    // separate because it shifts the whole chart against the audio file.
+  async loadSongIntoGame(parsedData, chart, useMainLoading = false) {
     const playTiming = playTimingForChart(parsedData, chart);
     const timing = playTiming.timing || buildTimingData({});
     const offset = Number.isFinite(playTiming.offset) ? playTiming.offset : -0.03;
@@ -508,9 +489,8 @@ export class MainPageController {
     gameState.setBgChanges(bgChanges);
     gameState.setNoteData(noteData);
 
-    const audioProgress = startProgress + 20;
     if (useMainLoading) {
-      LoadingOverlay.updateProgress('Loading audio file...', audioProgress);
+      LoadingOverlay.updateProgress('Getting the audio');
     }
 
     const currentSongData = songManager.getCurrentSongData();
@@ -523,11 +503,19 @@ export class MainPageController {
 
     if (currentSongData.audioBlob) {
       try {
-        await audioManager.loadBlob(currentSongData.audioBlob, mimeType);
+        try {
+          await audioManager.loadBlob(currentSongData.audioBlob, mimeType);
+        } catch (primaryError) {
+          if (!currentSongData.alternateBlob) throw primaryError;
+          await audioManager.loadBlob(
+            currentSongData.alternateBlob,
+            currentSongData.alternateType || mimeType
+          );
+        }
       } catch (error) {
         console.error('Audio failed to load:', error);
         this.trackZeniusSongLoad('failed', 'audio', error);
-        LoadingOverlay.showError('Could not load audio', formatLoadError(error));
+        this.presentLoadError('Download failed', formatLoadError(error));
         throw error;
       }
     } else if (zeniusSong) {
@@ -539,11 +527,7 @@ export class MainPageController {
       // Pages with only a chart and a ZIP have no direct audio URL. Skip the
       // file fetch and use the pack fallback below.
       if (audioUrl) {
-        // Try direct proxy download first (with short timeout - many files are blocked)
         try {
-          if (useMainLoading) {
-            LoadingOverlay.updateProgress('Downloading audio file...', audioProgress + 5);
-          }
           // Default proxy order. Don't defer a host here — that used to
           // push the download through rate-limited proxies until retries
           // gave up.
@@ -573,7 +557,7 @@ export class MainPageController {
       if (!audioLoaded && alternateUrl && alternateUrl !== audioUrl) {
         try {
           if (useMainLoading) {
-            LoadingOverlay.updateProgress('Trying the other audio format...', audioProgress + 8);
+            LoadingOverlay.updateProgress('Trying another download');
           }
           const alternateData = await songManager.getProxyTransport().fetchBinary(alternateUrl, {
             skipDirect: true,
@@ -600,10 +584,7 @@ export class MainPageController {
         const simfileId = currentSongKey.replace('zenius_', '');
         try {
           if (useMainLoading) {
-            LoadingOverlay.updateProgress(
-              'Downloading song pack (fallback)...',
-              audioProgress + 10
-            );
+            LoadingOverlay.updateProgress('Trying another download');
           }
           const zipResult = await fetchZeniusAudioFromZip(
             simfileId,
@@ -628,7 +609,7 @@ export class MainPageController {
 
       if (!audioLoaded) {
         this.trackZeniusSongLoad('failed', 'audio', lastAudioError);
-        LoadingOverlay.showError('Could not load audio', formatLoadError(lastAudioError));
+        this.presentLoadError('Download failed', formatLoadError(lastAudioError));
         return false;
       }
     } else {
@@ -638,7 +619,7 @@ export class MainPageController {
       } catch (error) {
         console.error('Audio failed to load:', error);
         this.trackZeniusSongLoad('failed', 'audio', error);
-        LoadingOverlay.showError('Could not load audio', formatLoadError(error));
+        this.presentLoadError('Download failed', formatLoadError(error));
         throw error;
       }
     }
@@ -656,11 +637,6 @@ export class MainPageController {
 
     this.showReadyToPlayMessage();
 
-    const visualProgress = startProgress + 40;
-    if (useMainLoading) {
-      LoadingOverlay.updateProgress('Setting up visuals...', visualProgress);
-    }
-
     const gameArea = document.getElementById('sm-micro');
     const overlay = 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7))';
     if (currentSongData.background) {
@@ -669,12 +645,6 @@ export class MainPageController {
       gameArea.style.backgroundImage = overlay;
     }
 
-    const chartProgress = startProgress + 50;
-    if (useMainLoading) {
-      LoadingOverlay.updateProgress('Preparing note charts...', chartProgress);
-    }
-
-    // Reset the game for the new song
     resetGame();
     return true;
   }
@@ -755,22 +725,37 @@ export class MainPageController {
     ZeniusBrowser.showBrowser();
   }
 
+  /**
+   * @param {string} fallbackTitle
+   * @param {string} message
+   */
+  presentLoadError(fallbackTitle, message) {
+    const text = message || 'Something went wrong. Try again or pick another song.';
+    const structural =
+      isStructuralSongFailure(text) || /no music file|not found on this device/i.test(text);
+    LoadingOverlay.showError(structural ? "This chart can't be played here" : fallbackTitle, text, {
+      allowRetry: !structural,
+      onRetry: () => {
+        void this.handleRetry();
+      },
+      onBack: () => this.handleBackToBrowser()
+    });
+  }
+
   showReadyToPlayMessage() {
     const parsedData = songManager.getCurrentParsedData();
+    const song = songManager.getCurrentSongData() || {};
     const charts = parsedData?.charts || [];
-
-    // Check if we have a video to pre-load
-    const videoUrl = songManager.getCurrentSongData()?.video;
+    const videoUrl = song.video;
     const hasVideo = videoUrl && videoConverter?.isAviFile(videoUrl);
+    const leave = () => this.handleBackToBrowser();
 
     LoadingOverlay.showReadyToPlay({
+      songTitle: parsedData?.title || song.title || 'Song',
+      artist: parsedData?.artist || song.artist || '',
       onPlay: () => this.startPlaying(),
-      onBrowse: () => {
-        ZeniusBrowser.showBrowser();
-      },
-      onBack: () => {
-        ZeniusBrowser.showBrowser();
-      },
+      onBrowse: leave,
+      onBack: leave,
       onDifficultyChange: (selectedIndex) => {
         if (!this.isUpdatingDifficulty) {
           songManager.setCurrentDifficulty(selectedIndex);
@@ -778,7 +763,7 @@ export class MainPageController {
         }
       },
       charts,
-      currentDifficulty: songManager.getCurrentDifficulty(),
+      currentDifficulty: songManager.getCurrentDifficulty() || 0,
       hasVideo: hasVideo
     });
 

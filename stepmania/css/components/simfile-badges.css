@@ -35,6 +35,18 @@
   border: 1px solid var(--hairline-accent);
 }
 
+/* Why a listed song cannot be played here (doubles, 8-panel, and so on).
+   Text stays full strength so the reason reads on the muted card. */
+.badge-unplayable {
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  text-transform: none;
+  letter-spacing: 0;
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent);
+  color: var(--text-1);
+}
+
 /* Difficulty badges with DDR-inspired colors.
    Border stays at white @ 0.3 (slightly stronger than --hairline-strong)
    to keep each color pop legible on the dark card. */
@@ -55,7 +67,7 @@
     var(--sm-badge-sky-lo, #0ea5e9),
     var(--sm-badge-sky-hi, #38bdf8)
   );
-  color: white;
+  color: var(--pure-black);
 }
 
 /* Basic/Light - Orange (StepMania convention) */
@@ -65,7 +77,7 @@
     var(--sm-badge-orange-lo, #f97316),
     var(--sm-badge-orange-hi, #fb923c)
   );
-  color: white;
+  color: var(--pure-black);
 }
 
 /* Standard/Difficult - Red (StepMania convention) */
@@ -85,7 +97,7 @@
     var(--sm-badge-green-lo, #16a34a),
     var(--sm-badge-green-hi, #22c55e)
   );
-  color: white;
+  color: var(--pure-black);
 }
 
 /* Challenge - Purple (StepMania convention) */

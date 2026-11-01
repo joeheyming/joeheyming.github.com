@@ -1,6 +1,6 @@
 // Idle home overlay shown when no song is loaded.
 
-import { getFavorites, getRecentSongs } from './zeniusLibraryStorage.js';
+import { blockReasonForSong, getFavorites, getRecentSongs } from './zeniusLibraryStorage.js';
 
 /**
  * @param {string} zeniusUrl
@@ -40,8 +40,14 @@ function renderLinkList(mount, entries, emptyText) {
   const items = entries
     .slice(0, 8)
     .map((entry) => {
-      const href = zeniusPlayHref(entry.zeniusUrl);
       const title = entry.title && entry.title.trim() ? entry.title.trim() : 'Unknown song';
+      const blocked = blockReasonForSong(entry);
+      if (blocked) {
+        return `<span class="sm-home-chip is-unplayable" title="${escapeHtml(
+          `${title}: ${blocked}`
+        )}">${escapeHtml(title)}<span class="sm-sr-only"> (${escapeHtml(blocked)})</span></span>`;
+      }
+      const href = zeniusPlayHref(entry.zeniusUrl);
       return `<a class="sm-home-chip" href="${escapeHtml(href)}">${escapeHtml(title)}</a>`;
     })
     .join('');

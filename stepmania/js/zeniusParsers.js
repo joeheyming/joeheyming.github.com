@@ -233,6 +233,83 @@ function selectSpotlightSourceLinks(links) {
 export const SPOTLIGHT_TOP_N = 10;
 
 /**
+ * Step styles this 4-arrow player can launch. Names and widths come from
+ * StepMania's style table: dance-single and techno-single4 are 4 columns.
+ * dance-double, pump-*, and ds3ddx-single are not.
+ */
+export const PLAYABLE_STEP_STYLES = ['dance-single', 'techno-single4'];
+
+const LISTED_DIFFICULTY = {
+  beginner: ['Beginner', 'B'],
+  basic: ['Basic', 'L'],
+  light: ['Basic', 'L'],
+  difficult: ['Difficult', 'S'],
+  standard: ['Difficult', 'S'],
+  expert: ['Expert', 'H'],
+  heavy: ['Expert', 'H'],
+  challenge: ['Challenge', 'C'],
+  oni: ['Challenge', 'C']
+};
+
+/**
+ * Empty string when the listing includes a chart we can play, or when it
+ * does not say. A reason when every listed chart is some other step style.
+ * @param {string[]} styles
+ * @returns {string}
+ */
+export function blockReasonForStyles(styles) {
+  const list = [];
+  for (const style of styles || []) {
+    const name = String(style || '')
+      .trim()
+      .toLowerCase();
+    if (!name || name === '0' || list.includes(name)) continue;
+    list.push(name);
+  }
+  if (!list.length) return '';
+  if (list.some((style) => PLAYABLE_STEP_STYLES.includes(style))) return '';
+  if (list.length === 1 && list[0] === 'dance-double') return 'Doubles only';
+  return `Not a 4-arrow chart (${list.join(', ')})`;
+}
+
+/**
+ * @param {string} text
+ * @returns {number[]}
+ */
+function listedMeters(text) {
+  return (String(text || '').match(/\d{1,2}/g) || [])
+    .map((n) => parseInt(n, 10))
+    .filter((n) => n >= 1 && n <= 99);
+}
+
+/**
+ * @param {Element} row
+ * @returns {{ styles: string[], difficulties: Array<{ rating: number, name: string, short: string }> }}
+ */
+function chartsListedOnRow(row) {
+  /** @type {string[]} */
+  const styles = [];
+  /** @type {Array<{ rating: number, name: string, short: string }>} */
+  const difficulties = [];
+  for (const link of row.querySelectorAll('a[href*="style="]')) {
+    const href = link.getAttribute('href') || '';
+    const params = new URLSearchParams(href.split('?')[1] || '');
+    const style = (params.get('style') || '').trim().toLowerCase();
+    if (!style || style === '0') continue;
+    if (!styles.includes(style)) styles.push(style);
+    if (!PLAYABLE_STEP_STYLES.includes(style)) continue;
+    const rating = parseInt(link.textContent.trim(), 10);
+    if (!Number.isFinite(rating) || rating < 1 || rating > 99) continue;
+    const named = LISTED_DIFFICULTY[(params.get('difficulty') || '').toLowerCase()] || [
+      'Unknown',
+      'U'
+    ];
+    difficulties.push({ rating, name: named[0], short: named[1] });
+  }
+  return { styles, difficulties };
+}
+
+/**
  * @param {Document} doc
  * @param {{ type: string, items: Array<Record<string, unknown>> }} content
  */
@@ -242,9 +319,6 @@ export function appendSimfileTableItemsToContent(doc, content) {
     return;
   }
   content.type = 'simfiles';
-
-  const difficultyNames = ['Beginner', 'Basic', 'Difficult', 'Expert', 'Challenge'];
-  const difficultyShort = ['B', 'L', 'S', 'H', 'C'];
 
   simfileLinks.forEach((link) => {
     const href = link.getAttribute('href');
@@ -258,65 +332,19 @@ export function appendSimfileTableItemsToContent(doc, content) {
         let hasVideo = false;
         let difficulties = [];
 
+        /** @type {string[]} */
+        let listedStyles = [];
         if (row) {
           const rowHtml = row.innerHTML;
           hasVideo =
             rowHtml.includes('Vid Exist') ||
             rowHtml.includes('[V]') ||
             rowHtml.toLowerCase().includes('.avi');
-
-          const cells = row.querySelectorAll('td');
-          let diffIndex = 0;
-
-          cells.forEach((cell) => {
-            const cellText = cell.textContent.trim();
-            const numMatch = cellText.match(/^(\d{1,2})$/);
-            if (numMatch) {
-              const rating = parseInt(numMatch[1]);
-              if (rating >= 1 && rating <= 20) {
-                let diffName = difficultyNames[diffIndex % 5] || 'Unknown';
-                let diffShort = difficultyShort[diffIndex % 5] || '?';
-
-                const title = cell.getAttribute('title') || '';
-                for (let i = 0; i < difficultyNames.length; i++) {
-                  if (title.toLowerCase().includes(difficultyNames[i].toLowerCase())) {
-                    diffName = difficultyNames[i];
-                    diffShort = difficultyShort[i];
-                    break;
-                  }
-                }
-
-                const img = cell.querySelector('img');
-                if (img) {
-                  const src = img.getAttribute('src') || '';
-                  if (src.includes('beginner')) {
-                    diffName = 'Beginner';
-                    diffShort = 'B';
-                  } else if (src.includes('light') || src.includes('basic')) {
-                    diffName = 'Basic';
-                    diffShort = 'L';
-                  } else if (src.includes('standard') || src.includes('difficult')) {
-                    diffName = 'Difficult';
-                    diffShort = 'S';
-                  } else if (src.includes('heavy') || src.includes('expert')) {
-                    diffName = 'Expert';
-                    diffShort = 'H';
-                  } else if (src.includes('challenge') || src.includes('oni')) {
-                    diffName = 'Challenge';
-                    diffShort = 'C';
-                  }
-                }
-
-                difficulties.push({
-                  rating: rating,
-                  name: diffName,
-                  short: diffShort
-                });
-                diffIndex++;
-              }
-            }
-          });
+          const listed = chartsListedOnRow(row);
+          listedStyles = listed.styles;
+          difficulties = listed.difficulties;
         }
+        const unplayableReason = blockReasonForStyles(listedStyles);
 
         content.items.push({
           type: 'simfile',
@@ -325,7 +353,9 @@ export function appendSimfileTableItemsToContent(doc, content) {
           icon: hasVideo ? '🎬' : '🎵',
           simfileId: simfileId,
           hasVideo: hasVideo,
-          difficulties: difficulties
+          difficulties: difficulties,
+          playable: unplayableReason ? false : true,
+          unplayableReason
         });
       }
     }
@@ -443,6 +473,9 @@ export function parseZeniusSearchResults(html) {
           }
         }
 
+        const spMeters = listedMeters(spDifficulties);
+        const dpMeters = listedMeters(dpDifficulties);
+        const doublesOnly = spMeters.length === 0 && dpMeters.length > 0;
         results.push({
           type: 'simfile',
           name: text,
@@ -455,7 +488,9 @@ export function parseZeniusSearchResults(html) {
           icon: '🎵',
           simfileId: simfileId,
           hasVideo: false,
-          difficulties: []
+          difficulties: spMeters.map((rating) => ({ rating, name: 'Single', short: 'U' })),
+          playable: doublesOnly ? false : true,
+          unplayableReason: doublesOnly ? 'Doubles only' : ''
         });
       }
     }

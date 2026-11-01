@@ -180,38 +180,31 @@ body {
 
 .sm-home-title {
   margin: 0;
-  font-size: clamp(1.15rem, 3vw, 1.6rem);
-  font-weight: 700;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
   color: var(--text-1);
-}
-
-.sm-home-lead {
-  margin: 0 auto;
-  max-width: 28rem;
-  font-size: 0.85rem;
-  line-height: 1.45;
-  color: var(--text-2);
 }
 
 .sm-home-actions {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 0.45rem;
-  margin: 0.15rem 0 0.35rem;
+  margin: 0.2rem 0 0.15rem;
 }
 
 .sm-home-browse {
   align-self: center;
   margin: 0;
-  padding: 0.55rem 1.25rem;
-  border: 1px solid var(--hairline-accent);
-  border-radius: 0.6rem;
+  padding: 0.85rem 1.7rem;
+  border: 0;
+  border-radius: 999px;
   background: linear-gradient(135deg, var(--accent-primary-bg), var(--accent-primary));
   color: var(--text-on-accent);
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
   text-decoration: none;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent-primary) 28%, transparent);
 }
 
 .sm-home-browse-secondary {
@@ -234,6 +227,41 @@ body {
   gap: 0.75rem 1rem;
   text-align: left;
   min-height: 0;
+  width: min(100%, 36rem);
+  margin: 0.35rem auto 0;
+}
+
+.sm-home-quiet {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 1rem;
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+}
+
+.sm-home-quiet a,
+.sm-home-quiet button {
+  background: none;
+  border: 0;
+  padding: 0.35rem 0.15rem;
+  color: var(--text-2);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+.sm-home-quiet a:hover,
+.sm-home-quiet button:hover {
+  color: var(--text-1);
+}
+
+.sm-home-quiet a:focus-visible,
+.sm-home-quiet button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+  border-radius: 0.25rem;
 }
 
 .sm-home-heading {
@@ -268,6 +296,30 @@ body {
 .sm-home-chip:hover {
   border-color: var(--accent-primary);
   color: var(--accent-primary-hover);
+}
+
+.sm-home-chip.is-unplayable {
+  cursor: default;
+  border-style: dashed;
+  color: var(--text-2);
+  text-decoration: line-through;
+}
+
+.sm-home-chip.is-unplayable:hover {
+  border-color: var(--hairline-accent);
+  color: var(--text-2);
+}
+
+.sm-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .sm-home-empty {

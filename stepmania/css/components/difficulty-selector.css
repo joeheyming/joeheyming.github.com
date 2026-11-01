@@ -40,7 +40,7 @@ difficulty-selector {
   font-size: 14px;
   font-weight: bold;
   color: var(--text-on-accent);
-  background: linear-gradient(to right, var(--accent-primary), var(--accent-primary-bg));
+  background: color-mix(in srgb, var(--accent-primary) 62%, var(--pure-black));
   border: 2px solid var(--hairline-accent);
   border-radius: 0.75rem;
   cursor: pointer;
@@ -62,18 +62,14 @@ difficulty-selector {
 }
 
 .difficulty-select:hover {
-  background: linear-gradient(
-    to right,
-    var(--accent-primary-hover),
-    var(--accent-primary-bg-hover)
-  );
+  background: color-mix(in srgb, var(--accent-primary) 78%, var(--pure-black));
   border-color: var(--accent-primary);
-  transform: scale(1.02);
 }
 
-.difficulty-select:focus {
+.difficulty-select:focus-visible {
+  outline: 2px solid var(--warning);
+  outline-offset: 2px;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-primary-soft);
 }
 
 .difficulty-select option {

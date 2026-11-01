@@ -131,12 +131,16 @@ zenius-browser.modal-open .modal {
 }
 
 .modal-header {
-  padding: 0.9rem 1.25rem 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem 0.35rem 1.25rem;
   flex-shrink: 0;
 }
 
 .modal-title {
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   font-weight: bold;
   /* PRESERVED: cyan→blue rhythm-game title gradient, mirrors the
      main StepMania <h1> neon identity. */
@@ -148,8 +152,30 @@ zenius-browser.modal-open .modal {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 0.5rem;
-  text-align: center;
+  margin: 0;
+  text-align: left;
+}
+
+.modal-close {
+  flex-shrink: 0;
+  background: transparent;
+  color: var(--text-1);
+  font-weight: 650;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-strong);
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary-hover);
+}
+
+.modal-close:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .breadcrumb {
@@ -290,7 +316,16 @@ zenius-browser.modal-open .modal {
 .content-item:hover {
   background: var(--scrim); /* surface-0 @ 0.5 */
   border-color: var(--accent-primary);
-  transform: scale(1.02);
+}
+
+.simfile-card:hover {
+  background: color-mix(in srgb, var(--surface-0) 30%, transparent);
+  border-color: var(--hairline-accent);
+}
+
+.simfile-card:has(a.content-item-body:hover) {
+  background: var(--scrim);
+  border-color: var(--accent-primary);
 }
 
 .content-info {
@@ -439,7 +474,7 @@ a.content-item {
   color: inherit;
 }
 
-a.content-item-body {
+.content-item-body {
   display: flex;
   flex: 1;
   align-items: center;
@@ -452,6 +487,59 @@ a.content-item-body {
 
 .simfile-card {
   align-items: center;
+}
+
+/* Muted without fading the whole card, so the title and the reason badge
+   keep readable contrast. */
+.simfile-card.is-unplayable {
+  cursor: default;
+  border-style: dashed;
+  border-color: var(--hairline-accent);
+  background: color-mix(in srgb, var(--surface-0) 18%, transparent);
+}
+
+.simfile-card.is-unplayable:hover,
+.simfile-card.is-unplayable:has(.content-item-body:hover) {
+  transform: none;
+  border-color: var(--hairline-accent);
+  background: color-mix(in srgb, var(--surface-0) 18%, transparent);
+}
+
+.simfile-card.is-unplayable .content-item-body {
+  cursor: default;
+}
+
+.simfile-card.is-unplayable h3 {
+  color: var(--text-2);
+}
+
+.simfile-card.is-unplayable .content-icon {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+
+.zenius-recent-chip.is-unplayable {
+  cursor: default;
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-2);
+  text-decoration: line-through;
+}
+
+.zenius-recent-chip.is-unplayable:hover {
+  background: transparent;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .content-icon {
@@ -604,10 +692,10 @@ a.content-item-body {
   color: var(--text-2);
 }
 
-.search-input:focus {
-  outline: none;
+.search-input:focus-visible {
+  outline: 2px solid var(--warning);
+  outline-offset: 2px;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-primary-soft);
 }
 
 .search-tabs {
@@ -625,6 +713,11 @@ a.content-item-body {
   cursor: pointer;
   font-size: 0.875rem;
   transition: all 0.2s;
+}
+
+.search-tab:focus-visible {
+  outline: 2px solid var(--warning);
+  outline-offset: 2px;
 }
 
 .search-tab:hover {
@@ -867,8 +960,8 @@ a.zenius-spotlight-title-link:hover {
   }
 
   .modal-title {
-    font-size: 1.2rem;
-    margin-bottom: 0.4rem;
+    font-size: 1.15rem;
+    margin-bottom: 0;
   }
 
   .modal-footer {

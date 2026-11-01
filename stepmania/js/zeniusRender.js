@@ -2,10 +2,19 @@ import {
   getRecentSongs,
   getFavorites,
   isFavoriteSimfileId,
-  toggleFavorite
+  toggleFavorite,
+  blockReasonForSong
 } from './zeniusLibraryStorage.js';
 import { fetchTopSimfilesFromListUrl } from './zeniusFetch.js';
 import { SPOTLIGHT_TOP_N } from './zeniusParsers.js';
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 function resetZeniusMainScroll(browser) {
   const pane = browser.shadowRoot.getElementById('zenius-main-scroll');
@@ -90,28 +99,29 @@ export const ZENIUS_BROWSER_SHADOW_HTML = `      <style>
       >
         <div class="modal-content">
           <div class="modal-header">
-            <h2 class="modal-title" id="zenius-browser-title">Song Library Browser</h2>
+            <h2 class="modal-title" id="zenius-browser-title">Songs</h2>
+            <button type="button" class="modal-close" id="close-zenius-browser">Close</button>
           </div>
           
           <div class="modal-body">
             <div class="search-container">
               <div class="search-tabs">
                 <button class="search-tab active" id="zenius-search-tab" data-mode="zenius">Search</button>
-                <button class="search-tab" id="local-search-tab" data-mode="local">Category</button>
+                <button class="search-tab" id="local-search-tab" data-mode="local">Collections</button>
               </div>
               <div class="search-fields hidden" id="local-search-fields">
                 <div class="breadcrumb" id="breadcrumb">
                   <button type="button" class="breadcrumb-item" data-path="">🏠 Home</button>
                 </div>
                 <p class="category-filter-hint" id="category-filter-hint">
-                  Filter applies only to <strong>pages you have already opened</strong> this session. Use Search for the full site index.
+                  Filters songs already loaded in this collection.
                 </p>
                 <input
                   type="text"
                   class="search-input"
                   id="search-input"
-                  aria-label="Filter loaded songs and folders"
-                  placeholder="Filter loaded songs and folders in cache…"
+                  aria-label="Filter this list"
+                  placeholder="Filter this list"
                 >
               </div>
               <div class="search-fields" id="zenius-search-fields">
@@ -187,12 +197,6 @@ export const ZENIUS_BROWSER_SHADOW_HTML = `      <style>
               </div>
             </div>
           </div>
-          
-          <div class="modal-footer">
-            <div class="action-buttons">
-              <button class="close-btn" id="close-zenius-browser">Close</button>
-            </div>
-          </div>
         </div>
       </div>`;
 
@@ -207,6 +211,8 @@ export function createZeniusContentCard(browser, item, currentPath) {
 
     const card = document.createElement('div');
     card.className = 'content-item simfile-card';
+    const blocked = blockReasonForSong(item);
+    if (blocked) card.classList.add('is-unplayable');
 
     // Check cached metadata for this simfile (set when song was loaded)
     const cachedMeta = browser.constructor.getSimfileMetadata(item.simfileId);
@@ -228,8 +234,10 @@ export function createZeniusContentCard(browser, item, currentPath) {
       const diffBadges = difficulties
         .map((d) => {
           const shortCode = d.short ? d.short.toLowerCase() : 'u';
-          const tooltip = d.name ? `${d.name} (${d.rating})` : `Level ${d.rating}`;
-          return `<span class="badge badge-diff badge-diff-${shortCode}" title="${tooltip}">${d.rating}</span>`;
+          const tooltip = escapeHtml(d.name ? `${d.name} (${d.rating})` : `Level ${d.rating}`);
+          return `<span class="badge badge-diff badge-diff-${escapeHtml(
+            shortCode
+          )}" title="${tooltip}">${escapeHtml(d.rating)}</span>`;
         })
         .join('');
       badges += diffBadges;
@@ -237,20 +245,25 @@ export function createZeniusContentCard(browser, item, currentPath) {
 
     // Build subtitle with artist and category (for search results)
     let subtitle = '';
-    if (item.artist || item.category) {
-      const parts = [];
-      if (item.artist) parts.push(`🎤 ${item.artist}`);
-      if (item.category) parts.push(`📁 ${item.category}`);
-      subtitle = `<p class="simfile-subtitle">${parts.join(' • ')}</p>`;
+    const parts = [];
+    if (item.artist) parts.push(`🎤 ${item.artist}`);
+    if (item.category) parts.push(`📁 ${item.category}`);
+    if (parts.length) {
+      subtitle = `<p class="simfile-subtitle">${parts
+        .map((part) => escapeHtml(part))
+        .join(' • ')}</p>`;
+    }
+    if (blocked) {
+      badges = `<span class="badge badge-unplayable">${escapeHtml(blocked)}</span>`;
     }
 
-    const mainLink = document.createElement('a');
-    mainLink.href = gameUrl;
+    const mainLink = document.createElement(blocked ? 'div' : 'a');
+    if (!blocked) mainLink.href = gameUrl;
     mainLink.className = 'content-item-body';
     mainLink.innerHTML = `
-    <div class="content-icon">${icon}</div>
+    <div class="content-icon" aria-hidden="true">${icon}</div>
     <div class="content-info">
-      <h3>${item.name}</h3>
+      <h3>${escapeHtml(item.name)}</h3>
       ${subtitle}
       <div class="simfile-badges">${badges}</div>
     </div>
@@ -265,17 +278,22 @@ export function createZeniusContentCard(browser, item, currentPath) {
       extEl.rel = 'noopener noreferrer';
       extEl.className = 'simfile-external-link';
       extEl.title = 'View on Zenius-I-Vanisher';
+      extEl.setAttribute('aria-label', `View ${item.name} on Zenius-I-Vanisher`);
       extEl.textContent = '🔗';
       extEl.addEventListener('click', (e) => e.stopPropagation());
       ext = extEl;
     }
 
     mainLink.addEventListener('keydown', (e) => {
-      if (e.key !== ' ') return;
+      if (blocked || e.key !== ' ') return;
       e.preventDefault();
       mainLink.click();
     });
-    mainLink.addEventListener('click', () => {
+    mainLink.addEventListener('click', (e) => {
+      if (blocked) {
+        e.preventDefault();
+        return;
+      }
       if (browser.currentPath.startsWith('categoryid=')) {
         browser.lastBrowsedCategoryId = browser.currentPath.replace('categoryid=', '');
         browser.lastBrowsedCategoryName = browser.currentCategoryName;
@@ -289,7 +307,7 @@ export function createZeniusContentCard(browser, item, currentPath) {
     const favBtn = document.createElement('button');
     favBtn.type = 'button';
     favBtn.className = 'fav-btn';
-    favBtn.setAttribute('aria-label', favorited ? 'Remove from saved' : 'Save song');
+    favBtn.setAttribute('aria-label', `Save ${item.name}`);
     favBtn.setAttribute('aria-pressed', favorited ? 'true' : 'false');
     favBtn.textContent = favorited ? '★' : '☆';
     favBtn.addEventListener('click', (e) => {
@@ -301,7 +319,6 @@ export function createZeniusContentCard(browser, item, currentPath) {
         title: item.name
       });
       favBtn.setAttribute('aria-pressed', nowOn ? 'true' : 'false');
-      favBtn.setAttribute('aria-label', nowOn ? 'Remove from saved' : 'Save song');
       favBtn.textContent = nowOn ? '★' : '☆';
       updateZeniusSavedButtonLabel(browser);
     });
@@ -318,9 +335,9 @@ export function createZeniusContentCard(browser, item, currentPath) {
     itemEl.tabIndex = 0;
 
     itemEl.innerHTML = `
-    <div class="content-icon">${item.icon}</div>
+    <div class="content-icon" aria-hidden="true">${escapeHtml(item.icon || '')}</div>
     <div class="content-info">
-      <h3>${item.name}</h3>
+      <h3>${escapeHtml(item.name)}</h3>
       <p>Collection</p>
     </div>
   `;
@@ -331,7 +348,7 @@ export function createZeniusContentCard(browser, item, currentPath) {
         itemEl.innerHTML = `
         <div class="content-icon">⏳</div>
         <div class="content-info">
-          <h3>${item.name}</h3>
+          <h3>${escapeHtml(item.name)}</h3>
           <p>Loading...</p>
         </div>
       `;
@@ -661,16 +678,27 @@ export function renderZeniusRecentChips(browser) {
   } else {
     block.classList.remove('empty');
     for (const r of recent) {
-      const a = document.createElement('a');
+      const blocked = blockReasonForSong(r);
+      const a = document.createElement(blocked ? 'span' : 'a');
       a.className = 'zenius-recent-chip';
-      const qs = new URLSearchParams();
-      qs.set('zenius', r.zeniusUrl);
-      a.href = `${window.location.origin}${window.location.pathname}?${qs.toString()}`;
+      if (blocked) a.classList.add('is-unplayable');
+      if (!blocked) {
+        const qs = new URLSearchParams();
+        qs.set('zenius', r.zeniusUrl);
+        a.href = `${window.location.origin}${window.location.pathname}?${qs.toString()}`;
+      }
       a.textContent = r.title;
+      if (blocked) {
+        const why = document.createElement('span');
+        why.className = 'sr-only';
+        why.textContent = ` (${blocked})`;
+        a.appendChild(why);
+      }
       a.setAttribute('role', 'listitem');
-      a.title = r.title;
+      a.title = blocked ? `${r.title}: ${blocked}` : r.title;
       a.addEventListener('click', (ev) => {
         ev.stopPropagation();
+        if (blocked) ev.preventDefault();
       });
       wrap.appendChild(a);
     }

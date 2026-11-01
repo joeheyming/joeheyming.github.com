@@ -289,6 +289,28 @@ class SongManager {
    */
   async _loadZeniusAudio(audioUrl, onProgress) {
     let audioLoaded = false;
+    const current = this._currentSong?.data;
+
+    if (current?.audioBlob) {
+      try {
+        onProgress?.('Loading audio from the song pack...', 35);
+        await audioManager.loadBlob(current.audioBlob, current.audioType || 'audio/mpeg');
+        return true;
+      } catch (primaryError) {
+        if (current.alternateBlob) {
+          try {
+            await audioManager.loadBlob(
+              current.alternateBlob,
+              current.alternateType || 'audio/mpeg'
+            );
+            return true;
+          } catch {
+            // The other file in the pack would not play either.
+          }
+        }
+        console.warn('Song pack audio would not play:', primaryError);
+      }
+    }
 
     if (audioUrl) {
       // Try the shared proxy list. It leads with the high-quota hosts.

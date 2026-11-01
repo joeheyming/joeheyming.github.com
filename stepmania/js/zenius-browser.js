@@ -673,7 +673,7 @@ class ZeniusBrowserElement extends HTMLElement {
     items.forEach((el) => {
       // A song card's link, star, and Zenius link are the stops. A folder
       // is one stop, moved with the arrows below.
-      if (el.querySelector('a.content-item-body')) {
+      if (el.classList.contains('is-unplayable') || el.querySelector('a.content-item-body')) {
         el.removeAttribute('tabindex');
         return;
       }
@@ -706,7 +706,7 @@ class ZeniusBrowserElement extends HTMLElement {
     const grid = this.shadowRoot.getElementById('content-grid');
     const items = /** @type {HTMLElement[]} */ (
       Array.from(grid.querySelectorAll('.content-item')).filter(
-        (el) => !el.querySelector('a.content-item-body')
+        (el) => !el.classList.contains('is-unplayable') && !el.querySelector('a.content-item-body')
       )
     );
     if (items.length === 0) {

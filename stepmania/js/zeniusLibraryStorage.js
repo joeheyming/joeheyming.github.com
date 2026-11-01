@@ -1,6 +1,7 @@
 // Recent plays and favorite simfiles (localStorage) for the Zenius song browser
 const RECENT_KEY = 'stepmania_zenius_recent_v1';
 const FAV_KEY = 'stepmania_zenius_favorites_v1';
+const UNPLAYABLE_KEY = 'stepmania_zenius_unplayable_v1';
 const MAX_RECENT = 20;
 
 /**
@@ -75,6 +76,47 @@ export function getFavorites() {
 export function isFavoriteSimfileId(simfileId) {
   if (!simfileId) return false;
   return getFavorites().some((f) => f.simfileId === simfileId);
+}
+
+/**
+ * Remember a song the loader refused for a reason that will not change on
+ * retry: doubles, a missing chart, a deleted simfile.
+ * @param {string} simfileId
+ * @param {string} reason
+ */
+export function rememberUnplayable(simfileId, reason) {
+  const id = String(simfileId || '').replace(/[^\d]/g, '');
+  const why = String(reason || '').trim();
+  if (!id || !why) return;
+  const current = loadJson(UNPLAYABLE_KEY, {});
+  const map = current && typeof current === 'object' && !Array.isArray(current) ? current : {};
+  map[id] = why.slice(0, 160);
+  saveJson(UNPLAYABLE_KEY, map);
+}
+
+/**
+ * @param {string} simfileId
+ * @returns {string}
+ */
+export function unplayableReason(simfileId) {
+  const id = String(simfileId || '').replace(/[^\d]/g, '');
+  if (!id) return '';
+  const current = loadJson(UNPLAYABLE_KEY, {});
+  if (!current || typeof current !== 'object' || Array.isArray(current)) return '';
+  const reason = current[id];
+  return typeof reason === 'string' ? reason : '';
+}
+
+/**
+ * Listing verdict first, then a refusal we learned by opening the file.
+ * @param {{ simfileId?: string, playable?: boolean, unplayableReason?: string }} item
+ * @returns {string}
+ */
+export function blockReasonForSong(item) {
+  const stored = unplayableReason(item?.simfileId || '');
+  if (stored) return stored;
+  if (item?.playable === false) return item.unplayableReason || 'Not a 4-arrow chart';
+  return '';
 }
 
 /**

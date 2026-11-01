@@ -512,35 +512,9 @@
           class="relative bg-surface-0/50 rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl border border-hairline-accent overflow-hidden touch-manipulation flex-1"
         >
           <div id="sm-home" class="sm-home">
-            <p class="sm-home-kicker">Song library</p>
-            <h3 class="sm-home-title">Pick a song to play</h3>
-            <p class="sm-home-lead">
-              Browse charts from Zenius-I-Vanisher, or open a local
-              <code>.sm</code>
-              /
-              <code>.ssc</code>
-              / zip pack. You can also
-              <a href="/stepmania-editor/">make a simfile</a>
-              in the editor.
-            </p>
+            <h3 class="sm-home-title">Pick a song</h3>
             <div class="sm-home-actions">
               <button type="button" id="sm-home-browse" class="sm-home-browse">Browse songs</button>
-              <a href="/stepmania/songs/" class="sm-home-browse sm-home-browse-secondary">
-                Top charts
-              </a>
-              <button
-                type="button"
-                id="sm-home-open-pack"
-                class="sm-home-browse sm-home-browse-secondary"
-              >
-                Open pack
-              </button>
-              <input
-                id="sm-home-pack-input"
-                type="file"
-                accept=".zip,.smzip,.sm,.ssc,application/zip"
-                hidden
-              />
             </div>
             <div class="sm-home-lists">
               <section class="sm-home-section">
@@ -552,6 +526,17 @@
                 <div id="sm-home-saved" class="sm-home-chips"></div>
               </section>
             </div>
+            <p class="sm-home-quiet">
+              <a href="/stepmania/songs/">Top charts</a>
+              <button type="button" id="sm-home-open-pack">Open a pack</button>
+              <a href="/stepmania-editor/">Make a simfile</a>
+            </p>
+            <input
+              id="sm-home-pack-input"
+              type="file"
+              accept=".zip,.smzip,.sm,.ssc,application/zip"
+              hidden
+            />
           </div>
           <div
             id="video-background-container"

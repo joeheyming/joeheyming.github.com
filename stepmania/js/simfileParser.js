@@ -21,6 +21,7 @@
 /**
  * @typedef {Object} Chart
  * @property {string} type
+ * @property {number} [columns]
  * @property {string} description
  * @property {string} difficulty
  * @property {number} rating
@@ -90,7 +91,10 @@ export function isVideoFileName(file) {
  * @param {Chart[]} charts
  */
 export function danceSingleCharts(charts) {
-  return (charts || []).filter((chart) => chart.type === 'dance-single');
+  return (charts || []).filter((chart) => {
+    const columns = chart.columns || (chart.type === 'dance-single' ? DANCE_SINGLE_COLS : 0);
+    return columns === DANCE_SINGLE_COLS;
+  });
 }
 
 /**
@@ -139,9 +143,73 @@ export function timingFromTags(tags) {
   return { timingTags, timingExtras, timing: buildTimingData(timingTags) };
 }
 
-function columnCountForType(type) {
-  if (type === 'dance-double' || type === 'dance-couple') return 8;
-  return DANCE_SINGLE_COLS;
+/** Step types this player can place on a pad. Anything else is measured from the note rows. */
+const KNOWN_COLUMNS = {
+  'dance-single': DANCE_SINGLE_COLS,
+  'dance-double': 8,
+  'dance-couple': 8,
+  'dance-routine': 8,
+  'dance-solo': 6,
+  'dance-threepanel': 3,
+  'pump-single': 5,
+  'pump-halfdouble': 6,
+  'pump-double': 10,
+  'pump-couple': 10,
+  'kb7-single': 7,
+  'ez2-single': 5,
+  'ez2-double': 10,
+  'ez2-real': 7,
+  'para-single': 5,
+  // Column counts from StepMania's GameManager style table. A name that says
+  // "single" is not 4 arrows: ds3ddx-single is 8 columns.
+  'ds3ddx-single': 8,
+  'beat-single5': 5,
+  'beat-double5': 10,
+  'beat-single7': 7,
+  'beat-double7': 14,
+  'techno-single4': 4,
+  'techno-single5': 5,
+  'techno-single8': 8
+};
+
+/**
+ * Width of a note row. Unknown step types (ds3ddx-single, for example) are
+ * not dance-single just because the name says single; their rows are often
+ * 8 characters and must not be read as 4 arrows.
+ * @param {string} stepData
+ * @returns {number|null}
+ */
+function noteRowWidth(stepData) {
+  /** @type {Map<number, number>} */
+  const counts = new Map();
+  for (const line of String(stepData || '').split(/\s+/)) {
+    if (!/^[0-9A-Za-z]{3,16}$/.test(line)) continue;
+    counts.set(line.length, (counts.get(line.length) || 0) + 1);
+  }
+  let best = 0;
+  let width = 0;
+  for (const [len, n] of counts) {
+    if (n > best) {
+      best = n;
+      width = len;
+    }
+  }
+  return width || null;
+}
+
+/**
+ * @param {string} type
+ * @param {string} [stepData]
+ */
+function columnCountForType(type, stepData) {
+  const known =
+    KNOWN_COLUMNS[
+      String(type || '')
+        .trim()
+        .toLowerCase()
+    ];
+  if (known) return known;
+  return noteRowWidth(stepData || '') || DANCE_SINGLE_COLS;
 }
 
 /**
@@ -237,9 +305,10 @@ export class SimfileParser {
     const [type, description, difficulty, ratingRaw, radarValues, stepData] =
       splitSmNotesValue(value);
     if (!type) return null;
-    const columnCount = columnCountForType(type);
+    const columnCount = columnCountForType(type, stepData);
     return {
       type,
+      columns: columnCount,
       description: description || '',
       difficulty: difficulty || 'Beginner',
       rating: parseInt(ratingRaw, 10) || 1,
@@ -258,13 +327,14 @@ export class SimfileParser {
   chartFromSsc(chartTags) {
     const type = (chartTags.STEPSTYPE || '').trim();
     if (!type) return null;
-    const columnCount = columnCountForType(type);
+    const columnCount = columnCountForType(type, chartTags.NOTES || '');
     const split = SPLIT_TIMING_TAGS.some(
       (name) => chartTags[name] != null && chartTags[name] !== ''
     );
     /** @type {Chart} */
     const chart = {
       type,
+      columns: columnCount,
       description: chartTags.DESCRIPTION || '',
       difficulty: chartTags.DIFFICULTY || 'Beginner',
       rating: parseInt(chartTags.METER, 10) || 1,

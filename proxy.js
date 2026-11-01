@@ -402,6 +402,34 @@ class ProxyService {
   }
 
   /**
+   * True when `getOrderedProxies` handed back a fully banned list so a
+   * recovered host can be tried. The fetch loops must not skip those
+   * entries: doing so makes one missing song brick every later song
+   * until the persisted ban map is cleared.
+   * @param {string[]} orderedProxies
+   * @param {'text' | 'binary'} mode
+   */
+  _reprobingAllDead(orderedProxies, mode) {
+    return orderedProxies.length > 0 && orderedProxies.every((p) => this.isProxyDead(p, mode));
+  }
+
+  /**
+   * Count at most one hard failure per proxy per fetch. Retries and a
+   * second audio URL would otherwise cross the ban threshold during a
+   * single song that simply is not there.
+   * @param {Set<string>} seen
+   * @param {string} proxy
+   * @param {string} failureType
+   * @param {'text' | 'binary' | '*'} mode
+   */
+  _noteHardFailureOnce(seen, proxy, failureType, mode) {
+    const key = `${proxy}|${mode}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    this._recordProxyHardFailure(proxy, failureType, mode);
+  }
+
+  /**
    * Ban a proxy (mode-scoped or universal) for `ttlMs`. Persisted to
    * localStorage so the ban survives reloads.
    * @param {string} proxy
@@ -622,8 +650,9 @@ class ProxyService {
     }, 400);
   }
 
-  // Update proxy score based on success/failure
-  updateProxyScore(proxy, success, responseTime = null) {
+  // Update proxy score based on success/failure.
+  // `mode` is the fetch that just succeeded; a success clears that ban.
+  updateProxyScore(proxy, success, responseTime = null, mode = null) {
     const currentScore = this.proxyScores.get(proxy) || 1.0;
     const attempts = this.proxyAttempts.get(proxy) || 0;
     const successes = this.proxySuccesses.get(proxy) || 0;
@@ -645,6 +674,13 @@ class ProxyService {
         if (key === proxy || key.startsWith(`${proxy}|`)) {
           this.proxyConsecutiveHardFailures.set(key, 0);
         }
+      }
+      // A real response lifts a stale ban for this mode. Otherwise the
+      // all-dead re-probe succeeds once and the next song is skipped
+      // again because the ban is still in localStorage.
+      if (mode) {
+        this.enableProxy(proxy, mode);
+        this.enableProxy(proxy, '*');
       }
     } else {
       // Penalize score for failure
@@ -749,15 +785,23 @@ class ProxyService {
     let lastError = null;
 
     const orderedProxies = this.getOrderedProxies({ ...options, mode: 'text' });
+    const reprobing = this._reprobingAllDead(orderedProxies, 'text');
+    /** @type {Set<string>} */
+    const hardCounted = new Set();
     console.log(`Trying ${orderedProxies.length} proxies for: ${url.substring(0, 80)}...`);
 
     for (let retry = 0; retry <= maxRetries; retry++) {
       if (userAbort && userAbort.aborted) {
         throw new DOMException('The operation was aborted.', 'AbortError');
       }
+      // A pass of only HTTP 4xx is the target missing, not a dead proxy.
+      // Retrying that pass is what made a missing song take the timeout
+      // budget and then ban the pool for every song after it.
+      const pass = { clientError: false, serverError: false, timeout: false, other: false };
       for (const proxy of orderedProxies) {
-        // Skip proxies banned mid-loop (e.g. another await marked them dead).
-        if (this.isProxyDead(proxy, 'text')) continue;
+        // Skip proxies banned mid-loop. When every host is already banned,
+        // this list is the re-probe and must actually run.
+        if (!reprobing && this.isProxyDead(proxy, 'text')) continue;
         // Circuit breaker only on the first pass — later retries must re-probe
         // the same hosts or maxRetries is a no-op (cooldown is 30s; backoff is 1–3s).
         if (retry === 0 && this._proxyInCooldown(proxy, 'text')) continue;
@@ -811,7 +855,7 @@ class ProxyService {
             this._cacheSet(cacheKey, content);
 
             // Update score for successful proxy
-            this.updateProxyScore(proxy, true, responseTime);
+            this.updateProxyScore(proxy, true, responseTime, 'text');
             console.log(
               `Proxy ${proxy} succeeded in ${responseTime}ms (score: ${this.proxyScores
                 .get(proxy)
@@ -832,10 +876,14 @@ class ProxyService {
             }
             if (this._maybeMarkDeadFromBody(proxy, errBody)) continue;
             console.warn(`Proxy ${proxy} returned status ${response.status}`);
+            lastError = new Error(`HTTP ${response.status}`);
             this.updateProxyScore(proxy, false);
             this._noteProxyFailure(proxy, 'text');
             if (response.status >= 500) {
-              this._recordProxyHardFailure(proxy, `HTTP ${response.status}`, 'text');
+              pass.serverError = true;
+              this._noteHardFailureOnce(hardCounted, proxy, `HTTP ${response.status}`, 'text');
+            } else if (response.status >= 400) {
+              pass.clientError = true;
             }
           }
         } catch (error) {
@@ -846,23 +894,28 @@ class ProxyService {
           if (error && error.name === 'AbortError') {
             if (userAbort && userAbort.aborted) throw error;
             lastError = error;
+            pass.timeout = true;
             console.warn(`Proxy ${proxy} timed out (attempt ${retry + 1})`);
             this.updateProxyScore(proxy, false);
             this._noteProxyFailure(proxy, 'text');
-            this._recordProxyHardFailure(proxy, 'timeout', 'text');
+            this._noteHardFailureOnce(hardCounted, proxy, 'timeout', 'text');
             continue;
           }
           lastError = error;
+          pass.other = true;
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error.message);
           this.updateProxyScore(proxy, false);
           this._noteProxyFailure(proxy, 'text');
           const failureType = this._hardFailureTypeForError(error);
-          if (failureType) this._recordProxyHardFailure(proxy, failureType, 'text');
+          if (failureType) this._noteHardFailureOnce(hardCounted, proxy, failureType, 'text');
           continue;
         }
       }
 
-      // If we get here, all proxies failed for this retry
+      // If we get here, all proxies failed for this retry.
+      // A conclusive 4xx miss will not succeed on the next pass.
+      const conclusiveMiss = pass.clientError && !pass.serverError && !pass.timeout && !pass.other;
+      if (conclusiveMiss) break;
       if (retry < maxRetries) {
         if (userAbort && userAbort.aborted) {
           throw new DOMException('The operation was aborted.', 'AbortError');
@@ -1075,13 +1128,17 @@ class ProxyService {
       mode: 'binary'
     };
     const orderedProxies = this.getOrderedProxies(binaryOpts);
+    const reprobing = this._reprobingAllDead(orderedProxies, 'binary');
+    /** @type {Set<string>} */
+    const hardCounted = new Set();
 
     for (let retry = 0; retry <= maxRetries; retry++) {
       if (userAbort && userAbort.aborted) {
         throw new DOMException('The operation was aborted.', 'AbortError');
       }
+      const pass = { clientError: false, serverError: false, timeout: false, other: false };
       for (const proxy of orderedProxies) {
-        if (this.isProxyDead(proxy, 'binary')) continue;
+        if (!reprobing && this.isProxyDead(proxy, 'binary')) continue;
         // Same as text path: cooldown only on the first pass so retries re-probe.
         if (retry === 0 && this._proxyInCooldown(proxy, 'binary')) continue;
 
@@ -1155,7 +1212,7 @@ class ProxyService {
             }
             this._cacheSet(cacheKey, uint8Array);
 
-            this.updateProxyScore(proxy, true, responseTime);
+            this.updateProxyScore(proxy, true, responseTime, 'binary');
             console.log(
               `Proxy ${proxy} succeeded in ${responseTime}ms (score: ${this.proxyScores
                 .get(proxy)
@@ -1172,10 +1229,14 @@ class ProxyService {
             }
             if (this._maybeMarkDeadFromBody(proxy, errBody)) continue;
             console.warn(`Proxy ${proxy} returned status ${response.status}`);
+            lastError = new Error(`HTTP ${response.status}`);
             this.updateProxyScore(proxy, false);
             this._noteProxyFailure(proxy, 'binary');
             if (response.status >= 500) {
-              this._recordProxyHardFailure(proxy, `HTTP ${response.status}`, 'binary');
+              pass.serverError = true;
+              this._noteHardFailureOnce(hardCounted, proxy, `HTTP ${response.status}`, 'binary');
+            } else if (response.status >= 400) {
+              pass.clientError = true;
             }
           }
         } catch (error) {
@@ -1186,22 +1247,26 @@ class ProxyService {
           if (error && error.name === 'AbortError') {
             if (userAbort && userAbort.aborted) throw error;
             lastError = error;
+            pass.timeout = true;
             console.warn(`Proxy ${proxy} timed out (attempt ${retry + 1})`);
             this.updateProxyScore(proxy, false);
             this._noteProxyFailure(proxy, 'binary');
-            this._recordProxyHardFailure(proxy, 'timeout', 'binary');
+            this._noteHardFailureOnce(hardCounted, proxy, 'timeout', 'binary');
             continue;
           }
           lastError = error;
+          pass.other = true;
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error && error.message);
           this.updateProxyScore(proxy, false);
           this._noteProxyFailure(proxy, 'binary');
           const failureType = this._hardFailureTypeForError(error);
-          if (failureType) this._recordProxyHardFailure(proxy, failureType, 'binary');
+          if (failureType) this._noteHardFailureOnce(hardCounted, proxy, failureType, 'binary');
           continue;
         }
       }
 
+      const conclusiveMiss = pass.clientError && !pass.serverError && !pass.timeout && !pass.other;
+      if (conclusiveMiss) break;
       if (retry < maxRetries) {
         if (userAbort && userAbort.aborted) {
           throw new DOMException('The operation was aborted.', 'AbortError');
@@ -1273,13 +1338,17 @@ class ProxyService {
       ...options,
       mode: 'binary'
     });
+    const reprobing = this._reprobingAllDead(orderedProxies, 'binary');
+    /** @type {Set<string>} */
+    const hardCounted = new Set();
     let lastError = null;
     for (let retry = 0; retry <= maxRetries; retry += 1) {
       if (userAbort && userAbort.aborted) {
         throw new DOMException('The operation was aborted.', 'AbortError');
       }
+      const pass = { clientError: false, serverError: false, timeout: false, other: false };
       for (const proxy of orderedProxies) {
-        if (this.isProxyDead(proxy, 'binary')) continue;
+        if (!reprobing && this.isProxyDead(proxy, 'binary')) continue;
         if (retry === 0 && this._proxyInCooldown(proxy, 'binary')) continue;
         try {
           const proxyUrl = proxy + this.encodeUrlForProxy(url);
@@ -1292,7 +1361,7 @@ class ProxyService {
             headers: options.headers
           });
           if (blob) {
-            this.updateProxyScore(proxy, true, Date.now() - startTime);
+            this.updateProxyScore(proxy, true, Date.now() - startTime, 'binary');
             return blob;
           }
         } catch (err) {
@@ -1311,14 +1380,20 @@ class ProxyService {
           if (httpMatch) {
             const status = Number(httpMatch[1]);
             if (status >= 500) {
-              this._recordProxyHardFailure(proxy, `HTTP ${status}`, 'binary');
+              pass.serverError = true;
+              this._noteHardFailureOnce(hardCounted, proxy, `HTTP ${status}`, 'binary');
+            } else if (status >= 400) {
+              pass.clientError = true;
             }
           } else {
+            pass.other = true;
             const failureType = this._hardFailureTypeForError(err);
-            if (failureType) this._recordProxyHardFailure(proxy, failureType, 'binary');
+            if (failureType) this._noteHardFailureOnce(hardCounted, proxy, failureType, 'binary');
           }
         }
       }
+      const conclusiveMiss = pass.clientError && !pass.serverError && !pass.timeout && !pass.other;
+      if (conclusiveMiss) break;
       if (retry < maxRetries) {
         if (userAbort && userAbort.aborted) {
           throw new DOMException('The operation was aborted.', 'AbortError');

@@ -344,6 +344,78 @@ describe('ProxyService Adapter seams', () => {
     );
   });
 
+  it('does not ban the pool or retry when the target is a 404', async () => {
+    const MISSING = 'https://zenius-i-vanisher.com/v5.2/missing.mp3';
+    let calls = 0;
+    const fetchImpl = async () => {
+      calls += 1;
+      return {
+        ok: false,
+        status: 404,
+        headers: {
+          get: (name) => (String(name).toLowerCase() === 'content-type' ? 'text/plain' : null)
+        },
+        text: async () => 'not found',
+        arrayBuffer: async () => new TextEncoder().encode('not found').buffer
+      };
+    };
+
+    const service = createProxyService({ fetchImpl, storageImpl: storage });
+    service.proxyCooldownMs = 0;
+    await assert.rejects(
+      () => service.fetchBinary(MISSING, { skipDirect: true, maxRetries: 3, timeout: 1000 }),
+      (err) => {
+        assert.equal(err.name, 'ProxyExhaustedError');
+        assert.match(String(err.message), /HTTP 404/);
+        return true;
+      }
+    );
+    assert.equal(calls, service.proxyOptions.length, 'a 404 is one pass, not a retry storm');
+    for (const proxy of service.proxyOptions) {
+      assert.equal(service.isProxyDead(proxy, 'binary'), false);
+      assert.equal(service.isProxyDead(proxy, 'text'), false);
+    }
+  });
+
+  it('re-probes a fully banned pool so the next song still plays', async () => {
+    const GOOD = 'https://cdn.example.com/known.ogg';
+    const NEXT = 'https://cdn.example.com/other.ogg';
+    /** @type {string[]} */
+    const fetched = [];
+    const fetchImpl = async (url) => {
+      fetched.push(String(url));
+      return binaryResponse();
+    };
+
+    const service = createProxyService({ fetchImpl, storageImpl: storage });
+    service.proxyCooldownMs = 0;
+    for (const proxy of service.proxyOptions) {
+      service._markProxyDead(proxy, 'binary', 'missing-song', 60 * 60 * 1000);
+    }
+
+    const first = await service.fetchBinary(GOOD, {
+      skipDirect: true,
+      maxRetries: 0,
+      timeout: 1000
+    });
+    assert.equal(first.length, 8);
+    const winner = service.proxyOptions.find((proxy) => fetched.some((u) => u.startsWith(proxy)));
+    assert.ok(winner, 'a banned pool must still contact a proxy');
+    assert.equal(service.isProxyDead(winner, 'binary'), false);
+
+    fetched.length = 0;
+    const second = await service.fetchBinary(NEXT, {
+      skipDirect: true,
+      maxRetries: 0,
+      timeout: 1000
+    });
+    assert.equal(second.length, 8);
+    assert.ok(
+      fetched.every((u) => u.startsWith(winner)),
+      'the recovered proxy should serve the next song without a cache clear'
+    );
+  });
+
   it('throws ProxyExhaustedError when every proxy fails', async () => {
     const fetchImpl = async () => {
       throw new TypeError('Failed to fetch');
