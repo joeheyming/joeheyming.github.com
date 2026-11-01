@@ -6,6 +6,7 @@
 
 import { DIRECTION, KEY_MODE, CONTROLS, GAME_STATES } from './constants.js';
 import { createPacmanGamepad } from './gamepad-input.js';
+import { clickMenuButton, uiOwnsKey } from './ui-keys.js';
 
 export class Controls {
   constructor(game) {
@@ -257,6 +258,8 @@ export class Controls {
     if (event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
+    // A focused button, link, or menu keeps Space, Enter, and arrows.
+    if (uiOwnsKey(event)) return;
 
     // Prevent default for game keys
     if (
@@ -293,6 +296,10 @@ export class Controls {
       // Game controls
       case 'KeyP':
       case 'Escape':
+        if (this.game.state === GAME_STATES.INTRO) {
+          this.game.audioManager?.skipIntro();
+          break;
+        }
         this.game.togglePause();
         break;
       case 'KeyC':
@@ -300,15 +307,26 @@ export class Controls {
         break;
       case 'KeyR':
         if (this.game.state === GAME_STATES.GAME_OVER || this.game.state === GAME_STATES.WIN) {
-          this.game.restartGame();
+          clickMenuButton(['restart-btn', 'next-level-btn', 'back-to-menu-btn']);
         }
         break;
       case 'Space':
       case 'Enter':
         if (this.game.state === GAME_STATES.START) {
           this.game.startGame();
+        } else if (this.game.state === GAME_STATES.INTRO) {
+          this.game.audioManager?.skipIntro();
         } else if (this.game.state === GAME_STATES.PAUSED) {
           this.game.resumeGame();
+        } else if (
+          this.game.state === GAME_STATES.GAME_OVER ||
+          this.game.state === GAME_STATES.WIN
+        ) {
+          clickMenuButton(
+            this.game.state === GAME_STATES.WIN
+              ? ['next-level-btn', 'back-to-menu-btn']
+              : ['restart-btn', 'back-to-menu-btn']
+          );
         }
         break;
 

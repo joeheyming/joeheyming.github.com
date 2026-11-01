@@ -39,6 +39,9 @@
   // intentionally generic enough that pacman-infinite uses it for
   // the "Hard" difficulty chip without reaching into another app's
   // palette.
+  // Arcade fills stay neon: they sit on black text (the yellow CTA) or
+  // paint meters and markers. Ink colors are text on the themed page
+  // surface, so style.css swaps them between light and dark.
   const PAC = {
     yellow: '#EAB308',
     'yellow-bright': '#FACC15',
@@ -51,7 +54,14 @@
     'red-soft': '#FF7070',
     amber: '#FFAA00',
     'orange-fruit': '#FB923C',
-    radioactive: '#82E000'
+    radioactive: '#82E000',
+    ink: {
+      yellow: 'var(--pac-ink-yellow)',
+      cyan: 'var(--pac-ink-cyan)',
+      red: 'var(--pac-ink-red)',
+      pink: 'var(--pac-ink-pink)',
+      green: 'var(--pac-ink-green)'
+    }
   };
 
   // Ghosts — Pinky / Inky / Blinky / Clyde with two pink tints for

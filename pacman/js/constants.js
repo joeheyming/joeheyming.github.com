@@ -62,10 +62,10 @@ export const GHOST_STATE = {
 // GHOST TYPES (by color)
 // =============================================================================
 export const GHOST_TYPE = {
-  BLINKY: 0xff0000, // Red - direct chaser
-  INKY: 0x00ffff, // Cyan - unpredictable
-  PINKY: 0xffb8ff, // Pink - ambusher
-  CLYDE: 0xffb852 // Orange - shy/random
+  BLINKY: 0xff0000, // Red - chases Pac-Man's tile
+  INKY: 0x00ffff, // Cyan - flanks using Blinky's position
+  PINKY: 0xffb8ff, // Pink - ambushes four tiles ahead
+  CLYDE: 0xffb852 // Orange - chases until he gets close, then scatters
 };
 
 export const GHOST_COLORS = [
@@ -137,11 +137,15 @@ export const GAMEPLAY = {
   PACMAN_MOUTH_MAX_ANGLE: 45, // degrees
   PACMAN_MOUTH_SPEED: 300, // degrees per second
 
-  // Ghosts
-  GHOST_SPEED: 35, // units per second (slightly slower than pacman)
-  GHOST_HOME_SPEED: 60, // speed when returning home after being eaten
-  GHOST_SCATTER_DURATION: 7, // seconds in scatter mode
-  GHOST_CHASE_DURATION: 20, // seconds in chase mode
+  // Ghosts. Speeds are world units per second. Frightened is about
+  // half of Pac-Man, matching the arcade ratio. Elroy 1 matches
+  // Pac-Man; Elroy 2 is a little faster, so Blinky can catch a
+  // straight run once the board is nearly clear.
+  GHOST_SPEED: 35,
+  GHOST_FRIGHTENED_SPEED: 23,
+  GHOST_ELROY1_SPEED: 40,
+  GHOST_ELROY2_SPEED: 42,
+  GHOST_HOME_SPEED: 60,
 
   // Power mode
   POWER_MODE_DURATION: 10, // seconds

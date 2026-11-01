@@ -205,6 +205,27 @@ function applyUrlState() {
   return state.mode;
 }
 
+function focusWordleStart() {
+  var start = document.querySelector('#wordle-game .wg-new-game');
+  if (!start) return;
+  var active = document.activeElement;
+  var fromSolver =
+    active &&
+    typeof active.closest === 'function' &&
+    (active.id === 'solverMode' || active.closest('#scorer, #player'));
+  var idle = !active || active === document.body || active === document.documentElement;
+  if (!idle && !fromSolver) return;
+  if (window.heymingRemote && typeof window.heymingRemote.focusIfIdle === 'function') {
+    window.heymingRemote.focusIfIdle(start, true, true);
+    return;
+  }
+  try {
+    start.focus({ preventScroll: true });
+  } catch (err) {
+    start.focus();
+  }
+}
+
 function setMode(mode) {
   var wordleGame = document.getElementById('wordle-game');
   var strategyRow = document.getElementById('strategy-row');
@@ -236,6 +257,7 @@ function setMode(mode) {
     } else if (typeof window.startWordleGame === 'function') {
       window.startWordleGame();
     }
+    focusWordleStart();
   } else {
     resetScorer();
     scorer.style.display = '';

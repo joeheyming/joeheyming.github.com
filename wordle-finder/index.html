@@ -15,7 +15,21 @@
     <meta name="language" content="English" />
     <meta name="robots" content="index, follow" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#FAFAFA" />
+    <meta name="theme-color" content="#0e1217" />
+    <script>
+      (function () {
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) return;
+        var theme = document.documentElement.getAttribute('data-theme');
+        if (theme !== 'light' && theme !== 'dark') {
+          theme =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        }
+        meta.setAttribute('content', theme === 'light' ? '#fafafa' : '#0e1217');
+      })();
+    </script>
     <meta
       name="description"
       content="Free Wordle solver: enter green, yellow, and gray letters to find possible answers and rank your best next guess by information gain. No ads or signup."

@@ -67,6 +67,21 @@ test('a touch tap still blurs the key', () => {
   window.close();
 });
 
+test('a letter typed on a select does not fill a tile', () => {
+  const window = boot();
+  const select = window.document.createElement('select');
+  window.document.body.appendChild(select);
+  select.focus();
+  const letter = new window.KeyboardEvent('keydown', {
+    key: 'q',
+    bubbles: true,
+    cancelable: true
+  });
+  select.dispatchEvent(letter);
+  assert.equal(window.document.querySelector('.wg-tile').textContent, '');
+  window.close();
+});
+
 test('Enter on a focused key is left to that button', () => {
   const window = boot();
   const q = keyButton(window, 'q');

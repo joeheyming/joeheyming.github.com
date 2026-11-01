@@ -133,6 +133,14 @@
     </nav>
     <footer class="heyming-nav-drawer-footer">
       <a href="/about/" class="heyming-nav-footer-link">About →</a>
+      <div class="heyming-nav-theme" role="radiogroup" aria-label="Color theme">
+        <button type="button" class="heyming-nav-theme-option"
+                data-theme-value="auto" role="radio" aria-checked="false" tabindex="-1">Auto</button>
+        <button type="button" class="heyming-nav-theme-option"
+                data-theme-value="light" role="radio" aria-checked="false" tabindex="-1">Light</button>
+        <button type="button" class="heyming-nav-theme-option"
+                data-theme-value="dark" role="radio" aria-checked="true" tabindex="0">Dark</button>
+      </div>
     </footer>
   `;
 
@@ -493,9 +501,12 @@
     }
 
     .heyming-nav-drawer-footer {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
       padding: 12px 16px;
       border-top: 1px solid var(--hn-line);
-      text-align: center;
       flex-shrink: 0;
     }
 
@@ -504,6 +515,46 @@
       color: var(--hn-accent);
       text-decoration: none;
       font-weight: 600;
+      text-align: center;
+    }
+
+    /* Same three-way choice as the home footer (Auto / Light / Dark).
+     * Persists to localStorage('hos-theme') so analytics.js reapplies
+     * it on the next page before paint. */
+    .heyming-nav-theme {
+      display: flex;
+      background: var(--hn-surface-soft);
+      border: 1px solid var(--hn-line);
+      border-radius: 8px;
+      padding: 2px;
+    }
+
+    .heyming-nav-theme-option {
+      flex: 1;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--hn-fg-mute);
+      background: transparent;
+      border: 0;
+      border-radius: 6px;
+      padding: 7px 8px;
+      cursor: pointer;
+    }
+
+    .heyming-nav-theme-option:hover:not([aria-checked='true']) {
+      color: var(--hn-fg);
+    }
+
+    .heyming-nav-theme-option[aria-checked='true'] {
+      background: var(--hn-surface);
+      color: var(--hn-fg);
+      box-shadow: var(--hn-shadow-soft);
+    }
+
+    .heyming-nav-theme-option:focus-visible {
+      outline: 2px solid var(--hn-accent);
+      outline-offset: -2px;
     }
 
     .heyming-nav-footer-link:hover {
@@ -1014,6 +1065,95 @@
     });
   }
 
+  // Same contract as the home-page switcher in index.js: 'light' and
+  // 'dark' set <html data-theme>, 'auto' clears it so brand.css follows
+  // the OS, and every explicit click is stored under 'hos-theme'. An
+  // unset key stays visually dark without being written, matching the
+  // analytics.js bootstrap.
+  const THEME_KEY = 'hos-theme';
+  const THEME_VALUES = ['auto', 'light', 'dark'];
+
+  function readSavedTheme() {
+    try {
+      const v = localStorage.getItem(THEME_KEY);
+      if (v === 'light' || v === 'dark' || v === 'auto') return v;
+      return 'dark';
+    } catch (_) {
+      return 'dark';
+    }
+  }
+
+  function resolvedTheme(value) {
+    if (value === 'light' || value === 'dark') return value;
+    const prefersDark =
+      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? 'dark' : 'light';
+  }
+
+  function updateThemeColorMeta(value) {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) return;
+    meta.setAttribute('content', resolvedTheme(value) === 'dark' ? '#0e1217' : '#fafafa');
+  }
+
+  function reflectNavTheme(value) {
+    drawer.querySelectorAll('.heyming-nav-theme-option').forEach((btn) => {
+      const on = btn.getAttribute('data-theme-value') === value;
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+      btn.tabIndex = on ? 0 : -1;
+    });
+  }
+
+  function applyNavTheme(value, options) {
+    const persist = !options || options.persist !== false;
+    if (!THEME_VALUES.includes(value)) value = 'dark';
+    if (value === 'auto') {
+      delete document.documentElement.dataset.theme;
+    } else {
+      document.documentElement.dataset.theme = value;
+    }
+    updateThemeColorMeta(value);
+    reflectNavTheme(value);
+    if (!persist) return;
+    try {
+      localStorage.setItem(THEME_KEY, value);
+    } catch (_) {
+      /* localStorage unavailable — the attribute still updates */
+    }
+  }
+
+  function initNavTheme() {
+    const group = drawer.querySelector('.heyming-nav-theme');
+    if (!group) return;
+    applyNavTheme(readSavedTheme(), { persist: false });
+
+    group.addEventListener('click', (e) => {
+      const btn = e.target.closest('.heyming-nav-theme-option');
+      if (!btn || !group.contains(btn)) return;
+      applyNavTheme(btn.getAttribute('data-theme-value') || 'dark');
+    });
+
+    group.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const buttons = Array.from(group.querySelectorAll('.heyming-nav-theme-option'));
+      const idx = buttons.indexOf(document.activeElement);
+      if (idx < 0) return;
+      e.preventDefault();
+      const delta = e.key === 'ArrowLeft' ? -1 : 1;
+      const next = buttons[(idx + delta + buttons.length) % buttons.length];
+      applyNavTheme(next.getAttribute('data-theme-value') || 'dark');
+      next.focus();
+    });
+
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => {
+      if (readSavedTheme() === 'auto') updateThemeColorMeta('auto');
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  }
+
   // Insert when DOM ready, then async-fetch the registry to fill in the rail.
   function insertChrome() {
     document.head.appendChild(style);
@@ -1021,6 +1161,7 @@
     document.body.appendChild(drawer);
     document.body.appendChild(toggle);
     markSystemActive();
+    initNavTheme();
   }
 
   function boot() {

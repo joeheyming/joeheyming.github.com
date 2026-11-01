@@ -1,16 +1,21 @@
 /**
  * Ghost Character
- * 3D model with hemisphere head, cylinder body, and wavy tentacles
- * Each ghost has unique AI behavior based on original Pac-Man:
- * - Blinky (Red): Direct chase
- * - Pinky (Pink): Ambush - targets 4 tiles ahead of Pacman
- * - Inky (Cyan): Unpredictable - uses Blinky's position
- * - Clyde (Orange): Shy - chases when far, flees when close
- * Based on original Ghost.cpp
+ * 3D model with hemisphere head, cylinder body, and wavy tentacles.
+ * Targeting and turn choice live in ghost-ai.js and follow the arcade:
+ * Blinky chases Pac-Man's tile, Pinky aims four ahead, Inky flanks
+ * through Blinky, Clyde breaks for his corner inside eight tiles.
+ * A shared scatter/chase clock reverses every ghost when the wave changes.
  */
 
 import * as THREE from 'three';
 import { GHOST_STATE, GHOST_TYPE, GAMEPLAY, ANIMATION } from './constants.js';
+import {
+  cardinalFromFacing,
+  chooseNextTile,
+  findGridPath,
+  patrolTarget,
+  scatterCorner
+} from './ghost-ai.js';
 
 export class Ghost {
   constructor(startX, startY, scale, level, color = 0xff0000) {
@@ -36,7 +41,7 @@ export class Ghost {
     // Home position for respawning
     this.homePosition = this.position.clone();
 
-    // Scatter corner targets (each ghost goes to different corner)
+    // Scatter corner sits just outside the maze so the ghost circles it.
     this.scatterTarget = this.getScatterCorner();
 
     // Movement
@@ -45,6 +50,7 @@ export class Ghost {
     this.facing = new THREE.Vector3(0, 1, 0);
     this.yaw = 0;
     this.lastDirection = null; // Track last movement direction
+    this.forceReverse = false;
 
     // Pathfinding
     this.path = [];
@@ -59,11 +65,13 @@ export class Ghost {
     this.scaredTimer = 0;
     this.scaredBlinkTimer = 0;
 
-    // Mode timing - ghosts alternate between scatter and chase
-    this.modeTimer = 0;
-    this.scatterDuration = GAMEPLAY.GHOST_SCATTER_DURATION;
-    this.chaseDuration = GAMEPLAY.GHOST_CHASE_DURATION;
-    this.inChaseMode = false;
+    // Shared with the other ghosts via Game's GhostModeClock.
+    // 'scatter' until the first chase wave.
+    this.patrolMode = 'scatter';
+    this.elroyStage = 0;
+    // True while a power pill is active. A ghost walking out of the
+    // house stays its normal color until it clears the door.
+    this.frightActive = false;
 
     // Multi-island teleport cooldown — see Pacman.lastTeleportTileKey
     this.lastTeleportTileKey = null;
@@ -243,23 +251,11 @@ export class Ghost {
     }
   }
 
-  // Each ghost has a different scatter corner
+  // Each ghost has a different scatter corner, just outside the maze.
   getScatterCorner() {
     const width = this.level.width || 23;
     const height = this.level.height || 22;
-
-    switch (this.ghostType) {
-      case 'blinky':
-        return { x: width - 2, y: height - 2 }; // Top-right
-      case 'pinky':
-        return { x: 2, y: height - 2 }; // Top-left
-      case 'inky':
-        return { x: width - 2, y: 1 }; // Bottom-right
-      case 'clyde':
-        return { x: 2, y: 1 }; // Bottom-left
-      default:
-        return { x: width - 2, y: height - 2 };
-    }
+    return scatterCorner(this.ghostType, width, height);
   }
 
   // Set reference to Blinky (needed for Inky's behavior)
@@ -300,8 +296,19 @@ export class Ghost {
   }
 
   setScared(scared) {
+    if (this.dead) return;
+    // Still in the house: stay normal until the exit step turns them.
+    if (scared && this.exitingHome) return;
+
     this.scared = scared;
-    this.state = scared ? GHOST_STATE.SCARED : GHOST_STATE.SCATTER;
+    this.scaredMaterial.color.setHex(0x0000ff);
+    if (scared) {
+      this.state = GHOST_STATE.SCARED;
+      // Entering frightened reverses every ghost in the halls.
+      this.reverseDirection();
+    } else {
+      this.state = this.patrolMode === 'chase' ? GHOST_STATE.CHASE : GHOST_STATE.SCATTER;
+    }
 
     // Change material
     const material = scared ? this.scaredMaterial : this.bodyMaterial;
@@ -316,6 +323,53 @@ export class Ghost {
     this.rightPupil.visible = !scared;
   }
 
+  /**
+   * Called every frame with the shared scatter/chase wave. A change
+   * reverses ghosts that are out in the maze. Frightened and eaten
+   * ghosts keep the new mode for when they resume, without turning.
+   */
+  setPatrolMode(mode) {
+    if (mode === this.patrolMode) return;
+    this.patrolMode = mode;
+    if (this.scared || this.dead || this.exitingHome) return;
+    this.state = mode === 'chase' ? GHOST_STATE.CHASE : GHOST_STATE.SCATTER;
+    this.reverseDirection();
+  }
+
+  /**
+   * Turn around immediately. Used when scatter and chase swap, and
+   * when a power pill starts. Eyes returning home and ghosts still
+   * walking out of the house do not reverse.
+   */
+  reverseDirection() {
+    if (this.dead || this.exitingHome) return;
+    if (!this.lastDirection) {
+      this.path = [];
+      return;
+    }
+
+    const gx = this.level.worldToGrid(this.position.x);
+    const gy = this.level.worldToGrid(this.position.y);
+    const backX = gx - this.lastDirection.x;
+    const backY = gy - this.lastDirection.y;
+    if (this.level.canTraverse(gx, gy, backX, backY)) {
+      this.lastDirection = { x: -this.lastDirection.x, y: -this.lastDirection.y };
+      this.path = [{ x: backX, y: backY }];
+      this.forceReverse = false;
+      return;
+    }
+
+    this.forceReverse = true;
+    this.path = [];
+  }
+
+  currentSpeed() {
+    if (this.scared) return GAMEPLAY.GHOST_FRIGHTENED_SPEED;
+    if (this.ghostType === 'blinky' && this.elroyStage === 2) return GAMEPLAY.GHOST_ELROY2_SPEED;
+    if (this.ghostType === 'blinky' && this.elroyStage === 1) return GAMEPLAY.GHOST_ELROY1_SPEED;
+    return this.moveSpeed;
+  }
+
   isScared() {
     return this.scared && !this.dead;
   }
@@ -326,7 +380,6 @@ export class Ghost {
     this.scared = false;
     this.path = []; // Clear existing path
     this.lastDirection = null; // Allow backtracking when returning home
-    this.lastHomePos = null; // Reset home pathfinding tracking
 
     // Hide body, show only eyes
     this.headMesh.visible = false;
@@ -356,7 +409,6 @@ export class Ghost {
     this.scared = false;
     this.state = GHOST_STATE.HOME; // Start in home state to exit
     this.path = [];
-    this.lastHomePos = null;
     this.exitingHome = true; // Flag to handle exiting ghost home
 
     // Show body again
@@ -433,7 +485,7 @@ export class Ghost {
     }
   }
 
-  update(deltaTime, pacmanPos, pacmanChasing) {
+  update(deltaTime, pacmanPos, pacmanFacing) {
     // Update scared blinking
     if (this.scared && !this.dead) {
       this.scaredBlinkTimer += deltaTime;
@@ -442,18 +494,6 @@ export class Ghost {
         // Toggle between blue and white when scared is about to end
         const isBlue = this.scaredMaterial.color.getHex() === 0x0000ff;
         this.scaredMaterial.color.setHex(isBlue ? 0xffffff : 0x0000ff);
-      }
-    }
-
-    // Update mode timer (scatter <-> chase)
-    if (!this.scared && !this.dead) {
-      this.modeTimer += deltaTime;
-      const currentDuration = this.inChaseMode ? this.chaseDuration : this.scatterDuration;
-      if (this.modeTimer >= currentDuration) {
-        this.modeTimer = 0;
-        this.inChaseMode = !this.inChaseMode;
-        this.state = this.inChaseMode ? GHOST_STATE.CHASE : GHOST_STATE.SCATTER;
-        this.path = []; // Clear path to recalculate
       }
     }
 
@@ -487,30 +527,29 @@ export class Ghost {
     } else if (this.exitingHome) {
       // Ghost is exiting the home area after respawning
       if (this.path.length === 0) {
-        // Finished exiting home, resume normal behavior
+        // Finished exiting home. A pill that is still active turns the
+        // ghost blue as it comes through the door, without a reverse.
         this.exitingHome = false;
-        this.state = GHOST_STATE.SCATTER;
-        this.lastDirection = null; // Reset so ghost can move any direction
+        this.lastDirection = null;
+        if (this.frightActive) {
+          this.setScared(true);
+        } else {
+          this.state = this.patrolMode === 'chase' ? GHOST_STATE.CHASE : GHOST_STATE.SCATTER;
+        }
       } else {
         this.moveAlongPath(deltaTime, this.moveSpeed);
       }
     } else {
-      // Generate new path if needed
+      // Decide the next tile once the previous step is finished.
       if (this.path.length === 0) {
-        if (this.scared) {
-          this.generateFleeingPath(pacmanPos);
-        } else if (this.state === GHOST_STATE.SCATTER) {
-          this.generateScatterPath();
-        } else {
-          this.generateChasingPath(pacmanPos);
-        }
+        this.generateDecisionPath(pacmanPos, pacmanFacing);
       }
 
-      this.moveAlongPath(deltaTime, this.moveSpeed);
+      this.moveAlongPath(deltaTime, this.currentSpeed());
     }
 
-    // Ghosts use teleports too — but only when alive and not in the
-    // returning-eyes state (eyes need to walk back to the home tile).
+    // Living ghosts warp by walking off a tunnel edge. Eyes follow the
+    // home path instead, which already includes tunnel hops.
     if (!this.dead) {
       this.checkTeleport();
     }
@@ -634,6 +673,18 @@ export class Ghost {
     const target = this.path[this.path.length - 1];
     const targetWorld = this.level.getWorldPosition(target.x, target.y);
 
+    // A home path can hop a tunnel. Walking that hop in a straight line
+    // would cut through walls, so land on the far tile directly.
+    const hereX = this.level.worldToGrid(this.position.x);
+    const hereY = this.level.worldToGrid(this.position.y);
+    if (Math.abs(target.x - hereX) + Math.abs(target.y - hereY) > 1) {
+      this.position.x = targetWorld.x;
+      this.position.y = targetWorld.y;
+      this.path.pop();
+      this.lastDirection = null;
+      return;
+    }
+
     // Calculate direction to target (reuse temp vector)
     const direction = this._tempDirection.subVectors(targetWorld, this.position);
     const distance = direction.length();
@@ -661,255 +712,95 @@ export class Ghost {
     }
   }
 
-  // Pathfinding to home for dead ghosts - greedy with loop prevention
+  // Full route home. One greedy step gets stuck in a dead-end that
+  // points at the house: the eyes walk in, bounce out, and walk back in.
   generatePathHome() {
     const startX = this.level.worldToGrid(this.position.x);
     const startY = this.level.worldToGrid(this.position.y);
     const goalX = Math.round(this.homePosition.x / this.scale);
     const goalY = Math.round(this.homePosition.y / this.scale);
+    const steps = findGridPath({ x: startX, y: startY }, { x: goalX, y: goalY }, (x, y) =>
+      this.homeNeighbors(x, y)
+    );
+    // moveAlongPath consumes from the end of the array.
+    this.path = steps ? steps.slice().reverse() : [];
+  }
 
-    // Already at home
-    if (startX === goalX && startY === goalY) {
+  // Walkable neighbors, plus the other end of a tunnel so eyes can
+  // cross back to the house on a multi-island board.
+  homeNeighbors(x, y) {
+    const neighbors = this.level.getNeighbors(x, y);
+    const groups = this.level.teleportGroups || [];
+    for (const group of groups) {
+      const endpoints = group.endpoints || [];
+      for (let i = 0; i < endpoints.length; i++) {
+        if (endpoints[i].x !== x || endpoints[i].y !== y) continue;
+        const dest =
+          group.mode === 'pair' && endpoints.length === 2
+            ? endpoints[i === 0 ? 1 : 0]
+            : endpoints[(i + 1) % endpoints.length];
+        if (!neighbors.some((neighbor) => neighbor.x === dest.x && neighbor.y === dest.y)) {
+          neighbors.push({ x: dest.x, y: dest.y });
+        }
+      }
+    }
+    return neighbors;
+  }
+
+  // One greedy step toward this ghost's arcade target.
+  generateDecisionPath(pacmanPos, pacmanFacing) {
+    const startX = this.level.worldToGrid(this.position.x);
+    const startY = this.level.worldToGrid(this.position.y);
+    const neighbors = this.level.getNeighbors(startX, startY);
+    const pacmanTile = {
+      x: this.level.worldToGrid(pacmanPos.x),
+      y: this.level.worldToGrid(pacmanPos.y)
+    };
+    const facing = pacmanFacing || { x: 0, y: -1 };
+    const chaseArgs = {
+      ghostType: this.ghostType,
+      ghostTile: { x: startX, y: startY },
+      pacmanTile,
+      pacmanDirection: cardinalFromFacing(facing.x, facing.y),
+      blinkyTile: this.blinkyTile(),
+      scatterTarget: this.scatterTarget
+    };
+    const target = this.scared
+      ? pacmanTile
+      : patrolTarget({
+          mode: this.patrolMode,
+          elroyStage: this.elroyStage,
+          ...chaseArgs
+        });
+
+    const choice = chooseNextTile({
+      tile: { x: startX, y: startY },
+      neighbors,
+      target,
+      lastDirection: this.lastDirection,
+      frightened: this.scared,
+      forceReverse: this.forceReverse
+    });
+    this.commitStep(choice, startX, startY);
+  }
+
+  blinkyTile() {
+    if (!this.blinkyRef) return null;
+    const blinkyPos = this.blinkyRef.getPosition();
+    return {
+      x: this.level.worldToGrid(blinkyPos.x),
+      y: this.level.worldToGrid(blinkyPos.y)
+    };
+  }
+
+  commitStep(choice, fromX, fromY) {
+    this.forceReverse = false;
+    if (!choice) {
       this.path = [];
-      this.lastHomePos = null;
       return;
     }
-
-    // Get neighbors
-    let neighbors = this.level.getNeighbors(startX, startY);
-
-    // Filter out the last position to prevent oscillation (but only if we have other options)
-    if (this.lastHomePos && neighbors.length > 1) {
-      neighbors = neighbors.filter(
-        (n) => !(n.x === this.lastHomePos.x && n.y === this.lastHomePos.y)
-      );
-    }
-
-    // If filtering removed all neighbors, get them back
-    if (neighbors.length === 0) {
-      neighbors = this.level.getNeighbors(startX, startY);
-    }
-
-    if (neighbors.length > 0) {
-      // Pick the neighbor closest to home (greedy)
-      let bestNeighbor = neighbors[0];
-      let bestDistance = Infinity;
-
-      for (const neighbor of neighbors) {
-        const dx = neighbor.x - goalX;
-        const dy = neighbor.y - goalY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestNeighbor = neighbor;
-        }
-      }
-
-      // Remember current position to avoid coming back
-      this.lastHomePos = { x: startX, y: startY };
-      this.path = [bestNeighbor];
-    } else {
-      this.path = [];
-    }
-  }
-
-  // Get target based on ghost personality
-  getTargetForPersonality(pacmanPos) {
-    const pacmanGridX = this.level.worldToGrid(pacmanPos.x);
-    const pacmanGridY = this.level.worldToGrid(pacmanPos.y);
-
-    switch (this.ghostType) {
-      case 'blinky':
-        // Blinky: Direct chase - target Pacman's current position
-        return { x: pacmanGridX, y: pacmanGridY };
-
-      case 'pinky':
-        // Pinky: Ambush - target 4 tiles ahead of Pacman
-        // Use a simple approximation based on Pacman's likely direction
-        const aheadDist = 4;
-        // Add some randomness to make it less predictable
-        const offsetX = (Math.random() - 0.5) * 2;
-        const offsetY = (Math.random() - 0.5) * 2;
-        return {
-          x: Math.max(
-            1,
-            Math.min(
-              this.level.width - 2,
-              pacmanGridX + offsetX + aheadDist * (Math.random() > 0.5 ? 1 : -1)
-            )
-          ),
-          y: Math.max(
-            1,
-            Math.min(
-              this.level.height - 2,
-              pacmanGridY + offsetY + aheadDist * (Math.random() > 0.5 ? 1 : -1)
-            )
-          )
-        };
-
-      case 'inky':
-        // Inky: Unpredictable - uses vector from Blinky through a point ahead of Pacman
-        if (this.blinkyRef) {
-          const blinkyPos = this.blinkyRef.getPosition();
-          const blinkyGridX = this.level.worldToGrid(blinkyPos.x);
-          const blinkyGridY = this.level.worldToGrid(blinkyPos.y);
-          // Vector from Blinky to a point ahead of Pacman, doubled
-          const targetX = pacmanGridX + (pacmanGridX - blinkyGridX);
-          const targetY = pacmanGridY + (pacmanGridY - blinkyGridY);
-          return {
-            x: Math.max(1, Math.min(this.level.width - 2, targetX)),
-            y: Math.max(1, Math.min(this.level.height - 2, targetY))
-          };
-        }
-        // Fallback to direct chase if no Blinky reference
-        return { x: pacmanGridX, y: pacmanGridY };
-
-      case 'clyde':
-        // Clyde: Shy - chase when far, scatter when close (within 8 tiles)
-        const startX = this.level.worldToGrid(this.position.x);
-        const startY = this.level.worldToGrid(this.position.y);
-        const distToPacman = Math.sqrt(
-          Math.pow(startX - pacmanGridX, 2) + Math.pow(startY - pacmanGridY, 2)
-        );
-
-        if (distToPacman > 8) {
-          // Far away - chase Pacman
-          return { x: pacmanGridX, y: pacmanGridY };
-        } else {
-          // Close - retreat to scatter corner
-          return this.scatterTarget;
-        }
-
-      default:
-        return { x: pacmanGridX, y: pacmanGridY };
-    }
-  }
-
-  // Generate path chasing pacman based on ghost personality
-  generateChasingPath(pacmanPos) {
-    const startX = this.level.worldToGrid(this.position.x);
-    const startY = this.level.worldToGrid(this.position.y);
-
-    // Get target based on ghost personality
-    const target = this.getTargetForPersonality(pacmanPos);
-
-    // Get available neighbors (excluding where we just came from to avoid backtracking)
-    let neighbors = this.level.getNeighbors(startX, startY);
-
-    // Filter out the tile we came from (prevents immediate backtracking)
-    if (this.lastDirection && neighbors.length > 1) {
-      neighbors = neighbors.filter((n) => {
-        const dx = n.x - startX;
-        const dy = n.y - startY;
-        // Don't go back the way we came
-        return !(dx === -this.lastDirection.x && dy === -this.lastDirection.y);
-      });
-    }
-
-    if (neighbors.length === 0) {
-      neighbors = this.level.getNeighbors(startX, startY);
-    }
-
-    if (neighbors.length > 0) {
-      // Add some randomness at intersections (3+ choices) like original
-      if (neighbors.length >= 3 && Math.random() < 0.3) {
-        // 30% chance to pick random direction at intersections
-        const randomIndex = Math.floor(Math.random() * neighbors.length);
-        const chosen = neighbors[randomIndex];
-        this.lastDirection = { x: chosen.x - startX, y: chosen.y - startY };
-        this.path = [chosen];
-        return;
-      }
-
-      // Otherwise pick the neighbor closest to target
-      let bestNeighbor = neighbors[0];
-      let bestDistance = Infinity;
-
-      for (const neighbor of neighbors) {
-        const dx = neighbor.x - target.x;
-        const dy = neighbor.y - target.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestNeighbor = neighbor;
-        }
-      }
-
-      this.lastDirection = { x: bestNeighbor.x - startX, y: bestNeighbor.y - startY };
-      this.path = [bestNeighbor];
-    }
-  }
-
-  // Generate path to scatter corner
-  generateScatterPath() {
-    const startX = this.level.worldToGrid(this.position.x);
-    const startY = this.level.worldToGrid(this.position.y);
-
-    // Get available neighbors (excluding where we just came from)
-    let neighbors = this.level.getNeighbors(startX, startY);
-
-    if (this.lastDirection && neighbors.length > 1) {
-      neighbors = neighbors.filter((n) => {
-        const dx = n.x - startX;
-        const dy = n.y - startY;
-        return !(dx === -this.lastDirection.x && dy === -this.lastDirection.y);
-      });
-    }
-
-    if (neighbors.length === 0) {
-      neighbors = this.level.getNeighbors(startX, startY);
-    }
-
-    if (neighbors.length > 0) {
-      // Pick neighbor closest to scatter target
-      let bestNeighbor = neighbors[0];
-      let bestDistance = Infinity;
-
-      for (const neighbor of neighbors) {
-        const dx = neighbor.x - this.scatterTarget.x;
-        const dy = neighbor.y - this.scatterTarget.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestNeighbor = neighbor;
-        }
-      }
-
-      this.lastDirection = { x: bestNeighbor.x - startX, y: bestNeighbor.y - startY };
-      this.path = [bestNeighbor];
-    }
-  }
-
-  // Generate path fleeing from pacman (scared mode)
-  generateFleeingPath(pacmanPos) {
-    const startX = this.level.worldToGrid(this.position.x);
-    const startY = this.level.worldToGrid(this.position.y);
-    const pacmanGridX = this.level.worldToGrid(pacmanPos.x);
-    const pacmanGridY = this.level.worldToGrid(pacmanPos.y);
-
-    // Get neighbors, preferring not to backtrack
-    let neighbors = this.level.getNeighbors(startX, startY);
-
-    if (this.lastDirection && neighbors.length > 1) {
-      neighbors = neighbors.filter((n) => {
-        const dx = n.x - startX;
-        const dy = n.y - startY;
-        return !(dx === -this.lastDirection.x && dy === -this.lastDirection.y);
-      });
-    }
-
-    if (neighbors.length === 0) {
-      neighbors = this.level.getNeighbors(startX, startY);
-    }
-
-    if (neighbors.length > 0) {
-      // In scared mode, pick random direction (original behavior)
-      // This makes scared ghosts unpredictable
-      const randomIndex = Math.floor(Math.random() * neighbors.length);
-      const chosen = neighbors[randomIndex];
-      this.lastDirection = { x: chosen.x - startX, y: chosen.y - startY };
-      this.path = [chosen];
-    }
+    this.lastDirection = { x: choice.x - fromX, y: choice.y - fromY };
+    this.path = [choice];
   }
 
   getPosition() {
@@ -924,7 +815,13 @@ export class Ghost {
     this.scared = false;
     this.exitingHome = false;
     this.state = GHOST_STATE.SCATTER;
+    this.patrolMode = 'scatter';
+    this.elroyStage = 0;
+    this.frightActive = false;
+    this.forceReverse = false;
+    this.lastDirection = null;
     this.lastTeleportTileKey = null;
+    this.scaredMaterial.color.setHex(0x0000ff);
 
     // Reset visuals
     this.headMesh.visible = true;
@@ -937,6 +834,10 @@ export class Ghost {
     this.rightEye.visible = true;
     this.leftPupil.visible = true;
     this.rightPupil.visible = true;
+    this.leftEye.scale.setScalar(1);
+    this.rightEye.scale.setScalar(1);
+    this.leftPupil.scale.setScalar(1);
+    this.rightPupil.scale.setScalar(1);
 
     this.group.position.copy(this.position);
     this.yaw = 0;

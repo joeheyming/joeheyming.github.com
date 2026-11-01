@@ -8,12 +8,14 @@ import * as THREE from 'three';
 import { Level } from './level.js';
 import { Pacman } from './pacman.js';
 import { Ghost } from './ghost.js';
+import { GhostModeClock, elroyStage } from './ghost-ai.js';
 import { CameraController } from './camera.js';
 import { Controls } from './controls.js';
 import { AudioManager } from './audio.js';
 import { Minimap } from './minimap.js';
 import { Fruit } from './fruit.js';
 import { decodeLevelData } from './level-data.js';
+import { focusControl } from './ui-keys.js';
 import {
   GAME_STATES,
   GHOST_COLORS,
@@ -33,6 +35,8 @@ class Game {
     this.level = null;
     this.pacman = null;
     this.ghosts = [];
+    this.ghostClock = new GhostModeClock();
+    this.pelletTotal = 0;
     this.dots = [];
     this.powerPills = [];
 
@@ -349,6 +353,8 @@ class Game {
     // Store references to dots and power pills
     this.dots = this.level.dots;
     this.powerPills = this.level.powerPills;
+    this.pelletTotal = this.countRemainingPellets();
+    this.ghostClock.reset();
 
     // Create danger indicator sprites for each ghost
     this.createDangerIndicators();
@@ -529,6 +535,7 @@ class Game {
     this.state = GAME_STATES.INTRO;
     this.introScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
+    focusControl(this.introScreen);
 
     // Update intro text
     if (this.introCountdown) {
@@ -552,6 +559,7 @@ class Game {
       this.state = GAME_STATES.PAUSED;
       this.pauseScreen.classList.remove('hidden');
       this._staticFrameDirty = true;
+      focusControl(this.pauseScreen);
       // Release pointer lock so user can click pause screen
       if (document.pointerLockElement) {
         document.exitPointerLock();
@@ -593,6 +601,7 @@ class Game {
     this.state = GAME_STATES.INTRO;
     this.introScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
+    focusControl(this.introScreen);
 
     // Update intro text
     if (this.introCountdown) {
@@ -624,7 +633,8 @@ class Game {
     this.winScreen.classList.add('hidden');
     this.startScreen.classList.add('hidden');
 
-    // Reset entities
+    // Reset entities. A new life of the board starts the scatter wave over.
+    this.ghostClock.reset();
     this.pacman.reset();
     this.ghosts.forEach((ghost) => ghost.reset());
     this.level.resetDots();
@@ -739,6 +749,7 @@ class Game {
     document.getElementById('final-score').textContent = this.score;
     this.gameOverScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
+    focusControl(document.getElementById('restart-btn'));
 
     // Release pointer lock so user can click buttons
     if (document.pointerLockElement) {
@@ -757,6 +768,7 @@ class Game {
     document.getElementById('win-score').textContent = this.score;
     this.winScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
+    focusControl(document.getElementById('next-level-btn'));
     window.heymingAchievements?.unlockForCurrentApp('maze-cleared');
 
     // Release pointer lock so user can click buttons
@@ -816,7 +828,8 @@ class Game {
     if (this.lives <= 0) {
       this.gameOver();
     } else {
-      // Reset positions
+      // Reset positions. Death restarts the scatter/chase waves; pellets stay eaten.
+      this.ghostClock.reset();
       this.pacman.reset();
       this.ghosts.forEach((ghost) => ghost.reset());
 
@@ -840,6 +853,14 @@ class Game {
       // Go back to intro state and play start music
       this.showIntro();
     }
+  }
+
+  countRemainingPellets() {
+    if (!this.level) return 0;
+    let remaining = 0;
+    for (const dot of this.level.dots) if (dot.visible) remaining += 1;
+    for (const pill of this.level.powerPills) if (pill.visible) remaining += 1;
+    return remaining;
   }
 
   activatePowerMode() {
@@ -957,13 +978,17 @@ class Game {
     // Don't update during intro (waiting for sound) or other non-playing states
     if (this.state !== GAME_STATES.PLAYING) return;
 
-    // Update power mode timer
+    // Update power mode timer. Frightened pauses the scatter/chase clock
+    // so the wave resumes where it left off when the pill wears off.
     if (this.powerModeTimer > 0) {
       this.powerModeTimer -= this.deltaTime;
       if (this.powerModeTimer <= 0) {
+        this.powerModeTimer = 0;
         this.ghosts.forEach((ghost) => ghost.setScared(false));
       }
     }
+    this.ghostClock.paused = this.powerModeTimer > 0;
+    this.ghostClock.update(this.deltaTime);
 
     // Tick the active fruit (bobbing, blink-before-expire, despawn).
     // Despawned fruit is removed from the scene so the next spawn slot is free.
@@ -991,9 +1016,17 @@ class Game {
     const moveVec = this.cameraController.currentMode === 1 ? this.controls.getMoveVector() : null;
     this.pacman.update(this.deltaTime, direction, moveVec);
 
-    // Update ghosts
+    // Update ghosts. Elroy is Blinky-only and depends on pellets left,
+    // which survive a death the way the arcade dot counter does.
+    const pacmanPos = this.pacman.getPosition();
+    const pacmanFacing = this.pacman.getFacing();
+    const elroy = elroyStage(this.countRemainingPellets(), this.pelletTotal);
+    const patrolMode = this.ghostClock.mode;
     this.ghosts.forEach((ghost) => {
-      ghost.update(this.deltaTime, this.pacman.getPosition(), this.pacman.isChasing());
+      ghost.elroyStage = ghost.ghostType === 'blinky' ? elroy : 0;
+      ghost.frightActive = this.powerModeTimer > 0;
+      ghost.setPatrolMode(patrolMode);
+      ghost.update(this.deltaTime, pacmanPos, pacmanFacing);
     });
 
     // Check dot collection

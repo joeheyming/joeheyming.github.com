@@ -9,7 +9,21 @@
     />
 
     <title>Play DOOM in Browser — Classic &amp; Fan Mods Online</title>
-    <meta name="theme-color" content="#FAFAFA" />
+    <meta name="theme-color" content="#0e1217" />
+    <script>
+      (function () {
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) return;
+        var theme = document.documentElement.getAttribute('data-theme');
+        if (theme !== 'light' && theme !== 'dark') {
+          theme =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        }
+        meta.setAttribute('content', theme === 'light' ? '#fafafa' : '#0e1217');
+      })();
+    </script>
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta
@@ -433,6 +447,7 @@
           <span class="sub">POWERED BY UZDOOM-WASM</span>
         </h1>
       </div>
+      <p class="picker-lead">Pick a game. It downloads once, then starts in this tab.</p>
 
       <!-- SEO intro: kept in DOM for crawlers but visually hidden.
            Mentions every flavor by both common name and mod author so
@@ -502,6 +517,7 @@
           type="button"
           class="flavor-card"
           data-flavor="classic"
+          data-initial-focus
           disabled
           aria-label="Launch Classic DOOM"
         >
@@ -670,7 +686,7 @@
           <span class="what" id="heroTagline">DOOM, running in your browser.</span>
           Click Launch when ready.
         </p>
-        <button id="cleanLaunchBtn" disabled>Preparing…</button>
+        <button id="cleanLaunchBtn" type="button" disabled>Preparing…</button>
         <p class="fineprint">
           Experimental. ~60 MB first-load download. Saves persist in this browser.
         </p>
@@ -738,8 +754,8 @@
         </label>
 
         <div class="btn-row">
-          <button class="btn" id="useFreedoomBtn">Use bundled Freedoom</button>
-          <button class="btn primary" id="launchBtn" disabled>Launch</button>
+          <button class="btn" id="useFreedoomBtn" type="button">Use bundled Freedoom</button>
+          <button class="btn primary" id="launchBtn" type="button" disabled>Launch</button>
         </div>
 
         <div class="status-line">
@@ -817,12 +833,14 @@
         <nav id="doomExitNext" class="doom-next-apps" aria-label="Play something else"></nav>
         <div class="reason" id="exitReason"></div>
         <div class="btn-row">
-          <button class="btn primary" id="relaunchBtn">Relaunch</button>
+          <button class="btn primary" id="relaunchBtn" type="button">Relaunch</button>
         </div>
       </div>
     </div>
 
-    <button class="hidden" id="fsBtn" title="Toggle fullscreen (F11 also works)">Fullscreen</button>
+    <button class="hidden" id="fsBtn" type="button" title="Toggle fullscreen (F11 also works)">
+      Fullscreen
+    </button>
 
     <aside id="playHelp" class="play-help" aria-label="How to play">
       <button type="button" id="playHelpClose" class="play-help-close" aria-label="Hide controls">

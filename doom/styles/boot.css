@@ -23,7 +23,8 @@ html {
   align-items: center;
   justify-content: flex-start;
   gap: 14px;
-  padding: 24px 20px 48px;
+  /* Clears the compact nav toggle at the top-left. */
+  padding: 56px 20px 48px;
   text-align: center;
   z-index: 10;
   background: var(--bg);
@@ -56,6 +57,25 @@ html {
   color: var(--dim);
   margin-top: 4px;
   font-weight: 400;
+}
+.picker-lead {
+  display: none;
+  margin: 0;
+  max-width: 36rem;
+  color: var(--dim);
+  font-family: var(--font-ui, system-ui, sans-serif);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.picker-mode .picker-lead {
+  display: block;
+}
+.picker-mode .brand h1 {
+  font-size: 28px;
+  letter-spacing: 0.18em;
+}
+.picker-mode .brand .sword {
+  font-size: 26px;
 }
 
 .intro {
@@ -224,16 +244,19 @@ html {
   border-color: var(--border-hot);
 }
 .btn[disabled] {
-  opacity: 0.4;
+  opacity: 1;
   cursor: not-allowed;
+  color: var(--doom-disabled-text);
+  background: var(--doom-disabled-bg);
 }
 .btn.primary {
   background: var(--accent-dim);
   border-color: var(--accent);
   color: var(--pure-white);
 }
-.btn.primary:hover {
+.btn.primary:hover:not([disabled]) {
   background: var(--accent);
+  color: var(--doom-on-accent);
 }
 .btn.primary[disabled] {
   background: var(--doom-btn-primary-disabled-bg, #333333);
@@ -340,7 +363,12 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
 }
 #cleanLaunchBtn:hover:not([disabled]) {
   background: var(--accent);
+  color: var(--doom-on-accent);
   transform: translateY(-1px);
+}
+#cleanLaunchBtn:focus-visible {
+  outline: 3px solid #ffbf47;
+  outline-offset: 3px;
 }
 #cleanLaunchBtn[disabled] {
   background: var(--doom-disabled-bg, #2a2a2e);

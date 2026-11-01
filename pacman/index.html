@@ -26,7 +26,21 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#FAFAFA" />
+    <meta name="theme-color" content="#0e1217" />
+    <script>
+      (function () {
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) return;
+        var theme = document.documentElement.getAttribute('data-theme');
+        if (theme !== 'light' && theme !== 'dark') {
+          theme =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        }
+        meta.setAttribute('content', theme === 'light' ? '#fafafa' : '#0e1217');
+      })();
+    </script>
     <meta
       name="keywords"
       content="pacman, pac-man, pac man, 3d pacman, pacman 3d, pac man 3d, pac-man 3d, 3D Pac-Man game online, arcade game, browser game, ghost ai, maze game, power pills, ad-free, no ads, free game"
@@ -187,9 +201,9 @@
         id="hud"
         class="absolute top-0 left-0 right-0 p-4 pl-32 sm:pl-36 flex flex-wrap justify-between items-start pointer-events-none z-10"
       >
-        <div class="flex items-center gap-6">
+        <div class="hud-chip flex items-center gap-6">
           <div class="text-left">
-            <div class="text-pac-yellow-bright font-mono text-2xl font-bold">
+            <div class="text-pac-ink-yellow font-mono text-2xl font-bold">
               SCORE:
               <span id="score">0</span>
             </div>
@@ -240,17 +254,16 @@
               </div>
             </div>
           </div>
-          <div class="text-right">
-            <div
+          <div class="hud-chip text-right">
+            <button
+              type="button"
               id="camera-toggle"
-              class="text-pac-cyan font-mono text-sm cursor-pointer pointer-events-auto active:opacity-70"
-              role="button"
-              tabindex="0"
+              class="font-mono text-sm pointer-events-auto"
               aria-label="Cycle view"
             >
               👁 View:
               <span id="camera-mode">Bird's Eye</span>
-            </div>
+            </button>
             <div class="text-text-2 font-mono text-xs mt-1 hidden sm:block">
               Press [C] to change view
             </div>
@@ -267,7 +280,7 @@
       <!-- Controls Help -->
       <div
         id="controls-help"
-        class="absolute bottom-4 right-4 text-text-3 font-mono text-xs text-right z-10"
+        class="hud-chip absolute bottom-4 right-4 text-text-2 font-mono text-xs text-right z-10"
       >
         <div>Arrow Keys: Move</div>
         <div>C: Change View</div>
@@ -294,8 +307,10 @@
           👻 3D PACMAN 👻
         </h1>
         <button
+          type="button"
           id="start-btn"
-          class="px-8 py-4 bg-pac-yellow hover:bg-pac-yellow-bright text-black font-bold text-xl rounded-lg transition-all duration-300 hover:scale-110"
+          data-initial-focus
+          class="pac-cta px-8 py-4 font-bold text-xl rounded-lg transition-all duration-300 hover:scale-110"
         >
           START GAME
         </button>
@@ -306,10 +321,10 @@
         >
           BUILD YOUR OWN LEVEL
         </a>
-        <div class="mt-8 text-text-3 text-sm hidden sm:block">
+        <div class="on-maze mt-8 text-sm hidden sm:block">
           Use Arrow Keys to move • C to change view
         </div>
-        <div class="mt-8 text-text-3 text-sm sm:hidden">
+        <div class="on-maze mt-8 text-sm sm:hidden">
           Drag to move • VIEW to change angle • In FPS, drag right side to look
         </div>
       </div>
@@ -324,7 +339,7 @@
         <div id="intro-countdown" class="text-6xl font-bold text-pac-yellow-bright animate-pulse">
           READY!
         </div>
-        <div class="mt-8 text-text-2 text-sm animate-pulse">Click to skip</div>
+        <div class="on-maze mt-8 text-sm animate-pulse">Click to skip</div>
       </div>
 
       <div
@@ -334,8 +349,8 @@
         tabindex="0"
         aria-label="Resume"
       >
-        <h2 class="text-4xl font-bold text-text-1 mb-4">PAUSED</h2>
-        <p class="text-text-2">Click or press ESC to resume</p>
+        <h2 class="text-4xl font-bold text-pac-yellow-bright mb-4">PAUSED</h2>
+        <p class="on-maze">Press Esc or Enter to resume</p>
       </div>
 
       <div
@@ -343,13 +358,14 @@
         class="absolute inset-0 bg-surface-0/80 flex flex-col items-center justify-center z-20 hidden"
       >
         <h2 class="text-5xl font-bold text-pac-red mb-4">GAME OVER</h2>
-        <p class="text-2xl text-text-1 mb-2">
+        <p class="text-2xl text-pac-yellow-bright mb-2">
           Score:
           <span id="final-score">0</span>
         </p>
         <button
+          type="button"
           id="restart-btn"
-          class="mt-6 px-6 py-3 bg-pac-yellow hover:bg-pac-yellow-bright text-black font-bold rounded-lg transition-all duration-300 hover:scale-105"
+          class="pac-cta mt-6 px-6 py-3 font-bold rounded-lg transition-all duration-300 hover:scale-105"
         >
           PLAY AGAIN
         </button>
@@ -359,14 +375,15 @@
         id="win-screen"
         class="absolute inset-0 bg-surface-0/80 flex flex-col items-center justify-center z-20 hidden"
       >
-        <h2 class="text-5xl font-bold text-success mb-4">🎉 YOU WIN! 🎉</h2>
-        <p class="text-2xl text-text-1 mb-2">
+        <h2 class="text-5xl font-bold text-pac-yellow-bright mb-4">🎉 YOU WIN! 🎉</h2>
+        <p class="text-2xl text-pac-yellow-bright mb-2">
           Score:
           <span id="win-score">0</span>
         </p>
         <button
+          type="button"
           id="next-level-btn"
-          class="mt-6 px-6 py-3 bg-success hover:bg-success/80 text-black font-bold rounded-lg transition-all duration-300 hover:scale-105"
+          class="pac-cta pac-cta-success mt-6 px-6 py-3 font-bold rounded-lg transition-all duration-300 hover:scale-105"
         >
           NEXT LEVEL
         </button>

@@ -2,6 +2,7 @@ import { GAME_STATES, GAMEPLAY, DIFFICULTY, DIFFICULTY_PRESETS } from './constan
 import { CHUNK_SIZE } from './templates.js';
 import { loadSave, saveState, clearSave } from './save.js';
 import { METERS } from './world-config.js';
+import { focusControl } from '../../pacman/js/ui-keys.js';
 
 const RESPAWN_DELAY = GAMEPLAY.PACMAN_RESPAWN_DELAY;
 const POST_RESPAWN_GRACE_S = 1.5;
@@ -279,6 +280,7 @@ export const gameState = {
     for (const btn of buttons) {
       const active = btn.getAttribute('data-difficulty') === this.difficulty;
       btn.classList.toggle('difficulty-active', active);
+      btn.setAttribute('aria-checked', active ? 'true' : 'false');
     }
   },
 
@@ -398,6 +400,7 @@ export const gameState = {
     if (this.gameOverScreen) {
       this.gameOverScreen.classList.remove('hidden');
     }
+    focusControl(this.backToMenuBtn);
     if (this.finalScoreElement) {
       this.finalScoreElement.textContent = String(this.score);
     }
@@ -453,6 +456,7 @@ export const gameState = {
     this._savedState = loadSave();
     this._refreshStartMenu();
     if (this.startScreen) this.startScreen.classList.remove('hidden');
+    this._focusStartMenu();
     this._canSave = false;
   }
 };

@@ -53,6 +53,15 @@ export function installUzdomLoaderEngine(ctx) {
     $('fsBtn').classList.add('hidden');
     $('boot').classList.add('hidden');
     $('exited').classList.remove('hidden');
+    var relaunch = $('relaunchBtn');
+    if (relaunch) {
+      var remote = window.heymingRemote;
+      if (remote && typeof remote.focusIfIdle === 'function') {
+        remote.focusIfIdle(relaunch, true, true);
+      } else {
+        relaunch.focus();
+      }
+    }
 
     const outcome = $('exitOutcome');
     const reasonEl = $('exitReason');

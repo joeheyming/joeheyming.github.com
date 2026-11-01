@@ -39,49 +39,69 @@
    *           (sub-weapon), wpn = indigo (cycle).
    */
 
-  /* Surfaces */
+  /* Surfaces follow the page theme so labels stay readable on
+   * chips and borders in light and dark. */
   --doom-bg: var(--surface-0);
   --doom-panel: var(--surface-1);
   --doom-panel-2: var(--surface-1);
   --doom-panel-hover: var(--surface-2);
-  --doom-chip: #222228;
-  --doom-btn-hover: #222222;
-  --doom-border: #2a2a30;
-  --doom-border-hot: #4a4a55;
-  --doom-hint: var(--text-3);
+  --doom-chip: var(--surface-2);
+  --doom-btn-hover: var(--surface-2);
+  --doom-border: var(--hairline-strong);
+  --doom-border-hot: var(--text-2);
+  --doom-hint: var(--text-2);
 
-  /* Disabled state — secondary CTA */
-  --doom-disabled-bg: #2a2a2e;
-  --doom-disabled-border: #3a3a3e;
-  --doom-disabled-text: #6a6a72;
-  /* Disabled state — primary CTA */
-  --doom-btn-primary-disabled-bg: #333333;
-  --doom-btn-primary-disabled-border: #444444;
-  --doom-btn-primary-disabled-text: #777777;
+  /* Disabled state. text-2 clears AA on surface-2; text-3 does not. */
+  --doom-disabled-bg: var(--surface-2);
+  --doom-disabled-border: var(--hairline-strong);
+  --doom-disabled-text: var(--text-2);
+  --doom-btn-primary-disabled-bg: var(--surface-2);
+  --doom-btn-primary-disabled-border: var(--hairline-strong);
+  --doom-btn-primary-disabled-text: var(--text-2);
 
   /* Text */
   --doom-text: var(--text-1);
   --doom-dim: var(--text-2);
 
-  /* Identity — default flavor (Classic DOOM red) */
-  --doom-blood: #c8392e;
+  /* Identity inks. Light values clear AA on cream and white.
+   * Dark overrides below restore the neon horror colors. Filled
+   * buttons keep the deep shades so a white label still passes,
+   * and --doom-on-accent flips the label when a hover uses the
+   * bright ink as a fill. Canvas overlays stay dark, so their
+   * ink stays light in both themes. */
+  --doom-ink-blood: #9f1d1d;
+  --doom-ink-freedoom: #9a3412;
+  --doom-ink-legend: #166534;
+  --doom-ink-mario: #1d4ed8;
+  --doom-ink-metroid: #854d0e;
+  --doom-ink-castlevania: #6b21a8;
+  --doom-ink-sonic: #0c6478;
+  --doom-ink-bone: #854d0e;
+  --doom-ink-fire: #854d0e;
+  --doom-ink-life: #166534;
+  --doom-ink-moddb: #9d174d;
+  --doom-on-accent: #ffffff;
+  --doom-overlay-ink: #e6edf3;
+  --doom-overlay-dim: #c5cdd6;
+
+  --doom-blood: var(--doom-ink-blood);
   --doom-blood-deep: #6a1f18;
-  --doom-bone: #d9c77a;
-  --doom-fire: #ddbb44;
-  --doom-life: #66cc66;
+  --doom-bone: var(--doom-ink-bone);
+  --doom-fire: var(--doom-ink-fire);
+  --doom-life: var(--doom-ink-life);
 
   /* Flavor-switcher menu dots — one tinted dot per playable flavor.
    * Used by `.flavor-switch-menu button[data-switch=…] .dot` selectors
    * in styles/in-game.css; HTML stays markup-pure (no inline styles). */
-  --doom-dot-classic: var(--doom-blood);
-  --doom-dot-freedoom: #d9883a;
-  --doom-dot-legend: #4fa861;
-  --doom-dot-mario: #2a73d8;
-  --doom-dot-metroid: #c39e3a;
-  --doom-dot-castlevania: #7a3fb1;
-  --doom-dot-sonic: #1ec8e8;
-  --doom-dot-moddb: #d96aa6;
-  --doom-dot-manual: #888888;
+  --doom-dot-classic: var(--doom-ink-blood);
+  --doom-dot-freedoom: var(--doom-ink-freedoom);
+  --doom-dot-legend: var(--doom-ink-legend);
+  --doom-dot-mario: var(--doom-ink-mario);
+  --doom-dot-metroid: var(--doom-ink-metroid);
+  --doom-dot-castlevania: var(--doom-ink-castlevania);
+  --doom-dot-sonic: var(--doom-ink-sonic);
+  --doom-dot-moddb: var(--doom-ink-moddb);
+  --doom-dot-manual: var(--text-2);
 
   /* Warn yellow tints (the gold/fire family) */
   --doom-warn-tint: rgba(219, 180, 68, 0.08);
@@ -124,33 +144,66 @@
   --dim: var(--doom-dim);
   /* Default accent is DOOM red. Flavor body classes override below:
      freedoom → orange, legend → Zelda green. Classic keeps red. */
-  --accent: var(--doom-blood);
+  --accent: var(--doom-ink-blood);
   --accent-dim: var(--doom-blood-deep);
   --ok: var(--doom-life);
   --warn: var(--doom-fire);
   --gold: var(--doom-bone);
 }
+
+:root[data-theme='dark'] {
+  --doom-ink-blood: #f06055;
+  --doom-ink-freedoom: #d9883a;
+  --doom-ink-legend: #4fa861;
+  --doom-ink-mario: #5b9dfb;
+  --doom-ink-metroid: #c39e3a;
+  --doom-ink-castlevania: #b894e8;
+  --doom-ink-sonic: #1ec8e8;
+  --doom-ink-bone: #d9c77a;
+  --doom-ink-fire: #ddbb44;
+  --doom-ink-life: #66cc66;
+  --doom-ink-moddb: #f0abfc;
+  --doom-on-accent: #000000;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --doom-ink-blood: #f06055;
+    --doom-ink-freedoom: #d9883a;
+    --doom-ink-legend: #4fa861;
+    --doom-ink-mario: #5b9dfb;
+    --doom-ink-metroid: #c39e3a;
+    --doom-ink-castlevania: #b894e8;
+    --doom-ink-sonic: #1ec8e8;
+    --doom-ink-bone: #d9c77a;
+    --doom-ink-fire: #ddbb44;
+    --doom-ink-life: #66cc66;
+    --doom-ink-moddb: #f0abfc;
+    --doom-on-accent: #000000;
+  }
+}
+
 body.flavor-freedoom {
-  --accent: #d9883a;
+  --accent: var(--doom-ink-freedoom);
   --accent-dim: #6e421a;
 }
 body.flavor-legend {
-  --accent: #4fa861;
+  --accent: var(--doom-ink-legend);
   --accent-dim: #2a5b37;
 }
 body.flavor-mario {
-  --accent: #2a73d8;
+  --accent: var(--doom-ink-mario);
   --accent-dim: #18467f;
 }
 body.flavor-metroid {
-  --accent: #c39e3a;
+  --accent: var(--doom-ink-metroid);
   --accent-dim: #6e571c;
 }
 body.flavor-castlevania {
-  --accent: #7a3fb1;
+  --accent: var(--doom-ink-castlevania);
   --accent-dim: #3f1f5c;
 }
 body.flavor-sonic {
-  --accent: #1ec8e8;
+  --accent: var(--doom-ink-sonic);
   --accent-dim: #0a5a6e;
 }

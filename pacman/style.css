@@ -7,6 +7,35 @@
   --pacman-c01: #0f0c29;
   --pacman-c02: #302b63;
   --pacman-c03: #24243e;
+
+  /* Text on the themed page. Light values clear AA on cream surfaces.
+     Dark overrides below restore the neon arcade inks. CTA fills stay
+     the bright yellow in both themes (black label on #eab308). */
+  --pac-ink-yellow: #7a5800;
+  --pac-ink-cyan: #0c6478;
+  --pac-ink-red: #b91c1c;
+  --pac-ink-pink: #9d174d;
+  --pac-ink-green: #166534;
+  --pac-fill: #eab308;
+  --pac-fill-bright: #facc15;
+}
+
+:root[data-theme='dark'] {
+  --pac-ink-yellow: #facc15;
+  --pac-ink-cyan: #22d3ee;
+  --pac-ink-red: #ff7070;
+  --pac-ink-pink: #f0abfc;
+  --pac-ink-green: #86efac;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --pac-ink-yellow: #facc15;
+    --pac-ink-cyan: #22d3ee;
+    --pac-ink-red: #ff7070;
+    --pac-ink-pink: #f0abfc;
+    --pac-ink-green: #86efac;
+  }
 }
 
 * {
@@ -53,34 +82,39 @@ body {
   touch-action: none;
 }
 
-/* HUD Styles */
-#hud {
-  text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black) 80%, transparent);
-}
-
-#hud > div:first-child {
-  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
+/* HUD chrome sits on a themed surface so text tokens stay readable
+   over the maze in both light and dark. */
+.hud-chip {
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
   backdrop-filter: blur(8px);
   padding: 12px 16px;
   border-radius: 12px;
-  border: 2px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  border: 1px solid var(--hairline-strong);
 }
 
-/* Strong text shadow for yellow score text */
-#score,
-#high-score {
-  text-shadow: 2px 2px 0 var(--pure-black), -2px -2px 0 var(--pure-black),
-    2px -2px 0 var(--pure-black), -2px 2px 0 var(--pure-black), 0 0 10px var(--pure-black),
-    0 0 20px color-mix(in srgb, var(--warning) 50%, transparent);
+#fps-hud .text-pac-yellow-bright {
+  text-shadow: 0 0 3px var(--pure-black), 0 1px 2px var(--pure-black);
 }
 
-/* Improve readability of camera mode text */
-#camera-mode {
-  text-shadow: 1px 1px 0 var(--pure-black), -1px -1px 0 var(--pure-black),
-    1px -1px 0 var(--pure-black), -1px 1px 0 var(--pure-black), 0 0 8px var(--pure-black);
-  background: color-mix(in srgb, var(--pure-black) 50%, transparent);
-  padding: 4px 8px;
-  border-radius: 6px;
+/* Menu copy sits on the maze, not on a surface. Keep it light in both
+   themes; the paper inks are only for the HUD chip. */
+.on-maze {
+  color: #e8edf2;
+  text-shadow: 0 1px 2px var(--pure-black),
+    0 0 8px color-mix(in srgb, var(--pure-black) 85%, transparent);
+}
+
+#camera-toggle {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  letter-spacing: normal;
+  text-transform: none;
+  font: inherit;
+  color: var(--pac-ink-cyan);
+  cursor: pointer;
 }
 
 /* Retro glow effect for text */
@@ -96,24 +130,53 @@ body {
 @keyframes pulse-glow {
   0%,
   100% {
-    text-shadow: 0 0 10px var(--warning), 0 0 20px var(--warning), 0 0 30px var(--warning);
+    text-shadow: 2px 2px 0 var(--pure-black), -2px -2px 0 var(--pure-black),
+      2px -2px 0 var(--pure-black), -2px 2px 0 var(--pure-black), 0 0 10px var(--warning),
+      0 0 22px var(--warning);
   }
   50% {
-    text-shadow: 0 0 20px var(--warning), 0 0 40px var(--warning), 0 0 60px var(--warning);
+    text-shadow: 2px 2px 0 var(--pure-black), -2px -2px 0 var(--pure-black),
+      2px -2px 0 var(--pure-black), -2px 2px 0 var(--pure-black), 0 0 18px var(--warning),
+      0 0 36px var(--warning);
   }
 }
 
-/* Button styles */
-button {
+/* Primary actions. Yellow fill stays bright in both themes; black
+   text on it clears AA. The win button uses the themed success fill
+   and flips its label so light green and dark green both stay legible. */
+.pac-cta {
   cursor: pointer;
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 1px;
+  background: var(--pac-fill);
+  color: var(--pure-black);
   box-shadow: 0 4px 15px color-mix(in srgb, var(--warning) 40%, transparent);
 }
 
-button:hover {
+.pac-cta:hover {
+  background: var(--pac-fill-bright);
   box-shadow: 0 6px 25px color-mix(in srgb, var(--warning) 60%, transparent);
+}
+
+.pac-cta-success {
+  background: var(--success);
+  color: var(--pure-white);
+}
+
+.pac-cta-success:hover {
+  background: var(--success);
+  filter: brightness(1.08);
+}
+
+:root[data-theme='dark'] .pac-cta-success {
+  color: var(--surface-0);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .pac-cta-success {
+    color: var(--surface-0);
+  }
 }
 
 /* Lives display */
@@ -124,9 +187,6 @@ button:hover {
 /* Control hints */
 #controls-help {
   backdrop-filter: blur(4px);
-  background: color-mix(in srgb, var(--pure-black) 30%, transparent);
-  padding: 8px 12px;
-  border-radius: 8px;
 }
 
 /* Screen transitions */
@@ -240,7 +300,7 @@ button:hover {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: white;
+  color: var(--text-1);
   font-size: 1.5rem;
 }
 

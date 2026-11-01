@@ -19,7 +19,7 @@
   z-index: 5;
   background: var(--doom-overlay-strong, rgba(20, 20, 24, 0.6));
   border: 1px solid var(--border);
-  color: var(--text);
+  color: var(--doom-overlay-ink, #e6edf3);
   padding: 6px 10px;
   font-size: 11px;
   border-radius: 3px;
@@ -28,7 +28,8 @@
   opacity: 0.35;
   transition: opacity 0.2s;
 }
-#fsBtn:hover {
+#fsBtn:hover,
+#fsBtn:focus-visible {
   opacity: 1;
   background: var(--doom-overlay-hover, rgba(30, 30, 36, 0.9));
 }
@@ -44,7 +45,7 @@
   max-width: min(280px, calc(100vw - 24px));
   background: var(--doom-overlay-strong, rgba(20, 20, 24, 0.78));
   border: 1px solid var(--border);
-  color: var(--text);
+  color: var(--doom-overlay-ink, #e6edf3);
   padding: 10px 30px 10px 12px;
   font-size: 12px;
   line-height: 1.4;
@@ -63,7 +64,7 @@
   right: 4px;
   background: transparent;
   border: 0;
-  color: var(--dim);
+  color: var(--doom-overlay-dim, #c5cdd6);
   font-family: inherit;
   font-size: 13px;
   line-height: 1;
@@ -72,8 +73,9 @@
   border-radius: 4px;
 }
 
-.play-help-close:hover {
-  color: var(--text);
+.play-help-close:hover,
+.play-help-close:focus-visible {
+  color: var(--doom-overlay-ink, #e6edf3);
   background: var(--doom-menu-hover, rgba(255, 255, 255, 0.06));
 }
 
@@ -84,7 +86,7 @@
   z-index: 6;
   background: var(--doom-overlay-strong, rgba(20, 20, 24, 0.6));
   border: 1px solid var(--border);
-  color: var(--text);
+  color: var(--doom-overlay-ink, #e6edf3);
   padding: 6px 10px;
   font-size: 11px;
   border-radius: 3px;
@@ -94,7 +96,8 @@
   transition: opacity 0.2s;
 }
 
-.play-help-open:hover {
+.play-help-open:hover,
+.play-help-open:focus-visible {
   opacity: 1;
   background: var(--doom-overlay-hover, rgba(30, 30, 36, 0.9));
 }
@@ -104,7 +107,7 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--dim);
+  color: var(--doom-overlay-dim, #c5cdd6);
 }
 
 .play-help ul {
@@ -121,7 +124,7 @@
 }
 
 .play-help a {
-  color: var(--accent);
+  color: var(--doom-overlay-ink, #e6edf3);
 }
 body.mobile #fsBtn {
   display: none !important;
@@ -152,7 +155,7 @@ body.mobile #flavorSwitcher.floating {
   appearance: none;
   background: var(--doom-overlay-strong, rgba(20, 20, 24, 0.6));
   border: 1px solid var(--border);
-  color: var(--text);
+  color: var(--doom-overlay-ink, #e6edf3);
   padding: 6px 10px;
   font-size: 11px;
   border-radius: 3px;
@@ -162,16 +165,31 @@ body.mobile #flavorSwitcher.floating {
   transition: opacity 0.2s;
 }
 .flavor-switch-btn:hover,
+.flavor-switch-btn:focus-visible,
 .flavor-switcher.open .flavor-switch-btn {
   opacity: 1;
   background: var(--doom-overlay-hover, rgba(30, 30, 36, 0.9));
 }
 /* Inline picker variant: full opacity by default since it's the only
    way into Manual mode and shouldn't be near-invisible. */
+.flavor-switcher.inline {
+  position: relative;
+  margin-top: 4px;
+}
 .flavor-switcher.inline .flavor-switch-btn {
-  opacity: 0.9;
-  font-size: 12px;
+  opacity: 1;
+  font-size: 13px;
   padding: 8px 14px;
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+.flavor-switcher.inline .flavor-switch-btn:hover,
+.flavor-switcher.inline .flavor-switch-btn:focus-visible,
+.flavor-switcher.inline.open .flavor-switch-btn {
+  color: var(--text-1);
+  background: var(--surface-2);
+  opacity: 1;
 }
 .flavor-switch-menu {
   position: absolute;
@@ -196,6 +214,8 @@ body.mobile #flavorSwitcher.floating {
   right: auto;
   left: 50%;
   transform: translateX(-50%);
+  background: var(--surface-1);
+  color: var(--text-1);
 }
 .flavor-switch-menu.hidden {
   display: none;
@@ -206,7 +226,7 @@ body.mobile #flavorSwitcher.floating {
   background: transparent;
   border: 0;
   border-radius: 3px;
-  color: var(--text);
+  color: var(--doom-overlay-ink, #e6edf3);
   padding: 8px 10px;
   font-family: inherit;
   font-size: 12px;
@@ -217,8 +237,18 @@ body.mobile #flavorSwitcher.floating {
   gap: 10px;
   transition: background 100ms;
 }
-.flavor-switch-menu button:hover {
+.flavor-switch-menu button:hover,
+.flavor-switch-menu button:focus-visible {
   background: var(--doom-menu-hover, rgba(255, 255, 255, 0.06));
+  outline: 3px solid #ffbf47;
+  outline-offset: -3px;
+}
+.flavor-switcher.inline .flavor-switch-menu button {
+  color: var(--text-1);
+}
+.flavor-switcher.inline .flavor-switch-menu button:hover,
+.flavor-switcher.inline .flavor-switch-menu button:focus-visible {
+  background: var(--surface-2);
 }
 .flavor-switch-menu button[disabled] {
   cursor: default;
@@ -267,8 +297,11 @@ body.mobile #flavorSwitcher.floating {
 .flavor-switch-menu button[data-active='true']::after {
   content: '✓';
   margin-left: auto;
-  color: var(--accent);
+  color: var(--doom-overlay-ink, #e6edf3);
   font-size: 12px;
+}
+.flavor-switcher.inline .flavor-switch-menu button[data-active='true']::after {
+  color: var(--accent);
 }
 .flavor-switch-sep {
   height: 1px;

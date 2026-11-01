@@ -13,10 +13,11 @@
  */
 
 :root {
-  /* Wordle tile palette — recognizable, AA-clear on tile text. Scoped
-   * --wordle-* tokens carry the muscle-memory green/yellow/gray, plus
-   * one dark text color for the yellow tile (white-on-yellow fails AA). */
-  --wordle-green: #16a34a;
+  /* Wordle tile palette. Green is dark enough that white tile text
+   * clears AA (the lighter #16a34a does not). Yellow keeps dark text.
+   * Gray keeps white text in both themes — do not paint it with
+   * --text-1, which flips to near-black in light mode. */
+  --wordle-green: #15803d;
   --wordle-yellow: #d4a017;
   --wordle-gray: #3a3a44;
   --wordle-text-on-tile: var(--pure-white);
@@ -55,11 +56,17 @@ body {
 /* ─── App header ───────────────────────────────────────────────────── */
 
 .wordle-app-header {
+  flex-wrap: wrap;
+  row-gap: 2px;
   border-radius: 0;
   border-left: none;
   border-right: none;
   border-top: none;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  padding-bottom: 10px;
+}
+.wordle-app-header .hos-app-header-identity {
+  flex: 1 1 auto;
 }
 
 .wordle-app-header .hos-app-header-title {
@@ -231,7 +238,7 @@ input.incorrect {
   height: 44px;
   width: var(--long-input-width);
   min-height: 44px;
-  color: var(--text-1);
+  color: var(--wordle-text-on-tile);
 }
 
 .maybecorrects input {
@@ -247,7 +254,9 @@ input.incorrect {
 .form-input.form-grid {
   display: grid;
   grid-gap: var(--tile-gap);
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, var(--tile-size));
+  width: max-content;
+  max-width: 100%;
 }
 
 /* ─── Stats panel tile glyphs ──────────────────────────────────────── */
@@ -274,7 +283,7 @@ input.incorrect {
 }
 
 .included-stat-wrong-spot {
-  color: var(--wordle-text-on-tile);
+  color: var(--wordle-text-on-tile-dark);
   background-color: var(--wordle-yellow);
 }
 
@@ -311,10 +320,11 @@ main {
   }
 }
 
-/* Player mode needs more width for graph + word display */
+/* Helper stays in the same column as the solver instead of breaking
+   out to the viewport. */
 #player {
-  width: calc(100vw - 40px);
-  max-width: 550px;
+  width: 100%;
+  max-width: 100%;
 }
 
 #playResultsContainer {
@@ -560,6 +570,16 @@ input:focus-visible {
   margin-right: 10px;
 }
 
+/* Solver controls share one narrow column, centered under the header.
+   The letter tiles are centered inside it. */
+#scorer > .form-row,
+#scorer > form,
+#scorer > .form-controls {
+  width: min(100%, 20rem);
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .form-controls {
   width: 328px;
 }
@@ -573,6 +593,19 @@ input:focus-visible {
   margin-bottom: 6px;
 }
 
+/* The column is ~450px. A 240px label beside a control crushes both.
+   Captions sit above the control, and the letter tiles stay a group. */
+.form-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.corrects.form-row,
+.maybecorrects.form-row,
+.form-row:has(.incorrect) {
+  align-items: center;
+}
+
 /* Class display:flex beats the UA [hidden] rule; keep source row gated. */
 .form-row[hidden] {
   display: none !important;
@@ -581,9 +614,10 @@ input:focus-visible {
 label.form-input,
 .form-label {
   font-family: var(--font-ui);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 13px;
   color: var(--text-2);
-  min-width: 240px;
+  min-width: 0;
 }
 
 .form-controls {
@@ -634,7 +668,7 @@ label.form-input,
 
 .play-letter.incorrect {
   background-color: var(--wordle-gray);
-  color: var(--text-1);
+  color: var(--wordle-text-on-tile);
 }
 
 .form-row#step1 {
@@ -645,13 +679,104 @@ label.form-input,
 
 /* Full-size stack (header through the keyboard) is about 800px. A short
    viewport, including one zoomed for large text, clips the bottom rows.
-   Shrink tiles and keys with the viewport; cap at the desktop size.
+   Reserve a fixed chrome budget and split the rest between the board
+   and the keys so a 640px-tall window still shows every row.
    100vh is the fallback when svh is missing. */
 body.wordle-playing {
-  --wg-tile: clamp(30px, calc((100vh - 500px) / 6), 56px);
-  --wg-tile: clamp(30px, calc((100svh - 500px) / 6), 56px);
-  --wg-key-h: clamp(34px, calc((100vh - 520px) / 5), 52px);
-  --wg-key-h: clamp(34px, calc((100svh - 520px) / 5), 52px);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  --play-room: max(120px, calc(100vh - 320px));
+  --play-room: max(120px, calc(100svh - 320px));
+  --wg-key-h: clamp(32px, calc(var(--play-room) * 0.34 / 3), 48px);
+  --wg-tile: clamp(26px, calc((var(--play-room) - 3 * var(--wg-key-h) - 16px) / 6), 56px);
+}
+
+body.wordle-playing .wordle-app-header {
+  flex: none;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+body.wordle-playing #todays-wordle {
+  display: none;
+}
+
+body.wordle-playing > hr {
+  display: none;
+}
+
+body.wordle-playing main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(520px, calc(100vw - 24px));
+  overflow: hidden;
+}
+
+/* Mode, word, and date become one toolbar. The board stays up;
+   the keyboard takes the bottom of the window. */
+body.wordle-playing main > .content:first-child {
+  flex: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 8px 12px;
+  width: 100%;
+  margin: 8px auto 0;
+}
+
+body.wordle-playing main > .content:first-child .form-row {
+  flex: 1 1 150px;
+  width: auto;
+  margin: 0;
+  gap: 4px;
+}
+
+body.wordle-playing .form-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body.wordle-playing .fixed-input-control,
+body.wordle-playing .block-input-control {
+  width: 100%;
+}
+
+body.wordle-playing select,
+body.wordle-playing input.wordle-date {
+  width: 100%;
+  min-width: 0;
+}
+
+body.wordle-playing #wordle-game {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(480px, 100%);
+  margin: 8px auto 0;
+  justify-content: flex-start;
+}
+
+body.wordle-playing .wg-new-game {
+  min-height: 44px;
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
+}
+
+body.wordle-playing .wg-new-game:hover {
+  background: var(--surface-2);
+}
+
+body.wordle-playing .wg-keyboard {
+  margin-top: auto;
+  width: 100%;
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
 }
 
 #wordle-game {
@@ -973,19 +1098,12 @@ body.wordle-playing .wg-key {
   }
 }
 
-/* Play-mode tile size follows viewport height, which would override the
-   narrow-screen caps above. Keep those caps so a phone row still fits. */
+/* Play-mode tile size follows the height budget above. A narrow
+   window also caps the row so five tiles still fit. */
 @media screen and (max-width: 479px) {
-  body.wordle-playing {
-    --wg-tile: clamp(30px, calc((100vh - 500px) / 6), 52px);
-    --wg-tile: clamp(30px, calc((100svh - 500px) / 6), 52px);
-  }
-}
-
-@media screen and (max-width: 360px) {
-  body.wordle-playing {
-    --wg-tile: clamp(30px, calc((100vh - 500px) / 6), 44px);
-    --wg-tile: clamp(30px, calc((100svh - 500px) / 6), 44px);
+  body.wordle-playing .wg-tile {
+    width: min(var(--wg-tile), calc((100vw - 48px) / 5));
+    height: min(var(--wg-tile), calc((100vw - 48px) / 5));
   }
 }
 
@@ -1027,7 +1145,17 @@ select {
 }
 
 input.wordle-date {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] input.wordle-date {
   color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) input.wordle-date {
+    color-scheme: dark;
+  }
 }
 
 input.wordle-date:focus,
@@ -1098,10 +1226,11 @@ select:focus {
 }
 
 #todays-wordle {
-  margin: 4px 0 0;
-  text-align: center;
+  flex: 1 0 100%;
+  margin: 0;
+  text-align: left;
   font-size: var(--text-caption);
-  color: var(--text-3);
+  color: var(--text-2);
   font-weight: 500;
 }
 
@@ -1120,24 +1249,8 @@ select:focus {
   }
 
   .form-input.form-grid {
-    width: 100%;
-  }
-
-  /* min-width: 0 (not unset) is intentional. `unset` falls through to the
-   * initial value of `min-width`, which is `auto`, and `min-width: auto`
-   * on a grid item means "content's min-content size" — the tile would
-   * refuse to shrink below the implicit width of `<input size="5">` on
-   * iOS Safari and overflow the row. Forcing 0 lets `repeat(5, 1fr)`
-   * actually distribute equally on narrow viewports. */
-  .corrects input,
-  .maybecorrects input {
-    width: auto;
-    min-width: 0;
-  }
-
-  input.incorrect,
-  input.correct {
-    width: 100%;
+    width: max-content;
+    max-width: 100%;
   }
 
   .form-controls {
@@ -1147,12 +1260,6 @@ select:focus {
   .block-input-control,
   .fixed-input-control {
     width: 100%;
-  }
-
-  input.incorrect,
-  input.correct {
-    width: 100%;
-    box-sizing: border-box;
   }
 
   #playResultsContainer {
@@ -1166,9 +1273,7 @@ select:focus {
   }
 }
 
-/* Play Wordle: share/related FAB sits over the on-screen keyboard on phones. */
-@media screen and (max-width: 768px) {
-  body.wordle-playing .related-projects-container {
-    display: none !important;
-  }
+/* Play Wordle: the share/related control sits over the on-screen keyboard. */
+body.wordle-playing .related-projects-container {
+  display: none !important;
 }

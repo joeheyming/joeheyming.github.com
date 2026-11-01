@@ -16,7 +16,18 @@
 
 (function () {
   var params = new URLSearchParams(window.location.search);
-  if (params.get('manual') === '1') return;
+  if (params.get('manual') === '1') {
+    document.addEventListener('DOMContentLoaded', function () {
+      var freedoom = document.getElementById('useFreedoomBtn');
+      if (!freedoom || document.activeElement !== document.body) return;
+      try {
+        freedoom.focus({ preventScroll: true, focusVisible: true });
+      } catch (err) {
+        freedoom.focus();
+      }
+    });
+    return;
+  }
 
   // GA helper for the DOOM flavor funnel. We want to know how often
   // the engine actually boots vs bails during the multi-MB load, and
@@ -26,6 +37,30 @@
   function trackDoomEvent(name, label, value) {
     if (typeof window.trackEvent !== 'function') return;
     window.trackEvent(name, 'DoomFlavor', label, value);
+  }
+
+  // Move focus onto a control that just became usable, unless the
+  // visitor is already on another control.
+  function focusIdle(el, force) {
+    if (!el || el.disabled) return;
+    var remote = window.heymingRemote;
+    if (remote && typeof remote.focusIfIdle === 'function') {
+      remote.focusIfIdle(el, !!force, true);
+      return;
+    }
+    var active = document.activeElement;
+    if (!force && active && active !== document.body && active !== document.documentElement) {
+      return;
+    }
+    try {
+      el.focus({ preventScroll: true });
+    } catch (err) {
+      try {
+        el.focus();
+      } catch (err2) {
+        /* control cannot take focus */
+      }
+    }
   }
 
   // Flavor cards are <button>s, so the offer lives in #doomFailNext (or in
@@ -534,6 +569,7 @@
         if (state.phase === 'primed') {
           btn.textContent = (cfg && cfg.launchLabel) || 'Launch';
           btn.disabled = false;
+          focusIdle(btn);
         } else if (state.phase === 'launching') {
           btn.textContent = 'Loading…';
           btn.disabled = true;
@@ -616,6 +652,7 @@
             var cta = c.querySelector('.cta');
             if (cta) cta.textContent = 'Click to play';
           });
+          focusIdle(cards[0]);
           return;
         }
         if (Date.now() > deadline) return;
@@ -806,13 +843,34 @@
     function openMenu() {
       paintActive();
       menu.classList.remove('hidden');
+      menu.setAttribute('role', 'dialog');
+      menu.setAttribute('aria-modal', 'true');
+      if (!menu.getAttribute('aria-label')) menu.setAttribute('aria-label', 'More ways to play');
       root.classList.add('open');
       btn.setAttribute('aria-expanded', 'true');
+      var first = menu.querySelector('button:not([disabled])');
+      if (first) {
+        try {
+          first.focus({ preventScroll: true, focusVisible: true });
+        } catch (err) {
+          first.focus();
+        }
+      }
     }
     function closeMenu() {
+      var wasOpen = !menu.classList.contains('hidden');
       menu.classList.add('hidden');
+      menu.setAttribute('role', 'menu');
+      menu.removeAttribute('aria-modal');
       root.classList.remove('open');
       btn.setAttribute('aria-expanded', 'false');
+      if (wasOpen) {
+        try {
+          btn.focus({ preventScroll: true, focusVisible: true });
+        } catch (err) {
+          btn.focus();
+        }
+      }
     }
 
     btn.addEventListener('click', function (e) {

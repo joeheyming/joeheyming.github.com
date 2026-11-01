@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Classic DOOM — Play the 1993 Original Free 💀</title>
     <meta name="theme-color" content="#0e1217" />
+    <script>
+      (function () {
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) return;
+        var theme = document.documentElement.getAttribute('data-theme');
+        if (theme !== 'light' && theme !== 'dark') {
+          theme =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        }
+        meta.setAttribute('content', theme === 'light' ? '#fafafa' : '#0e1217');
+      })();
+    </script>
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta
@@ -91,7 +105,7 @@
         The original shareware episode, Knee-Deep in the Dead, running on UZDoom in this tab. No
         install, no plugins. Saves stay in this browser.
       </p>
-      <a class="classic-play" href="/doom/?flavor=classic">Play Classic DOOM</a>
+      <a class="classic-play" href="/doom/?flavor=classic" data-initial-focus>Play Classic DOOM</a>
       <p class="classic-note">About 4 MB the first time the WAD downloads. Keyboard or gamepad.</p>
       <section class="classic-others" aria-labelledby="other-flavors">
         <h2 id="other-flavors">Other flavors</h2>

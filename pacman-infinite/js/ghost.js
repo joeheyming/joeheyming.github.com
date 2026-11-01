@@ -13,7 +13,7 @@
  *   CHASE  — personality-driven walk toward a target tile that depends
  *            on the ghost's colour (Tier 2, 2026-05). See PERSONALITY
  *            constants and the _personalityTarget() helper.
- *   FLEE   — power mode active; greedy walk AWAY from Pacman, slowed
+ *   FLEE   — power mode active; reverse once, then a random legal turn, slowed
  *   EATEN  — Pacman ate this ghost while it was fleeing; brief delay then
  *            World disposes us
  *
@@ -23,7 +23,7 @@
  *   PINKY  (pink)  — ambusher. Targets 4 tiles AHEAD of Pacman's facing.
  *   INKY   (cyan)  — flanker. Pivots a target around Blinky to pincer
  *                    Pacman from the opposite side.
- *   CLYDE  (orange)— shy. Chases when far (>8 tiles), scatters when close.
+ *   CLYDE  (orange)— shy. Chases when far (>8 tiles), then heads southwest.
  *
  * Pathing has two modes:
  *   - Greedy (default for far ghosts): pick the neighbour that minimises
@@ -45,6 +45,11 @@
 
 import * as THREE from 'three';
 import { GAMEPLAY, GHOST_STATE } from './constants.js';
+import {
+  cardinalFromFacing,
+  chaseTarget,
+  openWorldScatterTarget
+} from '../../pacman/js/ghost-ai.js';
 
 // 4 colour variants. Order matches "rgb wheel" feel of the classic
 // ghosts (red, pink, cyan, orange) — and now also drives the
@@ -73,18 +78,6 @@ const PERSONALITY_BY_COLOR_IDX = [
 // red ghost in your face is genuinely scary without being unfightable.
 const CRUISE_ELROY_RADIUS_TILES = 5;
 const CRUISE_ELROY_SPEED_MUL = 1.1;
-
-// Pinky aims this many tiles AHEAD of Pacman's facing direction. Classic
-// game uses 4 tiles; the open-world version reads similarly here.
-const PINKY_AHEAD_TILES = 4;
-
-// Inky's pivot uses (Pacman + 2 tiles ahead) as the pivot point and
-// reflects Blinky's position through it for a flank target.
-const INKY_PIVOT_AHEAD_TILES = 2;
-
-// Clyde's "shy distance": within this many tiles of Pacman he breaks off
-// and wanders randomly instead of pursuing.
-const CLYDE_SHY_RADIUS_TILES = 8;
 
 // BFS pathing budget. ~200 nodes covers a Manhattan radius of ~10 tiles
 // with cheap memory. The cache TTL aligns with GHOST_TURN_PERIOD so the
@@ -361,6 +354,9 @@ export class Ghost {
     // Hide eyes during flee — they mute back the personality and read
     // immediately as "this one's vulnerable".
     for (const e of this.eyes) e.visible = false;
+    // Arcade frightened mode starts with a U-turn, including a second
+    // pill eaten while they are already blue.
+    this._reverseCourse();
   }
 
   exitFlee() {
@@ -527,10 +523,18 @@ export class Ghost {
     if (this.lastDir) {
       let yaw = 0;
       switch (this.lastDir) {
-        case 'up': yaw = 0; break;
-        case 'down': yaw = Math.PI; break;
-        case 'left': yaw = Math.PI / 2; break;
-        case 'right': yaw = -Math.PI / 2; break;
+        case 'up':
+          yaw = 0;
+          break;
+        case 'down':
+          yaw = Math.PI;
+          break;
+        case 'left':
+          yaw = Math.PI / 2;
+          break;
+        case 'right':
+          yaw = -Math.PI / 2;
+          break;
       }
       this.group.rotation.z = yaw;
     }
@@ -547,8 +551,8 @@ export class Ghost {
    *     the next step on the resulting path (when ctx.useBfs is true), or
    *   - fall back to greedy nearest-neighbour selection toward the target.
    *
-   * FLEE uses greedy distance-MAXimisation toward Pacman as before; the
-   * extra brainpower of BFS isn't worth it for runaway behaviour.
+   * FLEE picks a random legal exit (arcade frightened mode). The reverse
+   * already happened in enterFlee, so this step does not U-turn again.
    *
    * WANDER picks a random non-reverse neighbour (unchanged).
    */
@@ -572,21 +576,16 @@ export class Ghost {
     //    refuse to move). This is what breaks the "ghost going in a
     //    circle" failure mode in WANDER and unreachable-target chases.
     if (this._recentTiles.length > 0) {
-      const novel = candidates.filter(
-        (c) => !this._recentTiles.includes(`${c.gx},${c.gy}`)
-      );
+      const novel = candidates.filter((c) => !this._recentTiles.includes(`${c.gx},${c.gy}`));
       if (novel.length > 0) candidates = novel;
     }
 
     let chosen;
     if (this.state === GHOST_STATE.FLEE) {
-      // Greedy max-distance — runaway behaviour doesn't need BFS.
-      chosen = this._pickGreedy(candidates, pacmanPos, -1);
+      chosen = candidates[Math.floor(Math.random() * candidates.length)];
     } else if (this.state === GHOST_STATE.CHASE) {
       const target = this._personalityTarget(pacmanPos, ctx);
       if (target === null) {
-        // Personality opted out of chasing this tick (Clyde when close);
-        // fall back to a random non-reverse neighbour for the scatter.
         chosen = candidates[Math.floor(Math.random() * candidates.length)];
       } else {
         // Try BFS first when the world tagged us as a "near" ghost. If BFS
@@ -594,7 +593,8 @@ export class Ghost {
         // to greedy distance — still better than standing still.
         const bfsStep = ctx?.useBfs ? this._bfsNextStepToward(target.gx, target.gy) : null;
         if (bfsStep) {
-          chosen = candidates.find((c) => c.gx === bfsStep.gx && c.gy === bfsStep.gy) ||
+          chosen =
+            candidates.find((c) => c.gx === bfsStep.gx && c.gy === bfsStep.gy) ||
             this._pickGreedyTowardTile(candidates, target);
         } else {
           chosen = this._pickGreedyTowardTile(candidates, target);
@@ -607,9 +607,10 @@ export class Ghost {
       // jittering at every step. This also reads more naturally to
       // the player ("that ghost is heading west") than pure RNG.
       const straight = candidates.find((c) => c.dir === this.lastDir);
-      chosen = straight && Math.random() < 0.7
-        ? straight
-        : candidates[Math.floor(Math.random() * candidates.length)];
+      chosen =
+        straight && Math.random() < 0.7
+          ? straight
+          : candidates[Math.floor(Math.random() * candidates.length)];
     }
 
     this.targetGridX = chosen.gx;
@@ -625,56 +626,31 @@ export class Ghost {
   }
 
   /**
-   * Resolve the chase-target tile based on this ghost's personality.
-   * Returns null when the personality wants to break off (currently only
-   * Clyde when close to Pacman). Targets are *grid coordinates* — they
-   * may point at unreachable tiles (off in unloaded chunks, on top of a
-   * mountain, …). The pathing layer treats unreachable tiles as a
-   * direction hint and picks the best reachable neighbour anyway.
+   * Resolve the chase-target tile from the shared arcade rules in
+   * `/pacman/js/ghost-ai.js`. Targets may sit off loaded terrain; pathing
+   * treats that as a direction and steps toward the closest reachable tile.
    */
   _personalityTarget(pacmanPos, ctx) {
     const pacmanGx = ctx?.pacmanGridX ?? Math.round(pacmanPos.x / this.scale);
     const pacmanGy = ctx?.pacmanGridY ?? Math.round(pacmanPos.y / this.scale);
     const facing = ctx?.pacmanFacing;
-    // Quantise facing to the dominant cardinal so the "ahead" target sits
-    // on a grid tile. atan2 flip handles the case where facing is null
-    // (e.g. ghosts ticking before the first frame supplied a ctx).
-    const fx = facing ? Math.round(facing.x) : 0;
-    const fy = facing ? Math.round(facing.y) : -1;
-
-    switch (this.personality) {
-      case PERSONALITY.BLINKY:
-        return { gx: pacmanGx, gy: pacmanGy };
-      case PERSONALITY.PINKY:
-        return {
-          gx: pacmanGx + fx * PINKY_AHEAD_TILES,
-          gy: pacmanGy + fy * PINKY_AHEAD_TILES
-        };
-      case PERSONALITY.INKY: {
-        // Pivot point = 2 tiles ahead of Pacman. Reflect Blinky through
-        // the pivot to find the flank target. Without a Blinky reference
-        // (e.g. red ghost momentarily eaten) Inky degrades into Pinky-lite.
-        const pivotGx = pacmanGx + fx * INKY_PIVOT_AHEAD_TILES;
-        const pivotGy = pacmanGy + fy * INKY_PIVOT_AHEAD_TILES;
-        if (ctx?.blinkyGridX == null || ctx?.blinkyGridY == null) {
-          return { gx: pivotGx, gy: pivotGy };
-        }
-        const dx = pivotGx - ctx.blinkyGridX;
-        const dy = pivotGy - ctx.blinkyGridY;
-        return { gx: ctx.blinkyGridX + dx * 2, gy: ctx.blinkyGridY + dy * 2 };
-      }
-      case PERSONALITY.CLYDE: {
-        const dx = this.gridX - pacmanGx;
-        const dy = this.gridY - pacmanGy;
-        const distTiles2 = dx * dx + dy * dy;
-        if (distTiles2 > CLYDE_SHY_RADIUS_TILES * CLYDE_SHY_RADIUS_TILES) {
-          return { gx: pacmanGx, gy: pacmanGy };
-        }
-        return null; // close → scatter (random walk this tick)
-      }
-      default:
-        return { gx: pacmanGx, gy: pacmanGy };
-    }
+    // Dominant axis only. Math.round on both components turned a diagonal
+    // facing into a diagonal ambush, so Pinky and Inky led the wrong way
+    // whenever Follow mode wasn't on a cardinal.
+    const pacmanDirection = cardinalFromFacing(facing?.x ?? 0, facing?.y ?? -1);
+    const blinkyTile =
+      ctx?.blinkyGridX == null || ctx?.blinkyGridY == null
+        ? null
+        : { x: ctx.blinkyGridX, y: ctx.blinkyGridY };
+    const target = chaseTarget({
+      ghostType: this.personality,
+      ghostTile: { x: this.gridX, y: this.gridY },
+      pacmanTile: { x: pacmanGx, y: pacmanGy },
+      pacmanDirection,
+      blinkyTile,
+      scatterTarget: openWorldScatterTarget(this.personality, this.gridX, this.gridY)
+    });
+    return { gx: target.x, gy: target.y };
   }
 
   /**
@@ -821,31 +797,15 @@ export class Ghost {
   }
 
   /**
-   * @param {Array<{gx:number,gy:number,dir:string}>} candidates
-   * @param {THREE.Vector3} pacmanPos
-   * @param {number} sign +1 = minimize distance (chase), -1 = maximize (flee)
-   *
-   * Same continue-straight-then-random tiebreak as
-   * `_pickGreedyTowardTile` — without it, FLEE ghosts would also lock
-   * into systematic loops when several escape tiles are equidistant
-   * from Pacman.
-   */
-  _pickGreedy(candidates, pacmanPos, sign) {
-    return this._pickWithTiebreak(
-      candidates,
-      (c) => sign * this._tileDistSqToPacman(c.gx, c.gy, pacmanPos)
-    );
-  }
-
-  /**
    * Shared tiebreak helper. Score `candidates` with `scoreFn`, take all
    * tied-minimum candidates (within a tiny epsilon since some scores
    * are floats), prefer the one matching `lastDir` (so the ghost
    * commits to a heading instead of jittering at intersections), and
    * fall back to random among the ties.
    *
-   * Lifted out of `_pickGreedy*` so chase + flee + any future scorer
-   * share the exact same "no systematic-circle" guarantee.
+   * A strict "up wins ties" rule made unreachable targets circle, because
+   * neighbor order is fixed. Continuing straight, then randomizing the
+   * remaining ties, is what keeps open terrain from locking into a loop.
    */
   _pickWithTiebreak(candidates, scoreFn) {
     let best = scoreFn(candidates[0]);
@@ -859,14 +819,6 @@ export class Ghost {
     const straight = tied.find((c) => c.dir === this.lastDir);
     if (straight) return straight;
     return tied[Math.floor(Math.random() * tied.length)];
-  }
-
-  _tileDistSqToPacman(gx, gy, pacmanPos) {
-    const wx = gx * this.scale;
-    const wy = gy * this.scale;
-    const dx = wx - pacmanPos.x;
-    const dy = wy - pacmanPos.y;
-    return dx * dx + dy * dy;
   }
 
   _reachableNeighbors() {
@@ -900,13 +852,47 @@ export class Ghost {
     return out;
   }
 
+  /**
+   * U-turn in place. Mid-step, the tile we were walking toward becomes
+   * where we are, and we walk back to the tile we left. Standing still,
+   * step one tile opposite the last heading when that tile is open.
+   */
+  _reverseCourse() {
+    const back = this._reverseOf(this.lastDir);
+    if (!back) return;
+    this._bfsCacheTTL = 0;
+    this._bfsCacheNext = null;
+    if (this.targetGridX !== this.gridX || this.targetGridY !== this.gridY) {
+      const nextX = this.targetGridX;
+      const nextY = this.targetGridY;
+      this.targetGridX = this.gridX;
+      this.targetGridY = this.gridY;
+      this.gridX = nextX;
+      this.gridY = nextY;
+      const surf = this.world.surfaceHeightAt(this.gridX, this.gridY);
+      if (Number.isFinite(surf) && !Number.isNaN(surf)) this.surfaceHeight = surf;
+      this.lastDir = back;
+      return;
+    }
+    const behind = this._reachableNeighbors().find((neighbor) => neighbor.dir === back);
+    if (!behind) return;
+    this.targetGridX = behind.gx;
+    this.targetGridY = behind.gy;
+    this.lastDir = back;
+  }
+
   _reverseOf(dir) {
     switch (dir) {
-      case 'up': return 'down';
-      case 'down': return 'up';
-      case 'left': return 'right';
-      case 'right': return 'left';
-      default: return null;
+      case 'up':
+        return 'down';
+      case 'down':
+        return 'up';
+      case 'left':
+        return 'right';
+      case 'right':
+        return 'left';
+      default:
+        return null;
     }
   }
 }

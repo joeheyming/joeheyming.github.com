@@ -363,7 +363,11 @@
     if (!gameRoot || gameRoot.style.display === 'none') return;
     // Don't hijack typing inside the help dialog or other inputs.
     var target = e.target;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+    if (
+      target &&
+      (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')
+    )
+      return;
     var dialog = document.getElementById('dialog');
     if (dialog && dialog.style.display !== 'none') return;
 

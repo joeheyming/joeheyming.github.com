@@ -480,10 +480,19 @@ its CHASE state aims for:
 
 - BLINKY → Pacman's tile (direct chase) + cruise-elroy speed boost in
   `_stepTowardTarget` when within `CRUISE_ELROY_RADIUS_TILES`.
-- PINKY → 4 tiles ahead of Pacman's facing.
+- PINKY → 4 tiles ahead of Pacman's dominant facing. Facing up also
+  shifts the target 4 tiles left (the arcade overflow).
 - INKY  → pivots `(2 tiles ahead of Pacman)` around Blinky for a flank
-  target; degrades to Pinky-lite when no Blinky exists.
-- CLYDE → Pacman's tile when far, `null` (random scatter) when close.
+  target, with the same up-offset. Degrades to that 2-tile point when
+  no Blinky exists.
+- CLYDE → Pacman's tile when more than 8 tiles away, otherwise a point
+  12 tiles southwest (his open-world scatter corner).
+
+Target math is `chaseTarget` / `openWorldScatterTarget` in
+`/pacman/js/ghost-ai.js`, shared with the maze game. Frightened ghosts
+U-turn once, then pick a random legal exit. They do not path away from
+Pac-Man. Chase still starts by proximity, not the maze's scatter clock,
+because the ghost pool is spawned around the player.
 
 `world.update()` builds the per-frame ctx exactly once: Pacman's tile +
 facing + the closest live Blinky's tile. It also tags the

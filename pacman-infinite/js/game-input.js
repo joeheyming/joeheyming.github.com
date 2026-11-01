@@ -1,4 +1,5 @@
 import { GAME_STATES, GAMEPLAY } from './constants.js';
+import { focusControl } from '../../pacman/js/ui-keys.js';
 
 export const gameInput = {
   setupEventListeners() {
@@ -36,6 +37,8 @@ export const gameInput = {
       this.backToMenuBtn.addEventListener('click', () => this._backToMenuFromGameOver());
     }
 
+    this._focusStartMenu();
+
     window.addEventListener('blur', () => {
       if (this.state === GAME_STATES.PLAYING) this.pauseGame();
     });
@@ -70,11 +73,20 @@ export const gameInput = {
     }
   },
 
+  _focusStartMenu() {
+    const primary =
+      this.continueBtn && !this.continueBtn.classList.contains('hidden')
+        ? this.continueBtn
+        : this.newGameBtn;
+    focusControl(primary);
+  },
+
   pauseGame() {
     if (this.state !== GAME_STATES.PLAYING) return;
     this.state = GAME_STATES.PAUSED;
     this._staticFrameDirty = true;
     if (this.pauseScreen) this.pauseScreen.classList.remove('hidden');
+    focusControl(this.pauseScreen);
     if (document.pointerLockElement) document.exitPointerLock();
   },
 

@@ -5,6 +5,7 @@
  */
 
 import { DIRECTION, KEY_MODE, CONTROLS, GAME_STATES, GAMEPLAY } from './constants.js';
+import { clickMenuButton, uiOwnsKey } from '../../pacman/js/ui-keys.js';
 
 export class Controls {
   constructor(game) {
@@ -223,6 +224,8 @@ export class Controls {
     if (event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
+    // A focused button, link, or menu keeps Space, Enter, and arrows.
+    if (uiOwnsKey(event)) return;
 
     // Prevent default for game keys
     if (
@@ -300,6 +303,10 @@ export class Controls {
       // Game controls
       case 'KeyP':
       case 'Escape':
+        if (this.game.state === GAME_STATES.INTRO) {
+          this.game.audioManager?.skipIntro?.();
+          break;
+        }
         this.game.togglePause();
         break;
       case 'KeyC':
@@ -307,15 +314,26 @@ export class Controls {
         break;
       case 'KeyR':
         if (this.game.state === GAME_STATES.GAME_OVER || this.game.state === GAME_STATES.WIN) {
-          this.game.restartGame();
+          clickMenuButton(['restart-btn', 'next-level-btn', 'back-to-menu-btn']);
         }
         break;
       case 'Space':
       case 'Enter':
         if (this.game.state === GAME_STATES.START) {
           this.game.startGame();
+        } else if (this.game.state === GAME_STATES.INTRO) {
+          this.game.audioManager?.skipIntro?.();
         } else if (this.game.state === GAME_STATES.PAUSED) {
           this.game.resumeGame();
+        } else if (
+          this.game.state === GAME_STATES.GAME_OVER ||
+          this.game.state === GAME_STATES.WIN
+        ) {
+          clickMenuButton(
+            this.game.state === GAME_STATES.WIN
+              ? ['next-level-btn', 'back-to-menu-btn']
+              : ['restart-btn', 'back-to-menu-btn']
+          );
         } else if (this.game.state === GAME_STATES.PLAYING) {
           // In-game: Space jumps. (Enter is left as a no-op so Pacman can't
           // accidentally jump from the keyboard's `Enter` mid-gameplay; this
@@ -660,10 +678,7 @@ export class Controls {
       // Track the largest drag distance from press-start so we can
       // tell at pointerup whether this was a tap (no significant
       // movement) or a drag.
-      const dragNow = Math.hypot(
-        ev.clientX - this._pointerDownX,
-        ev.clientY - this._pointerDownY
-      );
+      const dragNow = Math.hypot(ev.clientX - this._pointerDownX, ev.clientY - this._pointerDownY);
       if (dragNow > this._pointerMaxDrag) this._pointerMaxDrag = dragNow;
       if (getMode() === 2) {
         if (ev.pointerType === 'touch') handleFpsPointerMove(ev);
