@@ -5,24 +5,129 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { JSDOM } from 'jsdom';
 import path from 'node:path';
+import vm from 'node:vm';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(path.join(ROOT, 'doom/index.html'), 'utf8');
 const controller = readFileSync(path.join(ROOT, 'doom/flavor-controller.js'), 'utf8');
 const modeSwitch = readFileSync(path.join(ROOT, 'doom/mode-switch.js'), 'utf8');
+const catalog = readFileSync(path.join(ROOT, 'doom/flavors.js'), 'utf8');
 
-const EXPECTED = ['classic', 'freedoom', 'legend', 'mario', 'metroid', 'castlevania', 'sonic'];
+function mountFlavors() {
+  const dom = new JSDOM(
+    '<!DOCTYPE html><html><head></head><body>' +
+      '<section id="flavorPicker"></section>' +
+      '<div class="flavor-switch-menu"><div class="flavor-switch-sep"></div></div>' +
+      '<div class="flavor-switch-menu"><div class="flavor-switch-sep"></div></div>' +
+      '</body></html>',
+    { url: 'https://joeheyming.github.io/doom/', runScripts: 'outside-only' }
+  );
+  vm.runInContext(catalog, dom.getInternalVMContext());
+  dom.window.DoomFlavors.mount(dom.window.document);
+  return dom;
+}
+
+function sliceFlavor(id, nextId) {
+  const start = catalog.indexOf("id: '" + id + "'");
+  const end = nextId ? catalog.indexOf("id: '" + nextId + "'") : catalog.length;
+  assert.ok(start > -1 && end > start, id);
+  return catalog.slice(start, end);
+}
 
 describe('doom flavors', () => {
-  it('lists sonic alongside the other flavors in mode-switch, controller, and HTML', () => {
-    for (const flavor of EXPECTED) {
-      assert.match(modeSwitch, new RegExp(`\\b${flavor}: 1`));
-      assert.match(controller, new RegExp(`${flavor}: \\{`));
-      assert.match(html, new RegExp(`data-flavor="${flavor}"`));
-      const switchHits = html.match(new RegExp(`data-switch="${flavor}"`, 'g')) || [];
-      assert.equal(switchHits.length, 2, `${flavor} should appear in both flavor switcher menus`);
+  it('builds a card and both switchers from the flavor list', () => {
+    const dom = mountFlavors();
+    const doc = dom.window.document;
+    const ids = dom.window.DOOM_FLAVORS.map((flavor) => flavor.id);
+    assert.ok(ids.includes('sigil') && ids.includes('sigil2') && ids.includes('witching'));
+    assert.match(html, /src="flavors\.js"/);
+    assert.match(modeSwitch, /DOOM_FLAVORS/);
+    assert.match(controller, /DoomFlavors\.mount/);
+    for (const id of ids) {
+      assert.equal(doc.querySelectorAll(`[data-flavor="${id}"]`).length, 1, id);
+      assert.equal(doc.querySelectorAll(`[data-switch="${id}"]`).length, 2, id);
     }
+    const focus = doc.querySelector('[data-initial-focus]');
+    assert.equal(focus && focus.getAttribute('data-flavor'), 'classic');
+  });
+
+  it('keeps MarioDoom on Freedoom Phase 1 and fetches Mayhem maps', () => {
+    const mario = sliceFlavor('mario', 'mayhem');
+    assert.match(mario, /modUrl: 'mariodoom\.pk3'/);
+    assert.doesNotMatch(mario, /freedoom2/);
+    assert.doesNotMatch(mario, /mayhem17/);
+    const mayhem = sliceFlavor('mayhem', 'metroid');
+    assert.match(mayhem, /bundledIwad: 'freedoom2\.wad'/);
+    assert.match(mayhem, /mayhem17\.zip/);
+    const wadOrder = mayhem.indexOf('mayhem17.wad');
+    const updateOrder = mayhem.indexOf('mayhem17_updatev1.wad');
+    assert.ok(wadOrder > -1 && updateOrder > wadOrder, 'update wad loads after the campaign');
+    const gitignore = readFileSync(path.join(ROOT, '.gitignore'), 'utf8');
+    assert.match(gitignore, /^\*\.wad$/m);
+    assert.equal(existsSync(path.join(ROOT, 'doom/mayhem17.wad')), false);
+  });
+
+  it('fetches Batman DOOM as a wad plus its DeHackEd patch', () => {
+    const batman = sliceFlavor('batman', 'zombies');
+    assert.match(batman, /bundledIwad: 'freedoom2\.wad'/);
+    assert.match(batman, /themes\/batman\/batman\.zip/);
+    assert.match(batman, /label: 'batman\.zip'/);
+    const wadOrder = batman.indexOf('batman.wad');
+    const dehOrder = batman.indexOf('batman.deh');
+    assert.ok(wadOrder > -1 && dehOrder > wadOrder, 'dehacked loads after the wad');
+    assert.doesNotMatch(batman, /dehacked\.exe/);
+    assert.equal(existsSync(path.join(ROOT, 'doom/batman.wad')), false);
+    assert.match(controller, /zip\.label \|\| 'map pack'/);
+  });
+
+  it('fetches Sigil and Witching Hour without stacking the two Sigil wads', () => {
+    const sigil = sliceFlavor('sigil', 'sigil2');
+    const sigil2 = sliceFlavor('sigil2', 'witching');
+    const witching = sliceFlavor('witching');
+    assert.match(sigil, /sigil_v1_23\.zip/);
+    assert.match(sigil, /SIGIL_V1_23\.wad/);
+    assert.doesNotMatch(sigil, /SIGIL_II/);
+    assert.doesNotMatch(sigil, /freedoom2/);
+    assert.match(sigil2, /sigil_ii_v1_0\.zip/);
+    assert.match(sigil2, /SIGIL_II_V1_0\.WAD/);
+    assert.match(witching, /witchinghour\.zip/);
+    assert.match(witching, /bundledIwad: 'freedoom2\.wad'/);
+    assert.equal(existsSync(path.join(ROOT, 'doom/SIGIL_V1_23.wad')), false);
+  });
+
+  it('fetches the short block and Roblox maps without their unfinished extras', () => {
+    const doomcraft = sliceFlavor('doomcraft', 'lego');
+    const lego = sliceFlavor('lego', 'blockfort');
+    const fort = sliceFlavor('blockfort', 'roblox');
+    const roblox = sliceFlavor('roblox');
+    assert.match(doomcraft, /dmcraft\.zip/);
+    assert.match(doomcraft, /DMCRAFT\.wad/);
+    assert.match(lego, /legob-sp\.zip/);
+    assert.match(lego, /legob-sp\.wad/);
+    assert.match(fort, /bfremade\.zip/);
+    assert.match(fort, /Music&Textures\.pk3/);
+    const pk3 = fort.indexOf('Music&Textures.pk3');
+    const wad = fort.indexOf('BDremade.wad');
+    assert.ok(pk3 > -1 && wad > pk3, 'textures load before the map');
+    assert.match(roblox, /spykid\.zip/);
+    assert.match(roblox, /spykid\.wad/);
+    for (const record of [doomcraft, lego, fort, roblox]) {
+      assert.match(record, /bundledIwad: 'freedoom2\.wad'/);
+    }
+  });
+
+  it('fetches the Zombies campaign as a wad plus its DeHackEd patch', () => {
+    const zombies = sliceFlavor('zombies', 'sigil');
+    assert.match(zombies, /bundledIwad: 'freedoom2\.wad'/);
+    assert.match(zombies, /v-z\/zombies\.zip/);
+    assert.match(zombies, /label: 'zombies\.zip'/);
+    const wadOrder = zombies.indexOf('zombie.wad');
+    const dehOrder = zombies.indexOf('zombie.deh');
+    assert.ok(wadOrder > -1 && dehOrder > wadOrder, 'dehacked loads after the wad');
+    assert.doesNotMatch(zombies, /\.exe/);
+    assert.equal(existsSync(path.join(ROOT, 'doom/zombie.wad')), false);
   });
 
   it('ships the Sonic Legacy PK3 next to the other bundled mods', () => {
@@ -31,8 +136,8 @@ describe('doom flavors', () => {
     const bytes = statSync(pk3).size;
     assert.ok(bytes > 10 * 1024 * 1024, 'PK3 should be a real archive, not a stub');
     assert.ok(bytes < 80 * 1024 * 1024, 'PK3 must stay under GitHub 100 MB limit');
-    assert.match(controller, /modUrl: 'sonicdoom-legacy\.pk3'/);
-    assert.match(controller, /bundledIwad: 'freedoom2\.wad'/);
+    assert.match(catalog, /modUrl: 'sonicdoom-legacy\.pk3'/);
+    assert.match(sliceFlavor('sonic', 'batman'), /bundledIwad: 'freedoom2\.wad'/);
   });
 
   it('redirects /sonic-doom/ to the flavor URL and keeps it noindex', () => {

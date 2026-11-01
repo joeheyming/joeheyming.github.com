@@ -11,9 +11,8 @@
  *   - body.clean      (?flavor=NAME)            → hero w/ Launch button
  *   - (no class)      (?manual=1)               → full uzdoom picker UI
  *
- * Flavor accent colors live on body.flavor-* overrides of the --accent
- * custom property; the cards themselves drive their own --flavor-color
- * via [data-flavor=...] attribute selectors.
+ * Flavor accent colors are installed by flavors.js (body.flavor-* and
+ * each card's --flavor-color). This file keeps the shared palette.
  *
  * ── Tokens ──────────────────────────────────────────────────────────
  * The doom theme intentionally keeps its own gritty/blood/cacodemon
@@ -70,12 +69,6 @@
    * bright ink as a fill. Canvas overlays stay dark, so their
    * ink stays light in both themes. */
   --doom-ink-blood: #9f1d1d;
-  --doom-ink-freedoom: #9a3412;
-  --doom-ink-legend: #166534;
-  --doom-ink-mario: #1d4ed8;
-  --doom-ink-metroid: #854d0e;
-  --doom-ink-castlevania: #6b21a8;
-  --doom-ink-sonic: #0c6478;
   --doom-ink-bone: #854d0e;
   --doom-ink-fire: #854d0e;
   --doom-ink-life: #166534;
@@ -93,13 +86,6 @@
   /* Flavor-switcher menu dots — one tinted dot per playable flavor.
    * Used by `.flavor-switch-menu button[data-switch=…] .dot` selectors
    * in styles/in-game.css; HTML stays markup-pure (no inline styles). */
-  --doom-dot-classic: var(--doom-ink-blood);
-  --doom-dot-freedoom: var(--doom-ink-freedoom);
-  --doom-dot-legend: var(--doom-ink-legend);
-  --doom-dot-mario: var(--doom-ink-mario);
-  --doom-dot-metroid: var(--doom-ink-metroid);
-  --doom-dot-castlevania: var(--doom-ink-castlevania);
-  --doom-dot-sonic: var(--doom-ink-sonic);
   --doom-dot-moddb: var(--doom-ink-moddb);
   --doom-dot-manual: var(--text-2);
 
@@ -153,12 +139,6 @@
 
 :root[data-theme='dark'] {
   --doom-ink-blood: #f06055;
-  --doom-ink-freedoom: #d9883a;
-  --doom-ink-legend: #4fa861;
-  --doom-ink-mario: #5b9dfb;
-  --doom-ink-metroid: #c39e3a;
-  --doom-ink-castlevania: #b894e8;
-  --doom-ink-sonic: #1ec8e8;
   --doom-ink-bone: #d9c77a;
   --doom-ink-fire: #ddbb44;
   --doom-ink-life: #66cc66;
@@ -169,41 +149,10 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --doom-ink-blood: #f06055;
-    --doom-ink-freedoom: #d9883a;
-    --doom-ink-legend: #4fa861;
-    --doom-ink-mario: #5b9dfb;
-    --doom-ink-metroid: #c39e3a;
-    --doom-ink-castlevania: #b894e8;
-    --doom-ink-sonic: #1ec8e8;
     --doom-ink-bone: #d9c77a;
     --doom-ink-fire: #ddbb44;
     --doom-ink-life: #66cc66;
     --doom-ink-moddb: #f0abfc;
     --doom-on-accent: #000000;
   }
-}
-
-body.flavor-freedoom {
-  --accent: var(--doom-ink-freedoom);
-  --accent-dim: #6e421a;
-}
-body.flavor-legend {
-  --accent: var(--doom-ink-legend);
-  --accent-dim: #2a5b37;
-}
-body.flavor-mario {
-  --accent: var(--doom-ink-mario);
-  --accent-dim: #18467f;
-}
-body.flavor-metroid {
-  --accent: var(--doom-ink-metroid);
-  --accent-dim: #6e571c;
-}
-body.flavor-castlevania {
-  --accent: var(--doom-ink-castlevania);
-  --accent-dim: #3f1f5c;
-}
-body.flavor-sonic {
-  --accent: var(--doom-ink-sonic);
-  --accent-dim: #0a5a6e;
 }

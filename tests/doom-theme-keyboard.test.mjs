@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
+import { JSDOM } from 'jsdom';
+import vm from 'node:vm';
 import { contrastRatio, themeTokens } from '../scripts/theme-contrast.mjs';
 
 const root = new URL('..', import.meta.url);
@@ -10,19 +12,39 @@ function read(rel) {
 }
 
 const brand = themeTokens(read('brand.css'));
-const doomCss = read('doom/styles/base.css');
 const doomHtml = read('doom/index.html');
 const classicHtml = read('doom/classic/index.html');
 const controller = read('doom/flavor-controller.js');
+function bootFlavors(markup) {
+  const dom = new JSDOM(markup, {
+    url: 'https://joeheyming.github.io/doom/',
+    runScripts: 'outside-only'
+  });
+  vm.runInContext(read('doom/flavors.js'), dom.getInternalVMContext());
+  return dom;
+}
+
+const flavorDom = bootFlavors('<!DOCTYPE html><html><head></head><body></body></html>');
+const doomCss = read('doom/styles/base.css') + '\n' + flavorDom.window.DOOM_FLAVOR_CSS();
 
 const INKS = [
   'blood',
   'freedoom',
   'legend',
   'mario',
+  'mayhem',
   'metroid',
   'castlevania',
   'sonic',
+  'batman',
+  'zombies',
+  'sigil',
+  'sigil2',
+  'witching',
+  'doomcraft',
+  'lego',
+  'blockfort',
+  'roblox',
   'bone',
   'fire',
   'life',
@@ -30,11 +52,9 @@ const INKS = [
 ];
 
 function ink(name) {
-  const light = doomCss.match(new RegExp(`--doom-ink-${name}:\\s*(#[0-9a-f]{6})`, 'i'));
-  const darkBlock = doomCss.slice(doomCss.indexOf(":root[data-theme='dark']"));
-  const dark = darkBlock.match(new RegExp(`--doom-ink-${name}:\\s*(#[0-9a-f]{6})`, 'i'));
-  assert.ok(light && dark, `missing --doom-ink-${name}`);
-  return { light: light[1], dark: dark[1] };
+  const hits = [...doomCss.matchAll(new RegExp(`--doom-ink-${name}:\\s*(#[0-9a-f]{6})`, 'gi'))];
+  assert.ok(hits.length >= 2, `missing --doom-ink-${name}`);
+  return { light: hits[0][1], dark: hits[1][1] };
 }
 
 describe('doom theme ink', () => {
@@ -85,7 +105,10 @@ describe('doom keyboard chrome', () => {
   }
 
   it('the first flavor card is the initial focus target', () => {
-    assert.match(doomHtml, /data-flavor="classic"[^>]*data-initial-focus/);
+    const dom = bootFlavors('<!DOCTYPE html><section id="flavorPicker"></section>');
+    dom.window.DoomFlavors.mount(dom.window.document);
+    const focus = dom.window.document.querySelector('[data-initial-focus]');
+    assert.equal(focus && focus.getAttribute('data-flavor'), 'classic');
   });
 
   it('launch and relaunch controls are real buttons', () => {

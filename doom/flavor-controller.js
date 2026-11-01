@@ -16,6 +16,10 @@
 
 (function () {
   var params = new URLSearchParams(window.location.search);
+  if (window.DoomFlavors) window.DoomFlavors.mount(document);
+  var FLAVORS = {};
+  var flavorList = window.DOOM_FLAVORS || [];
+  for (var fi = 0; fi < flavorList.length; fi++) FLAVORS[flavorList[fi].id] = flavorList[fi];
   if (params.get('manual') === '1') {
     document.addEventListener('DOMContentLoaded', function () {
       var freedoom = document.getElementById('useFreedoomBtn');
@@ -93,117 +97,6 @@
       }
     });
   }
-
-  // Classic DOOM IWAD — the 1993 id Software shareware doom.wad.
-  // Hosted on Netlify (was the asset URL the previous chocolate-
-  // doom build fetched from). uz-doom plays MIDI directly via
-  // its bundled SoundFont, so unlike the chocolate-doom port we
-  // don't need separate OGG music files alongside it.
-  var CLASSIC_WAD_URL = 'https://console-doom.netlify.app/data/doom.wad';
-  var CLASSIC_WAD_NAME = 'doom.wad';
-
-  // ?v=ogg cache-buster on the LoD pk3 — see legend-of-doom
-  // history. The bytes at LegendOfDoom-1.1.0.pk3 were swapped
-  // in-place from MP3 to Ogg Vorbis (UZDoom WASM can't decode
-  // MP3); old caches still hold the MP3 version. Bump the query
-  // string forces a fresh fetch without renaming the file on disk.
-  var FLAVORS = {
-    classic: {
-      title: 'Classic DOOM',
-      tagline: 'The original 1993 DOOM, running in your browser.',
-      launchLabel: 'Launch Classic DOOM',
-      iwadUrl: CLASSIC_WAD_URL,
-      iwadName: CLASSIC_WAD_NAME,
-      modUrl: null,
-      modName: null
-    },
-    freedoom: {
-      title: 'Freedoom',
-      tagline: 'Freedoom Phase 1 (open-source DOOM clone), running in your browser.',
-      launchLabel: 'Launch Freedoom',
-      iwadUrl: null,
-      iwadName: null,
-      modUrl: null,
-      modName: null
-    },
-    legend: {
-      title: 'Legend of DOOM',
-      tagline: 'The Legend of DOOM mod, running in your browser.',
-      launchLabel: 'Launch Legend of DOOM',
-      iwadUrl: null,
-      iwadName: null,
-      modUrl: 'LegendOfDoom-1.1.0.pk3?v=ogg',
-      modName: 'LegendOfDoom-1.1.0.pk3'
-    },
-    // Mario DOOM — Valigarmander's MarioDoom gameplay PK3 layered
-    // over Freedoom Phase 1. Source pk3 is the GZDoom-family build
-    // (works in UZDoom directly); the doomworld "vanilla edition"
-    // patch is for chocolate/prboom users and is not what we want
-    // here. Bundled in /doom/ rather than fetched from doomshack
-    // to avoid CORS surprises and to keep cold-start fast.
-    mario: {
-      title: 'Mario DOOM',
-      tagline: 'MarioDoom by Valigarmander, running in your browser.',
-      launchLabel: 'Launch Mario DOOM',
-      iwadUrl: null,
-      iwadName: null,
-      modUrl: 'mariodoom.pk3',
-      modName: 'mariodoom.pk3'
-    },
-    // Metroid DOOM — Spram's Metroidvania total conversion (v2.2,
-    // OkDoomer174 bugfix release). This is a Doom 2-family mod
-    // (originally built on TNT Evilution; author confirmed
-    // doom2.wad works fine; v2 even self-detects as Plutonia). We
-    // route it to the bundled freedoom2.wad so it doesn't need
-    // any side-loaded commercial IWAD. Single-PK3 format makes
-    // it a clean drop-in.
-    metroid: {
-      title: 'Metroid DOOM',
-      tagline: "Spram's Metroid DOOM Metroidvania, running in your browser.",
-      launchLabel: 'Launch Metroid DOOM',
-      iwadUrl: null,
-      iwadName: null,
-      bundledIwad: 'freedoom2.wad',
-      modUrl: 'met2.pk3',
-      modName: 'met2.pk3'
-    },
-    // Castlevania: Simon's Destiny — Batandy's standalone GZDoom-
-    // family total conversion. Unlike Mario/Metroid/Legend (which
-    // layer a PK3 on top of Freedoom), this one IS the IWAD —
-    // Castlevania.ipk3 self-identifies as the game. Same code path
-    // as Classic DOOM (cfg.iwadUrl branch in resolveIwad), no
-    // bundledIwad and no separate modUrl. Note: moddb pulled the
-    // mod page in 2024 (likely Konami DMCA); the file we ship is
-    // the v1.4 that the author still hosts on itch.io.
-    castlevania: {
-      title: 'Castlevania: Simon\u2019s Destiny',
-      tagline: 'Castlevania: Simon\u2019s Destiny by Batandy, running in your browser.',
-      launchLabel: 'Launch Castlevania',
-      iwadUrl: 'Castlevania.ipk3',
-      iwadName: 'Castlevania.ipk3',
-      modUrl: null,
-      modName: null
-    },
-    // Sonic DOOM — AeriaVelocity's Sonic the Hedgehog in DOOM: Legacy
-    // Edition (2023-04-11). Same author as Sonic: Lock & Load; that
-    // GZDoom total conversion is a ~187 MB PK3 (over GitHub's 100 MB
-    // file limit) and is a full original campaign. Legacy is the
-    // MarioDoom-shaped sibling: Sonic movement, rings, boost, and Super
-    // Sonic layered over a Doom 2 IWAD. We ship Freedoom Phase 2.
-    // MP3 lumps were transcoded to Ogg Vorbis in-place (UZDoom WASM
-    // has no MP3 decoder); the Super Sonic WAV was also Vorbis'd to
-    // keep the fetch under ~36 MB.
-    sonic: {
-      title: 'Sonic DOOM',
-      tagline: 'Sonic the Hedgehog in DOOM: Legacy Edition, running in your browser.',
-      launchLabel: 'Launch Sonic DOOM',
-      iwadUrl: null,
-      iwadName: null,
-      bundledIwad: 'freedoom2.wad',
-      modUrl: 'sonicdoom-legacy.pk3',
-      modName: 'sonicdoom-legacy.pk3'
-    }
-  };
 
   // Wait for window.UZDoomLoader to publish (loader IIFE runs
   // after engine scripts inject post-COI). Bounded poll, ~50ms.
@@ -450,6 +343,35 @@
     return { name: bundled + ' (bundled)', data: null, bundled: bundled };
   }
 
+  // Pull named WADs out of a downloaded zip, in zipWads order.
+  // UZDoomModdbArchive is published by moddb-archive.js, which is a
+  // deferred module and has run before a flavor can launch.
+  async function unpackZipWads(bytes, names) {
+    var archive = window.UZDoomModdbArchive;
+    if (!archive || typeof archive.extractZip !== 'function') {
+      throw new Error('archive helper missing');
+    }
+    var wanted = {};
+    for (var n = 0; n < names.length; n++) {
+      wanted[String(names[n]).split(/[/\\]/).pop().toLowerCase()] = true;
+    }
+    var entries = await archive.extractZip(bytes, {
+      filter: function (name) {
+        var base = String(name).split(/[/\\]/).pop().toLowerCase();
+        return !!wanted[base];
+      }
+    });
+    var byName = {};
+    for (var i = 0; i < entries.length; i++) {
+      byName[String(entries[i].name).toLowerCase()] = entries[i];
+    }
+    return names.map(function (name) {
+      var hit = byName[name.toLowerCase()];
+      if (!hit || !hit.data) throw new Error('missing ' + name + ' in map pack');
+      return { name: name, data: hit.data };
+    });
+  }
+
   // primeFlavor's `onProgress` is the single channel the picker
   // and autolaunch UIs subscribe to during the fetch phase.
   // Receives { stage, loaded, total, label } where stage is
@@ -460,44 +382,87 @@
     if (!cfg) throw new Error('unknown flavor: ' + flavor);
     var loader = await waitForLoader();
 
-    // Combined-bytes progress across IWAD + (optional) mod.
+    // Combined-bytes progress across the IWAD and every mod.
     // Fetches still run in parallel — the previous parallel
     // structure was a real cold-start win and we keep it — but
-    // both callbacks accumulate into a single reported total so
-    // the UI shows one steady bar instead of jumping between
-    // two unrelated numbers.
-    var prog = { iwad: { loaded: 0, total: 0 }, mod: { loaded: 0, total: 0 } };
+    // every callback accumulates into a single reported total so
+    // the UI shows one steady bar. mods[] order is load order.
+    var modList = Array.isArray(cfg.mods)
+      ? cfg.mods
+      : cfg.modUrl
+      ? [{ url: cfg.modUrl, name: cfg.modName }]
+      : [];
+    var zips = Array.isArray(cfg.zips)
+      ? cfg.zips
+      : cfg.zipUrl
+      ? [{ url: cfg.zipUrl, label: cfg.zipLabel, files: cfg.zipWads }]
+      : [];
+    var slotCount = modList.length + zips.length;
+    var prog = {
+      iwad: { loaded: 0, total: 0 },
+      mods: [],
+      label: cfg.iwadName || cfg.bundledIwad || 'engine'
+    };
+    for (var slot = 0; slot < slotCount; slot++) {
+      prog.mods.push({ loaded: 0, total: 0 });
+    }
+    function sumBytes() {
+      var loaded = prog.iwad.loaded;
+      var total = prog.iwad.total;
+      for (var i = 0; i < prog.mods.length; i++) {
+        loaded += prog.mods[i].loaded;
+        total += prog.mods[i].total;
+      }
+      return { loaded: loaded, total: total };
+    }
     function report(stage) {
       if (!onProgress) return;
-      var loaded = prog.iwad.loaded + prog.mod.loaded;
-      var total = prog.iwad.total + prog.mod.total;
-      var label =
-        stage === 'mod' ? cfg.modName || 'mod' : cfg.iwadName || cfg.bundledIwad || 'engine';
-      onProgress({ stage: stage, loaded: loaded, total: total, label: label });
+      var bytes = sumBytes();
+      onProgress({
+        stage: stage,
+        loaded: bytes.loaded,
+        total: bytes.total,
+        label: stage === 'mod' ? prog.label : cfg.iwadName || cfg.bundledIwad || 'engine'
+      });
     }
 
     var iwadPromise = resolveIwad(cfg, function (p) {
       prog.iwad = p;
       report('iwad');
     });
-    var modPromise = cfg.modUrl
-      ? fetchWithProgress(cfg.modUrl, function (p) {
-          prog.mod = p;
-          report('mod');
-        }).then(function (data) {
-          return { name: cfg.modName, data: data };
-        })
-      : Promise.resolve(null);
+    var modPromises = modList.map(function (mod, i) {
+      return fetchWithProgress(mod.url, function (p) {
+        prog.mods[i] = p;
+        prog.label = mod.name || 'mod';
+        report('mod');
+      }).then(function (data) {
+        return { name: mod.name, data: data };
+      });
+    });
+
+    var zipPromises = zips.map(function (zip, i) {
+      return fetchWithProgress(zip.url, function (p) {
+        prog.mods[modList.length + i] = p;
+        prog.label = zip.label || 'map pack';
+        report('mod');
+      }).then(function (bytes) {
+        return unpackZipWads(bytes, zip.files || []);
+      });
+    });
 
     var iwad = await iwadPromise;
-    var mod = await modPromise;
-    var mods = mod ? [mod] : [];
+    var fileMods = await Promise.all(modPromises);
+    var zipGroups = await Promise.all(zipPromises);
+    var zipMods = [];
+    for (var g = 0; g < zipGroups.length; g++) zipMods = zipMods.concat(zipGroups[g]);
+    var mods = fileMods.concat(zipMods);
 
     if (onProgress) {
+      var doneBytes = sumBytes();
       onProgress({
         stage: 'done',
-        loaded: prog.iwad.loaded + prog.mod.loaded,
-        total: prog.iwad.total + prog.mod.total,
+        loaded: doneBytes.loaded,
+        total: doneBytes.total,
         label: 'Handoff to engine…'
       });
     }
@@ -530,28 +495,8 @@
     var emoji = document.getElementById('brandEmoji');
     var title = document.getElementById('brandTitle');
     var tagline = document.getElementById('heroTagline');
-    if (flavor === 'legend') {
-      if (emoji) emoji.textContent = '🗡️';
-      if (title) title.firstChild.textContent = 'Legend of DOOM';
-    } else if (flavor === 'classic') {
-      if (emoji) emoji.textContent = '💀';
-      if (title) title.firstChild.textContent = 'Classic DOOM';
-    } else if (flavor === 'freedoom') {
-      if (emoji) emoji.textContent = '👹';
-      if (title) title.firstChild.textContent = 'Freedoom';
-    } else if (flavor === 'mario') {
-      if (emoji) emoji.textContent = '🍄';
-      if (title) title.firstChild.textContent = 'Mario DOOM';
-    } else if (flavor === 'metroid') {
-      if (emoji) emoji.textContent = '🛸';
-      if (title) title.firstChild.textContent = 'Metroid DOOM';
-    } else if (flavor === 'castlevania') {
-      if (emoji) emoji.textContent = '🦇';
-      if (title) title.firstChild.textContent = 'Castlevania';
-    } else if (flavor === 'sonic') {
-      if (emoji) emoji.textContent = '💨';
-      if (title) title.firstChild.textContent = 'Sonic DOOM';
-    }
+    if (emoji) emoji.textContent = cfg.emoji || '';
+    if (title && title.firstChild) title.firstChild.textContent = cfg.brand || cfg.title;
     if (tagline) tagline.textContent = cfg.tagline;
   }
 
@@ -650,7 +595,7 @@
             if (window.UZDoomLifecycle && window.UZDoomLifecycle.isTerminal()) return;
             c.disabled = false;
             var cta = c.querySelector('.cta');
-            if (cta) cta.textContent = 'Click to play';
+            if (cta) cta.textContent = '';
           });
           focusIdle(cards[0]);
           return;

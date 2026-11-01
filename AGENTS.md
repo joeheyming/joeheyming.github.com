@@ -213,6 +213,14 @@ Two consequences for code:
 
 ---
 
+## Doom assets
+
+Do not commit `.wad` files. `.gitignore` ignores `*.wad`.
+
+Classic DOOM's `doom.wad`, the Super MAYhem 17 map pack, Batman DOOM, the Zombies campaign, Sigil, Sigil II, Witching Hour, DoomCraft, Lego Base, Block Fort, and the Roblox joke map are fetched when that flavor launches. A new flavor is one record in `doom/flavors.js`; cards, menus, and ink colors come from that list. Freedoom Phase 1 and Phase 2 are inside the engine preload, not loose WADs.
+
+PK3 and IPK3 gameplay mods under `doom/` (MarioDoom, Metroid, Legend of DOOM, Castlevania, Sonic) are the mod files this repo does ship.
+
 ## Emulator consoles
 
 Adding a console under `/emulator/` is primarily editing `emulator/consoles.js`, then syncing:

@@ -1,5 +1,4 @@
-/* DOOM — flavor picker: seven cards (Classic / Freedoom / Legend / Mario /
-   Metroid / Castlevania / Sonic), loading-focus mode that expands the
+/* DOOM — flavor picker. Cards are filled from doom/flavors.js. Loading-focus mode expands the
    clicked card to full width, inline progress UI, and the inline flavor
    dropdown that sits below the picker. */
 
@@ -40,27 +39,6 @@
   flex-direction: column;
   gap: 8px;
   height: 100%;
-}
-.flavor-card[data-flavor='classic'] {
-  --flavor-color: var(--doom-ink-blood);
-}
-.flavor-card[data-flavor='freedoom'] {
-  --flavor-color: var(--doom-ink-freedoom);
-}
-.flavor-card[data-flavor='legend'] {
-  --flavor-color: var(--doom-ink-legend);
-}
-.flavor-card[data-flavor='mario'] {
-  --flavor-color: var(--doom-ink-mario);
-}
-.flavor-card[data-flavor='metroid'] {
-  --flavor-color: var(--doom-ink-metroid);
-}
-.flavor-card[data-flavor='castlevania'] {
-  --flavor-color: var(--doom-ink-castlevania);
-}
-.flavor-card[data-flavor='sonic'] {
-  --flavor-color: var(--doom-ink-sonic);
 }
 .flavor-card:focus-visible {
   outline: 3px solid #ffbf47;
@@ -113,6 +91,9 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--flavor-color);
+}
+.flavor-card .cta:empty {
+  display: none;
 }
 .flavor-card.loading .cta::after {
   content: ' …';

@@ -261,32 +261,8 @@ body.mobile #flavorSwitcher.floating {
   height: 10px;
   border-radius: 50%;
   flex: 0 0 auto;
-  /* Flavour-specific dot colours map to scoped --doom-dot-* tokens so
-   * the HTML stays markup-pure and the audit sees zero bare literals.
-   * Tokens defined in styles/base.css alongside the rest of the
-   * doom-scoped palette. */
-  background: var(--doom-dot-classic, #c8392e);
-}
-.flavor-switch-menu button[data-switch='classic'] .dot {
-  background: var(--doom-dot-classic, #c8392e);
-}
-.flavor-switch-menu button[data-switch='freedoom'] .dot {
-  background: var(--doom-dot-freedoom, #d9883a);
-}
-.flavor-switch-menu button[data-switch='legend'] .dot {
-  background: var(--doom-dot-legend, #4fa861);
-}
-.flavor-switch-menu button[data-switch='mario'] .dot {
-  background: var(--doom-dot-mario, #2a73d8);
-}
-.flavor-switch-menu button[data-switch='metroid'] .dot {
-  background: var(--doom-dot-metroid, #c39e3a);
-}
-.flavor-switch-menu button[data-switch='castlevania'] .dot {
-  background: var(--doom-dot-castlevania, #7a3fb1);
-}
-.flavor-switch-menu button[data-switch='sonic'] .dot {
-  background: var(--doom-dot-sonic, #1ec8e8);
+  /* Flavor dots are painted by the stylesheet flavors.js installs. */
+  background: var(--text-2, #888);
 }
 .flavor-switch-menu button[data-switch='moddb'] .dot {
   background: var(--doom-dot-moddb, #d96aa6);

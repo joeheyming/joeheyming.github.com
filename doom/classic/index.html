@@ -109,16 +109,14 @@
       <p class="classic-note">About 4 MB the first time the WAD downloads. Keyboard or gamepad.</p>
       <section class="classic-others" aria-labelledby="other-flavors">
         <h2 id="other-flavors">Other flavors</h2>
-        <ul>
-          <li><a href="/doom/?flavor=freedoom">Freedoom</a></li>
-          <li><a href="/doom/?flavor=legend">Legend of DOOM</a></li>
-          <li><a href="/doom/?flavor=mario">Mario DOOM</a></li>
-          <li><a href="/doom/?flavor=metroid">Metroid DOOM</a></li>
-          <li><a href="/doom/?flavor=castlevania">Castlevania: Simon's Destiny</a></li>
-          <li><a href="/doom/?flavor=sonic">Sonic DOOM</a></li>
-          <li><a href="/doom/">All seven on one page</a></li>
+        <ul data-flavor-links>
+          <li data-flavor-index><a href="/doom/">All of them on one page</a></li>
         </ul>
       </section>
+      <script src="/doom/flavors.js"></script>
+      <script>
+        if (window.DoomFlavors) window.DoomFlavors.mount(document);
+      </script>
     </main>
   </body>
 </html>

@@ -39,4 +39,7 @@ node_modules
 
 *.local.*
 .agent-memory/
+
+# Doom IWADs and map WADs are fetched at launch. See AGENTS.md.
+*.wad
 scripts/ralph/.last-branch
