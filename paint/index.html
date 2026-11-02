@@ -152,7 +152,7 @@
     <div class="paint-layout">
       <!-- ── Menu bar ── -->
       <nav id="menu-bar" class="menu-bar" role="menubar" aria-label="Menu bar">
-        <div class="action-menu menu-bar-menu" id="file-menu-wrap">
+        <div class="action-menu menu-bar-menu" role="none" id="file-menu-wrap">
           <button
             class="menu-bar-btn"
             id="btn-file"
@@ -166,7 +166,7 @@
             <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
           </div>
         </div>
-        <div class="action-menu menu-bar-menu" id="edit-menu-wrap">
+        <div class="action-menu menu-bar-menu" role="none" id="edit-menu-wrap">
           <button
             class="menu-bar-btn"
             id="btn-edit"
@@ -180,7 +180,7 @@
             <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
           </div>
         </div>
-        <div class="action-menu menu-bar-menu" id="image-menu-wrap">
+        <div class="action-menu menu-bar-menu" role="none" id="image-menu-wrap">
           <button
             class="menu-bar-btn"
             id="btn-image"
@@ -194,7 +194,7 @@
             <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
           </div>
         </div>
-        <div class="action-menu menu-bar-menu" id="layer-menu-wrap">
+        <div class="action-menu menu-bar-menu" role="none" id="layer-menu-wrap">
           <button
             class="menu-bar-btn"
             id="btn-layer"
@@ -208,7 +208,7 @@
             <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
           </div>
         </div>
-        <div class="action-menu menu-bar-menu" id="type-menu-wrap">
+        <div class="action-menu menu-bar-menu" role="none" id="type-menu-wrap">
           <button
             class="menu-bar-btn"
             id="btn-type"
@@ -222,7 +222,7 @@
             <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
           </div>
         </div>
-        <div class="action-menu menu-bar-menu" id="select-menu-wrap">
+        <div class="action-menu menu-bar-menu" role="none" id="select-menu-wrap">
           <button
             class="menu-bar-btn"
             id="btn-select"
@@ -234,22 +234,9 @@
           </button>
           <div class="action-menu-list hidden" id="select-menu-list" role="menu">
             <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
-            <label class="action-menu-field" for="select-radius" data-menu-path="Select > Modify">
-              Radius
-              <input
-                type="number"
-                id="select-radius"
-                min="0"
-                max="32"
-                step="1"
-                value="2"
-                aria-label="Selection modify radius in pixels"
-              />
-              px
-            </label>
           </div>
         </div>
-        <div class="action-menu menu-bar-menu" id="filter-menu-wrap">
+        <div class="action-menu menu-bar-menu" role="none" id="filter-menu-wrap">
           <button
             class="menu-bar-btn"
             id="btn-filter"
@@ -263,7 +250,7 @@
             <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
           </div>
         </div>
-        <div class="action-menu menu-bar-menu" id="view-menu-wrap">
+        <div class="action-menu menu-bar-menu" role="none" id="view-menu-wrap">
           <button
             class="menu-bar-btn"
             id="btn-view"
@@ -277,7 +264,7 @@
             <!-- Items come from COMMANDS (paint/commands.js) via buildMenuBar -->
           </div>
         </div>
-        <div class="action-menu menu-bar-menu" id="window-menu-wrap">
+        <div class="action-menu menu-bar-menu" role="none" id="window-menu-wrap">
           <button
             class="menu-bar-btn"
             id="btn-window"
@@ -292,6 +279,21 @@
           </div>
         </div>
       </nav>
+      <div id="menu-static-fields" hidden>
+        <label class="action-menu-field" for="select-radius" data-menu-path="Select > Modify">
+          Radius
+          <input
+            type="number"
+            id="select-radius"
+            min="0"
+            max="32"
+            step="1"
+            value="2"
+            aria-label="Selection modify radius in pixels"
+          />
+          px
+        </label>
+      </div>
 
       <!-- ── Document tab ── -->
       <div class="doc-tab" role="tablist" aria-label="Documents">
@@ -302,7 +304,7 @@
 
       <!-- ── Options bar: the active tool's options ── -->
       <div id="options-bar" class="options-bar" role="toolbar" aria-label="Tool options bar">
-        <div id="tool-options" class="tool-options" aria-label="Tool options"></div>
+        <div id="tool-options" class="tool-options" role="group" aria-label="Tool options"></div>
       </div>
 
       <input
@@ -371,6 +373,7 @@
                 aria-label="Resize canvas"
                 aria-valuemin="1"
                 aria-valuemax="8000"
+                aria-valuenow="800"
               ></div>
               <div
                 id="canvas-resize-label"
@@ -1053,13 +1056,23 @@
             data-range-tool="sample"
             title="Sample"
             aria-label="Sample"
+            aria-checked="false"
           ></button>
-          <button type="button" role="radio" data-range-tool="add" title="Add to Sample">+</button>
+          <button
+            type="button"
+            role="radio"
+            data-range-tool="add"
+            title="Add to Sample"
+            aria-checked="false"
+          >
+            +
+          </button>
           <button
             type="button"
             role="radio"
             data-range-tool="subtract"
             title="Subtract from Sample"
+            aria-checked="false"
           >
             −
           </button>
@@ -1180,7 +1193,15 @@
         <div class="modal-row">
           <label for="fade-opacity">Opacity</label>
           <input type="range" id="fade-opacity" min="0" max="100" step="1" value="100" />
-          <input type="number" id="fade-opacity-num" min="0" max="100" step="1" value="100" />
+          <input
+            type="number"
+            id="fade-opacity-num"
+            min="0"
+            max="100"
+            step="1"
+            value="100"
+            aria-label="Opacity"
+          />
           <span>%</span>
         </div>
         <div class="modal-row">
@@ -1355,19 +1376,43 @@
         <div class="modal-row">
           <label for="warp-bend">Bend</label>
           <input type="range" id="warp-bend" min="-100" max="100" step="1" value="50" />
-          <input type="number" id="warp-bend-num" min="-100" max="100" step="1" value="50" />
+          <input
+            type="number"
+            id="warp-bend-num"
+            min="-100"
+            max="100"
+            step="1"
+            value="50"
+            aria-label="Bend"
+          />
           <span>%</span>
         </div>
         <div class="modal-row">
           <label for="warp-hdistort">Horizontal Distortion</label>
           <input type="range" id="warp-hdistort" min="-100" max="100" step="1" value="0" />
-          <input type="number" id="warp-hdistort-num" min="-100" max="100" step="1" value="0" />
+          <input
+            type="number"
+            id="warp-hdistort-num"
+            min="-100"
+            max="100"
+            step="1"
+            value="0"
+            aria-label="Horizontal distortion"
+          />
           <span>%</span>
         </div>
         <div class="modal-row">
           <label for="warp-vdistort">Vertical Distortion</label>
           <input type="range" id="warp-vdistort" min="-100" max="100" step="1" value="0" />
-          <input type="number" id="warp-vdistort-num" min="-100" max="100" step="1" value="0" />
+          <input
+            type="number"
+            id="warp-vdistort-num"
+            min="-100"
+            max="100"
+            step="1"
+            value="0"
+            aria-label="Vertical distortion"
+          />
           <span>%</span>
         </div>
         <div class="modal-buttons">
@@ -1668,7 +1713,13 @@
       <div class="modal-box">
         <h2>Color Table</h2>
         <div id="color-table-grid" class="color-table-grid" role="group" aria-label="Colors"></div>
-        <input type="color" id="color-table-picker" class="color-table-picker" tabindex="-1" />
+        <input
+          type="color"
+          id="color-table-picker"
+          class="color-table-picker"
+          tabindex="-1"
+          aria-label="Custom color"
+        />
         <div class="modal-buttons">
           <button class="modal-btn secondary" id="color-table-cancel">Cancel</button>
           <button class="modal-btn primary" id="color-table-ok">OK</button>

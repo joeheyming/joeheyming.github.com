@@ -495,6 +495,9 @@
           role="slider"
           tabindex="0"
           aria-label="Seek"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
           onclick="seek(event)"
           onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();skip(-10)}else if(event.key==='ArrowRight'){event.preventDefault();skip(10)}"
         >
@@ -840,6 +843,7 @@
         const duration = audio.duration || DURATION;
         const percent = (current / duration) * 100;
         progressFill.style.width = percent + '%';
+        progressBar.setAttribute('aria-valuenow', String(Math.round(percent)));
         timeDisplay.textContent = formatTime(current) + ' / ' + formatTime(duration);
       }
 

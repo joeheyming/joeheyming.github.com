@@ -73,7 +73,7 @@
    */
   --text-1: #1a1a1a; /* AAA, 16.7:1 — primary body & headlines */
   --text-2: #555555; /* AAA,  7.1:1 — secondary copy           */
-  --text-3: #6e6e6e; /* AA,   4.9:1 — timestamps, microcopy    */
+  --text-3: #6c6c6c; /* AA, 5.0:1 on the page, 4.5:1 on a recess */
   --text-on-accent: #ffffff;
 
   /* ── Accent palette — Google '99 four primaries ─────────────────────
@@ -85,20 +85,18 @@
    *   4. The blue serves as the single CTA / link color for the rest
    *      of the site
    *
-   * Values are tuned for AA contrast on --surface-0 paper-cream and
-   * for visual harmony with each other (luminance-balanced, evenly
-   * spaced around the color wheel). They mirror the exact hex values
-   * Google has used for the logo since 1999.
+   * Red, yellow, and green mirror the logo hex values Google has used
+   * since 1999. Link blue is a step darker than that logo blue so it
+   * stays AA on the warm recess; button fills keep #1a73e8.
    */
-  --accent-blue: #1a73e8;
+  --accent-blue: #0e67dc; /* darker than the button fill so links clear the recess */
   --accent-red: #ea4335;
   --accent-yellow: #fbbc04;
   --accent-green: #34a853;
 
   /* The "primary" alias keeps the old token name so cascade-only apps
-   * keep working without rename. On light, foreground (text/icon) and
-   * background (button-fill) roles share the same hue — they don't
-   * need the two-violet split the old brand did.
+   * keep working without rename. Button fills use this logo blue;
+   * --accent-blue is the darker link color.
    */
   --accent-primary: #1a73e8;
   --accent-primary-hover: #1558b8;
@@ -242,6 +240,8 @@
  *     secondary/tertiary stepped to keep AA on surface-1.
  *   - Accent blue gets lifted (#4f8cff) so links clear AA on dark cards
  *     without driving people insane the way pure-blue links do on dark.
+ *   - Button fill (#3370e3) stays darker than that link blue so a white
+ *     label still clears AA.
  *   - Status colors lift to their dark-mode tier; *-soft tints become
  *     deep tinted slabs sitting two notches off the page.
  *   - Scrim alpha increases so modals still part the surface visibly
@@ -288,7 +288,7 @@
   --accent-primary: #4f8cff;
   --accent-primary-hover: #75a5ff;
   --accent-primary-soft: #1a2740;
-  --accent-primary-bg: #4f8cff;
+  --accent-primary-bg: #3370e3; /* white label text clears AA; link blue stays #4f8cff */
   --accent-primary-bg-hover: #75a5ff;
 
   --success: #56d364;
@@ -353,7 +353,7 @@
     --accent-primary: #4f8cff;
     --accent-primary-hover: #75a5ff;
     --accent-primary-soft: #1a2740;
-    --accent-primary-bg: #4f8cff;
+    --accent-primary-bg: #3370e3; /* white label text clears AA; link blue stays #4f8cff */
     --accent-primary-bg-hover: #75a5ff;
 
     --success: #56d364;

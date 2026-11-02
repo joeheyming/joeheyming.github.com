@@ -195,7 +195,7 @@
     <!-- Canvas Mode -->
     <div id="canvasContainer" class="canvas-container">
       <div class="canvas-instructions">
-        <h3>✏️ Write something!</h3>
+        <h2>✏️ Write something!</h2>
         <p>
           Use your mouse or finger to draw text on the canvas below. The brush size is set to an
           optimal thickness for better text recognition. On phones, the first text scan may take a
@@ -301,7 +301,7 @@
           class="read-button has-tip"
           aria-keyshortcuts="Control+Enter Meta+Enter"
           data-tip="Recognize handwriting (OCR) and speak the text — same as Ctrl+Enter or ⌘+Enter."
-          aria-label="Read and say my drawing. Runs text recognition and speaks the result. Keyboard shortcut: Control and Enter, or Command and Enter."
+          aria-label="Read & Say My Drawing. Runs text recognition and speaks the result. Keyboard shortcut: Control and Enter, or Command and Enter."
         >
           📖🔊 Read & Say My Drawing
         </button>
@@ -334,7 +334,7 @@
     <!-- Upload Mode -->
     <div id="uploadContainer" class="upload-container hidden">
       <div class="instructions">
-        <h3>📋 Instructions</h3>
+        <h2>📋 Instructions</h2>
         <p>
           <strong>Method 1:</strong>
           Drag and drop an image file into the drop zone below
@@ -357,7 +357,7 @@
       </div>
 
       <div class="sample-section">
-        <h3>📖 Try with this sample:</h3>
+        <h2>📖 Try with this sample:</h2>
         <p>
           Drag this handwritten sample image to the drop zone above, or simply click it to test OCR:
         </p>
@@ -370,7 +370,13 @@
         />
       </div>
 
-      <input type="file" id="imageUpload" class="file-input" accept="image/*" />
+      <input
+        type="file"
+        id="imageUpload"
+        class="file-input"
+        accept="image/*"
+        aria-label="Choose an image"
+      />
     </div>
 
     <img
@@ -388,7 +394,7 @@
       aria-label="Text recognition results"
     >
       <div class="result-panel">
-        <h3>📸 Your Image</h3>
+        <h2>📸 Your Image</h2>
         <img
           id="imgPreview"
           alt="Image used for text recognition"
@@ -396,7 +402,7 @@
         />
       </div>
       <div class="result-panel">
-        <h3>📝 Extracted Text</h3>
+        <h2>📝 Extracted Text</h2>
         <div id="parsedContent" role="status" aria-live="polite" aria-atomic="true">
           Processing...
         </div>

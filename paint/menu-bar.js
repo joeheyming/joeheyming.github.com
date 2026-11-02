@@ -122,10 +122,10 @@ export function isMacPlatform() {
 }
 
 /**
- * Fill each menu in the bar from `commands`. Static elements already in a list that carry
- * data-menu-path (the adjustment list, the Select › Modify radius field) move to the top of
- * that submenu. Clicking an enabled item runs it with `ctx`. Returns refresh(), which re-reads
- * every command's enabled(state) / checked(state); it also runs whenever a menu opens.
+ * Fill each menu in the bar from `commands`. Static fields parked in #menu-static-fields
+ * (the Select › Modify radius) move to the top of that submenu. Clicking an enabled item
+ * runs it with `ctx`. Returns refresh(), which re-reads every command's enabled(state) /
+ * checked(state); it also runs whenever a menu opens.
  *
  * @param {HTMLElement} bar
  * @param {Array<any>} commands
@@ -134,7 +134,7 @@ export function isMacPlatform() {
 export function buildMenuBar(bar, commands, { state = {}, ctx = {}, mac = isMacPlatform() } = {}) {
   const doc = bar.ownerDocument;
   const byId = new Map(commands.map((c) => [c.id, c]));
-  const statics = [...bar.querySelectorAll('.action-menu-list [data-menu-path]')];
+  const statics = [...bar.ownerDocument.querySelectorAll('#menu-static-fields [data-menu-path]')];
   const plan = planMenus(
     commands,
     statics.map((el) => el.dataset.menuPath)
@@ -143,6 +143,7 @@ export function buildMenuBar(bar, commands, { state = {}, ctx = {}, mac = isMacP
     const top = menu.querySelector('.menu-bar-btn')?.textContent.trim();
     const list = menu.querySelector('.action-menu-list');
     if (!top || !list || !plan.has(top)) continue;
+    list.setAttribute('role', 'menu');
     const frag = doc.createDocumentFragment();
     renderEntries(doc, top, plan, mac, frag);
     list.insertBefore(frag, list.firstChild);

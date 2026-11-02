@@ -111,7 +111,7 @@
       ></nav>
     </header>
 
-    <header class="instrument-header">
+    <div class="instrument-header">
       <div class="instrument-page-title">
         <span aria-hidden="true">🎚️</span>
         <h1>DirectWave Sampler</h1>
@@ -123,7 +123,7 @@
           <span class="midi-label">MIDI</span>
         </div>
       </div>
-    </header>
+    </div>
 
     <p class="instrument-lede">
       Play the keyboard below with your mouse, finger, or computer keys. Switch
@@ -203,7 +203,7 @@
           Each block below is one sample zone — how wide a stretch of keys it covers, and how hard
           you have to play to trigger it.
         </p>
-        <div class="zone-map" id="zone-map" aria-label="Loaded sample zones"></div>
+        <div class="zone-map" id="zone-map" role="group" aria-label="Loaded sample zones"></div>
       </section>
 
       <section class="loader-panel" aria-labelledby="load-heading">

@@ -244,8 +244,9 @@ body {
   margin-bottom: 20px;
 }
 
-.canvas-instructions h3 {
+.canvas-instructions h2 {
   margin-top: 0;
+  font-size: 1.17em;
   color: var(--si-green, #188038);
 }
 
@@ -603,8 +604,9 @@ body {
   margin-bottom: 30px;
 }
 
-.instructions h3 {
+.instructions h2 {
   margin-top: 0;
+  font-size: 1.17em;
   color: var(--si-blue, #1a73e8);
 }
 
@@ -752,8 +754,9 @@ body {
   box-shadow: var(--shadow-soft);
 }
 
-.result-panel h3 {
+.result-panel h2 {
   margin-top: 0;
+  font-size: 1.17em;
   color: var(--text-1);
 }
 

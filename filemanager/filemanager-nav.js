@@ -19,12 +19,12 @@ export function applyFileManagerNav(FileManager) {
       const section = document.getElementById('quick-access-section');
       if (!section) return;
 
-      // Keep the h3, add items after
+      // Keep the heading, add items after
       const items = quickAccess
         .map((item) => `<div class="sidebar-item" data-path="${item.path}">${item.name}</div>`)
         .join('');
 
-      section.innerHTML = `<h3>Quick Access</h3>${items}`;
+      section.innerHTML = `<h2>Quick Access</h2>${items}`;
     },
 
     async navigateTo(path) {

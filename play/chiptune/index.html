@@ -141,7 +141,7 @@
         data-crumbs='[{"emoji":"🎵","label":"Instruments","href":"../"},{"emoji":"👾","label":"Chiptune"}]'
       ></nav>
     </header>
-    <header class="instrument-header">
+    <div class="instrument-header">
       <div class="instrument-page-title">
         <span aria-hidden="true">👾</span>
         <h1>Chiptune</h1>
@@ -149,7 +149,7 @@
       <div class="header-status">
         <div class="now-playing" id="now-playing" aria-live="polite">Ready</div>
       </div>
-    </header>
+    </div>
 
     <section class="chip-toolbar" aria-label="Transport and song">
       <div class="control control-actions">
@@ -177,6 +177,7 @@
             max="280"
             step="1"
             value="120"
+            aria-label="Beats per minute"
             aria-valuetext="120 BPM"
           />
           <span class="tempo-flyout-min" aria-hidden="true">40</span>

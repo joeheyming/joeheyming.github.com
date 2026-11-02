@@ -244,9 +244,10 @@
       type="file"
       id="romFileInput"
       class="hidden-input"
+      aria-label="Choose a ROM file"
       accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.gba,.sfc,.smc,.z64,.n64,.v64,.chd,.pbp,.iso,.cue,.zip,.7z"
     />
-    <input type="file" id="biosFileInput" class="hidden-input" accept=".zip,.7z,.bin" />
+    <input type="file" id="biosFileInput" class="hidden-input" aria-label="Choose a BIOS file" accept=".zip,.7z,.bin" />
 
     <!-- Boot overlay. The two child slots (#brand, #boot-card) are
          filled in by launch.js based on the active console path

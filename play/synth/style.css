@@ -33,7 +33,7 @@
   box-shadow: var(--shadow-card);
 }
 
-.knob-group h3 {
+.knob-group h2 {
   margin: 0 0 10px;
   font-size: 11px;
   text-transform: uppercase;

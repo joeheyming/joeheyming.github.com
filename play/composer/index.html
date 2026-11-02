@@ -156,7 +156,7 @@
         data-crumbs='[{"emoji":"🎵","label":"Instruments","href":"../"},{"emoji":"🎼","label":"Composer"}]'
       ></nav>
     </header>
-    <header class="instrument-header">
+    <div class="instrument-header">
       <div class="instrument-page-title">
         <span aria-hidden="true">🎼</span>
         <h1>Composer</h1>
@@ -164,7 +164,7 @@
       <div class="header-status">
         <div class="now-playing" id="now-playing" aria-live="polite">Ready</div>
       </div>
-    </header>
+    </div>
 
     <section class="instrument-controls" aria-label="Composer controls">
       <div class="control">
@@ -186,6 +186,7 @@
             max="280"
             step="1"
             value="100"
+            aria-label="Beats per minute"
             aria-valuetext="100 BPM"
           />
           <span class="tempo-flyout-min" aria-hidden="true">40</span>

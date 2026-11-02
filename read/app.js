@@ -449,6 +449,7 @@ async function openBook(book) {
   closeTocSheet();
   browseView.classList.add('hidden');
   readerView.classList.remove('hidden');
+  readerView.setAttribute('role', 'main');
   window.scrollTo({ top: 0 });
 
   // Settings stay out of tab order until Aa is pressed. The next-page
@@ -489,6 +490,7 @@ reader.onScrollSave = (bookId, position) => {
 btnCloseReader.addEventListener('click', () => {
   closeTocSheet();
   readerView.classList.add('hidden');
+  readerView.removeAttribute('role');
   browseView.classList.remove('hidden');
   setBookIdInUrl(null);
   renderShelf();
