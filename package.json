@@ -8,6 +8,7 @@
     "scan:remote": "node scripts/remote-a11y-scan.mjs",
     "scan:a11y": "node scripts/a11y-scan.mjs",
     "lint": "eslint app.js mime-handlers.js generate-previews.js share.js google-db todo",
+    "lint:html": "node scripts/html-lint.mjs",
     "lint:fix": "eslint --fix .",
     "format:check": "prettier --check app.js mime-handlers.js generate-previews.js share.js google-db todo",
     "format:fix": "prettier --write .",
@@ -24,6 +25,7 @@
     "eslint": "^8.20.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",
+    "htmllint": "^0.8.0",
     "http-server": "^14.1.1",
     "prettier": "^2.8.8",
     "typescript": "^6.0.2"

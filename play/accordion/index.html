@@ -279,8 +279,8 @@
            down in 12-semitone steps. Pitch-class labels on the button
            views (C, D, F♯, …) stay valid; the piano view's labels
            follow the shift since they include the octave number. -->
-      <div class="control octave-control">
-        <label>Octave</label>
+      <div class="control octave-control" role="group" aria-labelledby="octave-caption">
+        <span class="control-caption" id="octave-caption">Octave</span>
         <div class="octave-buttons">
           <button id="octave-down" type="button" aria-label="Octave down">−</button>
           <span id="octave-display" class="octave-display" aria-live="polite">0</span>
@@ -388,7 +388,7 @@
         aria-label="Show on keys"
         data-only-for="piano"
       >
-        <label id="show-label">Show</label>
+        <span class="control-caption" id="show-label">Show</span>
         <div class="show-options" aria-labelledby="show-label">
           <label class="show-option">
             <input id="show-notes" type="checkbox" checked />

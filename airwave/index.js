@@ -965,12 +965,14 @@ class App {
     if (!track) {
       titleEl.textContent = 'Nothing queued yet';
       authorEl.textContent = 'Search above or paste a YouTube URL.';
+      artEl.alt = 'Track artwork';
       artEl.removeAttribute('data-track-id');
       return;
     }
 
     titleEl.textContent = track.title || `YouTube · ${track.id}`;
     authorEl.textContent = track.author || '';
+    artEl.alt = track.title ? `Artwork for ${track.title}` : 'Track artwork';
 
     if (artEl.getAttribute('data-track-id') !== track.id) {
       artEl.setAttribute('data-track-id', track.id);

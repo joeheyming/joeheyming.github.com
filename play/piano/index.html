@@ -246,8 +246,8 @@
            [/] / arrow keyboard shortcuts, and lets users pick a small
            layout (large tap targets) without losing access to high/low
            notes. -->
-      <div class="control octave-control">
-        <label>Octave</label>
+      <div class="control octave-control" role="group" aria-labelledby="octave-caption">
+        <span class="control-caption" id="octave-caption">Octave</span>
         <div class="octave-buttons">
           <button id="octave-down" type="button" aria-label="Octave down">−</button>
           <span id="octave-display" class="octave-display" aria-live="polite">C2</span>
@@ -262,7 +262,7 @@
       </div>
 
       <div class="control show-control" role="group" aria-label="Show on keys">
-        <label id="show-label">Show</label>
+        <span class="control-caption" id="show-label">Show</span>
         <div class="show-options" aria-labelledby="show-label">
           <label class="show-option">
             <input id="show-notes" type="checkbox" checked />

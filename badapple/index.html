@@ -359,7 +359,7 @@
         gap: 5px;
       }
 
-      #speed-controls label {
+      #speed-controls .control-caption {
         font-size: 12px;
         color: var(--text-2);
       }
@@ -381,7 +381,7 @@
         align-items: center;
         gap: 5px;
       }
-      #renderer-controls label {
+      #renderer-controls .control-caption {
         font-size: 12px;
         color: var(--text-2);
       }
@@ -454,8 +454,8 @@
           justify-content: center;
         }
 
-        #speed-controls label,
-        #renderer-controls label {
+        #speed-controls .control-caption,
+        #renderer-controls .control-caption {
           flex-basis: 100%;
         }
 
@@ -506,8 +506,8 @@
           <button onclick="skip(-10)" title="Back 10s">⏪ 10s</button>
           <button onclick="skip(10)" title="Forward 10s">10s ⏩</button>
         </div>
-        <div id="renderer-controls">
-          <label>Picture:</label>
+        <div id="renderer-controls" role="group" aria-labelledby="picture-caption">
+          <span class="control-caption" id="picture-caption">Picture:</span>
           <button
             type="button"
             data-renderer="html"
@@ -533,8 +533,8 @@
             Canvas
           </button>
         </div>
-        <div id="speed-controls">
-          <label>Speed:</label>
+        <div id="speed-controls" role="group" aria-labelledby="speed-caption">
+          <span class="control-caption" id="speed-caption">Speed:</span>
           <button onclick="setSpeed(0.5)">0.5x</button>
           <button onclick="setSpeed(1)" class="active">1x</button>
           <button onclick="setSpeed(1.5)">1.5x</button>

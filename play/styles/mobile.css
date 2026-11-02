@@ -77,7 +77,8 @@
     font-size: 12px;
     gap: 6px;
   }
-  .control label {
+  .control label,
+  .control .control-caption {
     font-size: 10px;
     letter-spacing: 0.06em;
   }

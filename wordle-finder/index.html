@@ -421,15 +421,15 @@
       </div>
       <div class="content" id="scorer">
         <div class="form-row">
-          <label class="form-label">Random start word</label>
+          <label class="form-label" for="randomWordButton">Random start word</label>
           <div class="form-input fixed-input-control">
             <button id="randomWordButton" class="btn-txt btn-bordered">Generate</button>
             <span id="randomWord"></span>
           </div>
         </div>
         <form id="guessForm" autocomplete="off">
-          <div class="corrects form-row">
-            <label class="form-label">Green (correct spot)</label>
+          <div class="corrects form-row" role="group" aria-labelledby="green-letters-label">
+            <span class="form-label" id="green-letters-label">Green (correct spot)</span>
             <div class="form-input form-grid">
               <input
                 autocomplete="off"
@@ -479,8 +479,8 @@
               />
             </div>
           </div>
-          <div class="maybecorrects form-row">
-            <label class="form-label">Yellow (wrong spot)</label>
+          <div class="maybecorrects form-row" role="group" aria-labelledby="yellow-letters-label">
+            <span class="form-label" id="yellow-letters-label">Yellow (wrong spot)</span>
             <div class="form-input form-grid">
               <input
                 autocomplete="off"
@@ -530,7 +530,7 @@
             </div>
           </div>
           <div class="form-row">
-            <label class="form-label">Gray (not in word)</label>
+            <label class="form-label" for="excludeLetters">Gray (not in word)</label>
             <div class="form-input">
               <input
                 autocomplete="off"
@@ -608,7 +608,7 @@
             Clear
           </button>
           <div id="sortSelector" style="display: none">
-            <label style="margin-right: 5px">Sort:</label>
+            <label style="margin-right: 5px" for="sortSelectorSelect">Sort:</label>
             <select id="sortSelectorSelect" style="width: auto; height: 44px">
               <option value="pattern-entropy">Entropy</option>
               <option value="frequency-score">Frequency</option>
@@ -616,7 +616,7 @@
             </select>
           </div>
           <div id="wordSelector" style="display: none">
-            <label style="margin-right: 5px">Word:</label>
+            <label style="margin-right: 5px" for="playWords">Word:</label>
             <select id="playWords" style="width: 110px; height: 44px"></select>
           </div>
         </div>
