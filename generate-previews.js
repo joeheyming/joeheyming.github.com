@@ -330,7 +330,9 @@ const PAGES = [
           const html = await res.text();
           const m = html.match(/<pre>\s*([\s\S]*?)\s*<\/pre>/);
           const target = document.getElementById('frame-display');
-          if (m && target) target.textContent = m[1];
+          const text =
+            m && typeof decodeBadAppleFrame === 'function' ? decodeBadAppleFrame(m[1]) : m && m[1];
+          if (text && target) target.textContent = text;
         } catch {
           // network blip — leave the frame blank rather than crash
         }

@@ -8,17 +8,19 @@ This is an ASCII art recreation of the iconic Touhou Project shadow animation vi
 
 ## How It's Made
 
-The frames were extracted from the original YouTube video using ffmpeg at 30 FPS, producing 6572 PNG images. Each image was then converted to ASCII art using jp2a, which maps pixel brightness to characters—dark pixels become `#` and light pixels become `_`, with `+` and `=` for mid-tones. The resulting text is wrapped in HTML and served as individual frame files.
+The source is the 480×360, 30 FPS upload of the original PV ([FtutLA63Cp8](https://www.youtube.com/watch?v=FtutLA63Cp8)), the highest resolution that video is published at. Each frame is resampled the same way `/ascii/` samples a still: bilinear-scale to one pixel per character cell, then map luminance through the classic ramp `@#S%?*+;:,._` (bright pixels become dense glyphs, so the white silhouette reads on the black page). Courier New's cell is 0.6em wide, so a 480×360 frame becomes **480×216 characters** and still looks 4:3.
+
+Rows are run-length encoded (`470_3@`) inside `frame/N.html`. `scripts/render-badapple-frames.py` rebuilds them from a local copy of the video.
 
 ## Technical Details
 
 - **Frame Rate:** 30 FPS
-- **Resolution:** 240×84 characters per frame
-- **Character Set:** `_` `+` `=` `#` (light to dark)
+- **Resolution:** 480×216 characters per frame
+- **Character Set:** `@ # S % ? * + ; : , . _` (bright to dark)
 - **Audio:** Ogg Vorbis
 - **Sync Method:** `requestAnimationFrame` polling audio time
 
-Frames are loaded on-demand and cached in memory. The player preloads upcoming frames in batches to ensure smooth playback without stuttering.
+Frames are loaded on-demand, expanded, and cached in memory. The player preloads upcoming frames in batches to keep playback smooth, and the font size shrinks to fit the stage.
 
 ## Controls
 
@@ -29,4 +31,4 @@ Frames are loaded on-demand and cached in memory. The player preloads upcoming f
 
 - Original video: [Bad Apple!! PV](https://www.youtube.com/watch?v=FtutLA63Cp8)
 - Music: Alstroemeria Records - Bad Apple!! feat. nomico
-- ASCII conversion: [jp2a](https://github.com/cslarsen/jp2a)
+- Sampling: `/ascii/` classic ramp (`@#S%?*+;:,.`), with the trailing space written as `_`

@@ -94,3 +94,14 @@ test('Bad Apple paints playback and seek state before bounded preloading', async
 
   dom.window.close();
 });
+
+test('Bad Apple expands a run-length grid and leaves plain text alone', () => {
+  const { dom } = loadBadApple();
+  const decode = dom.window.decodeBadAppleFrame;
+  const packed = Array.from({ length: 216 }, () => '470_3@7,').join('\n');
+  const lines = decode(packed).split('\n');
+  assert.equal(lines.length, 216);
+  assert.equal(lines[0], `${'_'.repeat(470)}@@@${','.repeat(7)}`);
+  assert.equal(decode('frame'), 'frame');
+  dom.window.close();
+});

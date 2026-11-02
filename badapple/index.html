@@ -102,7 +102,7 @@
                 "name": "How is the animation rendered?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Each frame is pre-converted from the source video into a packed character grid. At runtime the page swaps the contents of a single <pre> element at the original frame rate, with the audio track played in sync via the standard <audio> element."
+                  "text": "Each frame is a 480 by 216 character grid, sampled from the video the same way the ASCII app samples a picture: one cell per glyph, brightness mapped through a dense-to-sparse ramp. The grid is stored run-length encoded and expanded into a single pre element at the original frame rate, with the audio kept in sync."
                 }
               },
               {
@@ -110,7 +110,7 @@
                 "name": "Can I download the ASCII frames?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "The frame data is loaded statically from the page — view-source / network tools will show you the raw text. There's no built-in download button, but the rendering is intentionally view-source friendly."
+                  "text": "Each frame is a static HTML file under frame/. The picture is run-length encoded (a count followed by the glyph) so the higher-resolution grid stays small. The player expands those runs into the monospace text you see."
                 }
               },
               {
@@ -479,6 +479,10 @@
       const FRAME_RATE = 30; // frames per second - silky smooth animation
       const TOTAL_FRAMES = 6572; // Total frames at 30 FPS (3:39 video duration)
       const DURATION = TOTAL_FRAMES / FRAME_RATE; // ~219 seconds
+      // 480×216: the 480×360 PV, one column per source pixel, rows shortened
+      // for Courier New's 0.6em cell so the picture keeps a 4:3 shape.
+      const FRAME_COLS = 480;
+      const FRAME_ROWS = 216;
       let frames = {}; // Cache for loaded frames
       let frameLoads = {}; // In-flight frame requests
       let preloadQueue = new Set();
@@ -494,6 +498,38 @@
           ? window.yieldToMain
           : () => new Promise((resolve) => setTimeout(resolve, 0));
 
+      // Rows are stored as runs of "<count><glyph>", e.g. "470_3@7,".
+      // A payload that is not a full grid is returned unchanged so a
+      // plain <pre> still displays.
+      function decodeBadAppleFrame(packed) {
+        const lines = packed.split('\n');
+        const rows = [];
+        for (let li = 0; li < lines.length; li++) {
+          const line = lines[li];
+          if (!line) continue;
+          let out = '';
+          let p = 0;
+          while (p < line.length) {
+            let n = 0;
+            const start = p;
+            let code = line.charCodeAt(p);
+            while (code >= 48 && code <= 57) {
+              n = n * 10 + (code - 48);
+              p++;
+              if (p >= line.length) return packed;
+              code = line.charCodeAt(p);
+            }
+            if (p === start) return packed;
+            out += line[p].repeat(n);
+            p++;
+          }
+          if (out.length !== FRAME_COLS) return packed;
+          rows.push(out);
+        }
+        if (rows.length !== FRAME_ROWS) return packed;
+        return rows.join('\n');
+      }
+
       // Load frame data from existing HTML files
       async function loadFrame(frameNum) {
         if (frames[frameNum]) return frames[frameNum];
@@ -508,7 +544,7 @@
             // Extract the ASCII art from between <pre> tags
             const match = html.match(/<pre>\s*([\s\S]*?)\s*<\/pre>/);
             if (match) {
-              frames[frameNum] = match[1];
+              frames[frameNum] = decodeBadAppleFrame(match[1]);
               return frames[frameNum];
             } else {
               throw new Error('No <pre> tag found');
@@ -740,11 +776,8 @@
         }
       });
 
-      // 240 columns by 84 rows. Font size tracks the stage so the picture
-      // fills whatever space the controls leave, instead of a fixed 6px.
-      const FRAME_COLS = 240;
-      const FRAME_ROWS = 84;
-
+      // Font size tracks the stage so the picture fills whatever space
+      // the controls leave, instead of a fixed 6px.
       function fitFrame() {
         const availW = frameDisplay.clientWidth;
         const availH = frameDisplay.clientHeight;
@@ -758,7 +791,7 @@
         probe.remove();
         if (!(charWidth > 0)) return;
         const size = Math.min(availW / (FRAME_COLS * (charWidth / 100)), availH / FRAME_ROWS);
-        const px = Math.max(1, Math.floor(size * 100) / 100);
+        const px = Math.max(0.25, Math.floor(size * 100) / 100);
         frameDisplay.style.fontSize = px + 'px';
         frameDisplay.style.lineHeight = px + 'px';
       }
