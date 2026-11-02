@@ -217,9 +217,9 @@ Two consequences for code:
 
 Do not commit `.wad` files. `.gitignore` ignores `*.wad`.
 
-Classic DOOM's `doom.wad`, the Super MAYhem 17 map pack, Batman DOOM, the Zombies campaign, Sigil, Sigil II, Witching Hour, DoomCraft, Lego Base, Block Fort, and the Roblox joke map are fetched when that flavor launches. A new flavor is one record in `doom/flavors.js`; cards, menus, and ink colors come from that list. Freedoom Phase 1 and Phase 2 are inside the engine preload, not loose WADs.
+Do not commit the gameplay mods `LegendOfDoom-1.1.0.pk3`, `mariodoom.pk3`, `met2.pk3`, `Castlevania.ipk3`, or `sonicdoom-legacy.pk3`. `.gitignore` lists those paths. Each flavor fetches its archive from the commit pinned in `doom/flavors.js` (`MOD_COMMIT`). Keep that SHA: a branch URL 404s once the files leave the tree. The engine packages `uzdoom.pk3`, `game_support.pk3`, `brightmaps.pk3`, `lights.pk3`, and `game_widescreen_gfx.pk3` stay in `doom/`.
 
-PK3 and IPK3 gameplay mods under `doom/` (MarioDoom, Metroid, Legend of DOOM, Castlevania, Sonic) are the mod files this repo does ship.
+Classic DOOM's `doom.wad`, the Super MAYhem 17 map pack, Batman DOOM, the Zombies campaign, Sigil, Sigil II, Witching Hour, DoomCraft, Lego Base, Block Fort, and the Roblox joke map are fetched when that flavor launches. A new flavor is one record in `doom/flavors.js`; cards, menus, and ink colors come from that list. Freedoom Phase 1 and Phase 2 are inside the engine preload, not loose WADs.
 
 ## Emulator consoles
 

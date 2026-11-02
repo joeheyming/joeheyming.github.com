@@ -42,4 +42,13 @@ node_modules
 
 # Doom IWADs and map WADs are fetched at launch. See AGENTS.md.
 *.wad
+
+# Gameplay mods, fetched from the commit pinned in doom/flavors.js.
+# Engine packages stay tracked: uzdoom.pk3, game_support.pk3,
+# brightmaps.pk3, lights.pk3, game_widescreen_gfx.pk3.
+/doom/LegendOfDoom-1.1.0.pk3
+/doom/mariodoom.pk3
+/doom/met2.pk3
+/doom/Castlevania.ipk3
+/doom/sonicdoom-legacy.pk3
 scripts/ralph/.last-branch

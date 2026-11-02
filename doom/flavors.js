@@ -2,11 +2,22 @@
 // ?flavor= allowlisting, and the light/dark ink colors are built from
 // this list. Add a flavor here; do not copy it into the HTML or CSS.
 //
-// Fetched zips stay out of git (*.wad is ignored). `files` is the load
-// order inside that zip. Anything not named there is not passed to the
-// engine.
+// Fetched zips stay out of git (*.wad is ignored). Gameplay pk3 and
+// ipk3 mods are fetched from MOD_BASE and ignored the same way.
+// `files` is the load order inside a zip. Anything not named there
+// is not passed to the engine.
+//
+// MOD_COMMIT is the last commit that stored those five archives.
+// raw.githubusercontent.com sends CORS and CORP on that blob, so the
+// loader reads it directly. Keep the SHA: a master URL 404s once the
+// files leave the branch. LegendOfDoom-1.1.0.pk3 in that commit is
+// the OGG repack; the upstream MP3 music will not play in this build.
 
 (function (root) {
+  var MOD_COMMIT = '73875b5e91f8780dd663c6620f5e530f110eddda';
+  var MOD_BASE =
+    'https://raw.githubusercontent.com/joeheyming/joeheyming.github.com/' + MOD_COMMIT + '/doom/';
+
   var FLAVORS = [
     {
       id: 'classic',
@@ -52,9 +63,7 @@
       inkLight: '#166534',
       inkDark: '#4fa861',
       accentDim: '#2a5b37',
-      // ?v=ogg busts caches that still hold the MP3 build. UZDoom WASM
-      // cannot decode MP3.
-      modUrl: 'LegendOfDoom-1.1.0.pk3?v=ogg',
+      modUrl: MOD_BASE + 'LegendOfDoom-1.1.0.pk3',
       modName: 'LegendOfDoom-1.1.0.pk3'
     },
     {
@@ -70,7 +79,7 @@
       inkLight: '#1d4ed8',
       inkDark: '#5b9dfb',
       accentDim: '#18467f',
-      modUrl: 'mariodoom.pk3',
+      modUrl: MOD_BASE + 'mariodoom.pk3',
       modName: 'mariodoom.pk3'
     },
     {
@@ -90,7 +99,7 @@
       inkDark: '#fb7185',
       accentDim: '#881337',
       bundledIwad: 'freedoom2.wad',
-      modUrl: 'mariodoom.pk3',
+      modUrl: MOD_BASE + 'mariodoom.pk3',
       modName: 'mariodoom.pk3',
       zips: [
         {
@@ -114,7 +123,7 @@
       inkDark: '#c39e3a',
       accentDim: '#6e571c',
       bundledIwad: 'freedoom2.wad',
-      modUrl: 'met2.pk3',
+      modUrl: MOD_BASE + 'met2.pk3',
       modName: 'met2.pk3'
     },
     {
@@ -131,7 +140,7 @@
       inkLight: '#6b21a8',
       inkDark: '#b894e8',
       accentDim: '#3f1f5c',
-      iwadUrl: 'Castlevania.ipk3',
+      iwadUrl: MOD_BASE + 'Castlevania.ipk3',
       iwadName: 'Castlevania.ipk3'
     },
     {
@@ -148,7 +157,7 @@
       inkDark: '#1ec8e8',
       accentDim: '#0a5a6e',
       bundledIwad: 'freedoom2.wad',
-      modUrl: 'sonicdoom-legacy.pk3',
+      modUrl: MOD_BASE + 'sonicdoom-legacy.pk3',
       modName: 'sonicdoom-legacy.pk3'
     },
     {

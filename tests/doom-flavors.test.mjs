@@ -2,7 +2,7 @@
 // have a picker card, a mode-switch allowlist entry, and switcher items.
 
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
@@ -55,7 +55,7 @@ describe('doom flavors', () => {
 
   it('keeps MarioDoom on Freedoom Phase 1 and fetches Mayhem maps', () => {
     const mario = sliceFlavor('mario', 'mayhem');
-    assert.match(mario, /modUrl: 'mariodoom\.pk3'/);
+    assert.match(mario, /modUrl: MOD_BASE \+ 'mariodoom\.pk3'/);
     assert.doesNotMatch(mario, /freedoom2/);
     assert.doesNotMatch(mario, /mayhem17/);
     const mayhem = sliceFlavor('mayhem', 'metroid');
@@ -130,14 +130,25 @@ describe('doom flavors', () => {
     assert.equal(existsSync(path.join(ROOT, 'doom/zombie.wad')), false);
   });
 
-  it('ships the Sonic Legacy PK3 next to the other bundled mods', () => {
-    const pk3 = path.join(ROOT, 'doom/sonicdoom-legacy.pk3');
-    assert.equal(existsSync(pk3), true);
-    const bytes = statSync(pk3).size;
-    assert.ok(bytes > 10 * 1024 * 1024, 'PK3 should be a real archive, not a stub');
-    assert.ok(bytes < 80 * 1024 * 1024, 'PK3 must stay under GitHub 100 MB limit');
-    assert.match(catalog, /modUrl: 'sonicdoom-legacy\.pk3'/);
+  it('fetches gameplay pk3s from the pinned commit and leaves them out of the tree', () => {
+    const gitignore = readFileSync(path.join(ROOT, '.gitignore'), 'utf8');
+    const mods = [
+      'LegendOfDoom-1.1.0.pk3',
+      'mariodoom.pk3',
+      'met2.pk3',
+      'Castlevania.ipk3',
+      'sonicdoom-legacy.pk3'
+    ];
+    assert.match(catalog, /73875b5e91f8780dd663c6620f5e530f110eddda/);
+    assert.match(catalog, /raw\.githubusercontent\.com\/joeheyming\/joeheyming\.github\.com\//);
+    for (const name of mods) {
+      assert.match(gitignore, new RegExp('^/doom/' + name.replace(/\./g, '\\.') + '$', 'm'), name);
+      assert.equal(existsSync(path.join(ROOT, 'doom', name)), false, name);
+    }
+    assert.match(sliceFlavor('sonic', 'batman'), /MOD_BASE \+ 'sonicdoom-legacy\.pk3'/);
     assert.match(sliceFlavor('sonic', 'batman'), /bundledIwad: 'freedoom2\.wad'/);
+    assert.match(sliceFlavor('castlevania', 'sonic'), /iwadUrl: MOD_BASE \+ 'Castlevania\.ipk3'/);
+    assert.equal(existsSync(path.join(ROOT, 'doom/uzdoom.pk3')), true);
   });
 
   it('redirects /sonic-doom/ to the flavor URL and keeps it noindex', () => {
