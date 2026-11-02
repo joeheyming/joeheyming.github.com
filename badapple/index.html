@@ -102,7 +102,7 @@
                 "name": "How is the animation rendered?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Each frame is a 480 by 216 character grid, sampled from the video the same way the ASCII app samples a picture: one cell per glyph, brightness mapped through a dense-to-sparse ramp. The grid is stored run-length encoded and expanded into a single pre element at the original frame rate, with the audio kept in sync."
+                  "text": "Each frame is a 480 by 216 grid, sampled from the video the same way the ASCII app samples a picture: one cell per glyph, brightness mapped through a dense-to-sparse ramp. The grid is stored run-length encoded. The player can draw those runs three ways at the original frame rate: HTML table cells, CSS gradients, or a canvas bitmap. All three paint solid shades, so the silhouette stays continuous instead of showing gaps between glyphs, with the audio kept in sync."
                 }
               },
               {
@@ -110,7 +110,7 @@
                 "name": "Can I download the ASCII frames?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Each frame is a static HTML file under frame/. The picture is run-length encoded (a count followed by the glyph) so the higher-resolution grid stays small. The player expands those runs into the monospace text you see."
+                  "text": "Each frame is a static HTML file under frame/. The picture is run-length encoded (a count followed by the glyph) so the higher-resolution grid stays small. The player expands those runs and draws them with whichever renderer is selected."
                 }
               },
               {
@@ -153,8 +153,8 @@
       }
       body {
         font-family: monospace;
-        background: black;
-        color: white;
+        background: var(--surface-0);
+        color: var(--text-1);
         box-sizing: border-box;
         height: 100vh;
         height: 100dvh;
@@ -182,17 +182,19 @@
         margin: 0 4px;
         padding: 6px 14px;
         font-size: 14px;
-        background: #333;
-        color: white;
-        border: 1px solid #666;
+        background: var(--surface-2);
+        color: var(--text-1);
+        border: 1px solid var(--hairline-strong);
         cursor: pointer;
       }
       button:hover {
-        background: #555;
+        background: var(--accent-primary-soft);
+        border-color: var(--hairline-accent);
       }
       button:disabled {
-        background: #222;
-        color: #666;
+        background: var(--surface-0);
+        color: var(--text-3);
+        border-color: var(--hairline);
         cursor: not-allowed;
       }
       #info {
@@ -205,17 +207,63 @@
         min-height: 0;
         width: 100%;
         max-width: none;
-        white-space: pre;
-        font-size: 6px;
-        line-height: 1;
         margin: 0;
-        background: black;
+        background: var(--surface-0);
         padding: 0;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        font-family: 'Courier New', 'Monaco', monospace;
+      }
+      #frame-display > [hidden] {
+        display: none !important;
+      }
+      /* The frames are painted white-on-black. Light mode inverts that
+         so the silhouette is black on white. Dark mode leaves it alone.
+         Same contract as brand.css: an explicit data-theme wins, otherwise
+         the OS preference does. */
+      #frame-canvas,
+      #frame-html,
+      #frame-css {
+        background: var(--pure-black);
+        filter: invert(1);
+      }
+      :root[data-theme='dark'] #frame-canvas,
+      :root[data-theme='dark'] #frame-html,
+      :root[data-theme='dark'] #frame-css {
+        filter: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) #frame-canvas,
+        :root:not([data-theme='light']) #frame-html,
+        :root:not([data-theme='light']) #frame-css {
+          filter: none;
+        }
+      }
+      #frame-canvas {
+        display: block;
+      }
+      #frame-html {
+        border-collapse: collapse;
+        border-spacing: 0;
+        table-layout: fixed;
+      }
+      #frame-html tr {
+        height: var(--row-h, 1px);
+      }
+      #frame-html td {
+        padding: 0;
+        line-height: 0;
+        font-size: 0;
+      }
+      #frame-css {
+        display: flex;
+        flex-direction: column;
+      }
+      #frame-css > div {
+        flex: 1 1 0;
+        min-height: 0;
+        width: 100%;
       }
       audio {
         width: 100%;
@@ -227,10 +275,10 @@
         display: none;
       }
       a {
-        color: #66aaff;
+        color: var(--accent-primary);
       }
       a:hover {
-        color: #88ccff;
+        color: var(--accent-primary-hover);
       }
       #legacy-link {
         margin-top: 20px;
@@ -246,9 +294,9 @@
         box-sizing: border-box;
         margin: 0 auto;
         padding: 8px 12px;
-        background: #1a1a1a;
+        background: var(--surface-1);
         border-radius: 8px;
-        border: 1px solid #333;
+        border: 1px solid var(--hairline);
       }
 
       #progress-container {
@@ -260,7 +308,7 @@
 
       #time-display {
         font-size: 12px;
-        color: #aaa;
+        color: var(--text-2);
         min-width: 90px;
         text-align: center;
       }
@@ -268,7 +316,7 @@
       #progress-bar {
         flex: 1;
         height: 8px;
-        background: #333;
+        background: var(--surface-2);
         border-radius: 4px;
         cursor: pointer;
         position: relative;
@@ -277,14 +325,14 @@
 
       #progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #ff6b6b, #ee5a5a);
+        background: var(--accent-red);
         border-radius: 4px;
         width: 0%;
         transition: width 0.1s linear;
       }
 
       #progress-bar:hover #progress-fill {
-        background: linear-gradient(90deg, #ff8585, #ff6b6b);
+        background: var(--danger);
       }
 
       #secondary-controls {
@@ -313,7 +361,7 @@
 
       #speed-controls label {
         font-size: 12px;
-        color: #aaa;
+        color: var(--text-2);
       }
 
       #speed-controls button {
@@ -322,9 +370,25 @@
         min-width: 45px;
       }
 
-      #speed-controls button.active {
-        background: #c0392b;
-        border-color: #e74c3c;
+      #speed-controls button.active,
+      #renderer-controls button.active {
+        background: var(--accent-red);
+        border-color: var(--accent-red);
+        color: var(--text-on-accent);
+      }
+      #renderer-controls {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      #renderer-controls label {
+        font-size: 12px;
+        color: var(--text-2);
+      }
+      #renderer-controls button {
+        padding: 5px 10px;
+        font-size: 12px;
+        min-width: 52px;
       }
 
       #volume-controls {
@@ -342,7 +406,7 @@
         height: 6px;
         -webkit-appearance: none;
         appearance: none;
-        background: #333;
+        background: var(--surface-2);
         border-radius: 3px;
         cursor: pointer;
       }
@@ -352,7 +416,7 @@
         appearance: none;
         width: 14px;
         height: 14px;
-        background: #ee5a5a;
+        background: var(--accent-red);
         border-radius: 50%;
         cursor: pointer;
       }
@@ -360,7 +424,7 @@
       #volume-slider::-moz-range-thumb {
         width: 14px;
         height: 14px;
-        background: #ee5a5a;
+        background: var(--accent-red);
         border-radius: 50%;
         cursor: pointer;
         border: none;
@@ -383,13 +447,15 @@
       }
 
       @media (max-width: 480px) {
-        #speed-controls {
+        #speed-controls,
+        #renderer-controls {
           width: 100%;
           flex-wrap: wrap;
           justify-content: center;
         }
 
-        #speed-controls label {
+        #speed-controls label,
+        #renderer-controls label {
           flex-basis: 100%;
         }
 
@@ -440,6 +506,33 @@
           <button onclick="skip(-10)" title="Back 10s">⏪ 10s</button>
           <button onclick="skip(10)" title="Forward 10s">10s ⏩</button>
         </div>
+        <div id="renderer-controls">
+          <label>Picture:</label>
+          <button
+            type="button"
+            data-renderer="html"
+            onclick="setRenderer('html', true)"
+            title="HTML table cells"
+          >
+            HTML
+          </button>
+          <button
+            type="button"
+            data-renderer="css"
+            onclick="setRenderer('css', true)"
+            title="CSS gradients"
+          >
+            CSS
+          </button>
+          <button
+            type="button"
+            data-renderer="canvas"
+            onclick="setRenderer('canvas', true)"
+            title="Canvas bitmap"
+          >
+            Canvas
+          </button>
+        </div>
         <div id="speed-controls">
           <label>Speed:</label>
           <button onclick="setSpeed(0.5)">0.5x</button>
@@ -463,7 +556,14 @@
       </div>
     </div>
 
-    <div id="frame-display"></div>
+    <div id="frame-display">
+      <table id="frame-html" hidden>
+        <colgroup></colgroup>
+        <tbody></tbody>
+      </table>
+      <div id="frame-css" hidden></div>
+      <canvas id="frame-canvas" width="480" height="360" aria-label="Bad Apple animation"></canvas>
+    </div>
 
     <hr />
 
@@ -471,6 +571,10 @@
     <script>
       const audio = document.getElementById('audio');
       const frameDisplay = document.getElementById('frame-display');
+      const frameCanvas = document.getElementById('frame-canvas');
+      const frameHtml = document.getElementById('frame-html');
+      const frameHtmlBody = frameHtml ? frameHtml.querySelector('tbody') : null;
+      const frameCss = document.getElementById('frame-css');
       const playBtn = document.getElementById('playBtn');
       const progressFill = document.getElementById('progress-fill');
       const progressBar = document.getElementById('progress-bar');
@@ -480,9 +584,44 @@
       const TOTAL_FRAMES = 6572; // Total frames at 30 FPS (3:39 video duration)
       const DURATION = TOTAL_FRAMES / FRAME_RATE; // ~219 seconds
       // 480×216: the 480×360 PV, one column per source pixel, rows shortened
-      // for Courier New's 0.6em cell so the picture keeps a 4:3 shape.
+      // for a 0.6-wide cell so the picture keeps a 4:3 shape. The same runs
+      // can be drawn as HTML table cells, CSS gradients, or a canvas bitmap.
       const FRAME_COLS = 480;
       const FRAME_ROWS = 216;
+      const CHAR_ASPECT = 0.6;
+      const RAMP = '@#S%?*+;:,._';
+      const SHADE = new Uint8Array(128);
+      const SHADE_HEX = new Array(256);
+      for (let i = 0; i < RAMP.length; i++) {
+        const shade = Math.round((255 * (RAMP.length - 1 - i)) / (RAMP.length - 1));
+        SHADE[RAMP.charCodeAt(i)] = shade;
+        const hex = shade.toString(16).padStart(2, '0');
+        SHADE_HEX[shade] = '#' + hex + hex + hex;
+      }
+      let renderer = 'canvas';
+      let bitmap = null;
+      let bitmapCtx = null;
+      let bitmapImage = null;
+      let lastPainted = '';
+
+      function ensureBitmap() {
+        if (bitmapCtx) return true;
+        if (typeof document.createElement !== 'function') return false;
+        const canvas = document.createElement('canvas');
+        canvas.width = FRAME_COLS;
+        canvas.height = FRAME_ROWS;
+        let ctx = null;
+        try {
+          ctx = canvas.getContext('2d', { alpha: false });
+        } catch {
+          return false;
+        }
+        if (!ctx) return false;
+        bitmap = canvas;
+        bitmapCtx = ctx;
+        bitmapImage = ctx.createImageData(FRAME_COLS, FRAME_ROWS);
+        return true;
+      }
       let frames = {}; // Cache for loaded frames
       let frameLoads = {}; // In-flight frame requests
       let preloadQueue = new Set();
@@ -613,7 +752,7 @@
           // Load and display the frame
           loadFrame(currentFrame).then((frameContent) => {
             if (frameContent && isPlaying) {
-              frameDisplay.textContent = frameContent;
+              paintFrame(frameContent);
 
               // Preload upcoming frames
               if (currentFrame % 60 === 0) {
@@ -776,31 +915,197 @@
         }
       });
 
-      // Font size tracks the stage so the picture fills whatever space
-      // the controls leave, instead of a fixed 6px.
+      // The stage is whatever space the controls leave. The grid is 4:3
+      // once each cell is 0.6 wide, so every renderer takes that same rect.
       function fitFrame() {
+        if (!frameDisplay) return false;
         const availW = frameDisplay.clientWidth;
         const availH = frameDisplay.clientHeight;
-        if (availW < 8 || availH < 8) return;
-        const probe = document.createElement('span');
-        probe.textContent = 'M'.repeat(50);
-        probe.style.cssText =
-          'position:absolute;visibility:hidden;font:100px "Courier New",Monaco,monospace;white-space:pre';
-        document.body.appendChild(probe);
-        const charWidth = probe.getBoundingClientRect().width / 50;
-        probe.remove();
-        if (!(charWidth > 0)) return;
-        const size = Math.min(availW / (FRAME_COLS * (charWidth / 100)), availH / FRAME_ROWS);
-        const px = Math.max(0.25, Math.floor(size * 100) / 100);
-        frameDisplay.style.fontSize = px + 'px';
-        frameDisplay.style.lineHeight = px + 'px';
+        if (availW < 8 || availH < 8) return false;
+        const aspect = (FRAME_COLS * CHAR_ASPECT) / FRAME_ROWS;
+        let cssW = availW;
+        let cssH = cssW / aspect;
+        if (cssH > availH) {
+          cssH = availH;
+          cssW = cssH * aspect;
+        }
+        sizePicture(frameHtml, cssW, cssH);
+        sizePicture(frameCss, cssW, cssH);
+        sizePicture(frameCanvas, cssW, cssH);
+        if (frameHtml) frameHtml.style.setProperty('--row-h', cssH / FRAME_ROWS + 'px');
+        if (frameCanvas) {
+          const dpr = window.devicePixelRatio || 1;
+          const bw = Math.max(1, Math.round(cssW * dpr));
+          const bh = Math.max(1, Math.round(cssH * dpr));
+          if (frameCanvas.width !== bw || frameCanvas.height !== bh) {
+            frameCanvas.width = bw;
+            frameCanvas.height = bh;
+          }
+        }
+        if (lastPainted) paintFrame(lastPainted, true);
+        return true;
+      }
+
+      function sizePicture(el, cssW, cssH) {
+        if (!el) return;
+        el.style.width = cssW + 'px';
+        el.style.height = cssH + 'px';
+      }
+
+      function shadeOf(code) {
+        const shade = SHADE[code];
+        return shade === undefined ? 0 : shade;
+      }
+
+      function eachRun(line, visit) {
+        let x = 0;
+        while (x < FRAME_COLS) {
+          const code = line.charCodeAt(x);
+          let end = x + 1;
+          while (end < FRAME_COLS && line.charCodeAt(end) === code) end++;
+          visit(x, end, code);
+          x = end;
+        }
+      }
+
+      function canvasAvailable() {
+        if (!frameCanvas || typeof frameCanvas.getContext !== 'function') return false;
+        try {
+          return !!frameCanvas.getContext('2d');
+        } catch {
+          return false;
+        }
+      }
+
+      function ensureHtmlCols() {
+        const group = frameHtml && frameHtml.querySelector('colgroup');
+        if (!group || group.childElementCount === FRAME_COLS) return;
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < FRAME_COLS; i++) frag.appendChild(document.createElement('col'));
+        group.appendChild(frag);
+      }
+
+      function ensureCssRows() {
+        if (!frameCss || frameCss.childElementCount === FRAME_ROWS) return;
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < FRAME_ROWS; i++) frag.appendChild(document.createElement('div'));
+        frameCss.appendChild(frag);
+      }
+
+      // HTML-only picture: one table row per scanline, one cell per run.
+      // Color is the bgcolor attribute, so the silhouette does not need
+      // CSS gradients or a canvas.
+      function paintHtml(lines) {
+        if (!frameHtmlBody) return;
+        ensureHtmlCols();
+        const rows = new Array(FRAME_ROWS);
+        for (let y = 0; y < FRAME_ROWS; y++) {
+          const cells = [];
+          eachRun(lines[y], (x, end, code) => {
+            cells.push(
+              '<td bgcolor="' + SHADE_HEX[shadeOf(code)] + '" colspan="' + (end - x) + '"></td>'
+            );
+          });
+          rows[y] = '<tr>' + cells.join('') + '</tr>';
+        }
+        frameHtmlBody.innerHTML = rows.join('');
+      }
+
+      // CSS picture: one empty div per row, filled by a horizontal gradient
+      // whose stops are the runs.
+      function paintCss(lines) {
+        if (!frameCss) return;
+        ensureCssRows();
+        const rows = frameCss.children;
+        for (let y = 0; y < FRAME_ROWS; y++) {
+          const stops = [];
+          eachRun(lines[y], (x, end, code) => {
+            const color = SHADE_HEX[shadeOf(code)];
+            const from = (x / FRAME_COLS) * 100;
+            const to = (end / FRAME_COLS) * 100;
+            stops.push(color + ' ' + from + '%', color + ' ' + to + '%');
+          });
+          rows[y].style.backgroundImage = 'linear-gradient(90deg,' + stops.join(',') + ')';
+        }
+      }
+
+      function paintCanvas(lines) {
+        if (!frameCanvas || !ensureBitmap()) return;
+        const data = bitmapImage.data;
+        let p = 0;
+        for (let y = 0; y < FRAME_ROWS; y++) {
+          const line = lines[y];
+          for (let x = 0; x < FRAME_COLS; x++) {
+            const shade = shadeOf(line.charCodeAt(x));
+            data[p] = shade;
+            data[p + 1] = shade;
+            data[p + 2] = shade;
+            data[p + 3] = 255;
+            p += 4;
+          }
+        }
+        bitmapCtx.putImageData(bitmapImage, 0, 0);
+        const ctx = frameCanvas.getContext('2d', { alpha: false });
+        if (!ctx) return;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(bitmap, 0, 0, frameCanvas.width, frameCanvas.height);
+      }
+
+      function paintFrame(text, reuse) {
+        if (!reuse) lastPainted = text;
+        if (!text) return;
+        const lines = text.split('\n');
+        if (lines.length < FRAME_ROWS) return;
+        for (let y = 0; y < FRAME_ROWS; y++) {
+          if (!lines[y] || lines[y].length !== FRAME_COLS) return;
+        }
+        if (renderer === 'html') paintHtml(lines);
+        else if (renderer === 'css') paintCss(lines);
+        else paintCanvas(lines);
+      }
+
+      function setRenderer(next, persist) {
+        if (next !== 'html' && next !== 'css' && next !== 'canvas') return renderer;
+        if (next === 'canvas' && !canvasAvailable()) next = frameCss ? 'css' : 'html';
+        renderer = next;
+        if (frameHtml) frameHtml.hidden = renderer !== 'html';
+        if (frameCss) frameCss.hidden = renderer !== 'css';
+        if (frameCanvas) frameCanvas.hidden = renderer !== 'canvas';
+        document.querySelectorAll('#renderer-controls button').forEach((btn) => {
+          const on = btn.getAttribute('data-renderer') === renderer;
+          btn.classList.toggle('active', on);
+          if (btn.getAttribute('data-renderer') === 'canvas' && !canvasAvailable()) {
+            btn.disabled = true;
+          }
+        });
+        if (persist) {
+          try {
+            localStorage.setItem('badapple-renderer', renderer);
+          } catch {
+            // Private mode and file:// can reject storage. The choice still applies.
+          }
+        }
+        const fitted = fitFrame();
+        if (!fitted && lastPainted) paintFrame(lastPainted, true);
+        return renderer;
+      }
+
+      function readRenderer() {
+        try {
+          const saved = localStorage.getItem('badapple-renderer');
+          if (saved === 'html' || saved === 'css' || saved === 'canvas') return saved;
+        } catch {
+          // Storage unavailable. Canvas is the default when the page can use it.
+        }
+        return 'canvas';
       }
 
       window.addEventListener('resize', fitFrame);
       if (typeof ResizeObserver === 'function') {
         new ResizeObserver(fitFrame).observe(frameDisplay);
       }
-      fitFrame();
+      setRenderer(readRenderer());
 
       // Keyboard controls. Arrow keys still seek and change volume, unless
       // the remote is moving between the buttons.
