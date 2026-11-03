@@ -54,8 +54,11 @@ class SettingsSheetElement extends HTMLElement {
   }
 
   close() {
-    this.hidden = true;
     this._listeningColumn = null;
+    const inner = this.shadowRoot && this.shadowRoot.activeElement;
+    if (inner && typeof inner.blur === 'function') inner.blur();
+    this.hidden = true;
+    if (document.activeElement === this) this.blur();
     document.removeEventListener('keydown', this._onKeyDown, true);
     document.removeEventListener('keydown', this._onDocKey);
   }

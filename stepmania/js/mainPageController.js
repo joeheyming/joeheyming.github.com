@@ -19,6 +19,7 @@ import { LoadingOverlay } from './loading-overlay.js';
 import { videoConverter } from './videoConverter.js';
 import { audioManager } from './audioManager.js';
 import { songManager } from './songManager.js';
+import { inputManager } from './inputManager.js';
 import {
   AUDIO_PROXY_TIMEOUT,
   AUDIO_PROXY_MAX_RETRIES,
@@ -133,6 +134,7 @@ export class MainPageController {
         return;
       }
       if (e.key === 'r' || e.key === 'R') {
+        if (inputManager.isColumnKey(e)) return;
         if (!songManager.getCurrentSong()) {
           return;
         }

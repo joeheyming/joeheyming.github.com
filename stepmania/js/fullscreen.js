@@ -1,5 +1,7 @@
 // Fullscreen functionality for StepMania - ES Module
 
+import { inputManager } from './inputManager.js';
+
 let fullscreenScoreSyncInterval = null;
 
 /**
@@ -195,11 +197,16 @@ function setupKeyboardShortcut() {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
       return;
     }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key !== 'f' && e.key !== 'F') return;
+    // A lane binding owns F. InputManager stops the event in capture;
+    // this guard covers any path that still reaches here.
+    if (inputManager.isColumnKey(e)) return;
+    const sheet = document.getElementById('settings-sheet');
+    if (sheet && !sheet.hidden) return;
 
-    if (e.key === 'f' || e.key === 'F') {
-      e.preventDefault();
-      toggleFullscreen();
-    }
+    e.preventDefault();
+    toggleFullscreen();
   });
 }
 
@@ -224,4 +231,3 @@ if (document.readyState === 'loading') {
 }
 
 export default { toggleFullscreen, initFullscreen };
-

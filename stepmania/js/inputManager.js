@@ -193,8 +193,10 @@ class InputManager {
 
     this.loadPersistedKeyBindings();
 
-    document.addEventListener('keydown', this._boundHandlers.onKeyDown);
-    document.addEventListener('keyup', this._boundHandlers.onKeyUp);
+    // Capture so a lane binding runs before bubble shortcuts on this page
+    // (F fullscreen, R restart). Claiming the key stops those listeners.
+    document.addEventListener('keydown', this._boundHandlers.onKeyDown, true);
+    document.addEventListener('keyup', this._boundHandlers.onKeyUp, true);
     document.addEventListener('stepButtonPress', this._boundHandlers.onStepButtonPress);
     document.addEventListener('stepButtonRelease', this._boundHandlers.onStepButtonRelease);
 
@@ -205,8 +207,8 @@ class InputManager {
    * Clean up input listeners
    */
   destroy() {
-    document.removeEventListener('keydown', this._boundHandlers.onKeyDown);
-    document.removeEventListener('keyup', this._boundHandlers.onKeyUp);
+    document.removeEventListener('keydown', this._boundHandlers.onKeyDown, true);
+    document.removeEventListener('keyup', this._boundHandlers.onKeyUp, true);
     document.removeEventListener('stepButtonPress', this._boundHandlers.onStepButtonPress);
     document.removeEventListener('stepButtonRelease', this._boundHandlers.onStepButtonRelease);
 
@@ -291,6 +293,17 @@ class InputManager {
    */
   getKeyBindings() {
     return { ...this.keyBindings };
+  }
+
+  /**
+   * True when this key is a lane binding. Page shortcuts (fullscreen on F,
+   * restart on R) must leave it alone.
+   * @param {KeyboardEvent} event
+   * @returns {boolean}
+   */
+  isColumnKey(event) {
+    const keyCode = event.which || event.keyCode;
+    return this.keyBindings[keyCode] !== undefined;
   }
 
   /**
@@ -459,8 +472,56 @@ class InputManager {
       target.isContentEditable ||
       nodeName === 'ZENIUS-BROWSER' ||
       nodeName === 'SMO-BROWSER' ||
-      nodeName === 'SM-SETTINGS-SHEET'
+      (nodeName === 'SM-SETTINGS-SHEET' && target.hidden !== true)
     );
+  }
+
+  /**
+   * The remap sheet is open. It needs the key; lane input must not take it.
+   * @returns {boolean}
+   */
+  _settingsSheetOpen() {
+    if (typeof document === 'undefined') return false;
+    const sheet = document.getElementById('settings-sheet');
+    return !!(sheet && sheet.hidden === false);
+  }
+
+  /**
+   * A lane binding owns this key. Swallow it so later listeners (fullscreen,
+   * restart) do not also run. Arrow keys still belong to the song picker.
+   * Ctrl/Cmd/Alt chords stay with the browser and the nav drawer.
+   * @param {KeyboardEvent} event
+   * @param {number} keyCode
+   * @param {'down'|'up'} phase
+   * @returns {boolean} True when this handler consumed the event
+   */
+  _claimColumnKey(event, keyCode, phase) {
+    const column = this.keyBindings[keyCode];
+    if (column === undefined) return false;
+    if (event.ctrlKey || event.metaKey || event.altKey) return false;
+    if (homeMenuOwnsArrows() && keyCode >= 37 && keyCode <= 40) return false;
+    if (this._settingsSheetOpen()) return false;
+
+    if (!homeMenuOwnsArrows()) {
+      if (phase === 'down') {
+        if (!this.heldKeys[keyCode]) {
+          this.heldKeys[keyCode] = true;
+          this._emitStep(column, 'keyboard');
+        }
+      } else {
+        this.heldKeys[keyCode] = false;
+        this._emitRelease(column, 'keyboard');
+      }
+    }
+
+    // stopPropagation ends the bubble phase (F fullscreen, R restart).
+    // stopImmediatePropagation ends later capture listeners on document.
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === 'function') {
+      event.stopImmediatePropagation();
+    }
+    return true;
   }
 
   /**
@@ -507,24 +568,12 @@ class InputManager {
    * @param {KeyboardEvent} event
    */
   _onKeyDown(event) {
-    if (!this.enabled || this._isInputField(event) || this._isUiControl(event)) return;
+    if (!this.enabled || this._isInputField(event)) return;
 
     const keyCode = event.which || event.keyCode;
+    if (this._claimColumnKey(event, keyCode, 'down')) return;
 
-    // The song picker is a menu. Bound arrows stay quiet there so they
-    // can move focus, and become steps once a chart is on screen.
-    if (homeMenuOwnsArrows() && this.keyBindings[keyCode] !== undefined) return;
-
-    // Check for column binding
-    const column = this.keyBindings[keyCode];
-    if (column !== undefined) {
-      if (!this.heldKeys[keyCode]) {
-        this.heldKeys[keyCode] = true;
-        this._emitStep(column, 'keyboard');
-      }
-      event.preventDefault();
-      return;
-    }
+    if (this._isUiControl(event)) return;
 
     // Check for action keys. Shift+[ / Shift+] reroute to rate change
     // before the bare keys fall through to scroll-speed change.
@@ -557,18 +606,10 @@ class InputManager {
    * @param {KeyboardEvent} event
    */
   _onKeyUp(event) {
-    if (!this.enabled || this._isInputField(event) || this._isUiControl(event)) return;
+    if (!this.enabled || this._isInputField(event)) return;
 
     const keyCode = event.which || event.keyCode;
-    if (homeMenuOwnsArrows() && this.keyBindings[keyCode] !== undefined) return;
-
-    // Check for column binding
-    const column = this.keyBindings[keyCode];
-    if (column !== undefined) {
-      this.heldKeys[keyCode] = false;
-      this._emitRelease(column, 'keyboard');
-      event.preventDefault();
-    }
+    if (this._claimColumnKey(event, keyCode, 'up')) return;
   }
 
   /**
