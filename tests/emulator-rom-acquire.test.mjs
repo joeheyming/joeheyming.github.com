@@ -81,6 +81,87 @@ describe('emulator findRomByQuery', () => {
   });
 });
 
+describe('emulator thumbnailUrls', () => {
+  it('builds a Named_Boxarts URL from the playlist and the ROM name', () => {
+    // Copy out of the JSDOM realm; deepEqual rejects arrays born in another window.
+    assert.deepEqual(
+      [...acquire.thumbnailUrls(['Sega - Game Gear'], 'Sonic Blast (World)')],
+      [
+        'https://thumbnails.libretro.com/Sega%20-%20Game%20Gear/Named_Boxarts/Sonic%20Blast%20(World).png'
+      ]
+    );
+  });
+
+  it('replaces characters libretro will not store in a filename and keeps apostrophes', () => {
+    const [url] = acquire.thumbnailUrls(
+      ['Sega - Game Gear'],
+      "Adventures of Batman & Robin, The (USA) / Knuckles' Chaotix"
+    );
+    assert.match(url, /Adventures%20of%20Batman%20_%20Robin/);
+    assert.match(url, /Knuckles'%20Chaotix\.png$/);
+    assert.doesNotMatch(url, /%26/);
+  });
+
+  it('returns one URL per playlist, in order', () => {
+    const urls = acquire.thumbnailUrls(
+      ['Nintendo - Game Boy', 'Nintendo - Game Boy Color'],
+      'Tetris (World)'
+    );
+    assert.equal(urls.length, 2);
+    assert.match(urls[0], /Nintendo%20-%20Game%20Boy\/Named_Boxarts/);
+    assert.match(urls[1], /Game%20Boy%20Color\/Named_Boxarts\/Tetris%20\(World\)\.png$/);
+  });
+
+  it('returns nothing when the name or the playlist list is empty', () => {
+    assert.deepEqual([...acquire.thumbnailUrls(['Sega - 32X'], '')], []);
+    assert.deepEqual([...acquire.thumbnailUrls(['  '], 'Doom')], []);
+    assert.deepEqual([...acquire.thumbnailUrls(undefined, 'Doom')], []);
+  });
+});
+
+describe('emulator pickThumbnailName', () => {
+  const names = [
+    'Legend of Zelda, The (USA)',
+    'Legend of Zelda, The (Europe)',
+    'Legend of Zelda, The (USA) (Rev 1)',
+    'Zelda II - The Adventure of Link (USA)',
+    'ActRaiser (USA)',
+    'ActRaiser 2 (USA)',
+    '1942 (Japan)',
+    '1942 (USA)',
+    '1942 (Europe)',
+    'Adventures of Batman _ Robin, The (USA, Europe, Brazil) (En)'
+  ];
+
+  it('matches words regardless of article order and prefers retail USA', () => {
+    assert.equal(
+      acquire.pickThumbnailName('The Legend of Zelda', names),
+      'Legend of Zelda, The (USA)'
+    );
+    assert.equal(acquire.pickThumbnailName('1942', names), '1942 (USA)');
+    assert.equal(acquire.pickThumbnailName('ActRaiser', names), 'ActRaiser (USA)');
+  });
+
+  it('keeps a longer title when the extra word is part of the name', () => {
+    assert.equal(
+      acquire.pickThumbnailName('Zelda II - The Adventure of Link', names),
+      'Zelda II - The Adventure of Link (USA)'
+    );
+  });
+
+  it('treats a libretro underscore as the ampersand it replaced', () => {
+    assert.equal(
+      acquire.pickThumbnailName('Adventures of Batman & Robin, The', names),
+      'Adventures of Batman _ Robin, The (USA, Europe, Brazil) (En)'
+    );
+  });
+
+  it('returns null when no indexed name contains every word', () => {
+    assert.equal(acquire.pickThumbnailName('completely unknown xyz', names), null);
+    assert.deepEqual([...acquire.thumbnailTokens('The Legend of Zelda')], ['legend', 'zelda']);
+  });
+});
+
 describe('emulator createIaClient', () => {
   it('returns null without iaBaseUrl or InternetArchiveRoms', () => {
     assert.equal(acquire.createIaClient(null), null);

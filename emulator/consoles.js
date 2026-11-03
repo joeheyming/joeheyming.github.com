@@ -18,6 +18,9 @@
 // `iaBaseUrl` is the Internet Archive collection used by the ROM browser;
 // leave it `null` and the ROM browser silently hides itself so the user
 // is steered to the local-file picker instead.
+// `iaThumbnailSystems` lists libretro thumbnail playlists tried in order.
+// The lookup key is the ROM filename without its extension, so No-Intro and
+// Redump names hit and short names simply show no image.
 //
 // A result plays in the page: the shell fetches the bytes and hands EmulatorJS
 // a File. `iaExternalDownload` marks a disc-sized collection. Those stay on
@@ -44,6 +47,7 @@
       // folder. `NintendoEntertainmentSystem` is a Hyperspin pack whose game
       // zips stop in the A's, so that item can never list the rest.
       iaBaseUrl: 'https://archive.org/download/nes-collection',
+      iaThumbnailSystems: ['Nintendo - Nintendo Entertainment System'],
       iaFileExtensions: ['.zip'],
       iaDescriptionPrefix: 'Classic NES game',
       romHelp:
@@ -72,6 +76,7 @@
       accentHex: '#e94560',
       accentGoldHex: '#c2410c',
       iaBaseUrl: 'https://archive.org/download/sega-genesis-romset-ultra-usa',
+      iaThumbnailSystems: ['Sega - Mega Drive - Genesis'],
       iaDescriptionPrefix: 'Classic Sega Genesis game',
       romHelp:
         'Bring your own .md / .bin / .gen dump, or browse the collection and choose Play in browser. If that is slow, use Download instead and load the saved file here.',
@@ -103,6 +108,7 @@
       accentGoldHex: '#0f766e',
       // No-Intro flat per-game .7z set.
       iaBaseUrl: 'https://archive.org/download/nointro.gg',
+      iaThumbnailSystems: ['Sega - Game Gear'],
       iaDescriptionPrefix: 'Classic Game Gear game',
       iaFileExtensions: ['.7z'],
       iaPreferMetadata: true,
@@ -132,6 +138,7 @@
       accentHex: '#ea580c',
       accentGoldHex: '#c2410c',
       iaBaseUrl: 'https://archive.org/download/nointro.32x',
+      iaThumbnailSystems: ['Sega - 32X'],
       iaDescriptionPrefix: 'Classic Sega 32X game',
       iaFileExtensions: ['.7z'],
       iaPreferMetadata: true,
@@ -181,6 +188,7 @@
       // Redump set, flat per-game .zip (each ~250-400 MB). `chd_segacd`
       // is `is_dark: true` and 404s through every proxy.
       iaBaseUrl: 'https://archive.org/download/sega_mega-cd_sega-cd',
+      iaThumbnailSystems: ['Sega - Mega-CD - Sega CD'],
       iaDescriptionPrefix: 'Sega CD game',
       iaPreferMetadata: true,
       iaExternalDownload: true,
@@ -230,6 +238,7 @@
       // 1G1R CHD set: flat, single-file discs, no regional duplicates.
       // Same shape as the PS1 CHD item, so the disc handoff flow applies.
       iaBaseUrl: 'https://archive.org/download/sega-saturn-1g1r-chd-perfect-collection_202306',
+      iaThumbnailSystems: ['Sega - Saturn'],
       iaDescriptionPrefix: 'Sega Saturn game',
       iaFileExtensions: ['.chd'],
       iaPreferMetadata: true,
@@ -295,6 +304,8 @@
         'https://archive.org/download/theentiregameboycollection',
         'https://archive.org/download/gameboycolorsystemcollection'
       ],
+      // DMG names are tried first; a miss falls through to the Color pack.
+      iaThumbnailSystems: ['Nintendo - Game Boy', 'Nintendo - Game Boy Color'],
       iaDescriptionPrefix: 'Classic Game Boy / Color game',
       romHelp:
         'Bring your own .gb / .gbc dump, or browse the collection and choose Play in browser. If that is slow, use Download instead and load the saved file here.',
@@ -323,6 +334,7 @@
       // `nointro.gba` looks live but is `is_dark: true`, so every proxy
       // 404s on the directory listing.
       iaBaseUrl: 'https://archive.org/download/theentiregameboyadvancecollection',
+      iaThumbnailSystems: ['Nintendo - Game Boy Advance'],
       iaDescriptionPrefix: 'Game Boy Advance game',
       iaPreferMetadata: true,
       howto: [
@@ -364,6 +376,7 @@
       // Flat per-game .zip from the same uploader as the N64 pack, so the
       // metadata listing works without the nested-directory special case.
       iaBaseUrl: 'https://archive.org/download/pack-roms-nintendo-ds-eu-usa-jap-rabbits-games',
+      iaThumbnailSystems: ['Nintendo - Nintendo DS'],
       iaDescriptionPrefix: 'Nintendo DS game',
       iaPreferMetadata: true,
       iaBinaryTimeout: 180000,
@@ -404,6 +417,7 @@
       accentGoldHex: '#a16207',
       // Flat per-game FBNeo zips (includes neogeo.zip BIOS in the same item).
       iaBaseUrl: 'https://archive.org/download/Neo-geoRomCollectionByGhostware',
+      iaThumbnailSystems: ['SNK - Neo Geo', 'FBNeo - Arcade Games'],
       iaDescriptionPrefix: 'Neo Geo game',
       // BIOS / system zips live in the collection but aren't playable titles.
       iaExcludeNames: ['neogeo', 'gg-bios'],
@@ -447,6 +461,7 @@
       accentGoldHex: '#c2410c',
       // Flat per-game zips (same Ghostware shape as the arcade Neo Geo item).
       iaBaseUrl: 'https://archive.org/download/Neo-GeoPocketColorRomCollectionByGhostware',
+      iaThumbnailSystems: ['SNK - Neo Geo Pocket Color', 'SNK - Neo Geo Pocket'],
       iaDescriptionPrefix: 'Neo Geo Pocket Color game',
       howto: [
         'Tap a game, then Play in browser, or load your own .ngp / .ngc file.',
@@ -477,6 +492,7 @@
       accentHex: '#7c3aed',
       accentGoldHex: '#5b21b6',
       iaBaseUrl: 'https://archive.org/download/snes-collection_202406',
+      iaThumbnailSystems: ['Nintendo - Super Nintendo Entertainment System'],
       iaDescriptionPrefix: 'Classic SNES game',
       romHelp:
         'Bring your own .sfc / .smc dump, or browse the collection and choose Play in browser. If that is slow, use Download instead and load the saved file here.',
@@ -509,6 +525,7 @@
       // Flat, per-game BigEndian ROMs. Files are usually 8–64 MB, so try
       // the proxy first but always offer the direct Archive download too.
       iaBaseUrl: 'https://archive.org/download/pack-roms-nintendo-64-eu-us-jap',
+      iaThumbnailSystems: ['Nintendo - Nintendo 64'],
       iaDescriptionPrefix: 'Nintendo 64 game',
       iaFileExtensions: ['.z64'],
       iaBinaryTimeout: 180000,
@@ -549,6 +566,7 @@
       // Disc images are 100–500+ MB. Direct play is best-effort; downloading
       // locally remains available when browser proxies cannot ferry the file.
       iaBaseUrl: 'https://archive.org/download/CuratedPSXRedumpCHDs',
+      iaThumbnailSystems: ['Sony - PlayStation'],
       iaDescriptionPrefix: 'PlayStation game',
       iaFileExtensions: ['.chd'],
       iaPreferMetadata: true,

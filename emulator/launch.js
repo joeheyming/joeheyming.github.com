@@ -227,13 +227,14 @@
       return;
     }
 
-    // Console boot card: focus the IA browse button inside the shadow root.
-    const romBrowser = bootCard.querySelector('rom-browser');
-    const openBtn =
-      romBrowser && romBrowser.shadowRoot && romBrowser.shadowRoot.getElementById('openBrowserBtn');
-    if (openBtn) {
-      openBtn.focus({ preventScroll: false });
-    }
+    // Console boot card: focus a game card once the list is painted, or the
+    // search toggle while the collection is still loading.
+    const romRoot = bootCard.querySelector('rom-browser')?.shadowRoot;
+    const focusTarget =
+      romRoot?.querySelector('[data-action="play-rom"]') ||
+      romRoot?.getElementById('searchToggleBtn') ||
+      null;
+    if (focusTarget) focusTarget.focus({ preventScroll: false });
   }
 
   function renderEmuBreadcrumbs(cfg) {
@@ -340,15 +341,14 @@
       ? `Load Local Disc Image (${escapeHtml(cfg.fileExtsLabel)})`
       : `Load Local ROM File (${escapeHtml(cfg.fileExtsLabel)})`;
 
-    const hasIa = !!cfg.iaBaseUrl;
     const filePickerHtml = tv
       ? ''
       : `
-        ${hasIa ? '<div class="divider">OR</div>' : ''}
         <button class="btn btn-secondary" id="loadRomBtn" type="button">
           <span>📁</span>
           <span>${loadLabel}</span>
         </button>`;
+    const fileStack = filePickerHtml ? `<div class="btn-stack">${filePickerHtml}</div>` : '';
 
     bootCard.innerHTML = `
       <h2>🕹️ Load a ${isDisc ? 'disc' : 'ROM'} to play</h2>
@@ -356,10 +356,8 @@
       ${singleThreadNoticeHtml()}
       ${cfg.audioNote ? `<p class="audio-note" role="status">${escapeHtml(cfg.audioNote)}</p>` : ''}
       ${biosPanelHtml}
-      <div class="btn-stack">
-        <rom-browser console="${cfg.id}"></rom-browser>
-        ${filePickerHtml}
-      </div>
+      ${fileStack}
+      <rom-browser console="${cfg.id}"></rom-browser>
       ${howtoHtml}
       ${romHelpHtml}
       ${tvNoCollectionHtml}

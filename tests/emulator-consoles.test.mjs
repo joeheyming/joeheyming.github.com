@@ -102,6 +102,19 @@ describe('emulator console registry', () => {
     }
   });
 
+  it('names a libretro thumbnail playlist for every browsable collection', () => {
+    for (const cfg of Object.values(consoles)) {
+      if (!cfg.iaBaseUrl) continue;
+      assert.ok(
+        Array.isArray(cfg.iaThumbnailSystems) && cfg.iaThumbnailSystems.length > 0,
+        `${cfg.id}: iaThumbnailSystems must list at least one playlist`
+      );
+      for (const system of cfg.iaThumbnailSystems) {
+        assert.match(system, /\S/, `${cfg.id}: blank thumbnail playlist`);
+      }
+    }
+  });
+
   it('plays cartridge collections in the page and keeps oversized discs on download', () => {
     for (const cfg of Object.values(consoles)) {
       if (!cfg.iaBaseUrl) continue;

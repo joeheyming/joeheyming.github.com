@@ -9,8 +9,8 @@
 // iaExternalDownload without iaAllowInBrowser (Sega CD, Saturn) open the
 // download handoff instead — those images are too large to stream.
 //
-// Lean-back (TV): cards are focusable with roving tabindex, search is
-// demoted behind a toggle, Escape/Backspace closes the modal.
+// Lean-back (TV): cards are focusable with roving tabindex, and search is
+// demoted behind a toggle. The list is inline on the boot card.
 //
 // GBA's Archive item is ~3,500 zips. Painting every card at once stalls
 // the tab, so the list opens a window and grows when asked.
@@ -57,11 +57,7 @@ class RomBrowserElement extends HTMLElement {
 
   disconnectedCallback() {
     if (this._romLoadController) this._romLoadController.abort();
-    this.teardownModalKeys();
-    if (this._romRoving) {
-      this._romRoving.dispose();
-      this._romRoving = null;
-    }
+    this.closeBrowser();
   }
 
   render() {
@@ -70,9 +66,11 @@ class RomBrowserElement extends HTMLElement {
     // browse. Boot card falls back to the local-file picker which is
     // always there.
     if (!cfg || !cfg.iaBaseUrl) {
-      this.shadowRoot.innerHTML = '<style>:host{display:none}</style>';
+      this.hidden = true;
+      this.shadowRoot.innerHTML = '';
       return;
     }
+    this.hidden = false;
 
     const tv = this.isTv;
     const isDisc = !!cfg.iaExternalDownload;
@@ -86,70 +84,29 @@ class RomBrowserElement extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: block; width: 100%; }
-        .rom-browser-container { display: flex; justify-content: space-between; width: 100%; }
-        .rom-browser-btn {
-          background: var(--accent-bright);
-          color: var(--text-on-accent);
-          font-weight: bold;
-          padding: 14px 20px;
-          border-radius: 8px;
-          transition: filter 0.2s, transform 0.2s;
-          border: none;
-          cursor: pointer;
-          font-size: 15px;
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          line-height: 1.2;
-          margin: 0;
-          white-space: nowrap;
-          box-shadow: var(--shadow-card);
-        }
-        .rom-browser-btn:hover { filter: brightness(0.88); transform: scale(1.05); }
-        .rom-browser-btn:focus-visible {
-          outline: 4px solid var(--accent-bright);
-          outline-offset: 3px;
-        }
-        .modal {
-          position: fixed;
-          inset: 0;
-          background: var(--scrim-strong);
-          z-index: 50;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          opacity: 0;
-          visibility: hidden;
-          transition: all 0.3s ease;
-        }
-        .modal.show { opacity: 1; visibility: visible; }
-        .modal-content {
-          background: var(--surface-1);
-          color: var(--text-1);
-          border-radius: 1.5rem;
-          width: min(90vw, 90rem);
-          max-height: 90vh;
-          display: flex;
-          flex-direction: column;
-          border: 1px solid var(--hairline-strong);
-          box-shadow: var(--shadow-modal);
-        }
-        .modal-header { padding: 2rem 2rem 1rem; }
-        .modal-title {
-          font-size: 2rem;
-          font-weight: bold;
+        .library-head { margin: 0 0 0.75rem; }
+        .library-title {
           /* Headings use brand text tokens — console accents (PS1 navy /
            * SNES deep purple) fail AA on dark surfaces. */
+          font-size: 1rem;
+          font-weight: 700;
           color: var(--text-1);
-          margin-bottom: 0.5rem;
-          text-align: center;
+          margin: 0 0 0.25rem;
         }
-        .modal-subtitle { color: var(--text-2); text-align: center; font-size: 1rem; }
-        .modal-body { flex: 1; overflow: hidden; padding: 0 2rem; display: flex; flex-direction: column; gap: 0.75rem; }
-        .modal-footer { padding: 1rem 2rem 2rem; display: flex; justify-content: center; gap: 0.75rem; }
-        .close-btn, .search-toggle {
+        .library-sub {
+          margin: 0;
+          color: var(--text-2);
+          font-size: 0.9rem;
+          line-height: 1.4;
+        }
+        .library-tools {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+          margin-bottom: 0.75rem;
+        }
+        .library-tools .search-container { flex: 1; margin: 0; }
+        .search-toggle {
           background: var(--surface-2);
           color: var(--text-1);
           font-weight: bold;
@@ -159,19 +116,12 @@ class RomBrowserElement extends HTMLElement {
           cursor: pointer;
           transition: background-color 0.2s, transform 0.2s;
         }
-        .close-btn:hover, .search-toggle:hover { background: var(--accent-primary-soft); transform: scale(1.05); }
-        .close-btn:focus-visible, .search-toggle:focus-visible {
+        .search-toggle:hover { background: var(--accent-primary-soft); transform: scale(1.05); }
+        .search-toggle:focus-visible {
           outline: 4px solid var(--accent-bright);
           outline-offset: 3px;
         }
-        .content-area {
-          height: 60vh;
-          overflow-y: auto;
-          border: 1px solid var(--hairline);
-          border-radius: 0.75rem;
-          background: var(--surface-2);
-          flex: 1;
-        }
+        .content-area { min-height: 8rem; }
         .error {
           display: flex;
           flex-direction: column;
@@ -290,7 +240,7 @@ class RomBrowserElement extends HTMLElement {
         }
         .rom-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(${tv ? '220px' : '300px'}, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(${tv ? '200px' : '180px'}, 1fr));
           gap: ${tv ? '1.25rem' : '1rem'};
           padding: 1rem;
         }
@@ -314,6 +264,19 @@ class RomBrowserElement extends HTMLElement {
           background: var(--accent-bright-soft);
           border-color: var(--accent-bright);
         }
+        .rom-art {
+          display: block;
+          width: auto;
+          max-width: 100%;
+          max-height: ${tv ? '280px' : '200px'};
+          margin: 0 auto 0.75rem;
+          object-fit: contain;
+          border-radius: 0.35rem;
+          background: var(--surface-0);
+        }
+        /* Stay out of the layout until the image actually loads. Eager
+           fetch still runs: loading=lazy plus display:none never starts. */
+        .rom-art[hidden] { display: none !important; }
         .rom-title {
           font-weight: bold;
           color: var(--text-1);
@@ -384,60 +347,35 @@ class RomBrowserElement extends HTMLElement {
         }
       </style>
 
-      <div class="rom-browser-container">
-        <button class="rom-browser-btn" id="openBrowserBtn" type="button">
-          <span>🗂️</span>
-          <span>${
-            isDisc ? `Browse ${cfg.title} Disc Collection` : `Browse ${cfg.title} ROM Collection`
-          }</span>
-        </button>
-      </div>
-
-      <div class="modal" id="browserModal" role="dialog" aria-modal="true" aria-labelledby="romBrowserTitle">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h2 class="modal-title" id="romBrowserTitle">${cfg.title} ${
-      isDisc ? 'Disc Browser' : 'ROM Browser'
-    }</h2>
-            <p class="modal-subtitle">${
-              downloadOnly
-                ? 'Search Internet Archive, download the disc, then load it locally'
-                : 'Play in browser, or Download instead if it is slow'
-            }</p>
+      <div class="library">
+        <div class="library-head">
+          <h2 class="library-title" id="romBrowserTitle">${cfg.title} collection</h2>
+          <p class="library-sub">${
+            downloadOnly
+              ? 'Download a disc, then load the saved file.'
+              : 'Pick a game, or load a file you already have.'
+          }</p>
+        </div>
+        <div class="library-tools">
+          <div class="search-container" id="searchContainer" ${tv ? 'hidden' : ''}>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search games...">
           </div>
-          <div class="modal-body">
-            <div class="search-container" id="searchContainer" ${tv ? 'hidden' : ''}>
-              <input type="text" class="search-input" id="searchInput" placeholder="Search ROMs...">
-            </div>
-            <div class="content-area" id="contentArea">
-              <div class="loading">Loading ROM collection...</div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            ${
-              tv
-                ? '<button class="search-toggle" id="searchToggleBtn" type="button">Search</button>'
-                : ''
-            }
-            <button class="close-btn" id="closeBrowserBtn" type="button">Close</button>
-          </div>
+          ${
+            tv
+              ? '<button class="search-toggle" id="searchToggleBtn" type="button">Search</button>'
+              : ''
+          }
+        </div>
+        <div class="content-area" id="contentArea">
+          <div class="loading">Loading ROM collection...</div>
         </div>
       </div>
     `;
   }
 
   init() {
-    const openBtn = this.shadowRoot.getElementById('openBrowserBtn');
-    const closeBtn = this.shadowRoot.getElementById('closeBrowserBtn');
-    const modal = this.shadowRoot.getElementById('browserModal');
     const searchInput = this.shadowRoot.getElementById('searchInput');
-    if (!openBtn || !closeBtn || !modal || !searchInput) return;
-
-    openBtn.addEventListener('click', () => this.openBrowser());
-    closeBtn.addEventListener('click', () => this.closeBrowser());
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) this.closeBrowser();
-    });
+    if (!searchInput) return;
 
     const searchToggle = this.shadowRoot.getElementById('searchToggleBtn');
     if (searchToggle) {
@@ -469,61 +407,34 @@ class RomBrowserElement extends HTMLElement {
         this.handleSearch(value);
       }, 120);
     });
+
+    if (this.iaClient) this.openBrowser();
   }
 
-  setupModalKeys() {
-    this.teardownModalKeys();
-    this._onModalKey = (e) => {
-      if (e.key === 'Escape' || e.key === 'Backspace') {
-        // Don't steal Backspace while typing in search.
-        if (e.key === 'Backspace') {
-          const t = e.target;
-          if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
-        }
-        e.preventDefault();
-        this.closeBrowser();
-      }
-    };
-    document.addEventListener('keydown', this._onModalKey, true);
-  }
-
-  teardownModalKeys() {
-    if (this._onModalKey) {
-      document.removeEventListener('keydown', this._onModalKey, true);
-      this._onModalKey = null;
-    }
-  }
-
-  async openBrowser() {
-    const modal = this.shadowRoot.getElementById('browserModal');
-    modal.classList.add('show');
-    this.setupModalKeys();
-
-    const searchInput = this.shadowRoot.getElementById('searchInput');
-    searchInput.value = '';
-    if (this.isTv) {
-      const box = this.shadowRoot.getElementById('searchContainer');
-      if (box) box.setAttribute('hidden', '');
-    }
-
-    if (this.allRoms.length === 0) {
-      await this.loadAllRoms();
-    } else {
+  /**
+   * Load the collection and paint the cards. A second call joins the
+   * request already in flight.
+   */
+  openBrowser() {
+    if (this.allRoms.length > 0) {
       this.filteredRoms = [...this.allRoms];
       this.renderRoms(this.filteredRoms);
+      return Promise.resolve();
     }
+    if (!this._openPromise) {
+      this._openPromise = this.loadAllRoms().finally(() => {
+        this._openPromise = null;
+      });
+    }
+    return this._openPromise;
   }
 
+  /** Drop TV focus tracking. The list stays on the page. */
   closeBrowser() {
-    const modal = this.shadowRoot.getElementById('browserModal');
-    modal.classList.remove('show');
-    this.teardownModalKeys();
     if (this._romRoving) {
       this._romRoving.dispose();
       this._romRoving = null;
     }
-    const openBtn = this.shadowRoot.getElementById('openBrowserBtn');
-    if (openBtn) openBtn.focus({ preventScroll: false });
   }
 
   async loadAllRoms() {
@@ -538,7 +449,14 @@ class RomBrowserElement extends HTMLElement {
         throw new Error('ROM browser is not configured for this console.');
       }
 
+      const systems = this.consoleConfig && this.consoleConfig.iaThumbnailSystems;
+      const acquire = window.emulatorRomAcquire;
+      const indexPromise =
+        acquire && typeof acquire.preloadThumbnailIndexes === 'function'
+          ? acquire.preloadThumbnailIndexes(systems)
+          : Promise.resolve();
       this.allRoms = await ia.fetchRomList();
+      await indexPromise;
       this.filteredRoms = [...this.allRoms];
 
       if (this.allRoms.length === 0) {
@@ -566,6 +484,47 @@ class RomBrowserElement extends HTMLElement {
         this.loadAllRoms();
       });
     }
+  }
+
+  /**
+   * Hidden box-art image for this ROM. Stays out of the card until it loads.
+   * A 404 advances to the next playlist, then the image is removed.
+   * @param {{ name?: string }} rom
+   * @returns {HTMLImageElement|null}
+   */
+  _romArt(rom) {
+    const acquire = window.emulatorRomAcquire;
+    const systems = this.consoleConfig && this.consoleConfig.iaThumbnailSystems;
+    const resolve =
+      acquire &&
+      (typeof acquire.thumbnailUrlsResolved === 'function'
+        ? acquire.thumbnailUrlsResolved
+        : acquire.thumbnailUrls);
+    if (!resolve) return null;
+    const urls = resolve(systems, rom && rom.name);
+    if (!urls.length) return null;
+
+    const img = document.createElement('img');
+    img.className = 'rom-art';
+    img.alt = '';
+    img.hidden = true;
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    let index = 0;
+    img.addEventListener('load', () => {
+      img.hidden = false;
+    });
+    img.addEventListener('error', () => {
+      index += 1;
+      if (index >= urls.length) {
+        img.remove();
+        return;
+      }
+      img.hidden = true;
+      img.src = urls[index];
+    });
+    img.src = urls[0];
+    return img;
   }
 
   _escapeHtml(s) {
@@ -617,6 +576,8 @@ class RomBrowserElement extends HTMLElement {
           )}" target="_blank" rel="noopener noreferrer">Download instead</a>
         </div>
       `;
+      const art = this._romArt(rom);
+      if (art) romCard.prepend(art);
       romCard
         .querySelector('[data-action="play-rom"]')
         ?.addEventListener('click', () => this.loadRom(rom));

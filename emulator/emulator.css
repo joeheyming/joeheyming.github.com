@@ -45,7 +45,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* safe: a tall game list starts at the top instead of centering off-screen. */
+  justify-content: safe center;
   z-index: 100;
   /* Top pad clears the fixed .app-header breadcrumb bar. */
   padding: 72px 24px 24px;
@@ -123,6 +124,11 @@ body {
   max-width: 640px;
 }
 
+/* A visible collection needs a grid, not the narrow load-a-file column. */
+.boot-card:has(rom-browser:not([hidden])) {
+  max-width: min(1080px, 100%);
+}
+
 .boot-card h2 {
   font-size: 15px;
   font-weight: 700;
@@ -180,9 +186,10 @@ body {
   gap: 12px;
 }
 
-.btn-stack rom-browser {
+.boot-card rom-browser {
   display: block;
   width: 100%;
+  margin-top: 16px;
 }
 
 .bios-panel {
@@ -774,6 +781,10 @@ kbd {
 :root[data-mode='tv'] .boot-card {
   max-width: 720px;
   padding: 36px;
+}
+
+:root[data-mode='tv'] .boot-card:has(rom-browser:not([hidden])) {
+  max-width: min(1200px, 100%);
 }
 
 :root[data-mode='tv'] .boot-card h2 {

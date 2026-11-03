@@ -132,6 +132,51 @@ describe('rom-browser hands off downloads instead of loading ROMs', () => {
     window.document.querySelectorAll('rom-browser').forEach((el) => el.remove());
   });
 
+  it('requests libretro box art for the ROM filename and drops a miss', async () => {
+    const el = await mountBrowser({
+      ...NES_CFG,
+      iaThumbnailSystems: ['Nintendo - Game Boy', 'Nintendo - Game Boy Color']
+    });
+    const card = el.shadowRoot.querySelector('.rom-card');
+    const img = card.querySelector('.rom-art');
+    assert.ok(img);
+    assert.equal(img.hidden, true);
+    assert.equal(img.getAttribute('alt'), '');
+    assert.equal(
+      img.getAttribute('src'),
+      'https://thumbnails.libretro.com/Nintendo%20-%20Game%20Boy/Named_Boxarts/Metroid.png'
+    );
+
+    img.dispatchEvent(new window.Event('error'));
+    assert.match(img.getAttribute('src'), /Game%20Boy%20Color\/Named_Boxarts\/Metroid\.png$/);
+
+    img.dispatchEvent(new window.Event('load'));
+    assert.equal(img.hidden, false);
+
+    img.dispatchEvent(new window.Event('error'));
+    assert.equal(card.querySelector('.rom-art'), null);
+  });
+
+  it('paints the collection inline and leaves Backspace to the search field', async () => {
+    const el = await mountBrowser(NES_CFG);
+    assert.equal(el.hidden, false);
+    assert.equal(el.shadowRoot.getElementById('openBrowserBtn'), null);
+    assert.equal(el.shadowRoot.getElementById('browserModal'), null);
+    assert.equal(el.shadowRoot.querySelectorAll('.rom-card').length, ROMS.length);
+
+    const search = el.shadowRoot.getElementById('searchInput');
+    search.focus();
+    const inField = new window.KeyboardEvent('keydown', {
+      key: 'Backspace',
+      bubbles: true,
+      composed: true,
+      cancelable: true
+    });
+    search.dispatchEvent(inField);
+    assert.equal(inField.defaultPrevented, false);
+    assert.equal(el.shadowRoot.querySelectorAll('.rom-card').length, ROMS.length);
+  });
+
   it('lists results from collection metadata only', async () => {
     const el = await mountBrowser(NES_CFG);
     const cards = el.shadowRoot.querySelectorAll('.rom-card');
