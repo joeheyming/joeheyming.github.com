@@ -54,9 +54,10 @@ export const CONFIG = {
   // chunked-snapshot schema.
   N: 1000000,
 
-  // Polling interval for shared state, in ms. 7s feels live without
-  // hammering the gviz endpoint or burning battery on idle tabs.
-  pollIntervalMs: 7000,
+  // Polling interval for shared state, in ms. Short enough that
+  // someone else's check shows up while you're still looking, long
+  // enough that an idle tab isn't fetching the sheet constantly.
+  pollIntervalMs: 3000,
 
   // Queue dispatch interval. The write queue in index.js drains one
   // POST every minWriteIntervalMs; rapid clicks pile into the queue

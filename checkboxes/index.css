@@ -161,6 +161,28 @@
   display: block;
 }
 
+/* Other people's checks. One ring per person, in that person's color,
+   stepped along their own checks so you can watch each one travel. */
+.cb-remote {
+  display: none;
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 4px;
+  box-shadow: 0 0 0 3px var(--cb-checked);
+  transition: left 0.16s linear, top 0.16s linear;
+}
+
+.cb-remote.is-on {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-remote {
+    transition: none;
+  }
+}
+
 .cb-tile {
   position: absolute;
   left: 0;

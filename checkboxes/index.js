@@ -1,6 +1,7 @@
 import { CONFIG, isConfigured } from './config.js';
 import { cursorKey, isCursorKey, nextCell } from './navigate.js';
 import { OUTLINE_NAMES, buildOutlines, outlineAt } from './outlines.js';
+import { applyServerRow, colorForClient, isRemoteFlip } from './reconcile.js';
 
 const N = CONFIG.N;
 const CONFIGURED = isConfigured(CONFIG);
@@ -56,7 +57,11 @@ let palette = readPalette();
 
 // ---------------------------------------------------------------------
 // State. The bitmap (one bit per cell, packed) is the source of truth.
-// cellLastTs lets us discard stale delta rows on reconciliation.
+// cellLastTs is the newest *server* timestamp applied to that cell.
+// It discards older delta rows. Never store Date.now() here: the
+// sheet's clock is whole seconds, so a click later in the same second
+// looks newer than the row that confirms it, and the next snapshot
+// erases the check.
 //
 // pending : Map<cellId, { value: boolean, sentAt: number | null }>
 //   "we have a local intent for this cell that the server hasn't
@@ -76,6 +81,9 @@ let palette = readPalette();
 // ---------------------------------------------------------------------
 const state = new Uint8Array(N >> 3);
 const cellLastTs = new Float64Array(N);
+// Cells this tab toggled. Their confirming rows are not "someone else."
+/** @type {Set<number>} */
+const localClicks = new Set();
 let snapshotMaxTs = 0;
 /** @type {Map<number, { value: boolean, sentAt: number | null }>} */
 const pending = new Map();
@@ -255,6 +263,7 @@ function buildTiles() {
   updateScrubFromScroll();
   ensureCursor();
   placeCursor();
+  for (const [clientId, cellId] of remoteAtByClient) placeRemote(clientId, cellId, false);
   grid.setAttribute('aria-rowcount', String(ROWS));
   grid.setAttribute('aria-colcount', String(COLS));
 }
@@ -514,8 +523,10 @@ function toggleCell(cellId) {
   if (cellId < 0 || cellId >= N) return;
   const next = !getBit(cellId);
   setBit(cellId, next);
+  localClicks.add(cellId);
   window.heymingAchievements?.unlockForCurrentApp('first-action');
-  cellLastTs[cellId] = Date.now();
+  // Pending shields this click until the server row arrives. Do not
+  // stamp cellLastTs with Date.now(); see reconcile.js.
   if (CONFIGURED) enqueueWrite(cellId, next);
   paintCellId(cellId);
   updateChecked();
@@ -872,7 +883,9 @@ new MutationObserver(onThemeChanged).observe(document.documentElement, {
 });
 
 // ---------------------------------------------------------------------
-// Client identity. Stable per-browser UUID for forensics.
+// Client identity. The browser id stays stable for forensics. A tab
+// id lives in sessionStorage so two tabs of the same browser are two
+// different colors on everyone else's grid.
 // ---------------------------------------------------------------------
 function getClientId() {
   const KEY = 'checkboxes:clientId';
@@ -885,6 +898,23 @@ function getClientId() {
     localStorage.setItem(KEY, id);
   }
   return id;
+}
+
+function getTabId() {
+  const KEY = 'checkboxes:tabId';
+  let id = sessionStorage.getItem(KEY);
+  if (!id) {
+    id =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : 't-' + Math.random().toString(36).slice(2, 12);
+    sessionStorage.setItem(KEY, id);
+  }
+  return id;
+}
+
+function getWriterId() {
+  return `${getClientId()}:${getTabId()}`;
 }
 
 // ---------------------------------------------------------------------
@@ -917,7 +947,7 @@ function buildFormBody(cellId, value) {
   const body = new URLSearchParams();
   body.set(CONFIG.entryIds.cellId, String(cellId));
   body.set(CONFIG.entryIds.value, value ? 'TRUE' : 'FALSE');
-  body.set(CONFIG.entryIds.clientId, getClientId());
+  body.set(CONFIG.entryIds.clientId, getWriterId());
   body.set(CONFIG.entryIds.honeypot, '');
   return body;
 }
@@ -953,7 +983,6 @@ function restoreQueue() {
     writeQueue.set(cellId, { value, attempts: 0 });
     pending.set(cellId, { value, sentAt: null });
     setBit(cellId, value ? 1 : 0);
-    cellLastTs[cellId] = Date.now();
   }
 }
 
@@ -1125,7 +1154,7 @@ function parseTs(v) {
 
 // Decode a base64 string into the existing `state` Uint8Array. atob
 // in modern browsers handles ~200KB strings fine in one shot.
-// Pending overlay is re-applied by the caller (fetchSnapshot).
+// Pending overlay is re-applied by applySnapshot.
 function applyEncodedSnapshot(b64) {
   const decoded = atob(b64);
   const len = Math.min(decoded.length, state.length);
@@ -1158,7 +1187,7 @@ function reapplyPending() {
   }
 }
 
-async function fetchSnapshot() {
+function applySnapshot(rows) {
   // Tolerate both snapshot schemas:
   //   NEW (post-1M): two columns [key, value]. Keys are 'chunk0'..'chunkK'
   //        and 'maxTs'. Concatenate chunks and base64-decode for the bitmap.
@@ -1166,8 +1195,7 @@ async function fetchSnapshot() {
   //        Carried forward so existing live data isn't lost the moment the
   //        client upgrades — until the next Apps Script run rewrites the
   //        Snapshot tab into the new format.
-  const rows = await fetchTab(CONFIG.snapshotTab);
-  if (rows.length === 0) return;
+  if (!rows || rows.length === 0) return;
 
   // Detect: if any row's first column is a string that starts with 'chunk'
   // or equals 'maxTs', it's the new format.
@@ -1197,9 +1225,8 @@ async function fetchSnapshot() {
     maxTs = parseTs(map.get('maxTs'));
   } else {
     // Old format. Each row is [cellId, value, lastTs]. Skip cells that
-    // have a pending local intent — reapplyPending() below would just
-    // overwrite our setBit anyway, but skipping also avoids stomping
-    // cellLastTs with a server timestamp older than our click.
+    // have a pending local intent — reapplyPending() below restores
+    // the click, and this row must not stamp cellLastTs ahead of it.
     for (const row of rows) {
       const id = Number(row[0]);
       const bit = toBit(row[1]);
@@ -1216,44 +1243,129 @@ async function fetchSnapshot() {
   reapplyPending();
 }
 
+// The first poll replays every row still in the log. That catch-up
+// is not live activity. The traveling rings start on the poll after it.
+let deltasPrimed = false;
+/** @type {Map<string, number>} */
+const remoteAtByClient = new Map();
+/** @type {Array<{ id: number, clientId: string }>} */
+const remoteQueue = [];
+let remotePlaying = false;
+/** @type {Map<string, HTMLElement>} */
+const remoteEls = new Map();
+
+/** @param {string} clientId */
+function ensureRemote(clientId) {
+  const existing = remoteEls.get(clientId);
+  if (existing && existing.parentNode === grid) return existing;
+  const el = document.createElement('div');
+  el.className = 'cb-remote';
+  el.setAttribute('aria-hidden', 'true');
+  el.style.boxShadow = `0 0 0 3px ${colorForClient(clientId)}`;
+  grid.appendChild(el);
+  remoteEls.set(clientId, el);
+  return el;
+}
+
+/**
+ * @param {string} clientId
+ * @param {number} cellId
+ * @param {boolean} slide Nearby hops slide. A far jump just appears.
+ */
+function placeRemote(clientId, cellId, slide) {
+  const el = ensureRemote(clientId);
+  if (COLS < 1 || cellId < 0 || cellId >= N) return;
+  const row = Math.floor(cellId / COLS);
+  const col = cellId % COLS;
+  const pad = 4;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.style.transition = slide && !reduced ? '' : 'none';
+  el.style.left = `${col * PITCH + BOX_INSET - pad}px`;
+  el.style.top = `${row * PITCH + BOX_INSET - pad}px`;
+  el.style.width = `${BOX + pad * 2}px`;
+  el.style.height = `${BOX + pad * 2}px`;
+  el.classList.add('is-on');
+  if (!slide || reduced) {
+    void el.offsetWidth;
+    el.style.transition = '';
+  }
+}
+
+/**
+ * @param {number} from
+ * @param {number} to
+ */
+function remoteShouldSlide(from, to) {
+  if (from < 0 || COLS < 1) return false;
+  const rowDelta = Math.abs(Math.floor(from / COLS) - Math.floor(to / COLS));
+  const colDelta = Math.abs((from % COLS) - (to % COLS));
+  return rowDelta <= 6 && colDelta <= 8;
+}
+
+function playRemote() {
+  const item = remoteQueue.shift();
+  if (!item) {
+    remotePlaying = false;
+    return;
+  }
+  remotePlaying = true;
+  const prev = remoteAtByClient.has(item.clientId) ? remoteAtByClient.get(item.clientId) : -1;
+  const slide = remoteShouldSlide(prev ?? -1, item.id);
+  remoteAtByClient.set(item.clientId, item.id);
+  placeRemote(item.clientId, item.id, slide);
+  window.setTimeout(playRemote, slide ? 220 : 40);
+}
+
+/** @param {Array<{ id: number, clientId: string }>} items */
+function queueRemote(items) {
+  const next = items.slice(-30);
+  remoteQueue.length = 0;
+  for (const item of next) remoteQueue.push(item);
+  if (!remotePlaying) playRemote();
+}
+
 function applyDelta(rows) {
   const parsed = [];
   for (const row of rows) {
     const ts = parseTs(row[0]);
     const id = Number(row[1]);
     const bit = toBit(row[2]);
+    const clientId = row[3] == null ? '' : String(row[3]);
     const honeypot = row[4];
     if (honeypot) continue;
     if (!Number.isInteger(id) || id < 0 || id >= N) continue;
     if (bit < 0) continue;
     if (ts <= snapshotMaxTs) continue;
-    parsed.push({ ts, id, bit });
+    parsed.push({ ts, id, bit, clientId });
   }
   parsed.sort((a, b) => a.ts - b.ts);
   const dirtyTiles = new Set();
-  for (const { ts, id, bit } of parsed) {
-    // Pending-confirm before staleness-skip. The row's `ts` is the
-    // Sheet's clock; `cellLastTs[id]` is the browser's clock at click
-    // time. If the browser clock is fast (or the sheet's timezone
-    // setting parses oddly through gviz) the row can look stale even
-    // though it's the very confirmation we're waiting for.
+  /** @type {Array<{ id: number, clientId: string }>} */
+  const remote = [];
+  for (const { ts, id, bit, clientId } of parsed) {
+    const before = getBit(id);
     const p = pending.get(id);
-    if (p !== undefined) {
-      if (p.value === !!bit) {
-        pending.delete(id);
-        dirtyTiles.add(Math.floor(id / COLS / ROWS_PER_TILE));
-      }
-      if (ts >= cellLastTs[id]) cellLastTs[id] = ts;
-      continue;
-    }
-
-    if (ts < cellLastTs[id]) continue;
-    cellLastTs[id] = ts;
-
-    const prev = getBit(id);
-    if (prev !== bit) {
-      setBit(id, bit);
+    const next = applyServerRow(
+      { bit: before, lastTs: cellLastTs[id], pending: p ? { value: p.value } : null },
+      { ts, bit },
+      snapshotMaxTs
+    );
+    const confirmed = p !== undefined && !next.pending;
+    if (confirmed) pending.delete(id);
+    cellLastTs[id] = next.lastTs;
+    if (before !== next.bit) setBit(id, next.bit);
+    if (confirmed || before !== next.bit) {
       dirtyTiles.add(Math.floor(id / COLS / ROWS_PER_TILE));
+    }
+    if (
+      deltasPrimed &&
+      isRemoteFlip({
+        before,
+        after: next.bit,
+        ownClick: confirmed || localClicks.has(id)
+      })
+    ) {
+      remote.push({ id, clientId });
     }
   }
   for (const idx of dirtyTiles) {
@@ -1261,6 +1373,8 @@ function applyDelta(rows) {
     if (tile && tile.mounted) paintTile(tile);
     else if (tile) tile.dirty = true;
   }
+  if (deltasPrimed && remote.length > 0) queueRemote(remote);
+  deltasPrimed = true;
 }
 
 let polling = false;
@@ -1278,11 +1392,16 @@ async function poll() {
   try {
     const now = Date.now();
     const wantSnapshot = !lastSnapshotFetchAt || now - lastSnapshotFetchAt > SNAPSHOT_REFRESH_MS;
+    // Fetch both before touching the bitmap. Applying the snapshot
+    // while the delta request is still in flight leaves every recent
+    // check at 0, and a click in that gap toggles the wiped bit.
+    const deltaPromise = fetchTab(CONFIG.responsesTab);
+    const snapPromise = wantSnapshot ? fetchTab(CONFIG.snapshotTab) : Promise.resolve(null);
+    const [delta, snapRows] = await Promise.all([deltaPromise, snapPromise]);
     if (wantSnapshot) {
-      await fetchSnapshot();
+      applySnapshot(snapRows || []);
       lastSnapshotFetchAt = now;
     }
-    const delta = await fetchTab(CONFIG.responsesTab);
     applyDelta(delta);
     if (wantSnapshot) paintAllTiles();
     else updateChecked();
