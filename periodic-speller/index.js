@@ -4,7 +4,10 @@ import {
   loadCustomElements,
   registerCustomElement,
   removeCustomElement,
-  clearAllCustomElements
+  clearAllCustomElements,
+  formatCustomSymbol,
+  isRealElementSymbol,
+  CUSTOM_SYMBOL_MAX
 } from './elements.js';
 import { render } from './tiles.js';
 import { buildThemePopover } from './themes.js';
@@ -56,35 +59,72 @@ function renderCustomList() {
   });
 }
 
+function showSymbolError(message) {
+  var errorEl = document.getElementById('customElError');
+  errorEl.textContent = message || '';
+  errorEl.hidden = !message;
+}
+
+function syncSymbolPreview() {
+  var symInput = document.getElementById('customElSymbol');
+  var preview = document.getElementById('customElSymbolPreview');
+  var formatted = formatCustomSymbol(symInput.value);
+  preview.textContent = formatted || '…';
+  if (formatted && isRealElementSymbol(formatted)) {
+    showSymbolError(formatted + ' is already a real element.');
+  } else {
+    showSymbolError('');
+  }
+}
+
 function openCustomElementDialog(letter) {
   var modal = document.getElementById('customElementModal');
   var symInput = document.getElementById('customElSymbol');
   var nameInput = document.getElementById('customElName');
   var numInput = document.getElementById('customElNumber');
-  var preview = document.getElementById('customElSymbolPreview');
 
   symInput.value = letter.toUpperCase();
-  preview.textContent = letter.toUpperCase();
   nameInput.value = '';
+  showSymbolError('');
+  syncSymbolPreview();
 
   var customs = loadCustomElements();
   var nextNum = 119 + Object.keys(customs).length;
   numInput.value = nextNum;
 
   modal.hidden = false;
-  nameInput.focus();
+  symInput.focus();
+  var end = symInput.value.length;
+  symInput.setSelectionRange(end, end);
 }
+
+var symbolInput = document.getElementById('customElSymbol');
+symbolInput.maxLength = CUSTOM_SYMBOL_MAX;
+symbolInput.addEventListener('input', function () {
+  var cleaned = this.value.replace(/[^a-zA-Z]/g, '').slice(0, CUSTOM_SYMBOL_MAX);
+  if (cleaned !== this.value) {
+    var pos = this.selectionStart;
+    this.value = cleaned;
+    var next = Math.min(pos == null ? cleaned.length : pos, cleaned.length);
+    this.setSelectionRange(next, next);
+  }
+  syncSymbolPreview();
+});
 
 document.getElementById('customElForm').addEventListener('submit', function (e) {
   e.preventDefault();
   var sym = document.getElementById('customElSymbol').value.trim();
   var name = document.getElementById('customElName').value.trim();
   var num = parseInt(document.getElementById('customElNumber').value, 10);
-  if (!sym || !name || isNaN(num)) return;
-  registerCustomElement(sym, name, num, function () {
+  if (!name || isNaN(num)) return;
+  var err = registerCustomElement(sym, name, num, function () {
     renderCustomList();
     reRender();
   });
+  if (err) {
+    showSymbolError(err);
+    return;
+  }
   document.getElementById('customElementModal').hidden = true;
 });
 

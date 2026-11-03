@@ -55,6 +55,16 @@
   cursor: not-allowed;
 }
 
+.custom-el-error {
+  color: var(--danger, #dc2626);
+  font-size: 0.8rem;
+  margin: -0.35rem 0 0.8rem;
+}
+
+.custom-el-error[hidden] {
+  display: none;
+}
+
 .custom-el-actions {
   display: flex;
   gap: 0.5rem;

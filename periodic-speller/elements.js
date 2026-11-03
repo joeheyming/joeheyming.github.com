@@ -136,6 +136,20 @@ ELEMENTS.forEach(function (el) {
 // --- Custom (fake) elements ---
 
 var CUSTOM_STORAGE_KEY = 'periodic-speller-custom-elements';
+var CUSTOM_SYMBOL_MAX = 6;
+
+function formatCustomSymbol(symbol) {
+  var letters = String(symbol || '')
+    .replace(/[^a-zA-Z]/g, '')
+    .slice(0, CUSTOM_SYMBOL_MAX);
+  if (!letters) return '';
+  return letters.charAt(0).toUpperCase() + letters.slice(1).toLowerCase();
+}
+
+function isRealElementSymbol(symbol) {
+  var key = formatCustomSymbol(symbol).toLowerCase();
+  return !!(key && bySymbol[key] && !bySymbol[key].custom);
+}
 
 function loadCustomElements() {
   try {
@@ -156,10 +170,13 @@ function fakeMass(number) {
 }
 
 function registerCustomElement(symbol, name, number, onDone) {
-  var key = symbol.toLowerCase();
+  var formatted = formatCustomSymbol(symbol);
+  if (!formatted) return 'Enter one or more letters.';
+  if (isRealElementSymbol(formatted)) return formatted + ' is already a real element.';
+  var key = formatted.toLowerCase();
   var entry = {
     number: number,
-    symbol: symbol.charAt(0).toUpperCase() + symbol.slice(1).toLowerCase(),
+    symbol: formatted,
     name: name,
     mass: fakeMass(number),
     category: 'custom',
@@ -170,6 +187,7 @@ function registerCustomElement(symbol, name, number, onDone) {
   customs[key] = entry;
   saveCustomElements(customs);
   if (onDone) onDone();
+  return '';
 }
 
 function removeCustomElement(key, onDone) {
@@ -200,6 +218,9 @@ function clearAllCustomElements(onDone) {
 export {
   ELEMENTS,
   bySymbol,
+  CUSTOM_SYMBOL_MAX,
+  formatCustomSymbol,
+  isRealElementSymbol,
   loadCustomElements,
   saveCustomElements,
   registerCustomElement,

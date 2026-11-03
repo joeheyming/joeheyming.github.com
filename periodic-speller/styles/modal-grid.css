@@ -210,6 +210,19 @@
     font-size: 2rem;
   }
 
+  .tile-symbol[data-letters='3'] {
+    font-size: 1.35rem;
+  }
+
+  .tile-symbol[data-letters='4'] {
+    font-size: 1.1rem;
+  }
+
+  .tile-symbol[data-letters='5'],
+  .tile-symbol[data-letters='6'] {
+    font-size: 0.85rem;
+  }
+
   .tile-unmatched .tile-symbol {
     font-size: 2rem;
   }

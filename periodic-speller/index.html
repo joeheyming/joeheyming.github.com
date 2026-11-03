@@ -248,7 +248,10 @@
       <div id="noMatch" class="no-match" hidden>
         <span class="no-match-icon">🧪</span>
         <p>Can't spell that with element symbols!</p>
-        <p class="no-match-hint">Unmatched letters shown in gray below.</p>
+        <p class="no-match-hint">
+          Unmatched letters shown in gray below. Click one to invent a symbol — it can be several
+          letters, like Rt.
+        </p>
       </div>
       <div id="tiles" class="tiles"></div>
       <div class="export-row" id="exportRow" hidden>
@@ -295,7 +298,8 @@
           ,
           <strong>N</strong>
           , etc.). If a full decomposition can't be found, unmatched letters appear as clickable
-          gray tiles &mdash; click one to create a custom fake element for that symbol.
+          gray tiles &mdash; click one to create a custom fake element. Its symbol can be several
+          letters, so Rt is one tile for R and T.
         </p>
       </details>
     </main>
@@ -315,13 +319,22 @@
         <p class="custom-el-hint">
           No element matches "
           <span id="customElSymbolPreview"></span>
-          ". Create a fake one so it renders as a tile.
+          ". Add letters to chord them into one symbol, such as Rt.
         </p>
         <form id="customElForm" autocomplete="off">
           <div class="custom-el-field">
             <label for="customElSymbol">Symbol</label>
-            <input type="text" id="customElSymbol" maxlength="2" readonly />
+            <input
+              type="text"
+              id="customElSymbol"
+              maxlength="6"
+              placeholder="Rt"
+              autocapitalize="off"
+              spellcheck="false"
+              required
+            />
           </div>
+          <p id="customElError" class="custom-el-error" hidden></p>
           <div class="custom-el-field">
             <label for="customElName">Name</label>
             <input type="text" id="customElName" placeholder="e.g. Joium" maxlength="20" required />

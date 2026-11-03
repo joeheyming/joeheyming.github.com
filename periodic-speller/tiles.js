@@ -20,6 +20,9 @@ export function createTileEl(el, delay) {
   var sym = document.createElement('span');
   sym.className = 'tile-symbol';
   sym.textContent = el.symbol;
+  if (el.symbol.length > 2) {
+    sym.dataset.letters = String(Math.min(el.symbol.length, 6));
+  }
 
   var name = document.createElement('span');
   name.className = 'tile-name';

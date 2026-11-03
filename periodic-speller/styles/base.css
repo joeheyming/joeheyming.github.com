@@ -200,6 +200,22 @@ main {
   font-weight: 800;
   color: var(--tile-symbol);
   line-height: 1;
+  max-width: 92%;
+  text-align: center;
+}
+
+.tile-symbol[data-letters='3'] {
+  font-size: 1.7rem;
+}
+
+.tile-symbol[data-letters='4'] {
+  font-size: 1.35rem;
+}
+
+.tile-symbol[data-letters='5'],
+.tile-symbol[data-letters='6'] {
+  font-size: 1.05rem;
+  letter-spacing: -0.04em;
 }
 
 .tile-name {

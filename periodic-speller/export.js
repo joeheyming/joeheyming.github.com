@@ -59,7 +59,8 @@ function drawTileOnCanvas(ctx, el, x, y) {
     ctx.fillText(String(el.number), x + 10, y + 8);
 
     ctx.fillStyle = t.symbol;
-    ctx.font = 'bold 42px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font =
+      'bold ' + symbolFontSize(el.symbol) + 'px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(el.symbol, x + w / 2, y + h / 2 - 4);
@@ -73,6 +74,14 @@ function drawTileOnCanvas(ctx, el, x, y) {
     ctx.font = '500 8px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillText(String(el.mass), x + w / 2, y + h / 2 + 38);
   }
+}
+
+function symbolFontSize(symbol) {
+  var n = symbol.length;
+  if (n <= 2) return 42;
+  if (n === 3) return 30;
+  if (n === 4) return 24;
+  return 18;
 }
 
 function measureWordWidth(items) {
