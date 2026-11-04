@@ -1,30 +1,59 @@
-// StepMania Main Entry Point - ES Module
-// Loads all modules in the correct order.
-// Boot splash (CSS + press animation + reveal) lives entirely in index.html.
+// Song-menu boot. The play engine, song library, and JSZip stay unloaded
+// until a click or a song URL needs them. The menu is already in the HTML.
 
-// Kick off shared shadow CSS fetch before custom elements connect,
-// so zenius-browser's modal is less likely to paint without position:fixed.
-import { getSharedStyleSheet } from './sharedStyles.js';
-void getSharedStyleSheet();
+import { bindHomeScreen, showHomeNotice, showHomeScreen } from './homeScreen.js';
 
-// Core game engine (no dependencies on other app modules)
-import { startStepmania } from './stepmania.js';
+/** @type {Promise<import('./mainPageController.js').MainPageController> | null} */
+let playReady = null;
 
-// Page controller (depends on stepmania.js exports) — also pulls zenius-browser
-import './mainPageController.js';
+/**
+ * Load the play engine once. A failed import is shown on the menu.
+ * @returns {Promise<import('./mainPageController.js').MainPageController>}
+ */
+export function ensurePlay() {
+  if (!playReady) {
+    playReady = import('./play.js')
+      .then((mod) => mod.ensurePlay())
+      .catch((error) => {
+        playReady = null;
+        const detail = error instanceof Error ? error.message : 'The game did not load.';
+        showHomeNotice(`${detail} Refresh the page and try again.`);
+        throw error;
+      });
+  }
+  return playReady;
+}
 
-// Input handlers (depend on stepmania.js exports)
-import './gamepad.js';
+function songRequested() {
+  const params = new URLSearchParams(window.location.search);
+  return params.has('zenius') || params.has('local');
+}
 
-// UI handlers
-import './fullscreen.js';
+function openLibrary() {
+  void import('./zenius-browser.js')
+    .then(({ ZeniusBrowser }) => ZeniusBrowser.showBrowser())
+    .catch((error) => {
+      const detail = error instanceof Error ? error.message : 'The song library did not load.';
+      showHomeNotice(`${detail} Refresh the page and try again.`);
+    });
+}
 
-// Custom elements
-import './step-button.js';
-import './score-panel.js';
-import './loading-overlay.js';
-import './game-over-modal.js';
-import './settings-sheet.js';
+bindHomeScreen({
+  onBrowse: openLibrary,
+  onOpenFile: (file) => {
+    void ensurePlay()
+      .then((controller) => controller.loadFromLocalFile(file))
+      .catch(() => {});
+  },
+  onPlayZenius: (zeniusUrl) => {
+    void ensurePlay()
+      .then((controller) => controller.loadFromZeniusURL(zeniusUrl))
+      .catch(() => {});
+  }
+});
 
-// Boot engine after custom elements and controller module are registered (DOM may still be loading).
-startStepmania();
+showHomeScreen();
+
+if (songRequested()) {
+  void ensurePlay().catch(() => {});
+}

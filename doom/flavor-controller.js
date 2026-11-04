@@ -567,8 +567,6 @@
         if (cta) cta.textContent = message || cta.dataset.defaultCta || '';
       });
     }
-    setEnabled(false, 'Preparing engine');
-
     // Surface terminal lifecycle errors (COI failure, wasm-abort)
     // on the cards themselves so the user isn't left clicking a
     // dead UI.
@@ -581,30 +579,9 @@
       });
     }
 
-    // Wait for UZDoomLoader to publish (loader IIFE runs after
-    // engine scripts inject post-COI). Once it's there, the
-    // picker is clickable. Lifecycle phase stays in `loading`
-    // until primeWith lands, so we can't subscribe for this
-    // signal — direct poll instead.
-    (function waitForLoader() {
-      var deadline = Date.now() + 30000;
-      function tick() {
-        if (window.UZDoomLoader) {
-          cards.forEach(function (c) {
-            if (c.classList.contains('loading')) return;
-            if (window.UZDoomLifecycle && window.UZDoomLifecycle.isTerminal()) return;
-            c.disabled = false;
-            var cta = c.querySelector('.cta');
-            if (cta) cta.textContent = '';
-          });
-          focusIdle(cards[0]);
-          return;
-        }
-        if (Date.now() > deadline) return;
-        setTimeout(tick, 50);
-      }
-      tick();
-    })();
+    // The engine script stays unloaded until launch. Cards are usable
+    // immediately so a click can paint Loading before that parse.
+    focusIdle(cards[0]);
 
     cards.forEach(function (card) {
       card.addEventListener('click', async function () {

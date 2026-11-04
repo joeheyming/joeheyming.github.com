@@ -102,6 +102,7 @@ function controlKeepsArrow(el) {
 }
 
 let homeArrowsBound = false;
+let homeActionsBound = false;
 
 function onHomeArrow(event) {
   const focus = window.heymingRemote;
@@ -146,12 +147,52 @@ function focusHomeBrowse() {
   if (browse) browse.focus();
 }
 
+/**
+ * @param {string} message
+ */
+export function showHomeNotice(message) {
+  const el = document.getElementById('sm-boot-error');
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = message;
+  showHomeScreen();
+}
+
+/**
+ * Plain left-clicks on a recent or saved song stay on this page.
+ * Modified clicks keep the link's normal navigation.
+ * @param {MouseEvent} event
+ * @param {(zeniusUrl: string) => void} onPlayZenius
+ */
+function onHomeSongClick(event, onPlayZenius) {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return;
+  }
+  const raw = event.target;
+  const target = raw instanceof Element ? raw : raw instanceof Node ? raw.parentElement : null;
+  const link = target && target.closest('a.sm-home-chip');
+  if (!link) return;
+  const href = link.getAttribute('href') || '';
+  const query = href.includes('?') ? href.slice(href.indexOf('?') + 1) : '';
+  const zenius = new URLSearchParams(query).get('zenius');
+  if (!zenius) return;
+  event.preventDefault();
+  onPlayZenius(zenius);
+}
+
 export function bindHomeScreen(handlers = {}) {
   bindHomeArrows();
   focusHomeBrowse();
+  if (homeActionsBound) return;
+  homeActionsBound = true;
+
   const browse = document.getElementById('sm-home-browse');
   if (browse) {
     browse.addEventListener('click', () => {
+      if (handlers.onBrowse) {
+        handlers.onBrowse();
+        return;
+      }
       const browser = document.querySelector('zenius-browser');
       if (browser && typeof browser.showBrowser === 'function') {
         browser.showBrowser();
@@ -182,6 +223,12 @@ export function bindHomeScreen(handlers = {}) {
       dropTarget.classList.remove('is-drop');
       const file = e.dataTransfer?.files?.[0];
       if (file) handlers.onOpenFile(file);
+    });
+  }
+
+  if (dropTarget && handlers.onPlayZenius) {
+    dropTarget.addEventListener('click', (event) => {
+      onHomeSongClick(event, handlers.onPlayZenius);
     });
   }
 }

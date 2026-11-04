@@ -175,6 +175,22 @@ test('Doom caps catch-up work in its browser main loop', () => {
   assert.match(source, /cl_capfps 1/);
 });
 
+test('Doom does not parse the engine while the flavor picker is idle', () => {
+  const loader = readFileSync(path.join(ROOT, 'doom/engine-loader.js'), 'utf8');
+  assert.match(loader, /UZDoomEngine/);
+  assert.doesNotMatch(loader, /DOMContentLoaded/);
+
+  const flavors = readFileSync(path.join(ROOT, 'doom/flavors.js'), 'utf8');
+  assert.doesNotMatch(flavors, /Preparing engine/);
+  assert.doesNotMatch(flavors, /btn\.disabled = true/);
+
+  const launch = readFileSync(path.join(ROOT, 'doom/uzdoom-loader.js'), 'utf8');
+  const clickStart = launch.indexOf("$('launchBtn').addEventListener('click'");
+  const click = launch.slice(clickStart, launch.indexOf('setInterval(', clickStart));
+  assert.ok(click.indexOf('yieldToMain') < click.indexOf('UZDoomEngine'));
+  assert.ok(click.indexOf('UZDoomEngine') < click.indexOf('bootEngine()'));
+});
+
 test('StepMania paints interaction feedback before heavy continuations', () => {
   const browserSource = readFileSync(path.join(ROOT, 'stepmania/js/zenius-browser.js'), 'utf8');
   const showBrowserStart = browserSource.indexOf('async showBrowser()');

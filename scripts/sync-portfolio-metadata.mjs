@@ -11,6 +11,7 @@
  * and noindex landers. Extra non-registry URLs (home, about, OS) are
  * preserved via SITE_EXTRA_URLS.
  */
+import { execFileSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -122,6 +123,40 @@ function todayLastmod() {
   return `${new Date().toISOString().slice(0, 10)}T00:00:00+00:00`;
 }
 
+function indexFileForLoc(loc) {
+  const sitePath = loc.slice(SITE_ORIGIN.length);
+  if (sitePath === '/' || sitePath === '') return join(root, 'index.html');
+  return join(root, sitePath.replace(/^\//, ''), 'index.html');
+}
+
+/** Midnight UTC on the commit that last touched this page, or '' if git has no history. */
+function commitLastmod(loc) {
+  const file = indexFileForLoc(loc);
+  if (!existsSync(file)) return '';
+  try {
+    const iso = execFileSync('git', ['log', '-1', '--format=%cI', '--', file], {
+      cwd: root,
+      encoding: 'utf8'
+    }).trim();
+    if (!iso) return '';
+    return `${new Date(iso).toISOString().slice(0, 10)}T00:00:00+00:00`;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Bing skips a sitemap it believes is unchanged, and a frozen first-seen
+ * lastmod hides later edits. Advance to the page's latest commit when that
+ * day is newer than the date already published.
+ */
+function resolvedLastmod(loc, prev) {
+  const stored = prev?.lastmod || '';
+  const committed = commitLastmod(loc);
+  if (committed && (!stored || committed > stored)) return committed;
+  return stored || todayLastmod();
+}
+
 function syncSitemap() {
   const existing = parseExistingSitemap();
   const entries = [];
@@ -131,7 +166,7 @@ function syncSitemap() {
     const prev = existing.get(extra.loc);
     entries.push({
       loc: extra.loc,
-      lastmod: prev?.lastmod || todayLastmod(),
+      lastmod: resolvedLastmod(extra.loc, prev),
       changefreq: prev?.changefreq || extra.changefreq,
       priority: prev?.priority || extra.priority
     });
@@ -145,7 +180,7 @@ function syncSitemap() {
     const prev = existing.get(loc);
     entries.push({
       loc,
-      lastmod: prev?.lastmod || todayLastmod(),
+      lastmod: resolvedLastmod(loc, prev),
       changefreq: prev?.changefreq || 'weekly',
       priority: prev?.priority || '0.7'
     });
@@ -240,7 +275,10 @@ function syncPreviewPages() {
   const before = source.slice(0, end).replace(/\s*$/, '');
   const needsComma = !before.trimEnd().endsWith(',');
   const insertion =
-    (needsComma ? ',' : '') + '\n  // --- synced from apps-registry.json ---\n' + additions.join(',\n') + '\n';
+    (needsComma ? ',' : '') +
+    '\n  // --- synced from apps-registry.json ---\n' +
+    additions.join(',\n') +
+    '\n';
   source = before + insertion + source.slice(end);
   writeFileSync(previewsPath, source, 'utf8');
   console.log(`Added ${additions.length} missing PAGES entries to generate-previews.js`);

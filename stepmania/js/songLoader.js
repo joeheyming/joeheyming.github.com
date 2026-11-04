@@ -1,6 +1,7 @@
 // Song Loader - ES Module
 // Handles loading songs from Zenius-I-Vanisher
 
+import { loadJSZip } from './jszipLoader.js';
 import { SimfileParser, danceSingleCharts } from './simfileParser.js';
 import { dwiToSm } from './dwi.js';
 import {
@@ -319,10 +320,11 @@ async function filesFromZip(zip) {
  */
 export async function simfileFromPackBytes(data, Zip = globalThis.JSZip) {
   if (data == null) return null;
-  if (!Zip) throw new Error('Could not open the song pack.');
+  const JSZipLib = Zip || (await loadJSZip());
+  if (!JSZipLib) throw new Error('Could not open the song pack.');
   let zip;
   try {
-    zip = await Zip.loadAsync(data);
+    zip = await JSZipLib.loadAsync(data);
   } catch {
     return null;
   }
@@ -487,14 +489,17 @@ export async function fetchZeniusAudioFromZip(simfileId, transport) {
       maxRetries: ZIP_MAX_RETRIES
     });
 
-    // Check if JSZip is available
-    if (typeof JSZip === 'undefined') {
-      console.error('JSZip not loaded');
-      return null;
+    let JSZipLib = globalThis.JSZip;
+    if (!JSZipLib) {
+      try {
+        JSZipLib = await loadJSZip();
+      } catch (loadError) {
+        console.error('JSZip not loaded', loadError);
+        return null;
+      }
     }
 
-    // Extract ZIP
-    const zip = await JSZip.loadAsync(zipData);
+    const zip = await JSZipLib.loadAsync(zipData);
 
     const names = Object.keys(zip.files);
     const chosen = chooseAudioUrl(

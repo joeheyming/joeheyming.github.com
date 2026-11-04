@@ -290,6 +290,12 @@ body {
   color: var(--text-1);
 }
 
+.sm-boot-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
 .sm-home-actions {
   display: flex;
   justify-content: center;

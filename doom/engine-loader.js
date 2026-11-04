@@ -1,74 +1,68 @@
-// Engine script injection. Gated on cross-origin isolation via
-// UZDoomCOI.whenReady(). If COI never arrives, the promise rejects
-// and we bail; coi.js has already put up the error card and
-// flipped the lifecycle to error{coi}.
+// Engine script injection. The 700KB uzdoom.js parse blocks the main
+// thread, so it stays unloaded until a launch asks for it. Cross-origin
+// isolation is still required before the script runs; if COI never
+// arrives the promise rejects and coi.js has already shown the error.
 
 (function () {
-  function loadEngineInOrder() {
-    var melt = document.createElement('script');
-    melt.src = 'uzdoom-melt.js';
-    melt.async = false;
-    var t0Melt = performance.now();
-    melt.onload = function () {
-      console.log(
-        '[uzdoom scripts] uzdoom-melt.js loaded in ' +
-          (performance.now() - t0Melt).toFixed(0) +
-          'ms'
-      );
-      var t0Loader = performance.now();
-      var loader = document.createElement('script');
-      loader.type = 'module';
-      loader.src = 'uzdoom-loader.js';
-      loader.async = false;
-      loader.onload = function () {
+  /** @type {Promise<void> | null} */
+  var ready = null;
+
+  /**
+   * @param {string} src
+   * @param {{ type?: string }} [attrs]
+   * @returns {Promise<void>}
+   */
+  function loadScript(src, attrs) {
+    return new Promise(function (resolve, reject) {
+      var el = document.createElement('script');
+      el.src = src;
+      el.async = false;
+      if (attrs && attrs.type) el.type = attrs.type;
+      var t0 = performance.now();
+      el.onload = function () {
         console.log(
-          '[uzdoom scripts] uzdoom-loader.js loaded in ' +
-            (performance.now() - t0Loader).toFixed(0) +
-            'ms'
+          '[uzdoom scripts] ' + src + ' loaded in ' + (performance.now() - t0).toFixed(0) + 'ms'
         );
-        var t0Engine = performance.now();
-        var engine = document.createElement('script');
-        engine.src = 'uzdoom.js';
-        engine.async = false;
-        engine.onload = function () {
-          console.log(
-            '[uzdoom scripts] uzdoom.js loaded in ' +
-              (performance.now() - t0Engine).toFixed(0) +
-              'ms'
-          );
-        };
-        engine.onerror = function (e) {
-          console.warn('[uzdoom scripts] uzdoom.js failed:', (e && e.message) || '(no msg)');
-        };
-        document.body.appendChild(engine);
+        resolve();
       };
-      loader.onerror = function (e) {
-        console.warn(
-          '[uzdoom scripts] uzdoom-loader.js failed:',
-          (e && e.message) || '(no msg)'
-        );
+      el.onerror = function () {
+        reject(new Error(src + ' failed to load'));
       };
-      document.body.appendChild(loader);
-    };
-    melt.onerror = function (e) {
-      console.warn('[uzdoom scripts] uzdoom-melt.js failed:', (e && e.message) || '(no msg)');
-    };
-    document.body.appendChild(melt);
+      document.body.appendChild(el);
+    });
   }
-  function gate() {
-    if (window.UZDoomCOI) {
-      window.UZDoomCOI.whenReady().then(loadEngineInOrder, function () {
-        console.warn('[uzdoom scripts] COI never arrived; engine not loaded');
+
+  function loadEngineInOrder() {
+    return loadScript('uzdoom-melt.js')
+      .then(function () {
+        return loadScript('uzdoom-loader.js', { type: 'module' });
+      })
+      .then(function () {
+        return loadScript('uzdoom.js');
       });
+  }
+
+  function fail(err) {
+    ready = null;
+    console.warn('[uzdoom scripts] engine not loaded:', err);
+    throw err;
+  }
+
+  /**
+   * Load melt, the loader, and uzdoom.js once. Later calls share the promise.
+   * @returns {Promise<void>}
+   */
+  function ensure() {
+    if (ready) return ready;
+    if (window.UZDoomCOI) {
+      ready = window.UZDoomCOI.whenReady().then(loadEngineInOrder).catch(fail);
     } else if (window.crossOriginIsolated) {
-      loadEngineInOrder();
+      ready = loadEngineInOrder().catch(fail);
     } else {
-      console.warn('[uzdoom scripts] UZDoomCOI missing and not isolated; engine not loaded');
+      return Promise.reject(new Error('UZDoomCOI missing and not isolated'));
     }
+    return ready;
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', gate, { once: true });
-  } else {
-    gate();
-  }
+
+  window.UZDoomEngine = { ensure: ensure };
 })();

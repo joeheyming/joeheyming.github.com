@@ -326,6 +326,17 @@ $('launchBtn').addEventListener('click', async () => {
   $('launchBtn').disabled = true;
   setStatus('Launching engine…');
 
+  // Paint the status before uzdoom.js parses. That script is the long
+  // task that was landing on the first click's INP.
+  if (typeof window.yieldToMain === 'function') await window.yieldToMain();
+  try {
+    if (window.UZDoomEngine) await window.UZDoomEngine.ensure();
+  } catch (e) {
+    console.warn('[uzdoom scripts] engine load failed:', e);
+    setStatus('Engine failed to load. Reload and try again.');
+    return;
+  }
+
   if (Module && Module.calledRun) {
     bootEngine();
   } else {

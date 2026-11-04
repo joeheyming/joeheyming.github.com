@@ -2,6 +2,7 @@
 // sitemap.xml and generate-previews.js PAGES. Keep in sync with
 // scripts/sync-portfolio-metadata.mjs exclusions.
 
+import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
@@ -73,6 +74,27 @@ test('every indexable registry app is in generate-previews.js PAGES', () => {
     }
   }
   assert.deepEqual(missing, [], `missing from PAGES:\n${missing.join('\n')}`);
+});
+
+test('updated landings keep a sitemap lastmod at least as new as the page', () => {
+  const sitemap = readFileSync(path.join(ROOT, 'sitemap.xml'), 'utf8');
+  for (const sitePath of ['/doom/classic/', '/stepmania/songs/']) {
+    const loc = `${SITE_ORIGIN}${sitePath}`;
+    const at = sitemap.indexOf(`<loc>${loc}</loc>`);
+    assert.ok(at >= 0, `${loc} missing from sitemap`);
+    const match = sitemap.slice(at, at + 200).match(/<lastmod>([^<]+)<\/lastmod>/);
+    assert.ok(match, `${loc} missing lastmod`);
+    const committed = execFileSync(
+      'git',
+      ['log', '-1', '--format=%cI', '--', `${sitePath.slice(1)}index.html`],
+      { cwd: ROOT, encoding: 'utf8' }
+    ).trim();
+    const committedDay = new Date(committed).toISOString().slice(0, 10);
+    assert.ok(
+      match[1].slice(0, 10) >= committedDay,
+      `${loc} lastmod ${match[1]} is older than its page (${committedDay})`
+    );
+  }
 });
 
 test('excluded redirect stubs stay out of the sitemap', () => {

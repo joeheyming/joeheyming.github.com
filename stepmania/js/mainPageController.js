@@ -13,7 +13,6 @@ import {
 } from './songLoader.js';
 import { rememberUnplayable } from './zeniusLibraryStorage.js';
 import { DifficultySelector } from './difficulty-selector.js';
-import { ZeniusBrowser } from './zenius-browser.js';
 import { getURLParams, updateURLParams, clearURLParams } from './urlUtils.js';
 import { LoadingOverlay } from './loading-overlay.js';
 import { videoConverter } from './videoConverter.js';
@@ -27,11 +26,20 @@ import {
 } from './songProxyTransport.js';
 import { buildTimingData, filterUnjudgableNotes } from './timingData.js';
 import { recordRecentPlay } from './zeniusLibraryStorage.js';
-import { bindHomeScreen, hideHomeScreen, showHomeScreen } from './homeScreen.js';
+import { hideHomeScreen, showHomeNotice, showHomeScreen } from './homeScreen.js';
 import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
 import { unpackZip, readZipFiles, packFromFilesPlayable, packFromSimfileText } from './packIo.js';
 import { songFromPack, playTimingForChart, revokePackObjectUrls } from './songFromPack.js';
 import { loadDraft } from './localPackStore.js';
+
+/**
+ * The catalog UI is not part of the play graph. Load it the first time
+ * a song's metadata should be remembered, or the library should open.
+ * @returns {Promise<typeof import('./zenius-browser.js').ZeniusBrowser>}
+ */
+function zeniusBrowser() {
+  return import('./zenius-browser.js').then((mod) => mod.ZeniusBrowser);
+}
 
 /**
  * Main Page Controller
@@ -51,16 +59,12 @@ export class MainPageController {
     this.isUpdatingDifficulty = false;
     /** @type {string|null} Avoid counting difficulty changes as fresh successful loads */
     this._trackedReadySongKey = null;
-    this.init();
+    /** @type {Promise<void>} */
+    this.ready = this.init();
   }
 
   async init() {
     this.bindEvents();
-    bindHomeScreen({
-      onOpenFile: (file) => {
-        void this.loadFromLocalFile(file);
-      }
-    });
 
     const hasURLParams = await this.initByURL();
 
@@ -195,15 +199,15 @@ export class MainPageController {
         name: chart.difficulty || 'Unknown',
         short: this.getDifficultyShortCode(chart.difficulty)
       }));
-      ZeniusBrowser.updateSimfileMetadata(simfileId, {
-        hasVideo: !!simfileData.aviUrl,
-        difficulties: difficultyMeta
+      void zeniusBrowser().then((browser) => {
+        browser.updateSimfileMetadata(simfileId, {
+          hasVideo: !!simfileData.aviUrl,
+          difficulties: difficultyMeta
+        });
+        if (simfileData.categoryId) {
+          browser.rememberCategory(simfileData.categoryId, simfileData.categoryName);
+        }
       });
-
-      // Set the category in the browser so it can preselect when reopened
-      if (simfileData.categoryId) {
-        ZeniusBrowser.rememberCategory(simfileData.categoryId, simfileData.categoryName);
-      }
 
       this.setCurrentSong(songKey, songData);
       this.setCurrentDifficulty(difficulty || 0);
@@ -724,7 +728,12 @@ export class MainPageController {
     LoadingOverlay.hide();
     clearURLParams();
     this.enterHome();
-    ZeniusBrowser.showBrowser();
+    void zeniusBrowser()
+      .then((browser) => browser.showBrowser())
+      .catch((error) => {
+        const detail = error instanceof Error ? error.message : 'The song library did not load.';
+        showHomeNotice(`${detail} Refresh the page and try again.`);
+      });
   }
 
   /**
@@ -907,24 +916,26 @@ export class MainPageController {
   }
 }
 
-// Initialize main page controller when DOM is ready
+/** @type {MainPageController | null} */
 let mainPageController = null;
 
-function initMainPageController() {
-  if (!mainPageController) {
-    mainPageController = new MainPageController();
+/** @type {Promise<MainPageController> | null} */
+let controllerReady = null;
+
+/**
+ * Start the page controller once. The song menu binds itself; this only
+ * runs after the play engine has been asked for.
+ * @returns {Promise<MainPageController>}
+ */
+export function startMainPageController() {
+  if (!controllerReady) {
+    const controller = new MainPageController();
+    mainPageController = controller;
+    controllerReady = controller.ready.then(() => controller);
   }
+  return controllerReady;
 }
 
-// Handle both cases: DOM already ready (dynamic import) or not yet ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initMainPageController);
-} else {
-  // DOM is already ready (we were dynamically imported)
-  initMainPageController();
-}
-
-// Export both the class and instance getter
 export function getMainPageController() {
   return mainPageController;
 }

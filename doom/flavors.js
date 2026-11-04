@@ -430,7 +430,6 @@
     btn.type = 'button';
     btn.className = 'flavor-card';
     btn.setAttribute('data-flavor', flavor.id);
-    btn.disabled = true;
     btn.setAttribute('aria-label', flavor.launchLabel);
     if (flavor.initialFocus) btn.setAttribute('data-initial-focus', '');
     var name = doc.createElement('span');
@@ -441,8 +440,7 @@
     desc.textContent = flavor.desc;
     var cta = doc.createElement('span');
     cta.className = 'cta';
-    cta.setAttribute('data-default-cta', 'Preparing engine');
-    cta.textContent = 'Preparing engine';
+    cta.setAttribute('data-default-cta', '');
     btn.appendChild(name);
     btn.appendChild(desc);
     btn.appendChild(cta);

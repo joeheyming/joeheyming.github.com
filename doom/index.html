@@ -586,8 +586,8 @@
       <!-- Flavor picker (default landing). Each card is the user gesture
            that triggers prime + launch — no separate "Launch" button is
            shown in this mode, so the click both unlocks AudioContext
-           and starts the boot. Cards stay disabled until UZDoomLoader
-           publishes (engine scripts loaded, COI ok). -->
+           and starts the boot. Cards are usable immediately; uzdoom.js
+           loads after the click paints, not while the picker is idle. -->
       <section id="flavorPicker" aria-label="Pick a flavor of DOOM"></section>
 
       <!-- Shown only after a flavor fails to prime. Filled by next-apps.js.
@@ -886,10 +886,8 @@
          from its own IIFE. -->
     <script src="module-stub.js"></script>
 
-    <!-- Engine script injection. Gated on cross-origin isolation via
-         UZDoomCOI.whenReady(). If COI never arrives, the promise rejects
-         and we bail; coi.js has already put up the error card and
-         flipped the lifecycle to error{coi}. -->
+    <!-- Engine script injection. UZDoomEngine.ensure() loads uzdoom.js
+         on launch, after COI. The picker does not wait on that parse. -->
     <script src="engine-loader.js"></script>
 
     <!-- Flavor controller. URL modes:

@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
@@ -69,5 +70,14 @@ test('sitemap includes the current canonical Watch URL', () => {
   );
 
   assert.ok(watchUrl, 'sitemap should include the canonical Watch URL');
-  assert.equal(watchUrl.querySelector('lastmod')?.textContent, '2026-07-20T00:00:00+00:00');
+  const committed = execFileSync('git', ['log', '-1', '--format=%cI', '--', 'watch/index.html'], {
+    cwd: ROOT,
+    encoding: 'utf8'
+  }).trim();
+  const committedDay = new Date(committed).toISOString().slice(0, 10);
+  const lastmod = watchUrl.querySelector('lastmod')?.textContent ?? '';
+  assert.ok(
+    lastmod.slice(0, 10) >= committedDay,
+    `watch lastmod ${lastmod} is older than watch/index.html (${committedDay})`
+  );
 });

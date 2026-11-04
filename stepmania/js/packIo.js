@@ -1,3 +1,4 @@
+import { loadJSZip } from './jszipLoader.js';
 import { SimfileParser } from './simfileParser.js';
 import { writeSsc, writeSm, chartHasSplitTiming, createEmptySimfile } from './simfileWriter.js';
 import { isVideoFileName, parseBgChangesValue, danceSingleCharts } from './simfileParser.js';
@@ -385,8 +386,9 @@ export async function unpackZip(data, Zip = globalThis.JSZip, opts = {}) {
  * @returns {Promise<Map<string, PackFile>>}
  */
 export async function readZipFiles(data, Zip = globalThis.JSZip) {
-  if (!Zip) throw new Error('JSZip is not loaded');
-  const zip = await Zip.loadAsync(data);
+  const JSZipLib = Zip || (await loadJSZip());
+  if (!JSZipLib) throw new Error('JSZip is not loaded');
+  const zip = await JSZipLib.loadAsync(data);
   /** @type {Map<string, PackFile>} */
   const files = new Map();
   for (const [rawName, entry] of Object.entries(zip.files)) {
@@ -421,8 +423,9 @@ export function packFromSimfileText(name, text) {
  * @returns {Promise<Blob>}
  */
 export async function packToZipBlob(pack, Zip = globalThis.JSZip) {
-  if (!Zip) throw new Error('JSZip is not loaded');
-  const zip = new Zip();
+  const JSZipLib = Zip || (await loadJSZip());
+  if (!JSZipLib) throw new Error('JSZip is not loaded');
+  const zip = new JSZipLib();
   for (const [path, data] of filesFromPack(pack)) {
     zip.file(path, data);
   }

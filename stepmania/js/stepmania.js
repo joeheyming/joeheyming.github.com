@@ -1116,7 +1116,7 @@ function startRenderLoop() {
 
 /**
  * Start canvas, input/audio managers, and the render loop.
- * Call once from main.js after modules that stepmania depends on (e.g. mainPageController for same-document order).
+ * Call once from play.js after the play modules have been imported.
  * Safe if DOM is still loading.
  * @param {{containerId?: string, audioElement?: HTMLAudioElement|null, video?: Object, embedded?: boolean, active?: boolean, onEnded?: (() => void)|null}} [options]
  */
