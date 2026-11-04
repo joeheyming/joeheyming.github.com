@@ -437,18 +437,48 @@
         waitForCoi().then(waitForCriticalElements).then(nextFrames).then(reveal).catch(reveal);
       })();
     </script>
-    <!-- Title Header -->
-    <div
-      class="text-center py-2 md:py-3 flex-shrink-0"
-      style="text-align: center; padding-top: 3.5rem"
-    >
-      <h1
-        class="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-accent-blue to-accent-primary mb-1"
-      >
-        StepMania
-      </h1>
-      <h2 id="sub-title" class="text-text-2 text-xs md:text-sm">Dance to the Beat</h2>
-    </div>
+    <!-- One-row top bar: the stage gets the height a stacked header used to take. -->
+    <header class="sm-topbar">
+      <div class="sm-brand">
+        <h1 class="sm-title">StepMania</h1>
+        <h2 id="sub-title" class="sm-subtitle">Dance to the Beat</h2>
+      </div>
+      <div class="sm-toolbar">
+        <!-- Song Library Browser Web Component -->
+        <zenius-browser></zenius-browser>
+
+        <!-- Share Button -->
+        <share-button label="📤 Share" theme="gradient"></share-button>
+
+        <!-- Feedback Button -->
+        <feedback-button label="💬 Feedback" theme="gradient"></feedback-button>
+
+        <!-- Restart Button -->
+        <button id="restart-btn" class="restart-btn" title="Restart Song (R)">
+          <span class="restart-icon-only">🔄</span>
+          <span class="restart-text-label">Restart</span>
+        </button>
+
+        <button id="settings-btn" class="restart-btn" title="Keys and scroll" type="button">
+          <span class="restart-icon-only">⌨️</span>
+          <span class="restart-text-label">Keys</span>
+        </button>
+
+        <!-- Main Difficulty Selector -->
+        <difficulty-selector id="main-difficulty-selector"></difficulty-selector>
+
+        <!-- Gamepad Status Indicator -->
+        <div
+          id="gamepad-status"
+          class="hidden bg-success/20 backdrop-blur-sm rounded-lg p-2 border border-success/30"
+        >
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+            <span class="text-xs text-success font-medium">Gamepad Connected</span>
+          </div>
+        </div>
+      </div>
+    </header>
 
     <!-- Score Toggle Button for Mobile -->
     <button class="score-toggle" id="scoreToggle">📊 Score</button>
@@ -468,48 +498,11 @@
       <div
         class="flex flex-col items-center justify-between w-full max-w-4xl lg:max-w-none lg:flex-1 h-full min-h-0 overflow-hidden"
       >
-        <!-- Song Library Browser, Share Button, and Difficulty Selector Row -->
-        <div class="w-full flex flex-row items-center justify-center gap-2 pr-3 md:pr-6 mb-2">
-          <!-- Song Library Browser Web Component -->
-          <zenius-browser></zenius-browser>
-
-          <!-- Share Button -->
-          <share-button label="📤 Share" theme="gradient"></share-button>
-
-          <!-- Feedback Button -->
-          <feedback-button label="💬 Feedback" theme="gradient"></feedback-button>
-
-          <!-- Restart Button -->
-          <button id="restart-btn" class="restart-btn" title="Restart Song (R)">
-            <span class="restart-icon-only">🔄</span>
-            <span class="restart-text-label">Restart</span>
-          </button>
-
-          <button id="settings-btn" class="restart-btn" title="Keys and scroll" type="button">
-            <span class="restart-icon-only">⌨️</span>
-            <span class="restart-text-label">Keys</span>
-          </button>
-
-          <!-- Main Difficulty Selector -->
-          <difficulty-selector id="main-difficulty-selector"></difficulty-selector>
-
-          <!-- Gamepad Status Indicator -->
-          <div
-            id="gamepad-status"
-            class="hidden bg-success/20 backdrop-blur-sm rounded-lg p-2 border border-success/30"
-          >
-            <div class="flex items-center gap-2">
-              <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-              <span class="text-xs text-success font-medium">Gamepad Connected</span>
-            </div>
-          </div>
-        </div>
-
         <!-- Game Canvas Container. `flex-1` absorbs leftover column space;
              CSS `#sm-micro` min-height reserves a stable paint box (CLS). -->
         <div
           id="sm-micro"
-          class="relative bg-surface-0/50 rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl border border-hairline-accent overflow-hidden touch-manipulation flex-1"
+          class="relative rounded-2xl md:rounded-3xl p-2 md:p-3 shadow-2xl overflow-hidden touch-manipulation flex-1"
         >
           <div id="sm-home" class="sm-home">
             <h3 class="sm-home-title">Pick a song</h3>
@@ -584,8 +577,9 @@
             <span class="exit-fullscreen-icon" style="display: none">✕</span>
           </button>
 
-          <!-- Fullscreen Score Overlay (only visible in fullscreen) -->
-          <div id="fullscreen-score" class="fullscreen-only-controls fullscreen-score-overlay">
+          <!-- Stage HUD: shown whenever the stage has room beside the lanes,
+               and always in fullscreen. -->
+          <div id="fullscreen-score" class="fullscreen-score-overlay" aria-hidden="true">
             <div class="fs-score-percent" id="fs-score-percent">0.00%</div>
             <div class="fs-score-stats">
               <div class="fs-stat">
@@ -597,6 +591,17 @@
                 <span class="fs-stat-value" id="fs-score">0</span>
               </div>
             </div>
+          </div>
+
+          <div class="sm-speed sm-speed-stage" role="group" aria-label="Scroll speed">
+            <span class="sm-speed-label">Speed</span>
+            <button type="button" data-speed-step="down" title="Slower ([)" aria-label="Slower">
+              −
+            </button>
+            <output class="sm-speed-value" data-speed-value>x2.0</output>
+            <button type="button" data-speed-step="up" title="Faster (])" aria-label="Faster">
+              +
+            </button>
           </div>
 
           <!-- Fullscreen Exit Button (top left, only visible in fullscreen) -->
@@ -620,7 +625,7 @@
         </div>
 
         <!-- Step Buttons Container - Below Canvas -->
-        <div class="w-full flex justify-center py-2 step-button-container flex-shrink-0">
+        <div class="w-full flex justify-center pt-2 pb-8 step-button-container flex-shrink-0">
           <div class="relative w-80 h-20 p-4">
             <!-- Horizontal row layout for buttons -->
             <div class="flex justify-between items-center h-full">
@@ -637,11 +642,17 @@
               <step-button direction="right" color="yellow" id="button3"></step-button>
             </div>
 
-            <!-- Instruction Text -->
-            <div
-              class="absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 text-xs text-text-2 whitespace-nowrap"
-            >
-              Click or use WASD/Arrow keys
+            <div class="sm-controls-footer">
+              <span class="sm-hint-text">Click or use WASD/Arrow keys</span>
+              <div class="sm-speed" role="group" aria-label="Scroll speed">
+                <button type="button" data-speed-step="down" title="Slower ([)" aria-label="Slower">
+                  −
+                </button>
+                <output class="sm-speed-value" data-speed-value>x2.0</output>
+                <button type="button" data-speed-step="up" title="Faster (])" aria-label="Faster">
+                  +
+                </button>
+              </div>
             </div>
           </div>
         </div>

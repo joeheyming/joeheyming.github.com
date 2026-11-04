@@ -6,6 +6,36 @@ import { ARROW_WIDTH, TARGETS_Y, CANVAS_THEME } from './config.js';
 /** Canvas padding in pixels */
 const CANVAS_PADDING = 64;
 
+/** Logical width of the four-lane field; drawing code assumes this coordinate space. */
+const FIELD_WIDTH = ARROW_WIDTH * 4 + CANVAS_PADDING;
+
+/**
+ * Logical height the field keeps before it starts scaling up. Scaling past
+ * this would trade visible beats for bigger arrows.
+ */
+const MIN_FIELD_HEIGHT = 480;
+
+const MAX_STAGE_SCALE = 2.5;
+
+/** Left, down, up, right — matches the step-button colors. */
+const LANE_COLORS = ['#ff4d6d', '#4da3ff', '#3ddc84', '#ffd23f'];
+const MAX_PIXEL_RATIO = 2;
+
+/** Width beside the lanes the stage HUD needs, in CSS pixels. */
+const STAGE_SIDE_ROOM = 140;
+
+/**
+ * How much the logical field is magnified to fill a stage of this size.
+ * @param {number} innerWidth
+ * @param {number} innerHeight
+ * @returns {number}
+ */
+export function stageScale(innerWidth, innerHeight) {
+  const fit = Math.min(innerWidth / FIELD_WIDTH, innerHeight / MIN_FIELD_HEIGHT);
+  if (!Number.isFinite(fit)) return 1;
+  return Math.max(1, Math.min(MAX_STAGE_SCALE, fit));
+}
+
 // ============================================================================
 // CANVAS MANAGER SINGLETON
 // ============================================================================
@@ -26,6 +56,9 @@ export const CanvasManager = {
 
   /** Canvas height in pixels */
   height: 400,
+
+  /** CSS pixels per logical pixel */
+  scale: 1,
 
   /**
    * Initialize the canvas in a container element
@@ -50,12 +83,11 @@ export const CanvasManager = {
     // Create canvas element
     this.element = document.createElement('canvas');
     this.element.id = 'sm-micro-canvas';
-    this.element.width = this.width;
-    this.element.height = this.height;
     container.prepend(this.element);
 
     // Get 2D context
     this.ctx = this.element.getContext('2d');
+    this._applyDimensions();
 
     // Ensure roundRect is available (polyfill for older browsers)
     this._ensureRoundRect(this.ctx);
@@ -120,11 +152,38 @@ export const CanvasManager = {
    * @private
    */
   _calculateDimensions(container) {
-    const containerWidth = container.offsetWidth;
-    const maxCanvasWidth = ARROW_WIDTH * 4 + CANVAS_PADDING;
+    const style = getComputedStyle(container);
+    const innerWidth =
+      container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const innerHeight =
+      container.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
 
-    this.width = Math.min(containerWidth, maxCanvasWidth);
-    this.height = container.offsetHeight - 50;
+    this.scale = stageScale(innerWidth, innerHeight);
+    this.width = Math.max(1, Math.floor(Math.min(innerWidth / this.scale, FIELD_WIDTH)));
+    this.height = Math.max(120, Math.floor(innerHeight / this.scale));
+
+    const sideRoom = (innerWidth - this.width * this.scale) / 2;
+    container.classList.toggle('sm-stage-roomy', sideRoom >= STAGE_SIDE_ROOM);
+  },
+
+  /**
+   * Size the backing store for the stage scale and device pixel ratio, and
+   * map logical coordinates onto it. Resizing a canvas resets its transform.
+   * @private
+   */
+  _applyDimensions() {
+    if (!this.element) return;
+    const ratio = Math.min(MAX_PIXEL_RATIO, globalThis.devicePixelRatio || 1);
+    const pixels = this.scale * ratio;
+    this.element.width = Math.round(this.width * pixels);
+    this.element.height = Math.round(this.height * pixels);
+    this.element.style.width = `${Math.round(this.width * this.scale)}px`;
+    this.element.style.height = `${Math.round(this.height * this.scale)}px`;
+    if (this.ctx) {
+      this.ctx.setTransform(pixels, 0, 0, pixels, 0, 0);
+      this.ctx.imageSmoothingEnabled = true;
+      this.ctx.imageSmoothingQuality = 'high';
+    }
   },
 
   /**
@@ -136,11 +195,7 @@ export const CanvasManager = {
     if (!container) return;
 
     this._calculateDimensions(container);
-
-    if (this.element) {
-      this.element.width = this.width;
-      this.element.height = this.height;
-    }
+    this._applyDimensions();
   },
 
   /**
@@ -391,6 +446,65 @@ export const CanvasManager = {
         offsetY: judgment.shadowOffset
       }
     });
+  },
+
+  /**
+   * Draw the lane highway behind the receptors: a translucent strip that
+   * fades toward the far end, lane dividers, rails that flare on the beat,
+   * and a colored beam up each lane that is held.
+   * @param {{ receptor: number, direction: 'up' | 'down', lit: boolean, held: boolean[] }} state
+   */
+  drawHighway({ receptor, direction, lit, held }) {
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const colWidth = this.width / 5;
+    const left = colWidth * 0.5;
+    const right = colWidth * 4.5;
+    const farY = direction === 'down' ? 0 : this.height;
+
+    ctx.save();
+
+    const strip = ctx.createLinearGradient(0, receptor, 0, farY);
+    strip.addColorStop(0, 'rgba(6, 8, 20, 0.78)');
+    strip.addColorStop(1, 'rgba(6, 8, 20, 0.2)');
+    ctx.fillStyle = strip;
+    ctx.fillRect(left, 0, right - left, this.height);
+
+    for (let col = 0; col < 4; col++) {
+      if (!held[col]) continue;
+      const x = colWidth * (col + 0.5);
+      const beam = ctx.createLinearGradient(0, receptor, 0, farY);
+      beam.addColorStop(0, `${LANE_COLORS[col]}66`);
+      beam.addColorStop(0.55, `${LANE_COLORS[col]}00`);
+      ctx.fillStyle = beam;
+      ctx.fillRect(x, 0, colWidth, this.height);
+    }
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+    for (let col = 1; col < 4; col++) {
+      ctx.fillRect(colWidth * (col + 0.5) - 0.5, 0, 1, this.height);
+    }
+
+    const railGlow = lit ? 16 : 8;
+    const railAlpha = lit ? 1 : 0.65;
+    ctx.globalAlpha = railAlpha;
+    ctx.shadowBlur = railGlow;
+    ctx.shadowColor = '#22d3ee';
+    ctx.fillStyle = '#22d3ee';
+    ctx.fillRect(left - 2, 0, 2, this.height);
+    ctx.shadowColor = '#e879f9';
+    ctx.fillStyle = '#e879f9';
+    ctx.fillRect(right, 0, 2, this.height);
+
+    ctx.globalAlpha = lit ? 0.32 : 0.14;
+    ctx.shadowBlur = 0;
+    const bar = ctx.createLinearGradient(left, 0, right, 0);
+    bar.addColorStop(0, '#22d3ee');
+    bar.addColorStop(1, '#e879f9');
+    ctx.fillStyle = bar;
+    ctx.fillRect(left, receptor - ARROW_WIDTH / 2, right - left, ARROW_WIDTH);
+
+    ctx.restore();
   },
 
   /**

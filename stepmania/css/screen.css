@@ -132,22 +132,126 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Game area sizing - now responsive with Tailwind */
+/* ── Top bar ─────────────────────────────────────────────────────── */
+.sm-topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  /* Clears the fixed nav toggle at top-left (see AGENTS.md); the bar is
+     centered, so wide viewports already have that clearance in the margin. */
+  padding: 0.85rem 1rem 0.6rem max(1rem, calc(8rem - (100vw - 80rem) / 2));
+}
+
+.sm-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.sm-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-style: italic;
+  text-transform: uppercase;
+  color: transparent;
+  background: linear-gradient(90deg, #22d3ee, #a855f7 55%, #e879f9);
+  -webkit-background-clip: text;
+  background-clip: text;
+  white-space: nowrap;
+}
+
+.sm-subtitle {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sm-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .sm-topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.7rem 0.75rem 0.5rem;
+  }
+
+  /* Nav toggle on the left, the fixed Score toggle on the right. */
+  .sm-brand {
+    min-height: 40px;
+    padding: 0 6.5rem;
+  }
+
+  .sm-title {
+    font-size: 1.25rem;
+  }
+
+  .sm-toolbar {
+    justify-content: center;
+  }
+}
+
+/* ── Stage ───────────────────────────────────────────────────────────
+   Dark in both themes: the field draws white text and neon lanes.
+   `isolation` keeps the z-index:-1 video above this background. */
 #sm-micro {
   width: 100%;
   height: 100%;
-  max-width: 800px;
-  min-height: clamp(220px, 42vh, 480px);
+  min-height: 160px;
   margin: 0 auto;
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-shrink: 0;
-  max-height: 60vh;
   overflow: hidden;
+  isolation: isolate;
   user-select: none;
+  background-color: #070814;
   background-size: cover;
   background-position: center;
+  border: 1px solid color-mix(in srgb, #a855f7 35%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #22d3ee 12%, transparent),
+    0 18px 50px -12px color-mix(in srgb, #a855f7 45%, transparent);
+}
+
+#sm-micro::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+      60% 45% at 50% 0%,
+      color-mix(in srgb, #a855f7 30%, transparent),
+      transparent
+    ),
+    radial-gradient(50% 35% at 50% 100%, color-mix(in srgb, #22d3ee 18%, transparent), transparent);
+}
+
+#video-background-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
 }
 
 .sm-home {
@@ -442,13 +546,6 @@ score-panel:not(:defined) {
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
-  #sm-micro {
-    width: 100%;
-    height: 100%;
-    min-height: 120px;
-    max-height: 55vh;
-  }
-
   /* Stack score items vertically on mobile */
   .score-horizontal {
     flex-direction: column;
@@ -523,13 +620,6 @@ body:not(.mobile) .score-toggle {
 }
 
 @media (max-width: 640px) {
-  #sm-micro {
-    width: 100%;
-    height: 100%;
-    min-height: 100px;
-    max-height: 50vh;
-  }
-
   .button {
     width: 60px !important;
     height: 60px !important;
@@ -656,11 +746,6 @@ body.mobile #gamepad-status {
 
 /* Extra small screen optimizations */
 @media (max-width: 480px) {
-  #sm-micro {
-    min-height: 80px;
-    max-height: 40vh;
-  }
-
   .step-button-container {
     width: 180px !important;
     height: 100px !important;
@@ -732,6 +817,99 @@ body.mobile #gamepad-status {
   flex-shrink: 0;
   position: relative;
   z-index: 10;
+  padding-bottom: 1.9rem;
+}
+
+.sm-controls-footer {
+  position: absolute;
+  left: 50%;
+  bottom: -26px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+body.mobile .sm-hint-text {
+  display: none;
+}
+
+/* Keyboard play on a desktop: the on-screen arrows are dead weight, and
+   the stage wants that height. Touch laptops keep them (body.mobile). */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  body:not(.mobile) .step-button-container {
+    display: none;
+  }
+}
+
+/* ── Scroll speed chip ───────────────────────────────────────────── */
+.sm-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pure-black) 55%, transparent);
+  border: 1px solid color-mix(in srgb, #22d3ee 35%, transparent);
+  color: #fff;
+  font-size: 0.8rem;
+}
+
+.sm-speed button {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffffff 10%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sm-speed button:hover {
+  background: color-mix(in srgb, #22d3ee 35%, transparent);
+}
+
+.sm-speed button:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 1px;
+}
+
+.sm-speed-value {
+  min-width: 3.1rem;
+  text-align: center;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 600;
+  color: #22d3ee;
+}
+
+.sm-speed-label {
+  padding: 0 0.3rem 0 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Stage HUD and speed chip sit beside the lanes, so they only appear
+   when CanvasManager reports room there (sm-stage-roomy). */
+.sm-speed-stage {
+  display: none;
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 20;
+}
+
+#sm-micro.sm-stage-roomy:not(.is-home) .sm-speed-stage {
+  display: inline-flex;
 }
 
 /* Audio controls container */
@@ -847,20 +1025,15 @@ game-over-modal.visible {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: var(--surface-0) !important;
+  background-color: #070814 !important;
   background-size: cover !important;
   background-position: center !important;
 }
 
-/* Canvas fills the fullscreen container */
+/* CanvasManager sizes the canvas to the fullscreen container itself. */
 #sm-micro:fullscreen canvas,
 #sm-micro:-webkit-full-screen canvas {
-  width: auto !important;
-  height: 100vh !important;
-  max-width: 100vw !important;
-  max-height: 100vh !important;
   border-radius: 0 !important;
-  object-fit: contain !important;
 }
 
 /* Hide video conversion status in fullscreen */
@@ -944,6 +1117,10 @@ game-over-modal.visible {
   display: none !important;
 }
 
+#sm-micro.sm-stage-roomy:not(.is-home) #fullscreen-score {
+  display: block !important;
+}
+
 #fullscreen-controls.visible {
   display: block !important;
   position: absolute;
@@ -959,56 +1136,67 @@ game-over-modal.visible {
   }
 }
 
-#fullscreen-score.visible {
-  display: block !important;
-}
-
-/* Fullscreen Score Overlay */
+/* Stage HUD: percent, combo, score. Fixed dark styling — it sits on the
+   always-dark stage, so it does not follow the page theme. */
 .fullscreen-score-overlay {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 100;
-  background: color-mix(in srgb, var(--surface-0) 70%, transparent); /* surface-0 @ 0.7 */
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 16px 20px;
-  border: 1px solid var(--hairline-accent);
-  min-width: 140px;
-  text-align: center;
+  top: 16px;
+  left: 16px;
+  z-index: 20;
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, #a855f7 22%, rgba(7, 8, 20, 0.8)),
+    rgba(7, 8, 20, 0.8)
+  );
+  border-radius: 14px;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, #a855f7 40%, transparent);
+  min-width: 120px;
+  text-align: left;
+}
+
+#sm-micro:fullscreen .fullscreen-score-overlay,
+#sm-micro:-webkit-full-screen .fullscreen-score-overlay {
+  top: 80px;
+  left: 20px;
 }
 
 .fs-score-percent {
   font-size: 2rem;
-  font-weight: bold;
-  color: var(--sm-judgment-perfect-pop);
-  text-shadow: 0 0 10px color-mix(in srgb, var(--sm-judgment-perfect-pop) 50%, transparent);
-  margin-bottom: 12px;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 0 0 14px color-mix(in srgb, #e879f9 70%, transparent);
+  margin-bottom: 10px;
 }
 
 .fs-score-stats {
   display: flex;
   gap: 16px;
-  justify-content: center;
 }
 
 .fs-stat {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .fs-stat-label {
-  font-size: 0.7rem;
-  color: var(--text-2);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.08em;
 }
 
 .fs-stat-value {
   font-size: 1.1rem;
   font-weight: bold;
-  color: var(--sm-judgment-great-pop);
+  font-variant-numeric: tabular-nums;
+  color: #22d3ee;
 }
 
 /* Larger score on bigger screens */

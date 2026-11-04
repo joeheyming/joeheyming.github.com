@@ -18,7 +18,6 @@ import {
   drawMine,
   drawHoldBody,
   calculateNoteFrameIndex,
-  isNoteOnScreen,
   calculateNoteY,
   noteFieldY,
   noteSpanOnScreen,
@@ -508,16 +507,7 @@ function initManagers(audioElement = null, video = {}) {
   inputManager.onRelease((col) => {
     releaseHold(col);
   });
-  inputManager.onSpeedChange((direction) => {
-    if (gameState.getScrollMode() === 'cmod') {
-      const newBPM = gameState.getScrollBPM() + direction * 25;
-      gameState.setScrollBPM(newBPM);
-    } else {
-      const newSpeed = Math.max(0.5, Math.min(8, gameState.getScrollSpeed() + direction * 0.25));
-      gameState.setScrollSpeed(newSpeed);
-    }
-    showSpeedOverlay();
-  });
+  inputManager.onSpeedChange(changeScrollSpeed);
   inputManager.onScrollModeChange(() => {
     gameState.toggleScrollMode();
     showSpeedOverlay();
@@ -586,8 +576,41 @@ async function applyBackgroundChange(bgChange) {
   }
 }
 
+/**
+ * Step the scroll speed: 0.25× in XMod, 25 BPM in CMod.
+ * @param {number} direction - -1 slower, +1 faster
+ */
+function changeScrollSpeed(direction) {
+  if (gameState.getScrollMode() === 'cmod') {
+    gameState.setScrollBPM(gameState.getScrollBPM() + direction * 25);
+  } else {
+    const newSpeed = Math.max(0.5, Math.min(8, gameState.getScrollSpeed() + direction * 0.25));
+    gameState.setScrollSpeed(newSpeed);
+  }
+  showSpeedOverlay();
+}
+
+function updateSpeedChips() {
+  const label = gameState.getScrollSpeedLabel();
+  document.querySelectorAll('[data-speed-value]').forEach((el) => {
+    el.textContent = label;
+  });
+}
+
+function bindSpeedChips() {
+  document.querySelectorAll('[data-speed-step]').forEach((btn) => {
+    // Keep focus off the chip so Space still means play / pause.
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', () => {
+      changeScrollSpeed(btn.getAttribute('data-speed-step') === 'down' ? -1 : 1);
+    });
+  });
+  updateSpeedChips();
+}
+
 function showSpeedOverlay() {
   speedOverlayTimer = SPEED_OVERLAY_DURATION;
+  updateSpeedChips();
 }
 
 function drawSpeedOverlay(deltaSeconds) {
@@ -651,6 +674,21 @@ function draw(deltaSeconds) {
 
   CanvasManager.clear();
 
+  const musicBeat = secondsToBeats(currentTime);
+  const lit = Math.abs(musicBeat - Math.round(musicBeat)) < 0.1;
+  targets.forEach((target) => {
+    target.props.frameIndex = lit ? 0 : 1;
+  });
+  CanvasManager.drawHighway({
+    receptor,
+    direction: gameState.getScrollDirection(),
+    lit,
+    held: [0, 1, 2, 3].map(
+      (col) =>
+        inputManager.isColumnHeld(col) || (!!activeHolds[col] && !activeHolds[col].wasDropped)
+    )
+  });
+
   targets.forEach(function (target) {
     target.draw();
   });
@@ -700,13 +738,6 @@ function drawNoteField() {
     cmodPxPerSec = (gameState.getScrollBPM() / 60) * arrowSize;
   }
 
-  // Update target lighting based on beat
-  const distFromNearestBeat = Math.abs(musicBeat - Math.round(musicBeat));
-  const lit = distFromNearestBeat < 0.1;
-  targets.forEach((target) => {
-    target.props.frameIndex = lit ? 0 : 1;
-  });
-
   const canvasHeight = CanvasManager.height;
 
   // Draw each note
@@ -753,8 +784,18 @@ function drawNoteField() {
       // double-counts it and teleports every arrow on screen the instant
       // the BPM changes.
       currentScrollSpeed = scrollSpeed;
-      if (!isNoteOnScreen(beatUntilNote, beatUntilNoteEnd, currentScrollSpeed)) continue;
       y = calculateNoteY(beatUntilNote, arrowSize, currentScrollSpeed, receptor, scrollDirection);
+      const noteEndY =
+        noteEndBeat === beat
+          ? y
+          : calculateNoteY(
+              beatUntilNoteEnd,
+              arrowSize,
+              currentScrollSpeed,
+              receptor,
+              scrollDirection
+            );
+      if (!noteSpanOnScreen(y, noteEndY, canvasHeight)) continue;
       cmodInfo = null;
     }
 
@@ -979,7 +1020,10 @@ function initStepmaniaDomAndLoop() {
   // container after the next paint — `resize` only updates dimensions
   // and does not recreate the canvas or reset actors.
   requestAnimationFrame(() => {
-    setTimeout(() => CanvasManager.resize(containerId), 50);
+    setTimeout(() => {
+      CanvasManager.resize(containerId);
+      initializeActors();
+    }, 50);
   });
 
   const scoreToggle = document.getElementById('scoreToggle');
@@ -996,6 +1040,7 @@ function initStepmaniaDomAndLoop() {
 
   initManagers(audioElement, video);
   if (embedded) inputManager.disable();
+  else bindSpeedChips();
 
   audioManager.onPlay(() => {
     if (!embedded) {

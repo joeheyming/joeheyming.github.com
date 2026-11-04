@@ -60,16 +60,6 @@ function startFullscreenScoreSync() {
 }
 
 /**
- * Stop syncing score display to fullscreen overlay
- */
-function stopFullscreenScoreSync() {
-  if (fullscreenScoreSyncInterval) {
-    clearInterval(fullscreenScoreSyncInterval);
-    fullscreenScoreSyncInterval = null;
-  }
-}
-
-/**
  * Handle fullscreen state changes
  */
 function handleFullscreenChange() {
@@ -104,48 +94,11 @@ function handleFullscreenChange() {
 
   if (fsScore) {
     fsScore.classList.toggle('visible', isFullscreen);
-    if (isFullscreen) {
-      startFullscreenScoreSync();
-    } else {
-      stopFullscreenScoreSync();
-    }
   }
 
-  // Give the browser a moment to adjust layout, then resize the canvas
+  // The stage scale is derived from the container, so a resize after the
+  // browser settles the fullscreen layout is all the canvas needs.
   setTimeout(() => {
-    if (window.CanvasManager) {
-      if (isFullscreen) {
-        // In fullscreen, make canvas fill the screen while maintaining aspect ratio
-        const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
-
-        // Calculate canvas size to fill screen while maintaining playable area
-        const aspectRatio = 4 / 5; // width to height ratio for game
-        let canvasWidth, canvasHeight;
-
-        if (screenWidth / screenHeight > aspectRatio) {
-          // Screen is wider than needed, constrain by height
-          canvasHeight = screenHeight;
-          canvasWidth = Math.min(screenHeight * aspectRatio, screenWidth * 0.6);
-        } else {
-          // Screen is taller than needed, constrain by width
-          canvasWidth = screenWidth * 0.6;
-          canvasHeight = canvasWidth / aspectRatio;
-        }
-
-        // Update canvas dimensions
-        if (window.CanvasManager.element) {
-          window.CanvasManager.width = Math.floor(canvasWidth);
-          window.CanvasManager.height = Math.floor(canvasHeight);
-          window.CanvasManager.element.width = window.CanvasManager.width;
-          window.CanvasManager.element.height = window.CanvasManager.height;
-        }
-      } else {
-        // Exiting fullscreen, restore normal size
-        window.CanvasManager.resize('sm-micro');
-      }
-    }
-    // Dispatch resize event to trigger any other resize handlers
     window.dispatchEvent(new Event('resize'));
   }, 100);
 }
@@ -221,6 +174,9 @@ export function initFullscreen() {
   // Setup buttons and keyboard shortcuts
   setupFullscreenButtons();
   setupKeyboardShortcut();
+
+  // The stage HUD mirrors the score panel in and out of fullscreen.
+  startFullscreenScoreSync();
 }
 
 // Initialize when DOM is ready
