@@ -88,29 +88,41 @@ class RomBrowserElement extends HTMLElement {
           position: sticky;
           top: 0;
           z-index: 2;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 12px;
           background: var(--card-bg);
-          padding-bottom: 0.25rem;
+          padding-bottom: 8px;
         }
-        .library-head { margin: 0 0 0.75rem; }
+        .library-head {
+          flex: 1 1 140px;
+          min-width: 0;
+          margin: 0;
+        }
         .library-title {
           /* Headings use brand text tokens — console accents (PS1 navy /
            * SNES deep purple) fail AA on dark surfaces. */
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 700;
           color: var(--text-1);
-          margin: 0 0 0.25rem;
+          margin: 0;
         }
         .library-sub {
           margin: 0;
           color: var(--text-2);
-          font-size: 0.9rem;
-          line-height: 1.4;
+          font-size: 0.8rem;
+          line-height: 1.3;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         .library-tools {
           display: flex;
           gap: 0.5rem;
           align-items: center;
-          margin-bottom: 0.75rem;
+          flex: 1 1 180px;
+          margin: 0;
         }
         .library-tools .search-container { flex: 1; margin: 0; }
         .search-toggle {
@@ -247,23 +259,27 @@ class RomBrowserElement extends HTMLElement {
         }
         .rom-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(${tv ? '200px' : '180px'}, 1fr));
-          gap: ${tv ? '1.25rem' : '1rem'};
-          padding: 1rem;
+          grid-template-columns: repeat(auto-fill, minmax(${tv ? '200px' : '168px'}, 1fr));
+          gap: ${tv ? '14px' : '12px'};
+          padding: 2px 0 12px;
+          align-items: stretch;
         }
         .rom-card {
-          background: var(--surface-1);
-          border: 1px solid var(--hairline);
-          border-radius: 0.75rem;
-          padding: ${tv ? '1.25rem' : '1rem'};
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          background: var(--surface-2);
+          border: 1px solid var(--hairline-strong);
+          border-radius: 12px;
+          padding: ${tv ? '12px' : '10px'};
+          box-shadow: var(--shadow-card);
           cursor: pointer;
-          transition: all 0.2s;
+          transition: border-color 0.2s, transform 0.2s, background-color 0.2s;
         }
         .rom-card:hover {
           background: var(--accent-bright-soft);
           border-color: var(--accent-bright);
           transform: translateY(-2px);
-          box-shadow: var(--shadow-card);
         }
         .rom-card:focus-visible {
           outline: 4px solid var(--accent-bright);
@@ -271,32 +287,58 @@ class RomBrowserElement extends HTMLElement {
           background: var(--accent-bright-soft);
           border-color: var(--accent-bright);
         }
+        .rom-art-frame {
+          display: grid;
+          place-items: center;
+          aspect-ratio: 4 / 3;
+          margin: 0 0 8px;
+          border-radius: 8px;
+          overflow: hidden;
+          background:
+            linear-gradient(160deg, var(--accent-bright-soft), var(--surface-0));
+        }
         .rom-art {
           display: block;
-          width: auto;
-          max-width: 100%;
-          max-height: ${tv ? '280px' : '200px'};
-          margin: 0 auto 0.75rem;
+          width: 100%;
+          height: 100%;
           object-fit: contain;
-          border-radius: 0.35rem;
-          background: var(--surface-0);
+          background: transparent;
         }
         /* Stay out of the layout until the image actually loads. Eager
-           fetch still runs: loading=lazy plus display:none never starts. */
+           fetch still runs: loading=lazy plus display:none never starts.
+           The frame keeps the grid aligned while the file is in flight. */
         .rom-art[hidden] { display: none !important; }
         .rom-title {
-          font-weight: bold;
+          font-weight: 700;
           color: var(--text-1);
-          margin-bottom: 0.5rem;
-          font-size: ${tv ? '1.25rem' : '1.1rem'};
+          margin-bottom: 4px;
+          font-size: ${tv ? '1.15rem' : '0.95rem'};
+          line-height: 1.25;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          overflow: hidden;
         }
-        .rom-info { color: var(--text-2); font-size: 0.875rem; line-height: 1.4; }
-        .rom-size { color: var(--text-3); font-size: 0.75rem; margin-top: 0.25rem; }
+        .rom-info {
+          color: var(--text-2);
+          font-size: 0.75rem;
+          line-height: 1.35;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          overflow: hidden;
+        }
+        .rom-size {
+          color: var(--text-3);
+          font-size: 0.7rem;
+          margin-top: 4px;
+        }
         .rom-actions {
           display: flex;
-          flex-wrap: wrap;
-          gap: 0.5rem;
-          margin-top: 0.8rem;
+          flex-direction: column;
+          gap: 4px;
+          margin-top: auto;
+          padding-top: 8px;
         }
         .rom-more {
           display: block;
@@ -312,22 +354,25 @@ class RomBrowserElement extends HTMLElement {
         .rom-actions button,
         .rom-actions a {
           appearance: none;
-          border: 1px solid var(--hairline);
-          border-radius: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          background: var(--surface-0);
-          color: var(--text-1);
+          border: 1px solid transparent;
+          border-radius: 8px;
+          padding: 0.45rem 0.6rem;
+          background: transparent;
+          color: var(--text-2);
           font: inherit;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           font-weight: 600;
           line-height: 1.2;
-          text-decoration: none;
+          text-align: center;
+          text-decoration: underline;
+          text-underline-offset: 2px;
           cursor: pointer;
         }
         .rom-actions button {
           border-color: var(--accent-bright);
           background: var(--accent-bright);
           color: var(--text-on-accent);
+          text-decoration: none;
         }
         .rom-actions button:focus-visible,
         .rom-actions a:focus-visible {
@@ -604,9 +649,12 @@ class RomBrowserElement extends HTMLElement {
       const description = this._escapeHtml(rom.description);
       const size = this._escapeHtml(rom.size);
 
+      const sameAsTitle =
+        rom.description === rom.title ||
+        (rom.title && String(rom.description || '').endsWith(`: ${rom.title}`));
       romCard.innerHTML = `
         <div class="rom-title">${title}</div>
-        <div class="rom-info">${description}</div>
+        ${sameAsTitle ? '' : `<div class="rom-info">${description}</div>`}
         <div class="rom-size">${size}</div>
         <div class="rom-actions">
           <button type="button" data-action="play-rom">${
@@ -617,8 +665,11 @@ class RomBrowserElement extends HTMLElement {
           )}" target="_blank" rel="noopener noreferrer">Download instead</a>
         </div>
       `;
+      const frame = document.createElement('div');
+      frame.className = 'rom-art-frame';
       const art = this._romArt(rom);
-      if (art) romCard.prepend(art);
+      if (art) frame.appendChild(art);
+      romCard.prepend(frame);
       romCard
         .querySelector('[data-action="play-rom"]')
         ?.addEventListener('click', () => this.loadRom(rom));

@@ -338,16 +338,19 @@
 
     const isDisc = !!cfg.iaExternalDownload;
     const isFlash = cfg.player === 'ruffle';
-    const loadLabel = isFlash
-      ? `Load local Flash game (${escapeHtml(cfg.fileExtsLabel)})`
+    const loadLabel = isFlash ? 'Load .swf' : isDisc ? 'Load disc' : 'Load ROM';
+    const loadTitle = isFlash
+      ? `Load a local Flash game (${cfg.fileExtsLabel})`
       : isDisc
-      ? `Load Local Disc Image (${escapeHtml(cfg.fileExtsLabel)})`
-      : `Load Local ROM File (${escapeHtml(cfg.fileExtsLabel)})`;
+      ? `Load a local disc image (${cfg.fileExtsLabel})`
+      : `Load a local ROM (${cfg.fileExtsLabel})`;
 
     const filePickerHtml = tv
       ? ''
       : `
-        <button class="btn btn-secondary" id="loadRomBtn" type="button">
+        <button class="btn btn-secondary" id="loadRomBtn" type="button" title="${escapeHtml(
+          loadTitle
+        )}">
           <span>📁</span>
           <span>${loadLabel}</span>
         </button>`;
@@ -355,7 +358,7 @@
 
     bootCard.innerHTML = `
       <div class="boot-card-header">
-        <h2>🕹️ Load a ${isFlash ? 'game' : isDisc ? 'disc' : 'ROM'} to play</h2>
+        <h2>🕹️ Load a ${isFlash ? 'game' : isDisc ? 'disc' : 'ROM'}</h2>
         ${gamepadBannerHtml()}
         ${singleThreadNoticeHtml()}
         ${
@@ -370,8 +373,10 @@
         ${howtoHtml}
         <details class="controls-info">
           <summary>${controlsSummary}</summary>
-          ${gamepadHint}
-          <div class="controls-grid">${controlsRows}</div>
+          <div class="controls-panel">
+            ${gamepadHint}
+            <div class="controls-grid">${controlsRows}</div>
+          </div>
         </details>
       </div>
       <div class="boot-card-scroll">
