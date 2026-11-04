@@ -149,16 +149,15 @@ export class AccordionSynth {
     this.toneName = name;
     this.fallbackFromSamples = false;
     this.bassVoice = null;
-    // `loop: true` keeps the sample sustaining for as long as the key
-    // is held — accordion notes ring as long as there's air, not for
-    // the few-second length of a single sample. This is doubly
-    // important for bellows mode, where the player may pump-and-hold
-    // long after the sample would have naturally faded out.
+    // Play each recording straight through. A spliced sustain loop (skip
+    // the attack, jump back at an arbitrary sample) was added so a held
+    // key would ring with the bellows; the splice is not a zero crossing,
+    // so every cycle clicks and the note buzzes. soundfont-player's own
+    // envelope already holds the recorded note and releases on note-off.
     const dest = this.destination;
     const bassDest = this.bassDestination || dest;
     if (name === BUTTON_ACCORDION_TONE) {
       const sampler = MultiSampler.fromNotes(buildButtonAccordionAnchors(), {
-        loop: true,
         destination: dest
       });
       this.voice = sampler;
@@ -170,7 +169,6 @@ export class AccordionSynth {
         if (this.voice === sampler && !sampler.isReady()) {
           this.fallbackFromSamples = true;
           const fallback = new SampleVoice(BUTTON_ACCORDION_LEFT_HAND_TONE, {
-            loop: true,
             destination: dest
           });
           this.voice = fallback;
@@ -182,19 +180,18 @@ export class AccordionSynth {
       // reeds. The Stradella's onPress passes `side: 'left'` so this
       // is what plays for bass row, counter-bass, and chord triads.
       const bass = new SampleVoice(BUTTON_ACCORDION_LEFT_HAND_TONE, {
-        loop: true,
         destination: bassDest
       });
       this.bassVoice = bass;
       bass.load();
     } else {
-      this.voice = new SampleVoice(name, { loop: true, destination: dest });
+      this.voice = new SampleVoice(name, { destination: dest });
       this.voice.load();
       // For non-FreePats tones there's no separate bass voice — but if
       // the caller asked for a bass-boost destination, route a parallel
       // bass-only voice through it so the boost still applies.
       if (this.bassDestination && this.bassDestination !== dest) {
-        const bass = new SampleVoice(name, { loop: true, destination: bassDest });
+        const bass = new SampleVoice(name, { destination: bassDest });
         this.bassVoice = bass;
         bass.load();
       }

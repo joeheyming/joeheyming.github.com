@@ -394,10 +394,10 @@ export function loadInstrument(name, destination = null) {
  * Used by piano/accordion/guitar where we just want clean note-on/off.
  *
  * `playOptions` is forwarded to soundfont-player's `instrument.play()` on
- * every note-on. Most callers leave it empty (default piano-style ADSR);
- * the accordion passes `{ loop: true }` so held notes sustain forever
- * (the MusyngKite samples are only a few seconds long, but soundfont-
- * player loops them seamlessly via the embedded sample loop points).
+ * every note-on. Callers leave it empty for the library's own envelope:
+ * the recorded note plays through, and note-off runs the release. Do not
+ * rewrite `loopStart` / `loopEnd` here — a hand-picked splice is not a
+ * zero crossing, and the note buzzes on every cycle.
  *
  * Pass `{ destination }` (an AudioNode) to route the voice into a custom
  * gain stage instead of the master output — used by accordion to send
@@ -460,20 +460,6 @@ export class SampleVoice {
         node.source.detune.value = detune;
       } catch (_) {
         /* older WebAudio without detune support — fail silently */
-      }
-    }
-
-    // When looping, trim the loop region to skip the sample's natural
-    // attack and release. Without this we'd loop the entire 3s buffer,
-    // which produces an audible "pulse" every loop boundary as the
-    // recorded decay restarts at full attack volume. By looping only the
-    // sustained middle, sustained held notes stay smooth.
-    if (this.playOptions.loop && node && node.source && node.source.buffer) {
-      const dur = node.source.buffer.duration;
-      if (dur > 0.5) {
-        const trim = Math.min(0.25, dur * 0.1);
-        node.source.loopStart = trim;
-        node.source.loopEnd = Math.max(trim + 0.05, dur - trim);
       }
     }
 

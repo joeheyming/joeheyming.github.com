@@ -63,20 +63,14 @@ nylon / electric jazz / overdriven options.
 
 ## Accordion
 
-[`play/accordion`](./accordion/) defaults to the new "Button accordion
-(samples)" tone — single-reed Hohner samples processed into a
-public-domain pack — and keeps the MusyngKite reed soundfonts as
-alternate tones.
+[`play/accordion`](./accordion/) defaults to the MusyngKite accordion
+soundfont. The FreePats button-accordion pack is an optional reed; notes
+play the recording straight through (no spliced sustain loop).
 
 | Tone | Source | License |
 | --- | --- | --- |
-| Button accordion (samples) | [freepats/button-accordion-HN](https://github.com/freepats/button-accordion-HN) (Hohner samples by Jeff Stauffer, 2023; sound-bank by michael02022 via the [FreePats project](https://freepats.zenvoid.org/Organ/accordion.html)) | CC0 1.0 (public domain) |
 | Accordion / Tango accordion / Reed organ / Harmonica (soundfont) | MusyngKite (as above) | MIT |
-
-The 17 anchor samples (B3–G6) are looped in their sustained middle so
-held keys ring as long as the bellows have air, and the same MultiSampler
-detune-by-`playbackRate` trick used by the piano and guitar fills in
-notes outside the recorded range.
+| Button accordion (samples) | [freepats/button-accordion-HN](https://github.com/freepats/button-accordion-HN) (Hohner samples by Jeff Stauffer, 2023; sound-bank by michael02022 via the [FreePats project](https://freepats.zenvoid.org/Organ/accordion.html)) | CC0 1.0 (public domain) |
 
 ## Synth
 
@@ -108,6 +102,6 @@ and provides:
   memory cache and an `IndexedDB` byte cache.
 - `SampleKit` — named one-shot collection (used by drums + metronome).
 - `MultiSampler` — sparse multi-sample with `playbackRate` detune (used
-  by the piano, guitar, and accordion sample tones). Pass `{ loop: true }`
-  for sustained-tone instruments like accordion so held notes loop the
-  sustained middle of each recording instead of decaying.
+  by the piano, guitar, and accordion sample tones). Playback is one-shot
+  unless a caller passes `{ loop: true }`, which repeats the buffer as
+  recorded.

@@ -87,9 +87,15 @@ if (instrumentHelpEl && isTouch) {
 
 const prefs = Prefs.load();
 if (typeof prefs.volume === 'number') volumeEl.value = String(prefs.volume);
+// The musette sample pack was the shipped default and got saved on the
+// first visit. It pitch-shifts a wet recording, which is the grit people
+// hear. Treat that saved default as "no choice" and start on the soundfont.
+// Picking a reed in the menu sets tonePicked so the choice sticks.
+let tonePicked = prefs.tonePicked === true;
 if (typeof prefs.tone === 'string') {
-  const opt = Array.from(toneEl.options).find((o) => o.value === prefs.tone);
-  if (opt) toneEl.value = prefs.tone;
+  const savedTone = prefs.tone === BUTTON_ACCORDION_TONE && !tonePicked ? 'accordion' : prefs.tone;
+  const opt = Array.from(toneEl.options).find((o) => o.value === savedTone);
+  if (opt) toneEl.value = savedTone;
 }
 if (typeof prefs.pianoLayout === 'string' && pianoLayoutEl) {
   const opt = Array.from(pianoLayoutEl.options).find((o) => o.value === prefs.pianoLayout);
@@ -247,6 +253,7 @@ const persist = () => {
   Prefs.save({
     volume: Number(volumeEl.value),
     tone: toneEl.value,
+    tonePicked,
     pianoLayout: pianoLayoutEl ? pianoLayoutEl.value : '25',
     bassSize: bassSizeEl ? bassSizeEl.value : '120',
     bassFlip: bassFlipEl ? bassFlipEl.value : 'normal',
@@ -401,6 +408,7 @@ volumeEl.addEventListener('input', () => {
 });
 
 toneEl.addEventListener('change', () => {
+  tonePicked = true;
   switchTone(toneEl.value);
   persist();
 });

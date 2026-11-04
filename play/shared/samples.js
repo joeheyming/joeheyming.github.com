@@ -239,10 +239,9 @@ export class SampleKit {
  * `anchors` is `{ midi: urls[] }` (or `{ midi: url }`). Names like 'C4' are
  * accepted by MultiSampler.fromNotes() below.
  *
- * Pass `{ loop: true }` to the constructor for sustained-tone instruments
- * (accordion, harmonium, organ) — held notes loop the sustained middle of
- * each sample so a key can be held indefinitely. The default is one-shot
- * playback (piano, guitar pluck) where the sample just decays naturally.
+ * The default is one-shot playback: the recording plays through and stops.
+ * `{ loop: true }` repeats the buffer as recorded. Do not invent loop
+ * points — a splice that is not a zero crossing buzzes on every cycle.
  */
 export class MultiSampler {
   constructor(anchors = {}, options = {}) {
@@ -339,20 +338,8 @@ export class MultiSampler {
       }
     }
 
-    // Looped playback for sustained instruments. We loop the sustained
-    // middle of the buffer (skipping the recorded attack and release) so
-    // a held note rings forever without an audible "thump" at each loop
-    // boundary. Same trick the SampleVoice in shared/audio.js uses.
     const shouldLoop = loop != null ? loop : this.loop;
-    if (shouldLoop) {
-      const dur = buf.duration;
-      src.loop = true;
-      if (dur > 0.5) {
-        const trim = Math.min(0.25, dur * 0.1);
-        src.loopStart = trim;
-        src.loopEnd = Math.max(trim + 0.05, dur - trim);
-      }
-    }
+    src.loop = shouldLoop;
 
     const g = ctx.createGain();
     const now = ctx.currentTime;
