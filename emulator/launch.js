@@ -337,7 +337,10 @@
         : '';
 
     const isDisc = !!cfg.iaExternalDownload;
-    const loadLabel = isDisc
+    const isFlash = cfg.player === 'ruffle';
+    const loadLabel = isFlash
+      ? `Load local Flash game (${escapeHtml(cfg.fileExtsLabel)})`
+      : isDisc
       ? `Load Local Disc Image (${escapeHtml(cfg.fileExtsLabel)})`
       : `Load Local ROM File (${escapeHtml(cfg.fileExtsLabel)})`;
 
@@ -351,21 +354,29 @@
     const fileStack = filePickerHtml ? `<div class="btn-stack">${filePickerHtml}</div>` : '';
 
     bootCard.innerHTML = `
-      <h2>🕹️ Load a ${isDisc ? 'disc' : 'ROM'} to play</h2>
-      ${gamepadBannerHtml()}
-      ${singleThreadNoticeHtml()}
-      ${cfg.audioNote ? `<p class="audio-note" role="status">${escapeHtml(cfg.audioNote)}</p>` : ''}
-      ${biosPanelHtml}
-      ${fileStack}
-      <rom-browser console="${cfg.id}"></rom-browser>
-      ${howtoHtml}
-      ${romHelpHtml}
-      ${tvNoCollectionHtml}
-      <details class="controls-info">
-        <summary>${controlsSummary}</summary>
-        ${gamepadHint}
-        <div class="controls-grid">${controlsRows}</div>
-      </details>
+      <div class="boot-card-header">
+        <h2>🕹️ Load a ${isFlash ? 'game' : isDisc ? 'disc' : 'ROM'} to play</h2>
+        ${gamepadBannerHtml()}
+        ${singleThreadNoticeHtml()}
+        ${
+          cfg.audioNote
+            ? `<p class="audio-note" role="status">${escapeHtml(cfg.audioNote)}</p>`
+            : ''
+        }
+        ${biosPanelHtml}
+        ${fileStack}
+        ${romHelpHtml}
+        ${tvNoCollectionHtml}
+        ${howtoHtml}
+        <details class="controls-info">
+          <summary>${controlsSummary}</summary>
+          ${gamepadHint}
+          <div class="controls-grid">${controlsRows}</div>
+        </details>
+      </div>
+      <div class="boot-card-scroll">
+        <rom-browser console="${cfg.id}"></rom-browser>
+      </div>
     `;
 
     const romInput = document.getElementById('romFileInput');
@@ -489,7 +500,7 @@
       <span class="brand-logo">🎮</span>
       <h1>
         Retro Game Emulator
-        <span class="sub">NES · Sega · Game Gear · 32X · Sega CD · SNES · Game Boy · GBA · Neo Geo · N64 · PS1</span>
+        <span class="sub">NES · Sega · Game Gear · 32X · Sega CD · SNES · Game Boy · GBA · Neo Geo · N64 · PS1 · Flash</span>
       </h1>
     `;
 
@@ -510,26 +521,30 @@
       <h2>🕹️ Pick a console</h2>
       ${gamepadBannerHtml()}
       <div class="picker-grid">${tiles}</div>
-      <div class="picker-extra">
-        <h3 class="picker-extra-heading">Also try</h3>
-        <a class="picker-tile picker-tile-flash" href="/flash/" data-extra="flash">
-          <span class="picker-emoji">⚡</span>
-          <span class="picker-title">Flash Player</span>
-          <span class="picker-sub">Classic .swf games via Ruffle · Archive collection</span>
-        </a>
-      </div>
       <p class="picker-help">
         Free, browser-based emulators. No install, no ads. Bring your own ROM
-        or browse the built-in public-domain collection. Flash games live on a
-        separate Ruffle player.
+        or browse the built-in collection. Flash games play here too, via Ruffle.
       </p>
     `;
 
     wireTvFocus(bootCard);
   }
 
+  /** @param {string} message */
+  function insertBootNotice(message) {
+    const boot = document.getElementById('boot-card');
+    if (!boot) return;
+    const header = boot.querySelector('.boot-card-header') || boot;
+    const note = document.createElement('p');
+    note.className = 'deeplink-error';
+    note.textContent = message;
+    const heading = header.querySelector('h2');
+    if (heading) header.insertBefore(note, heading.nextSibling);
+    else header.prepend(note);
+  }
+
   /**
-   * Insert a panel above the boot card handing the visitor the Archive
+   * Insert a panel in the boot-card header handing the visitor the Archive
    * download link plus the local file picker. Used for Sega CD and Saturn
    * deep links, whose discs are too large to stream.
    *
@@ -558,11 +573,39 @@
         </button>
       </div>
     `;
-    boot.insertBefore(panel, boot.firstChild.nextSibling);
+    const header = boot.querySelector('.boot-card-header') || boot;
+    const heading = header.querySelector('h2');
+    if (heading) header.insertBefore(panel, heading.nextSibling);
+    else header.prepend(panel);
 
     document.getElementById('deeplinkLoadLocalBtn')?.addEventListener('click', () => {
       document.getElementById('romFileInput')?.click();
     });
+  }
+
+  /**
+   * Sheet library when games-sheet.js is configured, otherwise the live
+   * Archive listing. Play still downloads through an IA client.
+   *
+   * @param {object} cfg
+   * @returns {Promise<object[]>}
+   */
+  async function listRoms(cfg) {
+    const sheet = window.emulatorGamesSheet;
+    const acquire = romAcquire();
+    const ia = acquire && acquire.createIaClient(cfg);
+    if (sheet && typeof sheet.isConfigured === 'function' && sheet.isConfigured()) {
+      try {
+        return await sheet.loadConsoleGames(cfg.id, {
+          descriptionPrefix: cfg.iaDescriptionPrefix
+        });
+      } catch (err) {
+        console.warn('Games sheet unavailable; listing Internet Archive instead.', err);
+        if (!ia) throw err;
+      }
+    }
+    if (!ia) throw new Error('ROM browser is not configured for this console.');
+    return ia.fetchRomList();
   }
 
   /**
@@ -585,7 +628,7 @@
     if (!streams) {
       bootCard.innerHTML = `
         <h2>Finding ${escapeHtml(wanted)}</h2>
-        <p class="picker-help">Looking it up in the Internet Archive collection…</p>
+        <p class="picker-help">Looking it up in the game library…</p>
         <button type="button" class="btn btn-secondary" id="cancelDeeplinkBtn">
           Cancel — back to game list
         </button>
@@ -593,10 +636,7 @@
       document.getElementById('cancelDeeplinkBtn')?.addEventListener('click', returnToGameList);
 
       try {
-        const ia = acquire && acquire.createIaClient(cfg);
-        if (!ia) throw new Error('ROM browser is not configured for this console.');
-
-        const roms = await ia.fetchRomList();
+        const roms = await listRoms(cfg);
         const rom = acquire.findRomByQuery(roms, wanted);
         if (!rom) throw new Error(`ROM not found: ${wanted}`);
 
@@ -604,14 +644,9 @@
       } catch (err) {
         console.error('Deep-link ROM lookup failed:', err);
         renderBootCard(cfg);
-        const boot = document.getElementById('boot-card');
-        if (boot && boot.firstChild) {
-          const note = document.createElement('p');
-          note.className = 'deeplink-error';
-          note.textContent =
-            'Could not find “' + wanted + '”. Pick a game from the collection instead.';
-          boot.insertBefore(note, boot.firstChild.nextSibling);
-        }
+        insertBootNotice(
+          'Could not find “' + wanted + '”. Pick a game from the collection instead.'
+        );
       }
       return;
     }
@@ -633,7 +668,7 @@
       const ia = acquire && acquire.createIaClient(cfg);
       if (!ia) throw new Error('ROM browser is not configured for this console.');
 
-      const roms = await ia.fetchRomList();
+      const roms = await listRoms(cfg);
       if (controller.signal.aborted) return;
       const rom = acquire.findRomByQuery(roms, wanted);
       if (!rom) throw new Error(`ROM not found: ${wanted}`);
@@ -646,14 +681,7 @@
       if (controller.signal.aborted || (err && err.name === 'AbortError')) return;
       console.error('Deep-link ROM load failed:', err);
       renderBootCard(cfg);
-      const boot = document.getElementById('boot-card');
-      if (boot && boot.firstChild) {
-        const note = document.createElement('p');
-        note.className = 'deeplink-error';
-        note.textContent =
-          'Could not load “' + wanted + '”. Pick a ROM from the collection instead.';
-        boot.insertBefore(note, boot.firstChild.nextSibling);
-      }
+      insertBootNotice('Could not load “' + wanted + '”. Pick a ROM from the collection instead.');
     }
   }
 
@@ -734,8 +762,29 @@
   });
 
   // Public entry point: handed a File (local picker, Play in browser, or a
-  // ?rom= deep link). Thin wrapper: BIOS gate + chrome/achievements, then
-  // emulatorEjsMount.mount for EJS_* + loader + SOCD.
+  // ?rom= deep link). BIOS gate + chrome, then Ruffle or emulatorEjsMount.
+  async function mountRuffle(romSource) {
+    const game = document.getElementById('game');
+    const RufflePlayer = window.RufflePlayer;
+    if (!game || !RufflePlayer || typeof RufflePlayer.newest !== 'function') {
+      if (game) game.textContent = 'Flash player failed to load. Reload and try again.';
+      return;
+    }
+    game.replaceChildren();
+    const player = RufflePlayer.newest().createPlayer();
+    player.style.width = '100%';
+    player.style.height = '100%';
+    game.appendChild(player);
+    const url = URL.createObjectURL(romSource);
+    try {
+      await player.ruffle().load(url);
+    } catch (err) {
+      URL.revokeObjectURL(url);
+      game.textContent = 'Could not start this Flash game.';
+      console.error(err);
+    }
+  }
+
   window.launchEmulator = async function launchEmulator(romSource, romName) {
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
     if (!cfg) {
@@ -774,6 +823,11 @@
     }
 
     mountPlayChrome(cfg);
+
+    if (cfg.player === 'ruffle') {
+      await mountRuffle(romSource);
+      return;
+    }
 
     const mountApi = window.emulatorEjsMount;
     if (!mountApi || typeof mountApi.mount !== 'function') {

@@ -89,7 +89,7 @@ const PAGES = [
     title: 'PS1 Emulator'
   },
   {
-    url: `${BASE_URL}/flash/`,
+    url: `${BASE_URL}/emulator/flash/`,
     output: 'flash/flash-preview.png',
     title: 'Flash Player'
   },

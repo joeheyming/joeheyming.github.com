@@ -214,6 +214,7 @@
     <script src="/emulator/consoles.js"></script>
     <script src="/emulator/internet-archive.js"></script>
     <script src="/emulator/rom-acquire.js"></script>
+    <script src="/emulator/games-sheet.js"></script>
     <script src="/emulator/rom-browser.js"></script>
     <script src="/shared/breadcrumbs.js"></script>
     <script src="/emulator/socd.js"></script>
@@ -247,7 +248,13 @@
       aria-label="Choose a ROM file"
       accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.gba,.sfc,.smc,.z64,.n64,.v64,.chd,.pbp,.iso,.cue,.zip,.7z"
     />
-    <input type="file" id="biosFileInput" class="hidden-input" aria-label="Choose a BIOS file" accept=".zip,.7z,.bin" />
+    <input
+      type="file"
+      id="biosFileInput"
+      class="hidden-input"
+      aria-label="Choose a BIOS file"
+      accept=".zip,.7z,.bin"
+    />
 
     <!-- Boot overlay. The two child slots (#brand, #boot-card) are
          filled in by launch.js based on the active console path
@@ -338,19 +345,16 @@
             <span class="picker-title">PS1</span>
             <span class="picker-sub">PlayStation</span>
           </a>
-          <!-- sync:emulator-picker:end -->
-        </div>
-        <div class="picker-extra">
-          <h3 class="picker-extra-heading">Also try</h3>
-          <a class="picker-tile picker-tile-flash" href="/flash/">
+          <a class="picker-tile" href="/emulator/flash/">
             <span class="picker-emoji">⚡</span>
-            <span class="picker-title">Flash Player</span>
-            <span class="picker-sub">Classic .swf games via Ruffle · Archive collection</span>
+            <span class="picker-title">Flash</span>
+            <span class="picker-sub">Classic .swf games</span>
           </a>
+          <!-- sync:emulator-picker:end -->
         </div>
         <p class="picker-help">
           Free, browser-based emulators. No install, no ads. Bring your own ROM or browse the
-          built-in public-domain collection. Flash games live on a separate Ruffle player.
+          built-in collection. Flash games play here too, via Ruffle.
         </p>
       </div>
 
@@ -399,7 +403,7 @@
         </p>
         <nav aria-label="More retro games">
           <strong>More retro games from Joe Heyming:</strong>
-          <a href="/flash/">Flash Player</a>
+          <a href="/emulator/flash/">Flash</a>
           &middot;
           <a href="/doom/">DOOM in Browser</a>
           &middot;

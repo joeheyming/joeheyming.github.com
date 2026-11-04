@@ -133,6 +133,13 @@ describe('emulator pickThumbnailName', () => {
     'Adventures of Batman _ Robin, The (USA, Europe, Brazil) (En)'
   ];
 
+  it('folds accents so Einhander matches Einhänder', () => {
+    assert.equal(
+      acquire.pickThumbnailName('Einhander', ['Einhänder (USA)', 'Einhänder (Japan)']),
+      'Einhänder (USA)'
+    );
+  });
+
   it('matches words regardless of article order and prefers retail USA', () => {
     assert.equal(
       acquire.pickThumbnailName('The Legend of Zelda', names),

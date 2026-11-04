@@ -287,6 +287,15 @@ describe('emulator shell launches streamed ROMs and still fetches BIOS', () => {
     assert.match(launchSrc, /iaExternalDownload && !cfg\.iaAllowInBrowser/);
   });
 
+  it('keeps the game list in a fixed-height scrolling card', () => {
+    assert.match(launchSrc, /class="boot-card-header"/);
+    assert.match(launchSrc, /class="boot-card-scroll"/);
+    const css = read('emulator/emulator.css');
+    assert.match(css, /#boot:has\(\.boot-card-scroll\)/);
+    const scrollRule = css.slice(css.indexOf('.boot-card-scroll {'));
+    assert.match(scrollRule.slice(0, 180), /overflow-y:\s*auto/);
+  });
+
   it('keeps BIOS auto-fetch untouched', () => {
     const biosSrc = read('emulator/bios.js');
     assert.match(biosSrc, /fetchBiosFromIa/);

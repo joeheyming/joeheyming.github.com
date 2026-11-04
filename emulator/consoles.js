@@ -15,8 +15,10 @@
 // the game library (PS1: games are local-only, BIOS still auto-loads).
 //
 // EmulatorJS core IDs come from https://emulatorjs.org/docs/Options#ejs_core.
-// `iaBaseUrl` is the Internet Archive collection used by the ROM browser;
-// leave it `null` and the ROM browser silently hides itself so the user
+// The ROM browser lists games from the Google Sheet in games-sheet.js.
+// `iaBaseUrl` is the download client plus the input to
+// scripts/dump-emulator-games.mjs.
+// Leave `iaBaseUrl` `null` and the ROM browser hides itself so the user
 // is steered to the local-file picker instead.
 // `iaThumbnailSystems` lists libretro thumbnail playlists tried in order.
 // The lookup key is the ROM filename without its extension, so No-Intro and
@@ -604,6 +606,34 @@
         { label: 'Start', key: 'Enter' },
         { label: 'Save state', key: 'F5' },
         { label: 'Load state', key: 'F9' }
+      ]
+    },
+
+    flash: {
+      id: 'flash',
+      title: 'Flash',
+      subtitle: 'Classic .swf games',
+      emoji: '⚡',
+      // Ruffle, not an EmulatorJS core. launch.js mounts the player itself.
+      player: 'ruffle',
+      // The sheet rows and captured thumbnails are maintained by hand.
+      // A full emulator dump must not replace them with a bare Archive listing.
+      preserveCatalog: true,
+      fileAccept: '.swf,application/x-shockwave-flash',
+      fileExtsLabel: '.swf',
+      accentHex: '#dc2626',
+      accentGoldHex: '#7f1d1d',
+      iaBaseUrl: 'https://archive.org/download/banned-from-equestria-daily-1.5',
+      iaFileExtensions: ['.swf'],
+      iaDescriptionPrefix: 'Classic Flash game',
+      iaPreferMetadata: true,
+      seoDescription:
+        'Play classic Flash games in the browser. Browse the collection or load your own .swf. Powered by Ruffle.',
+      romHelp:
+        'Browse the collection and choose Play in browser, or load your own .swf. Games stay on this page.',
+      controls: [
+        { label: 'Play', key: 'Click or tap' },
+        { label: 'Keyboard', key: 'Arrow keys and Space, when the game uses them' }
       ]
     }
   };

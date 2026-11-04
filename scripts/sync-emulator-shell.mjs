@@ -206,6 +206,7 @@ function landerHtml(cfg) {
     <script src="/emulator/consoles.js"></script>
     <script src="/emulator/internet-archive.js"></script>
     <script src="/emulator/rom-acquire.js"></script>
+    <script src="/emulator/games-sheet.js"></script>
     <script src="/emulator/rom-browser.js"></script>
     <script src="/shared/breadcrumbs.js"></script>
     <script src="/emulator/socd.js"></script>

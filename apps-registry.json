@@ -1637,7 +1637,7 @@
     "description": "Play classic Flash games in your browser",
     "detailedDescription": "Browse an Internet Archive Flash collection or load your own .swf — plays in the browser via Ruffle (Rust → WebAssembly). Fullscreen, no install, no ads. For classic MS-DOS game zips, use DOS Player.",
     "icon": "⚡",
-    "path": "./flash/",
+    "path": "./emulator/flash/",
     "category": "game",
     "defaultWidth": 960,
     "defaultHeight": 720,

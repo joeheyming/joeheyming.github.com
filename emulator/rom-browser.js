@@ -84,6 +84,13 @@ class RomBrowserElement extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: block; width: 100%; }
+        .library-pin {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          background: var(--card-bg);
+          padding-bottom: 0.25rem;
+        }
         .library-head { margin: 0 0 0.75rem; }
         .library-title {
           /* Headings use brand text tokens — console accents (PS1 navy /
@@ -348,6 +355,7 @@ class RomBrowserElement extends HTMLElement {
       </style>
 
       <div class="library">
+        <div class="library-pin">
         <div class="library-head">
           <h2 class="library-title" id="romBrowserTitle">${cfg.title} collection</h2>
           <p class="library-sub">${
@@ -365,6 +373,7 @@ class RomBrowserElement extends HTMLElement {
               ? '<button class="search-toggle" id="searchToggleBtn" type="button">Search</button>'
               : ''
           }
+        </div>
         </div>
         <div class="content-area" id="contentArea">
           <div class="loading">Loading ROM collection...</div>
@@ -437,6 +446,19 @@ class RomBrowserElement extends HTMLElement {
     }
   }
 
+  _usesGamesSheet() {
+    const sheet = window.emulatorGamesSheet;
+    return !!(sheet && typeof sheet.isConfigured === 'function' && sheet.isConfigured());
+  }
+
+  _bustListCache() {
+    const sheet = window.emulatorGamesSheet;
+    if (this._usesGamesSheet() && sheet && typeof sheet.clearCache === 'function') {
+      sheet.clearCache(this.consoleId);
+    }
+    if (this.iaClient) this.iaClient.clearListCache();
+  }
+
   async loadAllRoms() {
     const contentArea = this.shadowRoot.getElementById('contentArea');
     contentArea.innerHTML =
@@ -444,18 +466,36 @@ class RomBrowserElement extends HTMLElement {
       '<div class="loading-hint">This can take a minute on slow connections.</div></div>';
 
     try {
+      const fromSheet = this._usesGamesSheet();
       const ia = this.iaClient;
-      if (!ia) {
+      if (!fromSheet && !ia) {
         throw new Error('ROM browser is not configured for this console.');
       }
 
       const systems = this.consoleConfig && this.consoleConfig.iaThumbnailSystems;
       const acquire = window.emulatorRomAcquire;
-      const indexPromise =
+      // The sheet already stores box-art URLs, so skip the libretro name
+      // index. The live Archive listing still needs it for fuzzy matches.
+      const preloadIndexes = () =>
         acquire && typeof acquire.preloadThumbnailIndexes === 'function'
           ? acquire.preloadThumbnailIndexes(systems)
           : Promise.resolve();
-      this.allRoms = await ia.fetchRomList();
+      let indexPromise = fromSheet ? Promise.resolve() : preloadIndexes();
+      const sheet = window.emulatorGamesSheet;
+      if (fromSheet) {
+        try {
+          this.allRoms = await sheet.loadConsoleGames(this.consoleId, {
+            descriptionPrefix: this.consoleConfig && this.consoleConfig.iaDescriptionPrefix
+          });
+        } catch (err) {
+          if (!ia) throw err;
+          console.warn('Games sheet unavailable; listing Internet Archive instead.', err);
+          indexPromise = preloadIndexes();
+          this.allRoms = await ia.fetchRomList();
+        }
+      } else {
+        this.allRoms = await ia.fetchRomList();
+      }
       await indexPromise;
       this.filteredRoms = [...this.allRoms];
 
@@ -464,7 +504,7 @@ class RomBrowserElement extends HTMLElement {
           '<div class="error">No ROMs found. Check your connection and try again.' +
           '<div class="error-actions"><button type="button" class="primary" data-action="retry-list">Retry</button></div></div>';
         contentArea.querySelector('[data-action="retry-list"]')?.addEventListener('click', () => {
-          ia.clearListCache();
+          this._bustListCache();
           this.allRoms = [];
           this.loadAllRoms();
         });
@@ -479,7 +519,7 @@ class RomBrowserElement extends HTMLElement {
         '<div class="error-detail">Try again in a moment.</div>' +
         '<div class="error-actions"><button type="button" class="primary" data-action="retry-list">Retry</button></div></div>';
       contentArea.querySelector('[data-action="retry-list"]')?.addEventListener('click', () => {
-        if (this.iaClient) this.iaClient.clearListCache();
+        this._bustListCache();
         this.allRoms = [];
         this.loadAllRoms();
       });
@@ -500,8 +540,9 @@ class RomBrowserElement extends HTMLElement {
       (typeof acquire.thumbnailUrlsResolved === 'function'
         ? acquire.thumbnailUrlsResolved
         : acquire.thumbnailUrls);
-    if (!resolve) return null;
-    const urls = resolve(systems, rom && rom.name);
+    const fallback = resolve ? resolve(systems, rom && rom.name) : [];
+    const direct = rom && typeof rom.thumbnailUrl === 'string' ? rom.thumbnailUrl : '';
+    const urls = direct ? [direct].concat(fallback.filter((url) => url !== direct)) : fallback;
     if (!urls.length) return null;
 
     const img = document.createElement('img');

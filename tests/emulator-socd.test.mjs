@@ -183,6 +183,7 @@ describe('emulator SOCD wiring', () => {
       assert.ok(html.includes('/emulator/socd.js'), `${page}: missing socd.js`);
       assert.ok(html.includes('/emulator/bios.js'), `${page}: missing bios.js`);
       assert.ok(html.includes('/emulator/rom-acquire.js'), `${page}: missing rom-acquire.js`);
+      assert.ok(html.includes('/emulator/games-sheet.js'), `${page}: missing games-sheet.js`);
       assert.ok(html.includes('/emulator/ejs-mount.js'), `${page}: missing ejs-mount.js`);
       const socdAt = html.indexOf('/emulator/socd.js');
       const mountAt = html.indexOf('/emulator/ejs-mount.js');
@@ -192,6 +193,11 @@ describe('emulator SOCD wiring', () => {
       assert.ok(socdAt < mountAt, `${page}: socd.js must load before ejs-mount.js`);
       assert.ok(mountAt < launchAt, `${page}: ejs-mount.js must load before launch.js`);
       assert.ok(acquireAt < browserAt, `${page}: rom-acquire.js must load before rom-browser.js`);
+      const sheetAt = html.indexOf('/emulator/games-sheet.js');
+      assert.ok(
+        acquireAt < sheetAt && sheetAt < browserAt,
+        `${page}: games-sheet.js must load between rom-acquire.js and rom-browser.js`
+      );
       assert.ok(
         html.indexOf('/emulator/bios.js') < launchAt,
         `${page}: bios.js must load before launch.js`

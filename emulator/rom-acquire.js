@@ -46,6 +46,8 @@
    */
   function thumbnailTokens(name) {
     const bare = String(name || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .replace(/\s*[([].*?[)\]]/g, ' ')
       .replace(/_+/g, ' ');
