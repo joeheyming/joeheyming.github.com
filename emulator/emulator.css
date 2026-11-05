@@ -744,6 +744,9 @@ kbd {
   .boot-card {
     padding: 20px;
   }
+  .boot-card-scroll {
+    padding: 8px 8px 12px;
+  }
   .controls-grid {
     grid-template-columns: 1fr;
   }

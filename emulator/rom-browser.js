@@ -342,6 +342,32 @@ class RomBrowserElement extends HTMLElement {
           font-size: 0.7rem;
           margin-top: 4px;
         }
+        ${
+          tv
+            ? ''
+            : `@media (max-width: 480px) {
+          .rom-grid {
+            grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+            gap: 8px;
+          }
+          .rom-card {
+            padding: 6px;
+            border-radius: 10px;
+          }
+          .rom-art-frame {
+            margin-bottom: 6px;
+            border-radius: 6px;
+          }
+          .rom-title {
+            font-size: 0.75rem;
+            margin-bottom: 0;
+          }
+          .rom-info,
+          .rom-size {
+            display: none;
+          }
+        }`
+        }
         .rom-more {
           display: block;
           margin: 16px auto 8px;

@@ -319,6 +319,8 @@ describe('emulator shell launches streamed ROMs and still fetches BIOS', () => {
     assert.match(css, /#boot:has\(\.boot-card-scroll\)/);
     const scrollRule = css.slice(css.indexOf('.boot-card-scroll {'));
     assert.match(scrollRule.slice(0, 180), /overflow-y:\s*auto/);
+    assert.match(romBrowserSrc, /@media \(max-width: 480px\)/);
+    assert.match(romBrowserSrc, /minmax\(96px, 1fr\)/);
   });
 
   it('keeps BIOS auto-fetch untouched', () => {

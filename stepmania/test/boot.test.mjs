@@ -59,6 +59,16 @@ describe('StepMania boot does not wait on the whole app', () => {
     assert.match(source, /import\('\.\/zenius-browser\.js'\)/);
   });
 
+  it('marks a phone before the play engine loads', () => {
+    const html = read('index.html');
+    const body = html.indexOf('<body');
+    const mark = html.indexOf("classList.toggle('mobile'");
+    const header = html.indexOf('<header');
+    assert.ok(body > 0 && mark > body && mark < header);
+    assert.match(html, /innerWidth <= 768/);
+    assert.match(html, /maxTouchPoints > 0/);
+  });
+
   it('shows the song menu without a splash that can wait forever', () => {
     const html = read('index.html');
     assert.match(html, /id="sm-home"/);

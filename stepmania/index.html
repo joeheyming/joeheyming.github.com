@@ -333,6 +333,24 @@
        viewport height with `flex-1` instead of a magic `calc(100vh - 80px)`
        that drifts whenever the responsive H1 changes size. -->
   <body class="bg-surface-0 h-screen overflow-hidden flex flex-col">
+    <script>
+      // The score panel leaves the stage only under body.mobile. That class
+      // used to be set when the play engine booted; the home screen no longer
+      // loads the engine, so a phone painted the panel in the flow and the
+      // song menu was crushed under it. Same check as stepmania.js isMobile().
+      (function () {
+        function mobile() {
+          return (
+            window.innerWidth <= 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0
+          );
+        }
+        function sync() {
+          document.body.classList.toggle('mobile', mobile());
+        }
+        sync();
+        window.addEventListener('resize', sync);
+      })();
+    </script>
     <!-- One-row top bar: the stage gets the height a stacked header used to take. -->
     <header class="sm-topbar">
       <div class="sm-brand">
