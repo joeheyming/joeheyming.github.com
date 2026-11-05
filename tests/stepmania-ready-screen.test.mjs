@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 
 describe('stepmania ready and loading screens', () => {
-  /** @type {HTMLElement & { showReadyToPlay: Function, showError: Function, showLoading: Function, updateProgress: Function, shadowRoot: ShadowRoot }} */
+  /** @type {HTMLElement & { showReadyToPlay: Function, showError: Function, showLoading: Function, updateProgress: Function, markAudioReady: Function, shadowRoot: ShadowRoot }} */
   let overlay;
 
   before(async () => {
@@ -91,5 +91,38 @@ describe('stepmania ready and loading screens', () => {
     assert.equal(root.getElementById('status').textContent, 'Getting the chart');
     assert.equal(root.getElementById('progress-bar'), null);
     assert.notEqual(root.activeElement, root.getElementById('loading-browse-btn'));
+  });
+
+  it('shows the charts before the audio arrives and keeps the chosen difficulty', () => {
+    overlay.showReadyToPlay({
+      songTitle: 'Xepher',
+      artist: 'Tatsh',
+      charts: [
+        { difficulty: 'Heavy', rating: 12 },
+        { difficulty: 'Challenge', rating: 16 }
+      ],
+      currentDifficulty: 0,
+      audioReady: false
+    });
+    const root = overlay.shadowRoot;
+    assert.equal(root.querySelectorAll('.chart-choice').length, 2);
+    assert.equal(root.getElementById('play-btn').disabled, true);
+    assert.equal(root.getElementById('play-btn').textContent, 'Getting the audio…');
+    assert.equal(root.getElementById('status').textContent, 'Getting the audio');
+
+    root.querySelector('.chart-choice[data-index="1"]').click();
+    assert.equal(root.getElementById('play-btn').textContent, 'Getting the audio…');
+    assert.equal(
+      root.querySelector('.chart-choice[data-index="1"]').getAttribute('aria-pressed'),
+      'true'
+    );
+
+    overlay.updateProgress('Trying another download');
+    assert.equal(root.getElementById('status').textContent, 'Trying another download');
+
+    overlay.markAudioReady();
+    assert.equal(root.getElementById('play-btn').disabled, false);
+    assert.equal(root.getElementById('play-btn').textContent, 'Start · Challenge 16');
+    assert.equal(root.getElementById('status').classList.contains('hidden'), true);
   });
 });

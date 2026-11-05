@@ -583,10 +583,28 @@
     // immediately so a click can paint Loading before that parse.
     focusIdle(cards[0]);
 
+    // Back from a pushed ?flavor= entry returns to the picker URL in
+    // this same document. Reload so the running launch does not stay
+    // on screen after the address bar has gone home.
+    window.addEventListener('popstate', function () {
+      var flavor = new URL(window.location.href).searchParams.get('flavor');
+      if (flavor && FLAVORS[flavor]) return;
+      window.location.reload();
+    });
+
     cards.forEach(function (card) {
       card.addEventListener('click', async function () {
         if (card.disabled) return;
         var flavor = card.dataset.flavor;
+        // Push a history entry so Back returns to the picker, and so a
+        // COI reload resumes this game instead of forgetting the click.
+        if (FLAVORS[flavor]) {
+          var picked = new URL(window.location.href);
+          if (picked.searchParams.get('flavor') !== flavor) {
+            picked.search = 'flavor=' + encodeURIComponent(flavor);
+            history.pushState({ flavor: flavor }, '', picked);
+          }
+        }
         var tStart = Date.now();
         cards.forEach(function (c) {
           c.disabled = true;

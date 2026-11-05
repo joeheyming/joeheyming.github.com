@@ -30,6 +30,8 @@ import { UZDoomLifecycle } from './lifecycle.js';
 
 var BUDGET_MS = 8000;
 var POLL_MS = 500;
+var RECOVER_KEY = 'coi-recover-reload';
+var ATTEMPTS_KEY = 'coi-serviceworker-attempts';
 var T0 = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
 
 var _ready = !!window.crossOriginIsolated;
@@ -39,6 +41,32 @@ var _waiters = [];
 function elapsed() {
   var now = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
   return now - T0;
+}
+
+function clearRecoverFlag() {
+  try {
+    sessionStorage.removeItem(RECOVER_KEY);
+  } catch (_e) {
+    /* sessionStorage may be blocked */
+  }
+}
+
+// A reload is what makes a stuck worker start controlling the page. Do it
+// once before showing the error card. A second miss still shows the card,
+// so a browser that can never isolate does not reload forever.
+function reloadOnceForStuckWorker() {
+  if (classifyCoiFailure() !== 'sw-stuck') return false;
+  try {
+    if (sessionStorage.getItem(RECOVER_KEY) === '1') return false;
+    sessionStorage.setItem(RECOVER_KEY, '1');
+    sessionStorage.removeItem(ATTEMPTS_KEY);
+  } catch (_e) {
+    return false;
+  }
+  var st = document.getElementById('status');
+  if (st) st.textContent = 'Reloading…';
+  window.location.reload();
+  return true;
 }
 
 function resolveAll() {
@@ -185,7 +213,8 @@ function wireUnregisterBtn(btn) {
         );
       }
       try {
-        sessionStorage.removeItem('coi-serviceworker-attempts');
+        sessionStorage.removeItem(ATTEMPTS_KEY);
+        sessionStorage.removeItem(RECOVER_KEY);
       } catch (_e) {
         /* sessionStorage may be blocked in private mode — fine */
       }
@@ -251,6 +280,7 @@ function poll() {
   if (_ready) return;
   if (window.crossOriginIsolated) {
     _ready = true;
+    clearRecoverFlag();
     resolveAll();
     var st = document.getElementById('status');
     if (st && st.textContent && st.textContent.indexOf('isolation') >= 0) {
@@ -260,6 +290,7 @@ function poll() {
   }
   var budget = effectiveBudget();
   if (elapsed() >= budget) {
+    if (reloadOnceForStuckWorker()) return;
     _failed = true;
     showCoiError();
     rejectAll(new Error('COI timeout'));
@@ -290,6 +321,8 @@ export const UZDoomCOI = {
 };
 
 window.UZDoomCOI = UZDoomCOI;
+
+if (_ready) clearRecoverFlag();
 
 if (!_ready) {
   if (document.readyState === 'loading') {

@@ -72,6 +72,18 @@ interface Window {
   /** App list filter UI (`app.js`); has `.create()`, not `{ type, value }`. */
   AppFilter: AppFilterWidget;
   proxyService: ProxyService;
+  /**
+   * Chart bytes started from the StepMania page head, before the engine
+   * loads. Consumed once by `fetchZeniusSimfile`.
+   */
+  __zeniusPagePrefetch?: {
+    id: string;
+    promise: Promise<{
+      html: string;
+      chartUrl: string | null;
+      chartText: Promise<string | null>;
+    }>;
+  };
   /** In-memory VFS mirror for sync Node shims ({@link terminal/commands/system/node.js}). */
   _vfsSyncCache: { files: Map<string, string>; dirs: Map<string, string[]> };
   _fileSystemListeners: Record<

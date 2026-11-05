@@ -5,7 +5,8 @@
 // a console has no Internet Archive collection wired up, the element
 // hides itself so the boot card just shows the local-file picker.
 //
-// Picking a result plays it in the page. Disc collections marked
+// Picking a result plays it in the page and writes `?rom=<name>` so the
+// browser Back button returns to this list. Disc collections marked
 // iaExternalDownload without iaAllowInBrowser (Sega CD, Saturn) open the
 // download handoff instead — those images are too large to stream.
 //
@@ -265,14 +266,22 @@ class RomBrowserElement extends HTMLElement {
           align-items: stretch;
         }
         .rom-card {
+          appearance: none;
           display: flex;
           flex-direction: column;
+          width: 100%;
+          min-width: 0;
           height: 100%;
+          margin: 0;
+          box-sizing: border-box;
           background: var(--surface-2);
           border: 1px solid var(--hairline-strong);
           border-radius: 12px;
           padding: ${tv ? '12px' : '10px'};
           box-shadow: var(--shadow-card);
+          color: inherit;
+          font: inherit;
+          text-align: left;
           cursor: pointer;
           transition: border-color 0.2s, transform 0.2s, background-color 0.2s;
         }
@@ -333,13 +342,6 @@ class RomBrowserElement extends HTMLElement {
           font-size: 0.7rem;
           margin-top: 4px;
         }
-        .rom-actions {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          margin-top: auto;
-          padding-top: 8px;
-        }
         .rom-more {
           display: block;
           margin: 16px auto 8px;
@@ -350,34 +352,6 @@ class RomBrowserElement extends HTMLElement {
           color: inherit;
           font: inherit;
           cursor: pointer;
-        }
-        .rom-actions button,
-        .rom-actions a {
-          appearance: none;
-          border: 1px solid transparent;
-          border-radius: 8px;
-          padding: 0.45rem 0.6rem;
-          background: transparent;
-          color: var(--text-2);
-          font: inherit;
-          font-size: 0.8rem;
-          font-weight: 600;
-          line-height: 1.2;
-          text-align: center;
-          text-decoration: underline;
-          text-underline-offset: 2px;
-          cursor: pointer;
-        }
-        .rom-actions button {
-          border-color: var(--accent-bright);
-          background: var(--accent-bright);
-          color: var(--text-on-accent);
-          text-decoration: none;
-        }
-        .rom-actions button:focus-visible,
-        .rom-actions a:focus-visible {
-          outline: 3px solid var(--accent-bright);
-          outline-offset: 2px;
         }
         .search-container { margin-bottom: 0; position: relative; }
         .search-container[hidden] { display: none !important; }
@@ -639,11 +613,10 @@ class RomBrowserElement extends HTMLElement {
 
     const romGrid = document.createElement('div');
     romGrid.className = 'rom-grid';
-    const cfg = this.consoleConfig;
-    const allowInBrowser = !(cfg && cfg.iaExternalDownload && !cfg.iaAllowInBrowser);
 
     shown.forEach((rom) => {
-      const romCard = document.createElement('div');
+      const romCard = document.createElement('button');
+      romCard.type = 'button';
       romCard.className = 'rom-card';
       const title = this._escapeHtml(rom.title);
       const description = this._escapeHtml(rom.description);
@@ -656,23 +629,13 @@ class RomBrowserElement extends HTMLElement {
         <div class="rom-title">${title}</div>
         ${sameAsTitle ? '' : `<div class="rom-info">${description}</div>`}
         <div class="rom-size">${size}</div>
-        <div class="rom-actions">
-          <button type="button" data-action="play-rom">${
-            allowInBrowser ? 'Play in browser' : 'Get this disc'
-          }</button>
-          <a href="${this._escapeHtml(
-            rom.downloadUrl || '#'
-          )}" target="_blank" rel="noopener noreferrer">Download instead</a>
-        </div>
       `;
       const frame = document.createElement('div');
       frame.className = 'rom-art-frame';
       const art = this._romArt(rom);
       if (art) frame.appendChild(art);
       romCard.prepend(frame);
-      romCard
-        .querySelector('[data-action="play-rom"]')
-        ?.addEventListener('click', () => this.loadRom(rom));
+      romCard.addEventListener('click', () => this.loadRom(rom));
       romGrid.appendChild(romCard);
     });
 
@@ -695,18 +658,20 @@ class RomBrowserElement extends HTMLElement {
     const lb = window.emulatorLeanback;
     if (lb && typeof lb.applyRovingTabindex === 'function') {
       this._romRoving = lb.applyRovingTabindex(romGrid, {
-        selector: '[data-action="play-rom"]'
+        selector: '.rom-card'
       });
       if (this.isTv) this._romRoving.focusFirst();
     } else if (this.isTv) {
-      const first = romGrid.querySelector('[data-action="play-rom"]');
+      const first = romGrid.querySelector('.rom-card');
       if (first) first.focus({ preventScroll: false });
     }
   }
 
   async loadRom(rom) {
+    if (typeof window.emulatorPushRomQuery === 'function') window.emulatorPushRomQuery(rom);
     const contentArea = this.shadowRoot.getElementById('contentArea');
     const restoreList = () => {
+      if (typeof window.emulatorClearRomQuery === 'function') window.emulatorClearRomQuery();
       this.renderRoms(this.filteredRoms.length ? this.filteredRoms : this.allRoms);
     };
 

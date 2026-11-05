@@ -7,9 +7,10 @@
 //     visitor can choose between NES / Sega / Game Boy / ...
 //
 // Also defines `window.launchEmulator(romSource, romName)`. The local-file
-// picker calls it, and so do Play in browser and `?rom=` deep links after
-// the Archive bytes are wrapped in a File. Sega CD and Saturn deep links
-// stay on the download handoff. Mounting (EJS_* globals, loader.js, SOCD)
+// picker calls it, and so does a tile click and a `?rom=` deep link after
+// the Archive bytes are wrapped in a File. A tile writes `?rom=<name>` with
+// history.pushState so Back returns to the list. Sega CD and Saturn deep
+// links stay on the download handoff. Mounting (EJS_* globals, loader.js, SOCD)
 // lives in emulator/ejs-mount.js; BIOS in emulator/bios.js. This file keeps
 // chrome, achievements, and boot-card orchestration.
 //
@@ -231,9 +232,7 @@
     // search toggle while the collection is still loading.
     const romRoot = bootCard.querySelector('rom-browser')?.shadowRoot;
     const focusTarget =
-      romRoot?.querySelector('[data-action="play-rom"]') ||
-      romRoot?.getElementById('searchToggleBtn') ||
-      null;
+      romRoot?.querySelector('.rom-card') || romRoot?.getElementById('searchToggleBtn') || null;
     if (focusTarget) focusTarget.focus({ preventScroll: false });
   }
 
@@ -436,6 +435,61 @@
     });
     const btn = document.getElementById('emu-sound-btn');
     if (btn) btn.textContent = 'Sound on — click the game if still silent';
+  }
+
+  /**
+   * Archive file name. `?rom=` already matches this in findRomByQuery.
+   * @param {{ name?: string, title?: string } | null | undefined} rom
+   * @returns {string}
+   */
+  function romQueryId(rom) {
+    if (!rom) return '';
+    return String(rom.name || rom.title || '').trim();
+  }
+
+  /**
+   * Remember the chosen game in the query string without leaving the page.
+   * Back then returns to the list entry underneath this one.
+   * @param {{ name?: string, title?: string }} rom
+   */
+  function pushRomQuery(rom) {
+    const id = romQueryId(rom);
+    if (!id) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('rom') === id && history.state && history.state.emulatorRom === id) {
+      return;
+    }
+    url.searchParams.set('rom', id);
+    history.pushState({ emulatorRom: id }, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  /** Drop `?rom=` in place when the visitor leaves a game that has not started yet. */
+  function clearRomQuery() {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('rom')) return;
+    url.searchParams.delete('rom');
+    history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  /**
+   * The browser Back button restores the list URL. EmulatorJS cannot unload
+   * a running core in place, so a visible game reloads into that URL.
+   * Before the canvas is up, re-render the boot card.
+   */
+  function onRomPopState() {
+    const playing = document.getElementById('game-container')?.classList.contains('visible');
+    if (playing) {
+      window.location.reload();
+      return;
+    }
+    const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
+    if (!cfg) {
+      window.location.reload();
+      return;
+    }
+    const rom = new URLSearchParams(window.location.search).get('rom');
+    if (rom) tryDeeplinkRom(cfg, rom);
+    else renderBootCard(cfg);
   }
 
   function returnToGameList() {
@@ -695,6 +749,10 @@
     runtimeBlocked = true;
     renderRuntimeUnavailable();
   }
+
+  window.addEventListener('popstate', onRomPopState);
+  window.emulatorPushRomQuery = pushRomQuery;
+  window.emulatorClearRomQuery = clearRomQuery;
 
   ready(() => {
     window.addEventListener('emulator-gamepad-change', refreshGamepadBanner);

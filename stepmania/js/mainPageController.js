@@ -3,14 +3,7 @@
 
 import gameState from './gameState.js';
 import { resetGame } from './stepmania.js';
-import {
-  extractSimfileId,
-  fetchZeniusSimfile,
-  parseZeniusSimfile,
-  fetchZeniusAudioFromZip,
-  formatLoadError,
-  isStructuralSongFailure
-} from './songLoader.js';
+import { fetchZeniusAudioFromZip, formatLoadError, isStructuralSongFailure } from './songLoader.js';
 import { rememberUnplayable } from './zeniusLibraryStorage.js';
 import { DifficultySelector } from './difficulty-selector.js';
 import { getURLParams, updateURLParams, clearURLParams } from './urlUtils.js';
@@ -27,6 +20,7 @@ import {
 import { buildTimingData, filterUnjudgableNotes } from './timingData.js';
 import { recordRecentPlay } from './zeniusLibraryStorage.js';
 import { hideHomeScreen, showHomeNotice, showHomeScreen } from './homeScreen.js';
+import { primeZeniusChart, zeniusChartWasAbandoned } from './zeniusEntry.js';
 import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
 import { unpackZip, readZipFiles, packFromFilesPlayable, packFromSimfileText } from './packIo.js';
 import { songFromPack, playTimingForChart, revokePackObjectUrls } from './songFromPack.js';
@@ -179,17 +173,18 @@ export class MainPageController {
     let simfileId = null;
 
     try {
-      LoadingOverlay.showLoading('Song', 'Getting the chart');
-
-      simfileId = extractSimfileId(zeniusUrl);
-      if (!simfileId) {
-        throw new Error('Could not extract simfile ID from song URL');
+      const primed = await primeZeniusChart(zeniusUrl, difficulty);
+      if (!primed || primed.cancelled || zeniusChartWasAbandoned()) {
+        return false;
       }
-
-      const simfileData = await fetchZeniusSimfile(simfileId, songManager.getProxyTransport());
-      LoadingOverlay.setTitle(simfileData.title || 'Song');
-
-      const { songKey, songData, parsedData } = parseZeniusSimfile(simfileData, simfileId);
+      simfileId = primed.simfileId || null;
+      const simfileData = primed.simfileData || {};
+      const songKey = primed.songKey;
+      const songData = primed.songData;
+      const parsedData = primed.parsedData;
+      if (!songKey || !songData || !parsedData) {
+        throw new Error('Could not read this chart.');
+      }
 
       songManager.cacheParsedData(songKey, parsedData);
 
@@ -210,12 +205,28 @@ export class MainPageController {
       });
 
       this.setCurrentSong(songKey, songData);
-      this.setCurrentDifficulty(difficulty || 0);
+      const liveDifficulty =
+        LoadingOverlay.state === 'ready' && Number.isInteger(LoadingOverlay.chartIndex)
+          ? LoadingOverlay.chartIndex
+          : difficulty || 0;
+      this.setCurrentDifficulty(liveDifficulty);
 
       // Note: setCurrentDifficulty already calls DifficultySelector.setCharts and selectDifficultyByIndex
       // Don't call them again here as it would reset the selection
 
-      updateURLParams({ zenius: zeniusUrl, difficulty: difficulty || 0 });
+      updateURLParams({ zenius: zeniusUrl, difficulty: liveDifficulty });
+      const leave = () => this.handleBackToBrowser();
+      LoadingOverlay.setReadyHandlers({
+        onPlay: () => this.startPlaying(),
+        onBrowse: leave,
+        onBack: leave,
+        onDifficultyChange: (selectedIndex) => {
+          if (!this.isUpdatingDifficulty) {
+            songManager.setCurrentDifficulty(selectedIndex);
+            this.updateURLWithDifficulty(selectedIndex);
+          }
+        }
+      });
 
       LoadingOverlay.updateProgress('Getting the audio');
       document.getElementById('sub-title').textContent = simfileData.title;
@@ -506,6 +517,15 @@ export class MainPageController {
       currentSongData.audioType ||
       (audioUrl.toLowerCase().includes('.ogg') ? 'audio/ogg' : 'audio/mpeg');
     const zeniusSong = currentSongKey.startsWith('zenius_');
+    // Chart choices don't depend on the audio file. Show them before the
+    // proxy download so a zenius= link doesn't sit on "Getting the audio".
+    let chartsShownEarly = false;
+    if (useMainLoading && zeniusSong && !currentSongData.audioBlob) {
+      if (LoadingOverlay.state !== 'ready') {
+        this.showReadyToPlayMessage({ audioReady: false });
+      }
+      chartsShownEarly = true;
+    }
 
     if (currentSongData.audioBlob) {
       try {
@@ -641,7 +661,17 @@ export class MainPageController {
       });
     }
 
-    this.showReadyToPlayMessage();
+    if (zeniusChartWasAbandoned()) return false;
+
+    if (chartsShownEarly) {
+      LoadingOverlay.markAudioReady();
+      const videoUrl = currentSongData.video;
+      if (videoUrl && videoConverter?.isAviFile(videoUrl)) {
+        this.preloadVideo(videoUrl);
+      }
+    } else {
+      this.showReadyToPlayMessage();
+    }
 
     const gameArea = document.getElementById('sm-micro');
     const overlay = 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7))';
@@ -753,7 +783,10 @@ export class MainPageController {
     });
   }
 
-  showReadyToPlayMessage() {
+  /**
+   * @param {{ audioReady?: boolean }} [options]
+   */
+  showReadyToPlayMessage(options = {}) {
     const parsedData = songManager.getCurrentParsedData();
     const song = songManager.getCurrentSongData() || {};
     const charts = parsedData?.charts || [];
@@ -775,11 +808,13 @@ export class MainPageController {
       },
       charts,
       currentDifficulty: songManager.getCurrentDifficulty() || 0,
-      hasVideo: hasVideo
+      hasVideo: hasVideo,
+      audioReady: options.audioReady !== false
     });
 
-    // Pre-load video conversion in background if we have an AVI
-    if (hasVideo && videoConverter) {
+    // Hold the AVI conversion until the audio is in, so it doesn't compete
+    // with the download the Start button is waiting on.
+    if (hasVideo && videoConverter && options.audioReady !== false) {
       this.preloadVideo(videoUrl);
     }
   }

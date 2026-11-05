@@ -102,6 +102,8 @@ describe('rom-browser hands off downloads instead of loading ROMs', () => {
   let ia;
   /** @type {string[]} */
   let launched;
+  /** @type {string[]} */
+  let pushed;
   let filePickerClicks;
 
   /** @param {object} cfg */
@@ -127,8 +129,10 @@ describe('rom-browser hands off downloads instead of loading ROMs', () => {
   beforeEach(() => {
     ia = stubIaClient(window);
     launched = [];
+    pushed = [];
     filePickerClicks = 0;
     window.launchEmulator = (source, name) => launched.push(name);
+    window.emulatorPushRomQuery = (rom) => pushed.push(rom.name);
     window.document.querySelectorAll('rom-browser').forEach((el) => el.remove());
   });
 
@@ -188,14 +192,13 @@ describe('rom-browser hands off downloads instead of loading ROMs', () => {
   it('plays a cartridge in the page from the card', async () => {
     const el = await mountBrowser(NES_CFG);
     const card = el.shadowRoot.querySelector('.rom-card');
-    const play = card.querySelector('[data-action="play-rom"]');
-    assert.equal(play.textContent.trim(), 'Play in browser');
-    assert.equal(card.querySelector('a').textContent.trim(), 'Download instead');
-    assert.equal(card.querySelector('a').getAttribute('href'), ROMS[0].downloadUrl);
+    assert.equal(card.tagName, 'BUTTON');
+    assert.equal(card.querySelector('a, [data-action="play-rom"]'), null);
 
-    play.click();
+    card.click();
     await new Promise((resolve) => window.setTimeout(resolve, 0));
 
+    assert.deepEqual(pushed, ['Metroid']);
     assert.equal(ia.loadRomCalls, 1);
     assert.deepEqual(launched, ['Metroid.zip']);
     assert.equal(el.shadowRoot.querySelector('.external-download'), null);
@@ -203,11 +206,12 @@ describe('rom-browser hands off downloads instead of loading ROMs', () => {
 
   it('keeps the download handoff for disc-sized collections', async () => {
     const el = await mountBrowser(SEGACD_CFG);
-    const play = el.shadowRoot.querySelector('[data-action="play-rom"]');
-    assert.equal(play.textContent.trim(), 'Get this disc');
+    const card = el.shadowRoot.querySelector('.rom-card');
+    assert.equal(card.tagName, 'BUTTON');
 
-    play.click();
+    card.click();
     await new Promise((resolve) => window.setTimeout(resolve, 0));
+    assert.deepEqual(pushed, ['Metroid']);
     assert.equal(ia.loadRomCalls, 0);
     assert.deepEqual(launched, []);
     const panel = el.shadowRoot.querySelector('.external-download');
@@ -261,6 +265,27 @@ describe('?rom= deep links launch cartridges and hand off discs', () => {
     assert.equal(ia.loadRomCalls, 1, 'deep link should fetch the ROM bytes');
     assert.deepEqual(launched, ['Zelda.zip']);
     assert.equal(window.document.querySelector('.deeplink-handoff'), null);
+  });
+
+  it('writes the game id into ?rom= and leaves history.back alone', async () => {
+    await bootShell('https://x/emulator/nes/?tv=1');
+    let backs = 0;
+    window.history.back = () => {
+      backs += 1;
+    };
+
+    window.emulatorPushRomQuery({ name: 'Super Mario', title: 'Super Mario' });
+    const playing = new URL(window.location.href);
+    assert.equal(playing.searchParams.get('rom'), 'Super Mario');
+    assert.equal(playing.searchParams.get('tv'), '1');
+    assert.equal(window.history.state.emulatorRom, 'Super Mario');
+
+    window.emulatorClearRomQuery();
+    const cleared = new URL(window.location.href);
+    assert.equal(cleared.searchParams.get('rom'), null);
+    assert.equal(cleared.searchParams.get('tv'), '1');
+    assert.equal(backs, 0);
+    assert.doesNotMatch(launchSrc, /history\.back\s*\(/);
   });
 
   it('falls back to the boot card when the title is not in the collection', async () => {

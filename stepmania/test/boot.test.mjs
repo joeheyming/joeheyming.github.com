@@ -38,6 +38,18 @@ describe('StepMania boot does not wait on the whole app', () => {
     const main = read('js/main.js');
     assert.match(main, /import\('\.\/play\.js'\)/);
     assert.match(main, /import\('\.\/zenius-browser\.js'\)/);
+    assert.match(main, /import\('\.\/zeniusEntry\.js'\)/);
+  });
+
+  it('opens a zenius chart without the play engine', () => {
+    const specs = staticSpecifiers(read('js/zeniusEntry.js'));
+    for (const banned of ['./stepmania.js', './play.js', './mainPageController.js']) {
+      assert.equal(specs.includes(banned), false, banned);
+    }
+    const html = read('index.html');
+    const prefetch = html.indexOf('__zeniusPagePrefetch');
+    const tailwind = html.indexOf('cdn.tailwindcss.com');
+    assert.ok(prefetch > 0 && prefetch < tailwind);
   });
 
   it('loads the catalog UI from the play controller only on demand', () => {

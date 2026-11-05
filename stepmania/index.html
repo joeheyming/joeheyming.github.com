@@ -6,6 +6,78 @@
     <!-- COI reloads once so AVI conversion can use SharedArrayBuffer.
          The song menu is plain HTML and does not wait on that. -->
     <script src="/coi-serviceworker.js"></script>
+    <!-- A zenius= link starts the chart download before Tailwind and the
+         play engine. The difficulty dialog reads this once it can parse. -->
+    <script>
+      (function () {
+        var zenius;
+        try {
+          zenius = new URLSearchParams(location.search).get('zenius');
+        } catch (e) {
+          return;
+        }
+        if (!zenius) return;
+        var id;
+        try {
+          id = new URL(zenius).searchParams.get('simfileid');
+        } catch (e) {
+          return;
+        }
+        if (!id) return;
+        [
+          'js/zeniusEntry.js',
+          'js/loading-overlay.js',
+          'js/songLoader.js',
+          'js/simfileParser.js'
+        ].forEach(function (href) {
+          var preload = document.createElement('link');
+          preload.rel = 'modulepreload';
+          preload.href = href;
+          document.head.appendChild(preload);
+        });
+        import('./js/zeniusEntry.js')
+          .then(function (mod) {
+            return mod.primeZeniusChart();
+          })
+          .catch(function () {});
+        var pageUrl =
+          'https://zenius-i-vanisher.com/v5.2/viewsimfile.php?simfileid=' + encodeURIComponent(id);
+        var proxy = 'https://proxy.cors.dev/?url=';
+        window.__zeniusPagePrefetch = {
+          id: id,
+          promise: fetch(proxy + encodeURIComponent(pageUrl))
+            .then(function (response) {
+              if (!response.ok) throw new Error(String(response.status));
+              return response.text();
+            })
+            .then(function (html) {
+              var match = html.match(/href="([^"]*\.(?:ssc|sma|sm))"/i);
+              var chartUrl = null;
+              if (match) {
+                try {
+                  chartUrl = new URL(
+                    match[1].replace(/&amp;/g, '&'),
+                    'https://zenius-i-vanisher.com/v5.2/'
+                  ).href;
+                } catch (e) {
+                  chartUrl = null;
+                }
+              }
+              var chartText = chartUrl
+                ? fetch(proxy + encodeURIComponent(chartUrl))
+                    .then(function (response) {
+                      if (!response.ok) throw new Error(String(response.status));
+                      return response.text();
+                    })
+                    .catch(function () {
+                      return null;
+                    })
+                : Promise.resolve(null);
+              return { html: html, chartUrl: chartUrl, chartText: chartText };
+            })
+        };
+      })();
+    </script>
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
@@ -72,13 +144,50 @@
 
     <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
          installs window.tailwind on boot and overwrites any pre-set
-         config, so brand-tailwind.js sets `tailwind.config` after. -->
-    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
-    <script src="/brand-tailwind.js"></script>
-    <!-- StepMania identity palette (sm-arrow.* utilities). Must load
-         AFTER brand-tailwind.js so it can extend the same
-         `tailwind.config` object before <body> parses. -->
-    <script src="/stepmania/stepmania-tailwind.js"></script>
+         config, so brand-tailwind.js sets `tailwind.config` after.
+         A zenius= link skips this until after the chart dialog: the CDN
+         compiler blocks the main thread long enough to hide the choices. -->
+    <script>
+      (function () {
+        var sources = [
+          'https://cdn.tailwindcss.com/3.4.16',
+          '/brand-tailwind.js',
+          '/stepmania/stepmania-tailwind.js'
+        ];
+        var zenius = false;
+        try {
+          zenius = !!new URLSearchParams(location.search).get('zenius');
+        } catch (e) {
+          zenius = false;
+        }
+        if (!zenius) {
+          sources.forEach(function (src) {
+            document.write('<script src="' + src + '"><\/script>');
+          });
+          return;
+        }
+        function loadAt(i) {
+          if (i >= sources.length) {
+            if (window.__applySmNeon) window.__applySmNeon();
+            return;
+          }
+          var script = document.createElement('script');
+          script.src = sources[i];
+          script.onload = function () {
+            loadAt(i + 1);
+          };
+          document.head.appendChild(script);
+        }
+        var started = false;
+        function start() {
+          if (started) return;
+          started = true;
+          loadAt(0);
+        }
+        window.addEventListener('sm-chart-ready', start);
+        setTimeout(start, 8000);
+      })();
+    </script>
     <link href="css/screen.css" media="all" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="/live-chat/live-chat.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
@@ -91,19 +200,22 @@
        * and titles live in the same blue-on-cream world as the rest
        * of the site. */
       (function () {
-        const cfg = (window.tailwind && window.tailwind.config) || {
-          theme: { extend: { colors: {} } }
+        window.__applySmNeon = function () {
+          const cfg = (window.tailwind && window.tailwind.config) || {
+            theme: { extend: { colors: {} } }
+          };
+          cfg.theme = cfg.theme || {};
+          cfg.theme.extend = cfg.theme.extend || {};
+          cfg.theme.extend.colors = cfg.theme.extend.colors || {};
+          cfg.theme.extend.colors.neon = {
+            blue: '#00f5ff',
+            purple: '#1a73e8' /* legacy alias → brand accent-primary */,
+            pink: '#f472b6',
+            green: '#10b981'
+          };
+          if (window.tailwind) window.tailwind.config = cfg;
         };
-        cfg.theme = cfg.theme || {};
-        cfg.theme.extend = cfg.theme.extend || {};
-        cfg.theme.extend.colors = cfg.theme.extend.colors || {};
-        cfg.theme.extend.colors.neon = {
-          blue: '#00f5ff',
-          purple: '#1a73e8' /* legacy alias → brand accent-primary */,
-          pink: '#f472b6',
-          green: '#10b981'
-        };
-        if (window.tailwind) window.tailwind.config = cfg;
+        window.__applySmNeon();
       })();
     </script>
     <script src="/nav.js"></script>
@@ -558,6 +670,10 @@
         </div>
       </div>
     </div>
+    <!-- Chart dialog for a zenius= link. It sits above the later scripts so
+         those cannot hold the difficulty choices off the screen. -->
+    <loading-overlay id="loading-overlay"></loading-overlay>
+
     <!-- Non-module scripts that need to be loaded first (global utilities) -->
     <script src="../proxy.js"></script>
     <!-- Inline <share-button> in the toolbar; suppress the floating FAB. -->
@@ -571,9 +687,6 @@
       import { mountLiveChat } from '/live-chat/index.js';
       mountLiveChat({ room: 'stepmania' });
     </script>
-    <!-- Main page loading overlay for URL initialization -->
-    <loading-overlay id="loading-overlay"></loading-overlay>
-
     <game-over-modal id="game-over-modal"></game-over-modal>
     <sm-settings-sheet id="settings-sheet"></sm-settings-sheet>
 

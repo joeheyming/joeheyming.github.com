@@ -179,6 +179,39 @@ describe('fetchZeniusSimfile', () => {
     assert.match(result.audioUrl, /type=ogg/);
     assert.match(fetchedUrls[1], /type=simfile/);
   });
+
+  it('uses a head-start page and chart instead of fetching them again', async () => {
+    const chartUrl = 'https://zenius-i-vanisher.com/simfiles/Song.sm';
+    globalThis.__zeniusPagePrefetch = {
+      id: '1',
+      promise: Promise.resolve({
+        html: '<h1>Early Song</h1><a href="/simfiles/Song.sm">SM</a><a href="/simfiles/Song.ogg">OGG</a>',
+        chartUrl,
+        chartText: Promise.resolve('#TITLE:Early Song;\n#NOTEDATA:;')
+      })
+    };
+    /** @type {string[]} */
+    const fetched = [];
+    const transport = {
+      /**
+       * @param {string} url
+       */
+      async fetchText(url) {
+        fetched.push(url);
+        throw new Error('should not fetch ' + url);
+      },
+      async fetchBinary() {
+        throw new Error('not used');
+      }
+    };
+
+    const result = await fetchZeniusSimfile('1', transport);
+
+    assert.equal(result.title, 'Early Song');
+    assert.equal(result.simfileText, '#TITLE:Early Song;\n#NOTEDATA:;');
+    assert.equal(fetched.length, 0);
+    assert.equal(globalThis.__zeniusPagePrefetch, undefined);
+  });
 });
 
 describe('sniffAudioMime', () => {

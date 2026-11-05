@@ -55,5 +55,15 @@ bindHomeScreen({
 showHomeScreen();
 
 if (songRequested()) {
-  void ensurePlay().catch(() => {});
+  // Parse the chart UI before the play engine. Loading both at once keeps the
+  // difficulty dialog behind the engine's module graph.
+  if (new URLSearchParams(window.location.search).has('zenius')) {
+    void import('./zeniusEntry.js')
+      .then((mod) => mod.primeZeniusChart())
+      .catch(() => {})
+      .then(() => ensurePlay())
+      .catch(() => {});
+  } else {
+    void ensurePlay().catch(() => {});
+  }
 }

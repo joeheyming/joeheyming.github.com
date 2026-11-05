@@ -100,6 +100,7 @@ class LoadingOverlayElement extends HTMLElement {
     this._onDifficultyChange = null;
     this._allowRetry = true;
     this._artist = '';
+    this._audioReady = true;
   }
 
   connectedCallback() {
@@ -122,6 +123,8 @@ class LoadingOverlayElement extends HTMLElement {
       this._hasVideo &&
       (this._videoStatus === 'pending' || this._videoStatus === 'loading');
     const chart = this._charts[this._currentDifficulty];
+    const waitingForAudio = isReady && !this._audioReady;
+    const hideStatus = !this._status || (isReady && this._audioReady);
     const chartsHtml = this._charts
       .map((item, i) => {
         const tone = difficultyTone(item.difficulty);
@@ -332,9 +335,9 @@ class LoadingOverlayElement extends HTMLElement {
           <p class="artist ${isReady && this._artist ? '' : 'hidden'}" id="artist">${escapeHtml(
       this._artist
     )}</p>
-          <p class="status ${isReady ? 'hidden' : ''}" id="status" aria-live="polite">${escapeHtml(
-      this._status
-    )}</p>
+          <p class="status ${
+            hideStatus ? 'hidden' : ''
+          }" id="status" aria-live="polite">${escapeHtml(this._status)}</p>
           <div class="chart-list ${
             showCharts ? '' : 'hidden'
           }" id="chart-list" role="group" aria-label="Difficulty">
@@ -352,9 +355,9 @@ class LoadingOverlayElement extends HTMLElement {
             }" id="back-btn">Pick a different song</button>
           </div>
           <div class="actions ${isReady ? '' : 'hidden'}" id="ready-buttons">
-            <button type="button" class="btn-play" id="play-btn">${escapeHtml(
-              startLabel(chart)
-            )}</button>
+            <button type="button" class="btn-play" id="play-btn" ${
+              waitingForAudio ? 'disabled' : ''
+            }>${escapeHtml(waitingForAudio ? 'Getting the audio…' : startLabel(chart))}</button>
             <button type="button" class="btn-text" id="ready-back-btn">Pick a different song</button>
           </div>
           <p id="video-status" class="video-status ${showVideo ? 'video-note' : 'hidden'}">${
@@ -475,7 +478,7 @@ class LoadingOverlayElement extends HTMLElement {
       button.setAttribute('aria-pressed', i === index ? 'true' : 'false');
     });
     const playBtn = this.shadowRoot.getElementById('play-btn');
-    if (playBtn) playBtn.textContent = startLabel(this._charts[index]);
+    if (playBtn && this._audioReady) playBtn.textContent = startLabel(this._charts[index]);
     if (this._onDifficultyChange) this._onDifficultyChange(index);
   }
 
@@ -500,6 +503,12 @@ class LoadingOverlayElement extends HTMLElement {
   focusPrimaryAction() {
     if (this._state === STATES.LOADING) {
       this.shadowRoot.getElementById('overlay')?.focus();
+      return;
+    }
+    if (this._state === STATES.READY && !this._audioReady) {
+      const pressed = this.shadowRoot.querySelector('.chart-choice[aria-pressed="true"]');
+      const chartBtn = pressed || this.shadowRoot.querySelector('.chart-choice');
+      if (chartBtn instanceof HTMLElement) chartBtn.focus({ focusVisible: true });
       return;
     }
     const id =
@@ -536,7 +545,7 @@ class LoadingOverlayElement extends HTMLElement {
    * @param {string} status
    */
   updateProgress(status) {
-    if (this._state === STATES.READY || this._state === STATES.HIDDEN) return;
+    if (this._state === STATES.HIDDEN || (this._state === STATES.READY && this._audioReady)) return;
     this._status = status;
     const statusEl = this.shadowRoot.getElementById('status');
     if (statusEl) statusEl.textContent = status;
@@ -602,6 +611,7 @@ class LoadingOverlayElement extends HTMLElement {
    * @param {Array} [options.charts]
    * @param {number} [options.currentDifficulty]
    * @param {boolean} [options.hasVideo]
+   * @param {boolean} [options.audioReady]
    */
   showReadyToPlay(options = {}) {
     const {
@@ -613,13 +623,15 @@ class LoadingOverlayElement extends HTMLElement {
       onDifficultyChange,
       charts = [],
       currentDifficulty = 0,
-      hasVideo = false
+      hasVideo = false,
+      audioReady = true
     } = options;
 
     this._state = STATES.READY;
+    this._audioReady = audioReady !== false;
     this._title = songTitle || 'Song';
     this._artist = artist || '';
-    this._status = '';
+    this._status = this._audioReady ? '' : 'Getting the audio';
     this._charts = charts;
     const index = Number(currentDifficulty);
     this._currentDifficulty =
@@ -635,6 +647,23 @@ class LoadingOverlayElement extends HTMLElement {
     this.render();
     this.bindEvents();
     this.focusPrimaryAction();
+  }
+
+  /** Audio finished. Enable Start without rebuilding the chart choices. */
+  markAudioReady() {
+    if (this._state !== STATES.READY) return;
+    this._audioReady = true;
+    this._status = '';
+    const playBtn = this.shadowRoot.getElementById('play-btn');
+    if (playBtn) {
+      playBtn.disabled = false;
+      playBtn.textContent = startLabel(this._charts[this._currentDifficulty]);
+    }
+    const statusEl = this.shadowRoot.getElementById('status');
+    if (statusEl) {
+      statusEl.textContent = '';
+      statusEl.classList.add('hidden');
+    }
   }
 
   /**
@@ -695,6 +724,22 @@ class LoadingOverlayElement extends HTMLElement {
    */
   get state() {
     return this._state;
+  }
+
+  /** Selected chart while the ready dialog is up, otherwise null. */
+  get chartIndex() {
+    return this._state === STATES.READY ? this._currentDifficulty : null;
+  }
+
+  /**
+   * Swap the ready dialog's actions without redrawing the chart buttons.
+   * @param {{ onPlay?: Function, onBrowse?: Function, onBack?: Function, onDifficultyChange?: Function }} handlers
+   */
+  setReadyHandlers(handlers) {
+    if (handlers.onPlay) this._onPlay = handlers.onPlay;
+    if (handlers.onBrowse) this._onBrowse = handlers.onBrowse;
+    if (handlers.onBack) this._onBack = handlers.onBack;
+    if (handlers.onDifficultyChange) this._onDifficultyChange = handlers.onDifficultyChange;
   }
 }
 

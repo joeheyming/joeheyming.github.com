@@ -53,6 +53,31 @@ describe('doom flavors', () => {
     assert.equal(focus && focus.getAttribute('data-flavor'), 'classic');
   });
 
+  it('pushes ?flavor= so Back returns to the picker', async () => {
+    const dom = mountFlavors();
+    dom.window.UZDoomLoader = {
+      primeWith() {
+        return Promise.resolve();
+      },
+      launch() {}
+    };
+    dom.window.fetch = () => Promise.reject(new Error('no network'));
+    const backed = new Promise((resolve) => {
+      dom.window.addEventListener('popstate', () => resolve(dom.window.location.search), {
+        once: true
+      });
+    });
+    vm.runInContext(controller, dom.getInternalVMContext());
+    dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+    const before = dom.window.history.length;
+    dom.window.document.querySelector('[data-flavor="mario"]').click();
+    assert.equal(dom.window.location.pathname, '/doom/');
+    assert.equal(dom.window.location.search, '?flavor=mario');
+    assert.ok(dom.window.history.length > before, 'picker stays in history behind the flavor');
+    dom.window.history.back();
+    assert.equal(await backed, '');
+  });
+
   it('keeps MarioDoom on Freedoom Phase 1 and fetches Mayhem maps', () => {
     const mario = sliceFlavor('mario', 'mayhem');
     assert.match(mario, /modUrl: MOD_BASE \+ 'mariodoom\.pk3'/);

@@ -361,16 +361,52 @@ async function loadChartFromPacks(packUrls, transport) {
 }
 
 /**
+ * Take the head-start download for this simfile, if the page started one.
+ * @param {string} simfileId
+ * @returns {Promise<{ html: string, chartUrl: string | null, chartText: Promise<string | null> }> | null}
+ */
+function consumeZeniusPagePrefetch(simfileId) {
+  const slot = globalThis.__zeniusPagePrefetch;
+  if (!slot || String(slot.id) !== String(simfileId) || !slot.promise) return null;
+  globalThis.__zeniusPagePrefetch = undefined;
+  return slot.promise;
+}
+
+/**
+ * The chart dialog can run before proxy.js. Only ask for it when the
+ * head-start download does not already have the bytes.
+ * @param {import('./songProxyTransport.js').SongProxyTransport} [transport]
+ * @returns {Promise<import('./songProxyTransport.js').SongProxyTransport>}
+ */
+async function transportWhenNeeded(transport) {
+  if (transport) return transport;
+  const started = Date.now();
+  while (!window.proxyService && Date.now() - started < 5000) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  return createDefaultSongProxyTransport();
+}
+
+/**
  * Fetch and parse simfile data from Zenius-I-Vanisher
  * @param {string} simfileId - The simfile ID to fetch
  * @param {import('./songProxyTransport.js').SongProxyTransport} [transport]
  * @returns {Promise<Object>} Parsed simfile data
  */
 export async function fetchZeniusSimfile(simfileId, transport) {
-  const t = transport ?? createDefaultSongProxyTransport();
   const zeniusPageUrl = 'https://zenius-i-vanisher.com/v5.2/viewsimfile.php?simfileid=' + simfileId;
 
-  const html = await t.fetchText(zeniusPageUrl, { skipDirect: true });
+  /** @type {{ html: string, chartUrl: string | null, chartText: Promise<string | null> } | null} */
+  let prefetched = null;
+  try {
+    prefetched = (await consumeZeniusPagePrefetch(simfileId)) || null;
+  } catch {
+    prefetched = null;
+  }
+  const html =
+    prefetched && typeof prefetched.html === 'string' && prefetched.html.includes('simfile')
+      ? prefetched.html
+      : await (await transportWhenNeeded(transport)).fetchText(zeniusPageUrl, { skipDirect: true });
   const page = inspectZeniusPage(html, simfileId);
   if (page.gone) {
     throw new Error('This song is no longer on Zenius.');
@@ -391,9 +427,21 @@ export async function fetchZeniusSimfile(simfileId, transport) {
   let simfileDirectUrl = page.simfileUrl;
 
   if (page.simfileUrl) {
-    simfileText = await fetchSimfile(page.simfileUrl, t);
+    /** @type {string | null} */
+    let prefetchedChart = null;
+    if (prefetched && prefetched.chartUrl === page.simfileUrl && prefetched.chartText) {
+      try {
+        prefetchedChart = await prefetched.chartText;
+      } catch {
+        prefetchedChart = null;
+      }
+    }
+    simfileText =
+      prefetchedChart && prefetchedChart.includes('#')
+        ? prefetchedChart
+        : await fetchSimfile(page.simfileUrl, await transportWhenNeeded(transport));
   } else if (page.packUrls.length) {
-    const packed = await loadChartFromPacks(page.packUrls, t);
+    const packed = await loadChartFromPacks(page.packUrls, await transportWhenNeeded(transport));
     if (!packed?.simfileText) {
       throw new Error(
         chosenAudio.url

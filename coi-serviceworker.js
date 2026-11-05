@@ -125,9 +125,18 @@ if (typeof window === 'undefined') {
             ' reload(s). ' +
             'SharedArrayBuffer will be unavailable on this page.'
         );
-        // Clear the counter so a manual reload starts fresh instead of
-        // being trapped in the "give up" branch forever.
+        // Clear the counter so the next navigation is not trapped in
+        // this branch. A manual refresh is what actually gets the active
+        // worker controlling the document, so do that once ourselves.
+        // doom/coi.js uses the same key and shows the error card if the
+        // recovery navigation is still not isolated.
         sessionStorage.removeItem(attemptsKey);
+        if (!debugMode && sessionStorage.getItem('coi-recover-reload') !== '1') {
+          sessionStorage.setItem('coi-recover-reload', '1');
+          console.log('COI: reloading (recover)');
+          window.location.reload();
+          return;
+        }
         document.documentElement.classList.remove('coi-pending');
         return;
       }
@@ -178,10 +187,12 @@ if (typeof window === 'undefined') {
         // and active from a previous session. Waiting for 'controller-
         // change' is pointless in that state: the SW won't go through a
         // new install/activate cycle, so clients.claim() won't fire
-        // again and the event will never come — we'd just burn 5 s of
-        // the COI guard's budget on nothing. Detect the case (active SW,
-        // we're uncontrolled, we're not isolated) and reload immediately.
+        // again and the event will never come. One normal reload puts
+        // the active worker in control. Reloading again while we are
+        // still uncontrolled just burns the attempt budget and strands
+        // the page on the error card; a later manual refresh works.
         if (
+          attempt === 0 &&
           registration.active &&
           !navigator.serviceWorker.controller &&
           !window.crossOriginIsolated
