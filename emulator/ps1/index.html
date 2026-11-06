@@ -15,7 +15,7 @@
     <meta name="language" content="English" />
     <meta
       name="description"
-      content="Free PlayStation (PS1) emulator online. US BIOS auto-loads; play CHD discs from Internet Archive now, download locally, or bring your own .chd / .pbp / .iso. Gamepad recommended."
+      content="Play PlayStation games in your browser. Free PS1 emulator with no install and no account: pick a game from the collection and start, or bring your own disc image. A gamepad works alongside the keyboard."
     />
     <meta
       name="keywords"
@@ -27,7 +27,7 @@
     <meta property="og:title" content="PS1 Emulator — Play PlayStation Games in Browser" />
     <meta
       property="og:description"
-      content="Free PlayStation (PS1) emulator online. Play CHD discs from Internet Archive now, download locally, or bring your own disc image. Gamepad recommended."
+      content="Play PlayStation games in your browser. Free PS1 emulator with no install and no account: pick a game from the collection and start, or bring your own disc image. A gamepad works alongside the keyboard."
     />
     <meta property="og:url" content="https://joeheyming.github.io/emulator/ps1/" />
     <meta property="og:image" content="https://joeheyming.github.io/emulator/ps1/ps1-preview.png" />
@@ -42,7 +42,7 @@
     <meta name="twitter:title" content="PS1 Emulator — Play PlayStation Games in Browser" />
     <meta
       name="twitter:description"
-      content="Free PS1 emulator online. Play CHD discs from Internet Archive now, download locally, or bring your own disc image."
+      content="Play PlayStation games in your browser. Free PS1 emulator with no install and no account: pick a game from the collection and start, or bring your own disc image."
     />
     <meta
       name="twitter:image"
@@ -66,7 +66,7 @@
             "alternateName": ["PS1 Emulator", "Play PS1 in Browser"],
             "applicationCategory": "GameApplication",
             "operatingSystem": "Web Browser",
-            "description": "Free PlayStation (PS1) emulator online. US BIOS auto-loads; play CHD discs from Internet Archive now, download locally, or bring your own .chd / .pbp / .iso. Gamepad recommended.",
+            "description": "Play PlayStation games in your browser. Free PS1 emulator with no install and no account: pick a game from the collection and start, or bring your own disc image. A gamepad works alongside the keyboard.",
             "url": "https://joeheyming.github.io/emulator/ps1/",
             "author": {
               "@type": "Person",
@@ -153,7 +153,13 @@
       aria-label="Choose a ROM file"
       accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.sfc,.smc,.chd,.pbp,.iso,.cue,.zip,.7z"
     />
-    <input type="file" id="biosFileInput" class="hidden-input" aria-label="Choose a BIOS file" accept=".zip,.7z,.bin" />
+    <input
+      type="file"
+      id="biosFileInput"
+      class="hidden-input"
+      aria-label="Choose a BIOS file"
+      accept=".zip,.7z,.bin"
+    />
 
     <!-- Static fallback for crawlers / no-JS; launch.js replaces #brand / #boot-card. -->
     <div id="boot">
@@ -171,9 +177,8 @@
           Free PS1 emulator in your browser. No install, no ads. Bring your own
           <code>.chd / .pbp / .iso</code>
           disc image, or browse the collection and choose Play in browser. If that stalls, Download
-          instead and load the saved file. Use
-          Save (F5) / Load (F9) for quick saves — that is not the in-game memory card menu. Powered
-          by EmulatorJS (pcsx_rearmed).
+          instead and load the saved file. Use Save (F5) / Load (F9) for quick saves — that is not
+          the in-game memory card menu. Powered by EmulatorJS (pcsx_rearmed).
         </p>
         <p class="picker-help">
           <a href="/emulator/">All consoles</a>
@@ -189,8 +194,9 @@
       <footer class="seo-intro" hidden>
         <h2>PS1 Emulator — Play PlayStation Games in Browser</h2>
         <p>
-          Free PlayStation (PS1) emulator online. US BIOS auto-loads; play CHD discs from Internet
-          Archive now, download locally, or bring your own .chd / .pbp / .iso. Gamepad recommended.
+          Play PlayStation games in your browser. Free PS1 emulator with no install and no account:
+          pick a game from the collection and start, or bring your own disc image. A gamepad works
+          alongside the keyboard.
         </p>
         <nav aria-label="More retro games">
           <strong>More retro games:</strong>

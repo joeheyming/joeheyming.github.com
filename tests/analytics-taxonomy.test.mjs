@@ -20,7 +20,8 @@ const ALLOWED = new Set([
   'watch_playback_error',
   'doom_flavor_failed',
   'stepmania_song_load',
-  'pwa_install'
+  'pwa_install',
+  'emulator_game_start'
 ]);
 
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.playwright-cli', '.gsc-profile']);
@@ -101,4 +102,30 @@ test('custom GA calls do not use template-literal event names', () => {
     }
   }
   assert.deepEqual(found, [], `template-literal GA event names:\n${found.join('\n')}`);
+});
+
+test('in-page history is silent and emulator games are named', () => {
+  const analytics = readFileSync(path.join(ROOT, 'analytics.js'), 'utf8');
+  const doom = readFileSync(path.join(ROOT, 'doom/flavor-controller.js'), 'utf8');
+  const launch = readFileSync(path.join(ROOT, 'emulator/launch.js'), 'utf8');
+  const browser = readFileSync(path.join(ROOT, 'emulator/rom-browser.js'), 'utf8');
+  const ps1 = readFileSync(path.join(ROOT, 'emulator/ps1/index.html'), 'utf8');
+
+  assert.match(analytics, /History\.prototype\.pushState\.call/);
+  assert.match(analytics, /History\.prototype\.replaceState\.call/);
+  assert.match(analytics, /window\.trackEmulatorGame = function/);
+  assert.match(doom, /pushHistorySilent\(\s*\{\s*flavor:\s*flavor\s*\}/);
+  assert.match(doom, /prependBaseTitle\(cfg\.title\)/);
+  assert.doesNotMatch(doom, /history\.pushState\s*\(/);
+  assert.match(launch, /pushHistorySilent\(/);
+  assert.match(launch, /replaceHistorySilent\(/);
+  assert.doesNotMatch(launch, /history\.pushState\s*\(/);
+  assert.doesNotMatch(launch, /history\.replaceState\s*\(/);
+  assert.match(launch, /trackEmulatorGame\(cfg\.id,\s*playingTitle\)/);
+  assert.match(browser, /trackEmulatorGame\(cfg\.id,\s*rom\.title \|\| rom\.name\)/);
+  assert.match(browser, /tracked:\s*true/);
+  const description = ps1.match(/<meta\s+name="description"\s+content="([^"]+)"/);
+  assert.ok(description, 'ps1 meta description');
+  assert.match(description[1], /^Play PlayStation games in your browser/);
+  assert.ok(description[1].length >= 150, description[1]);
 });

@@ -491,7 +491,7 @@
   function applyFlavorBranding(flavor) {
     var cfg = FLAVORS[flavor];
     if (!cfg) return;
-    document.title = cfg.title + ' — Play in your browser';
+    if (window.prependBaseTitle) window.prependBaseTitle(cfg.title);
     var emoji = document.getElementById('brandEmoji');
     var title = document.getElementById('brandTitle');
     var tagline = document.getElementById('heroTagline');
@@ -602,7 +602,9 @@
           var picked = new URL(window.location.href);
           if (picked.searchParams.get('flavor') !== flavor) {
             picked.search = 'flavor=' + encodeURIComponent(flavor);
-            history.pushState({ flavor: flavor }, '', picked);
+            // Prototype call: gtag's history wrapper would count this as a page view.
+            if (window.pushHistorySilent) window.pushHistorySilent({ flavor: flavor }, picked);
+            else History.prototype.pushState.call(history, { flavor: flavor }, '', String(picked));
           }
         }
         var tStart = Date.now();

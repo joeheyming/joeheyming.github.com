@@ -702,6 +702,9 @@ class RomBrowserElement extends HTMLElement {
     };
 
     const cfg = this.consoleConfig;
+    if (cfg && typeof window.trackEmulatorGame === 'function') {
+      window.trackEmulatorGame(cfg.id, rom.title || rom.name);
+    }
     if (cfg && cfg.iaExternalDownload && !cfg.iaAllowInBrowser) {
       this.showExternalDownload(rom, restoreList);
       return;
@@ -748,7 +751,7 @@ class RomBrowserElement extends HTMLElement {
       this.closeBrowser();
 
       if (typeof window.launchEmulator === 'function') {
-        window.launchEmulator(romFile, romFile.name);
+        window.launchEmulator(romFile, romFile.name, { tracked: true });
       } else {
         console.error('launchEmulator not available on window');
         alert('Emulator not ready. Please reload the page and try again.');

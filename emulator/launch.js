@@ -9,7 +9,8 @@
 // Also defines `window.launchEmulator(romSource, romName)`. The local-file
 // picker calls it, and so does a tile click and a `?rom=` deep link after
 // the Archive bytes are wrapped in a File. A tile writes `?rom=<name>` with
-// history.pushState so Back returns to the list. Sega CD and Saturn deep
+// pushHistorySilent so Back returns to the list without a second page view.
+// Sega CD and Saturn deep
 // links stay on the download handoff. Mounting (EJS_* globals, loader.js, SOCD)
 // lives in emulator/ejs-mount.js; BIOS in emulator/bios.js. This file keeps
 // chrome, achievements, and boot-card orchestration.
@@ -83,16 +84,13 @@
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
 
-  const DEFAULT_DOCUMENT_TITLE = 'Retro Game Emulator — Play Console Games in Browser';
-
-  /** Keep the tab title in sync with the active console (picker vs lander). */
-  function setDocumentTitle(cfg) {
-    if (!cfg) {
-      document.title = DEFAULT_DOCUMENT_TITLE;
-      return;
-    }
-    // App Name — Descriptive Phrase [emoji] (page-title-standards).
-    document.title = `${cfg.title} Emulator — ${cfg.subtitle} ${cfg.emoji}`;
+  /**
+   * Console landers already have their SEO title in <title>. Replacing it
+   * made a later history page view look like a different screen. Restore
+   * that base; a running game prepends its name instead.
+   */
+  function setDocumentTitle() {
+    if (typeof window.prependBaseTitle === 'function') window.prependBaseTitle('');
   }
 
   function applyConsoleIdentity(cfg) {
@@ -113,7 +111,7 @@
     root.style.setProperty('--accent-bright-ring', hexToRgba(bright, dark ? 0.35 : 0.25));
     root.style.setProperty('--accent-gold', gold);
     root.setAttribute('data-emulator-console', cfg.id);
-    setDocumentTitle(cfg);
+    setDocumentTitle();
   }
 
   let identityCfg = null;
@@ -460,7 +458,12 @@
       return;
     }
     url.searchParams.set('rom', id);
-    history.pushState({ emulatorRom: id }, '', `${url.pathname}${url.search}${url.hash}`);
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    if (typeof window.pushHistorySilent === 'function') {
+      window.pushHistorySilent({ emulatorRom: id }, next);
+    } else {
+      History.prototype.pushState.call(history, { emulatorRom: id }, '', next);
+    }
   }
 
   /** Drop `?rom=` in place when the visitor leaves a game that has not started yet. */
@@ -468,7 +471,12 @@
     const url = new URL(window.location.href);
     if (!url.searchParams.has('rom')) return;
     url.searchParams.delete('rom');
-    history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    if (typeof window.replaceHistorySilent === 'function') {
+      window.replaceHistorySilent(history.state, next);
+    } else {
+      History.prototype.replaceState.call(history, history.state, '', next);
+    }
   }
 
   /**
@@ -551,7 +559,7 @@
     const bootCard = document.getElementById('boot-card');
     if (!brand || !bootCard) return;
 
-    setDocumentTitle(null);
+    setDocumentTitle();
     renderEmuBreadcrumbs(null);
     bootCard.classList.add('boot-card-picker');
 
@@ -848,11 +856,24 @@
     }
   }
 
-  window.launchEmulator = async function launchEmulator(romSource, romName) {
+  window.launchEmulator = async function launchEmulator(romSource, romName, options) {
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
     if (!cfg) {
       console.error('launchEmulator: no active console; bailing.');
       return;
+    }
+
+    const playingTitle =
+      String(romName || 'game')
+        .replace(
+          /\.(zip|7z|chd|pbp|iso|cue|bin|gba|nes|sfc|smc|md|gen|n64|z64|v64|gb|gbc|nds|gg|ngp|ngc|swf|32x)$/i,
+          ''
+        )
+        .trim() || 'game';
+    if (!options || !options.tracked) {
+      if (typeof window.trackEmulatorGame === 'function') {
+        window.trackEmulatorGame(cfg.id, playingTitle);
+      }
     }
 
     if (!wasmSupported()) {
@@ -872,6 +893,8 @@
         return;
       }
     }
+
+    if (typeof window.prependBaseTitle === 'function') window.prependBaseTitle(playingTitle);
 
     const bootEl = document.getElementById('boot');
     const gameContainer = document.getElementById('game-container');

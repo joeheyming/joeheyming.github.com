@@ -13,6 +13,7 @@
 //   speller_word_rendered  Periodic Speller produced a spelling
 //   content_shared         Shared via share.js / share FAB
 //   next_app_click         Clicked a next-app offer (Doom exit/fail, or home Continue)
+//   emulator_game_start    A game chosen on any emulator page (tile, file, or link)
 //
 // Actionable health:
 //   exception             JavaScript errors with a stack
@@ -82,7 +83,7 @@
   var script = document.currentScript;
   if (!script || !script.src) return;
   var src = script.src.replace(/analytics\.js(?:\?.*)?$/, 'remote.js');
-  document.write('<script src="' + src + '"><\/script>');
+  document.write('<script src="' + src + '"></script>');
 })();
 
 // assuming google analytics is already loaded
@@ -611,6 +612,48 @@ window.yieldToMain = function yieldToMain() {
   return new Promise(function (resolve) {
     setTimeout(resolve, 0);
   });
+};
+
+// gtag wraps history.pushState / replaceState on the instance and enhanced
+// measurement records each call as a page_view. In-page updates (Doom
+// ?flavor=, emulator ?rom=) go through the prototype so Back still works
+// and Analytics keeps one screen per URL.
+window.pushHistorySilent = function (state, url) {
+  History.prototype.pushState.call(history, state, '', url == null ? '' : String(url));
+};
+window.replaceHistorySilent = function (state, url) {
+  History.prototype.replaceState.call(history, state, '', url == null ? '' : String(url));
+};
+
+// The <title> in the HTML is the screen Analytics already recorded. Later
+// context (a Doom flavor, a ROM name) is prepended so a second hit, if one
+// ever fires, still shares that base instead of opening a new screen.
+function rememberBaseTitle() {
+  const root = document.documentElement;
+  if (!root || root.dataset.baseTitle || !document.title) return;
+  root.dataset.baseTitle = document.title;
+}
+rememberBaseTitle();
+
+window.prependBaseTitle = function (prefix) {
+  rememberBaseTitle();
+  const base = (document.documentElement && document.documentElement.dataset.baseTitle) || '';
+  const lead = String(prefix || '').trim();
+  document.title = lead && base ? lead + ' — ' + base : base || document.title;
+};
+
+const EMULATOR_ROM_EXT =
+  /\.(zip|7z|chd|pbp|iso|cue|bin|gba|nes|sfc|smc|md|gen|n64|z64|v64|gb|gbc|nds|gg|ngp|ngc|swf|32x)$/i;
+
+// One event for every emulator page. Label is `console:game`, sliced to the
+// GA4 event-parameter limit.
+window.trackEmulatorGame = function (consoleId, gameName) {
+  const id = String(consoleId || 'emulator').slice(0, 24);
+  const name =
+    String(gameName || 'game')
+      .replace(EMULATOR_ROM_EXT, '')
+      .trim() || 'game';
+  window.trackEvent('emulator_game_start', 'Emulator', (id + ':' + name).slice(0, 100));
 };
 
 // Helper function to track events (can be called from anywhere, including web components)
