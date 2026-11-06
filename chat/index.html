@@ -28,7 +28,7 @@
     <meta property="og:image" content="https://joeheyming.github.io/chat/chat-preview.png" />
     <meta
       property="og:image:alt"
-      content="In-browser AI chat interface running a local Llama 3.2 3B model on WebGPU, with an optional Hermes 3 8B quality model. Conversation bubbles, a prompt input, and a status bar showing the model is loaded locally with no API key."
+      content="In-browser AI chat interface running Qwen3 4B locally on WebGPU. Conversation bubbles, a prompt input, and a status bar showing the model is loaded locally with no API key."
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -45,7 +45,7 @@
     <meta name="twitter:image" content="https://joeheyming.github.io/chat/chat-preview.png" />
     <meta
       name="twitter:image:alt"
-      content="In-browser AI chat interface running a local Llama 3.2 3B model on WebGPU, with an optional Hermes 3 8B quality model. Conversation bubbles, a prompt input, and a status bar showing the model is loaded locally with no API key."
+      content="In-browser AI chat interface running Qwen3 4B locally on WebGPU. Conversation bubbles, a prompt input, and a status bar showing the model is loaded locally with no API key."
     />
 
     <link rel="canonical" href="https://joeheyming.github.io/chat/" />
@@ -73,14 +73,14 @@
               "On-device LLM",
               "Local LLM in browser",
               "WebGPU LLM",
-              "WebLLM Llama 3.2"
+              "WebLLM Qwen3"
             ],
             "url": "https://joeheyming.github.io/chat/",
             "applicationCategory": "DeveloperApplication",
             "applicationSubCategory": "AI Assistant",
             "operatingSystem": "Any (modern browser with WebGPU)",
             "softwareRequirements": "WebGPU-capable browser (Chrome 113+, Edge 113+, Safari 18+, Firefox 141+)",
-            "description": "Static-site LLM chat powered by WebLLM. Llama 3.2 3B runs on your GPU via WebGPU by default (~1.8 GB), with optional Hermes-3-Llama-3.1-8B for higher quality. No backend, no API key, no third-party LLM endpoint. Weights cache in the browser's OPFS and work offline thereafter.",
+            "description": "Static-site LLM chat powered by WebLLM. Qwen3 4B runs on your GPU via WebGPU (~2.3 GB). No backend, no API key, no third-party LLM endpoint. Weights cache in the browser's OPFS and work offline thereafter.",
             "author": {
               "@type": "Person",
               "name": "Joe Heyming",
@@ -90,7 +90,7 @@
             "featureList": [
               "Runs entirely in your browser (WebGPU, WebLLM)",
               "No API key, no backend, no third-party LLM endpoint",
-              "Llama 3.2 3B by default (~1.8 GB); optional Hermes 3 8B (~4.5 GB)",
+              "Qwen3 4B (~2.3 GB), cached in the browser",
               "Works offline after first install",
               "Drop in a text file or PDF and chat about it"
             ]
@@ -111,7 +111,7 @@
                 "name": "What model does Chat use?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Llama 3.2 3B Instruct by default, served via the WebLLM runtime (~1.8 GB). You can switch to Hermes-3-Llama-3.1-8B (~4.5 GB) for higher quality. Weights are cached in your browser's Origin Private File System (OPFS) on first run."
+                  "text": "Qwen3 4B, served via the WebLLM runtime (~2.3 GB download, about 3.4 GB of GPU memory). Weights are cached in your browser's Origin Private File System (OPFS) on first run."
                 }
               },
               {
@@ -119,7 +119,7 @@
                 "name": "How big is the download?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "About 1.8 GB for the default Llama 3.2 3B model, or about 4.5 GB if you pick Hermes 3 8B. Subsequent loads are instant because the weights stream out of the local OPFS cache."
+                  "text": "About 2.3 GB. Subsequent loads are instant because the weights stream out of the local OPFS cache."
                 }
               },
               {
@@ -143,7 +143,7 @@
                 "name": "What hardware do I need?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Llama 3.2 3B is comfortable on most laptops with WebGPU. The optional Hermes 3 8B model wants more VRAM (about 6 GB is comfortable). Integrated GPUs work but are slower. The page falls back gracefully if WebGPU is unavailable."
+                  "text": "Qwen3 4B is comfortable on most laptops with WebGPU (about 3.4 GB of GPU memory). Integrated GPUs work but are slower. The page falls back gracefully if WebGPU is unavailable."
                 }
               }
             ]
@@ -221,13 +221,12 @@
             <span class="chat-install-emoji" aria-hidden="true">📦</span>
             <h2 class="chat-install-title" id="chat-install-title">Install the local model</h2>
             <p class="chat-install-body" id="chat-install-body">
-              This chat needs to install Llama 3.2 3B (~1.8&nbsp;GB) into your browser. The full
-              model runs on your device — no backend, no API key, no third-party LLM endpoint. After
-              installing, chat is instant and works offline. Switch to Hermes 3 8B in the picker if
-              you want a larger quality model.
+              This chat needs to install Qwen3 4B (~2.3&nbsp;GB) into your browser. The full model
+              runs on your device — no backend, no API key, no third-party LLM endpoint. After
+              installing, chat is instant and works offline.
             </p>
             <button type="button" id="chat-install-btn" class="chat-install-btn">
-              Install Llama 3.2 3B (~1.8&nbsp;GB)
+              Install Qwen3 4B (~2.3&nbsp;GB)
             </button>
             <p class="chat-install-hint">
               Stores in your browser's cache (OPFS). You can clear it anytime from browser settings.
@@ -285,15 +284,6 @@
 
       <form class="chat-composer" id="chat-composer">
         <div class="chat-attachments" id="chat-attachments" hidden></div>
-        <div class="chat-composer-toolbar">
-          <label class="chat-model-label" title="Choose which on-device language model answers">
-            <span aria-hidden="true">🧠</span>
-            <select id="chat-model" aria-label="Chat model">
-              <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B · default</option>
-              <option value="Hermes-3-Llama-3.1-8B-q4f16_1-MLC">Hermes 3 8B · quality</option>
-            </select>
-          </label>
-        </div>
         <div class="chat-composer-row">
           <button
             type="button"
@@ -347,11 +337,10 @@
     <section class="chat-seo" hidden aria-hidden="true">
       <h2>Free local LLM in your browser — no API key, no backend</h2>
       <p>
-        Chat is a static-site AI assistant that runs a local language model entirely on your device
-        via WebGPU. The default is Llama 3.2 3B (~1.8 GB); Hermes-3-Llama-3.1-8B (~4.5 GB) is
-        available as a quality option. No API key. No backend. No third-party LLM endpoint. Weights
-        are cached once into your browser's OPFS, after which the page works instantly and offline.
-        Drop in a text file or PDF and chat about it.
+        Chat is a static-site AI assistant that runs Qwen3 4B entirely on your device via WebGPU
+        (~2.3 GB). No API key. No backend. No third-party LLM endpoint. Weights are cached once into
+        your browser's OPFS, after which the page works instantly and offline. Drop in a text file
+        or PDF and chat about it.
       </p>
       <h3>Common questions about local browser LLMs</h3>
       <p>
@@ -360,10 +349,10 @@
         leave your device.
       </p>
       <p>
-        <strong>Why Llama 3.2 3B by default?</strong>
-        It is large enough to be useful for everyday tasks and small enough to fit on most laptops
-        with WebGPU. Hermes 3 8B remains in the picker for machines that can hold it — GPUs keep
-        getting faster.
+        <strong>Why Qwen3 4B?</strong>
+        It is large enough to be useful for everyday tasks and still marked low-resource by WebLLM,
+        so it fits on most laptops with WebGPU. Thinking mode is off so the 4096-token window is
+        used for the conversation.
       </p>
       <p>
         <strong>What are the alternatives if WebGPU isn't available?</strong>
@@ -373,13 +362,12 @@
     </section>
 
     <p class="seo-keywords-extended" hidden>
-      Free local LLM browser, browser LLM no API key, WebGPU LLM, WebLLM Llama 3.2, on-device AI
+      Free local LLM browser, browser LLM no API key, WebGPU LLM, WebLLM Qwen3, on-device AI
       browser, local AI assistant browser, run LLM in browser, ChatGPT alternative no signup,
-      private AI chat browser, offline AI chat browser, no-backend chatbot, local Llama 3 in
-      browser, browser Llama 3.2, Hermes 3 8B browser, MLC AI WebLLM, WebLLM demo, on-device LLM,
-      OPFS AI cache, WebGPU AI, browser machine learning chat. Common typos: webgpu llm, webgpu
-      llms, web gpu llm, web-gpu llm, web glsl, webgl llm, webGPU LLM browser, hermes 3 browser,
-      hermes-3-8B browser.
+      private AI chat browser, offline AI chat browser, no-backend chatbot, Qwen3 4B browser, MLC AI
+      WebLLM, WebLLM demo, on-device LLM, OPFS AI cache, WebGPU AI, browser machine learning chat.
+      Common typos: webgpu llm, webgpu llms, web gpu llm, web-gpu llm, web glsl, webgl llm, webGPU
+      LLM browser, qwen 3 browser, qwen3-4b browser.
     </p>
 
     <script type="module" src="./app.js"></script>

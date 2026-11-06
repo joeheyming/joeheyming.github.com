@@ -7,11 +7,7 @@
  * downloaded lazily on the user's first send, not at page load.
  *
  * Plain chat only — no tool calls, no app launching, no filesystem
- * touching. The earlier tool-call plumbing routed through WebLLM's
- * OpenAI `tools` parser, which is flaky for Hermes-3 (see the
- * `recoverPlainTextFromToolParseError` workaround in webllm-adapter.js
- * and the open PR mlc-ai/web-llm#802). Cleaner to do nothing than to
- * do that.
+ * touching. The model is Qwen3 4B with thinking disabled.
  *
  * Attachments still work: drag a text/PDF onto the chat and the
  * extracted content is folded into the user message for the model.
@@ -27,7 +23,6 @@ import {
   probeWebGpu,
   probeAdapters,
   WEBLLM_DEFAULT_MODEL,
-  CHAT_MODELS,
   getChatModel
 } from './webllm-adapter.js';
 import { loadDocument, formatAttachmentForModel, formatBytes } from './document-loader.js';
@@ -49,10 +44,6 @@ let hasInstalledModel;
 let markModelInstalled;
 /** @type {(modelId?: string) => void} */
 let clearModelInstalledFlag;
-/** @type {() => string | null} */
-let loadSelectedModel;
-/** @type {(modelId: string) => void} */
-let saveSelectedModel;
 
 let scriptsCacheBust = '';
 
@@ -65,8 +56,6 @@ async function loadDynamicModules() {
   hasInstalledModel = storage.hasInstalledModel;
   markModelInstalled = storage.markModelInstalled;
   clearModelInstalledFlag = storage.clearModelInstalledFlag;
-  loadSelectedModel = storage.loadSelectedModel;
-  saveSelectedModel = storage.saveSelectedModel;
 }
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -80,9 +69,6 @@ const els = {
   installBtn: /** @type {HTMLButtonElement} */ ($('chat-install-btn')),
   installTitle: $('chat-install-title'),
   installBody: $('chat-install-body'),
-  model: /** @type {HTMLSelectElement | null} */ (
-    /** @type {unknown} */ (document.getElementById('chat-model'))
-  ),
   messages: $('chat-messages'),
   composer: /** @type {HTMLFormElement} */ ($('chat-composer')),
   input: /** @type {HTMLTextAreaElement} */ ($('chat-input')),
@@ -136,14 +122,6 @@ let pendingAttachments = [];
  * of racing.
  */
 let modelReadyPromise = /** @type {Promise<boolean> | null} */ (null);
-
-/**
- * Currently-selected WebLLM model. Persisted; first-time visitors get
- * Llama 3.2 3B. Returning visitors who already installed Hermes 8B
- * before the picker existed stay on Hermes so we don't force a second
- * multi-GB download.
- */
-let selectedModelId = WEBLLM_DEFAULT_MODEL;
 
 // -------------------- System prompt --------------------
 
@@ -443,8 +421,8 @@ function refreshModeLine(state, detail) {
     els.modeLine.textContent = detail ? `Loading model · ${detail}` : 'Loading model…';
     return;
   }
-  const info = getChatModel(selectedModelId);
-  if (isWebLlmReady(selectedModelId)) {
+  const info = getChatModel(WEBLLM_DEFAULT_MODEL);
+  if (isWebLlmReady(WEBLLM_DEFAULT_MODEL)) {
     const gpuSuffix = gpuLabel ? ` · GPU: ${gpuLabel}` : '';
     els.modeLine.textContent = `Local · ${info.label}${gpuSuffix}`;
     return;
@@ -470,7 +448,7 @@ function escapeHtml(s) {
 }
 
 function applySelectedModel() {
-  const info = getChatModel(selectedModelId);
+  const info = getChatModel(WEBLLM_DEFAULT_MODEL);
 
   if (els.installTitle) {
     els.installTitle.textContent = `Install ${info.label}`;
@@ -489,12 +467,12 @@ function applySelectedModel() {
 
   refreshModeLine();
 
-  if (isWebLlmReady(selectedModelId)) {
+  if (isWebLlmReady(WEBLLM_DEFAULT_MODEL)) {
     setInstallCardVisible(false);
     return;
   }
 
-  if (hasInstalledModel(selectedModelId)) {
+  if (hasInstalledModel(WEBLLM_DEFAULT_MODEL)) {
     setInstallCardVisible(false);
     void ensureModelReady({ silent: true });
     return;
@@ -517,11 +495,11 @@ function applySelectedModel() {
  * @returns {Promise<boolean>}
  */
 function ensureModelReady(opts = {}) {
-  if (isWebLlmReady(selectedModelId)) return Promise.resolve(true);
+  if (isWebLlmReady(WEBLLM_DEFAULT_MODEL)) return Promise.resolve(true);
   if (modelReadyPromise) return modelReadyPromise;
 
   const silent = !!opts.silent;
-  const targetModel = selectedModelId;
+  const targetModel = WEBLLM_DEFAULT_MODEL;
   modelReadyPromise = (async () => {
     if (!silent) {
       const confirmed = await confirmDownload();
@@ -532,7 +510,6 @@ function ensureModelReady(opts = {}) {
     const progress = silent ? null : openDownloadDialog();
     const installBtnWasDisabled = els.installBtn?.disabled;
     if (els.installBtn) els.installBtn.disabled = true;
-    if (els.model) els.model.disabled = true;
 
     try {
       await initWebLlm((report) => {
@@ -563,7 +540,6 @@ function ensureModelReady(opts = {}) {
       refreshModeLine();
       return false;
     } finally {
-      if (els.model) els.model.disabled = false;
       modelReadyPromise = null;
     }
   })();
@@ -670,7 +646,6 @@ async function send(text) {
   els.send.hidden = true;
   els.stop.hidden = false;
   els.input.disabled = true;
-  if (els.model) els.model.disabled = true;
 
   const wireMessages = buildWireMessages(finalText, sendAttachments);
 
@@ -723,7 +698,6 @@ async function send(text) {
     els.send.hidden = false;
     els.stop.hidden = true;
     els.input.disabled = false;
-    if (els.model) els.model.disabled = false;
     els.input.focus();
   }
 }
@@ -732,7 +706,7 @@ async function send(text) {
 
 function confirmDownload() {
   return new Promise((resolve) => {
-    const info = getChatModel(selectedModelId);
+    const info = getChatModel(WEBLLM_DEFAULT_MODEL);
     const modal = document.createElement('div');
     modal.className = 'chat-modal';
     modal.innerHTML = `
@@ -835,19 +809,6 @@ function wireEvents() {
     void ensureModelReady({ silent: false });
   });
 
-  els.model?.addEventListener('change', () => {
-    const next = els.model?.value;
-    if (!next || !CHAT_MODELS[next]) return;
-    if (currentTurn || modelReadyPromise) {
-      if (els.model) els.model.value = selectedModelId;
-      notify('Wait for the current reply or install to finish before switching models.', 'warn');
-      return;
-    }
-    selectedModelId = next;
-    saveSelectedModel(next);
-    applySelectedModel();
-  });
-
   els.reloadBtn?.addEventListener('click', () => {
     void refreshScripts();
   });
@@ -916,7 +877,6 @@ function showWebGpuGate(probe) {
   els.input.placeholder = 'WebGPU required — see banner above.';
   els.send.disabled = true;
   if (els.attachBtn) els.attachBtn.disabled = true;
-  if (els.model) els.model.disabled = true;
   refreshModeLine('unsupported');
 }
 
@@ -924,15 +884,6 @@ async function boot() {
   await loadDynamicModules();
   history = loadHistory();
   renderInitialHistory();
-
-  const savedModel = loadSelectedModel();
-  if (savedModel && CHAT_MODELS[savedModel]) {
-    selectedModelId = savedModel;
-  } else if (hasInstalledModel('Hermes-3-Llama-3.1-8B-q4f16_1-MLC')) {
-    // Pre-picker visitors already paid for Hermes; keep them there.
-    selectedModelId = 'Hermes-3-Llama-3.1-8B-q4f16_1-MLC';
-  }
-  if (els.model) els.model.value = selectedModelId;
 
   wireEvents();
   autoResize();

@@ -1,6 +1,6 @@
 /**
- * Diffusion adapter — wraps `web-txt2img` to run SD-Turbo locally on
- * the user's GPU.
+ * Diffusion adapter — wraps `web-txt2img` to run Janus-Pro 1B locally
+ * on the user's GPU.
  *
  * Architecture mirrors `chat/webllm-adapter.js`: the engine is a
  * module-scope singleton, the model is downloaded into Cache Storage
@@ -26,9 +26,10 @@
  *     thread instead of in a worker. It's the right tool for a
  *     CDN-loaded build.
  *
- * Bare-specifier dynamic imports inside the SD-Turbo adapter
- * (`onnxruntime-web/webgpu`, `@xenova/transformers`) are resolved by
- * the import map declared in `imagine/index.html`.
+ * Bare specifiers (`onnxruntime-common`, `onnxruntime-web`,
+ * `@huggingface/transformers`) are resolved by the import map in
+ * `imagine/index.html`. `onnxruntime-common` and `onnxruntime-web`
+ * must be the same module; see that comment.
  */
 
 const WEB_TXT2IMG_INLINE_URL =
@@ -59,57 +60,62 @@ const TRANSFORMERS_URL =
 const CLIP_TOKENIZER_ID = 'Xenova/clip-vit-base-patch16';
 
 /**
- * Default model id passed to `client.load()`. SD-Turbo: a single-step
- * distillation of SD 2.1 trained with Adversarial Diffusion
- * Distillation. ~2.3 GB download, 512×512, ~1–5 s/image on a discrete
- * GPU.
+ * Janus-Pro 1B is the default. SD-Turbo is the other model web-txt2img
+ * 0.3.1 can run; the page offers it from the model menu.
  */
-const DEFAULT_MODEL = 'sd-turbo';
+const DEFAULT_MODEL = 'janus-pro-1b';
 
-/** Human-readable size of the default model, shown in the install dialog. */
-const DEFAULT_MODEL_SIZE_LABEL = '~2.3 GB';
+/** Human-readable size of the default model, shown before a selection. */
+const DEFAULT_MODEL_SIZE_LABEL = '~2.2 GB';
 
 /**
- * Registry of supported text-to-image models.
+ * Models this page can load. web-txt2img 0.3.1 ships exactly these two.
  *
- * Each entry is what the UI needs to render a model picker entry and
- * what `initEngine` needs to drive `web-txt2img`. We intentionally
- * keep this small — both shipped models are supported by web-txt2img
- * so we don't need a custom pipeline for either; bigger model bets
- * (SDXL Turbo, LCM, custom SD-1.5 fine-tunes) belong in their own
- * engine modules.
+ * `supportsSeed` is what the runtime actually honors. SD-Turbo takes a
+ * seed and always draws 512×512. Janus-Pro ignores seeds and draws
+ * 384×384, one image token at a time. Neither adapter accepts a source
+ * image, so image-to-image is not offered.
  *
  * @typedef {Object} ImagineModelInfo
- * @property {string} id              The string passed to `client.load()`.
- * @property {string} label           Short label for the model picker.
- * @property {string} sizeLabel       Human-readable download size.
- * @property {string} description     One-liner shown in the install card.
- * @property {string} speedHint       Rough per-image latency expectation.
+ * @property {string} id
+ * @property {string} label
+ * @property {string} sizeLabel
+ * @property {string} description
+ * @property {string} speedHint
+ * @property {string} features   Short line for the composer.
+ * @property {number} sizePx     Square output edge, in pixels.
+ * @property {boolean} supportsSeed
+ * @property {boolean} supportsImage  SD-Turbo can start from a source image.
  * @property {'web-txt2img' | 'web-txt2img-janus'} runtime
- *   Tells initEngine which pre-load shape to use. SD-Turbo expects a
- *   tokenizerProvider; Janus-Pro spins up its own pipeline via
- *   @huggingface/transformers and just needs that library reachable.
  *
  * @type {Record<string, ImagineModelInfo>}
  */
 export const IMAGE_MODELS = {
-  'sd-turbo': {
-    id: 'sd-turbo',
-    label: 'SD-Turbo',
-    sizeLabel: '~2.3 GB',
-    description:
-      'Single-step diffusion distillation of SD 2.1. Fast and reliable; best for quick iteration.',
-    speedHint: '~1–5 s/image on a discrete GPU',
-    runtime: 'web-txt2img'
-  },
   'janus-pro-1b': {
     id: 'janus-pro-1b',
     label: 'Janus-Pro 1B',
     sizeLabel: '~2.2 GB',
     description:
-      'Autoregressive multimodal model. Often produces better composition and reads detailed prompts more literally than SD-Turbo, but is meaningfully slower per image.',
-    speedHint: '~20–60 s/image (576 tokens, decoded sequentially)',
+      'Autoregressive image model. Reads detailed prompts more literally than a one-step diffusion model, and draws the picture one token at a time.',
+    speedHint: 'about 20–60 seconds per image',
+    features: '384×384 · new sample every time · about 20–60 seconds',
+    sizePx: 384,
+    supportsSeed: false,
+    supportsImage: false,
     runtime: 'web-txt2img-janus'
+  },
+  'sd-turbo': {
+    id: 'sd-turbo',
+    label: 'SD-Turbo',
+    sizeLabel: '~2.6 GB',
+    description:
+      'One-step distillation of Stable Diffusion. Fast, the same seed redraws the same picture, and a source image can steer the result.',
+    speedHint: 'about 1–5 seconds per image, a bit longer from a source image',
+    features: '512×512 · seed · source image · about 1–5 seconds',
+    sizePx: 512,
+    supportsSeed: true,
+    supportsImage: true,
+    runtime: 'web-txt2img'
   }
 };
 
@@ -127,6 +133,8 @@ let hfTransformersPromise = null;
  * @type {any}
  */
 let client = null;
+/** @type {import('./sd-turbo.js').SDTurboEngine | null} */
+let turbo = null;
 let currentModelId = '';
 let modelLoaded = false;
 
@@ -277,7 +285,8 @@ export function isWebGpuSupported() {
  *   generate without a network round-trip.
  */
 export function isEngineReady(modelId) {
-  if (!client || !modelLoaded) return false;
+  if (!modelLoaded) return false;
+  if (!client && !turbo) return false;
   if (modelId && currentModelId !== modelId) return false;
   return true;
 }
@@ -376,12 +385,27 @@ export async function initEngine(onProgress, modelId = DEFAULT_MODEL, signal) {
   }
   preferHighPerformanceGpu();
 
+  const modelInfo = IMAGE_MODELS[modelId] || IMAGE_MODELS[DEFAULT_MODEL];
+  if (modelLoaded && currentModelId === modelId) {
+    return modelInfo.runtime === 'web-txt2img' ? turbo : client;
+  }
+
+  if (modelInfo.runtime === 'web-txt2img') {
+    return initTurbo(onProgress, modelId, signal);
+  }
+
+  if (turbo) {
+    try {
+      await turbo.unload();
+    } catch {
+      /* ignore */
+    }
+    turbo = null;
+    modelLoaded = false;
+  }
+
   const mod = await loadModule();
   if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-
-  if (client && currentModelId === modelId && modelLoaded) {
-    return client;
-  }
 
   if (client && currentModelId !== modelId) {
     try {
@@ -397,53 +421,16 @@ export async function initEngine(onProgress, modelId = DEFAULT_MODEL, signal) {
     client = createClient(mod);
   }
 
-  const modelInfo = IMAGE_MODELS[modelId] || IMAGE_MODELS[DEFAULT_MODEL];
+  // Janus needs @huggingface/transformers reachable. Pre-load it
+  // (and stamp the global) before the adapter's load runs so its
+  // import-or-fallback chain resolves on the first try.
+  onProgress?.({ progress: 0, text: 'Loading transformers library…' });
+  await loadHfTransformers();
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
-  if (modelInfo.runtime === 'web-txt2img-janus') {
-    // Janus needs @huggingface/transformers reachable. Pre-load it
-    // (and stamp the global) before the adapter's load runs so its
-    // import-or-fallback chain resolves on the first try.
-    onProgress?.({ progress: 0, text: 'Loading transformers library…' });
-    await loadHfTransformers();
-    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-  } else {
-    // SD-Turbo path: pre-warm the CLIP tokenizer in parallel with
-    // the (much larger) model download so it's ready by the time the
-    // user hits Generate. Failures here are non-fatal — the adapter
-    // will surface them at generate time if loadTokenizer() fails
-    // again on the second call.
-    loadTokenizer().catch((err) => {
-      console.warn('[imagine] tokenizer pre-warm failed (will retry on generate)', err);
-      tokenizerPromise = null;
-    });
-  }
-
-  // Bytes-aware progress: web-txt2img emits `{ pct, message,
-  // bytesDownloaded?, totalBytesExpected? }`. Normalize to the same
-  // `{ progress, text }` shape webllm-adapter uses so the UI can
-  // share rendering code.
-  //
-  // `wasmNumThreads: 1` forces ORT's JSEP build to run WASM
-  // single-threaded. Multi-threaded mode spawns its own worker via
-  // `new Worker(new URL(..., import.meta.url))`, where `import.meta.url`
-  // is the jsdelivr URL the import map resolved to — and workers are
-  // gated to same-origin. Single-threaded keeps the heavy compute on
-  // the GPU (WebGPU EP) and the WASM control flow on the main
-  // thread; perf cost for SD-Turbo's 1-step path is small.
-  //
-  // `tokenizerProvider` injects our preloaded CLIP tokenizer for
-  // SD-Turbo. The Janus adapter has its own pipeline and ignores
-  // this option — passing it is harmless.
-  const loadOptions = /** @type {any} */ ({
-    backendPreference: ['webgpu'],
-    wasmNumThreads: 1
-  });
-  if (modelInfo.runtime === 'web-txt2img') {
-    loadOptions.tokenizerProvider = () => loadTokenizer();
-  }
   const result = await client.load(
     modelId,
-    loadOptions,
+    { backendPreference: ['webgpu'], wasmNumThreads: 1 },
     /** @param {any} p */ (p) => {
       if (signal?.aborted) return;
       const pct = typeof p?.pct === 'number' ? p.pct / 100 : 0;
@@ -482,73 +469,136 @@ export async function initEngine(onProgress, modelId = DEFAULT_MODEL, signal) {
 }
 
 /**
- * Generate a single 512×512 image from a text prompt.
+ * SD-Turbo loads through our own runtime so a source image can be
+ * encoded. Janus keeps using web-txt2img.
+ *
+ * @param {(report: { progress: number, text: string }) => void} [onProgress]
+ * @param {string} modelId
+ * @param {AbortSignal} [signal]
+ */
+async function initTurbo(onProgress, modelId, signal) {
+  if (client) {
+    try {
+      await client.unload?.();
+    } catch {
+      /* ignore */
+    }
+    client = null;
+    modelLoaded = false;
+  }
+  if (!turbo) {
+    const { SDTurboEngine } = await import('./sd-turbo.js');
+    turbo = new SDTurboEngine();
+  }
+  loadTokenizer().catch((err) => {
+    console.warn('[imagine] tokenizer pre-warm failed (will retry on generate)', err);
+    tokenizerPromise = null;
+  });
+  await turbo.load({
+    tokenizerProvider: () => loadTokenizer(),
+    onProgress,
+    signal
+  });
+  currentModelId = modelId;
+  modelLoaded = true;
+  return turbo;
+}
+
+/**
+ * Generate one image. SD-Turbo accepts a seed and, when `image` is
+ * set, starts from that picture. Janus-Pro takes the prompt alone.
  *
  * @param {{
  *   prompt: string,
  *   seed?: number,
+ *   image?: CanvasImageSource | null,
+ *   strength?: number,
  *   signal?: AbortSignal,
  *   onProgress?: (report: { progress: number, text: string }) => void
  * }} req
- * @returns {Promise<{ blob: Blob, url: string, prompt: string, seed: number, timeMs: number }>}
+ * @returns {Promise<{ blob: Blob, url: string, prompt: string, seed: number, modelId: string, fromImage: boolean, timeMs: number }>}
  */
 export async function generateImage(req) {
-  if (!client || !modelLoaded) {
+  if (!modelLoaded) {
     throw new Error('Engine not initialized. Call initEngine() first.');
   }
   const prompt = (req.prompt || '').trim();
   if (!prompt) {
     throw new Error('Prompt is empty.');
   }
-  const seed =
-    typeof req.seed === 'number' && Number.isFinite(req.seed)
+  const model = IMAGE_MODELS[currentModelId];
+  const supportsSeed = model?.supportsSeed === true;
+  const seed = supportsSeed
+    ? typeof req.seed === 'number' && Number.isFinite(req.seed)
       ? Math.max(0, Math.floor(req.seed)) >>> 0
-      : Math.floor(Math.random() * 0xffffffff) >>> 0;
+      : Math.floor(Math.random() * 0xffffffff) >>> 0
+    : 0;
+  const fromImage = model?.supportsImage === true && !!req.image;
 
-  console.log('[imagine:gen] generating', { prompt, seed });
+  console.log('[imagine:gen] generating', { prompt, seed, modelId: currentModelId, fromImage });
 
-  const handle = client.generate(
-    { prompt, seed },
-    /** @param {any} p */ (p) => {
-      if (req.signal?.aborted) return;
-      const pct = typeof p?.pct === 'number' ? p.pct / 100 : 0;
-      const phase = p?.phase || p?.message || 'generating';
-      try {
-        req.onProgress?.({
-          progress: Math.max(0, Math.min(1, pct)),
-          text: `${phase}…`
-        });
-      } catch {
-        /* ignore UI errors */
-      }
-    }
-  );
-
-  if (req.signal) {
-    if (req.signal.aborted) {
-      try {
-        await handle.abort?.();
-      } catch {
-        /* ignore */
-      }
-      throw new DOMException('Aborted', 'AbortError');
-    }
-    req.signal.addEventListener(
-      'abort',
-      () => {
+  /** @type {{ ok?: boolean, blob?: Blob, timeMs?: number, reason?: string, message?: string }} */
+  let result;
+  if (model?.runtime === 'web-txt2img') {
+    if (!turbo) throw new Error('Engine not initialized. Call initEngine() first.');
+    result = await turbo.generate({
+      prompt,
+      seed,
+      image: fromImage ? req.image : null,
+      strength: req.strength,
+      signal: req.signal,
+      onProgress: (report) => {
         try {
-          handle.abort?.();
+          req.onProgress?.(report);
+        } catch {
+          /* ignore UI errors */
+        }
+      }
+    });
+  } else {
+    if (!client) throw new Error('Engine not initialized. Call initEngine() first.');
+    const handle = client.generate(
+      supportsSeed ? { prompt, seed } : { prompt },
+      /** @param {any} p */ (p) => {
+        if (req.signal?.aborted) return;
+        const pct = typeof p?.pct === 'number' ? p.pct / 100 : 0;
+        const phase = p?.phase || p?.message || 'generating';
+        try {
+          req.onProgress?.({
+            progress: Math.max(0, Math.min(1, pct)),
+            text: `${phase}…`
+          });
+        } catch {
+          /* ignore UI errors */
+        }
+      }
+    );
+    if (req.signal) {
+      if (req.signal.aborted) {
+        try {
+          await handle.abort?.();
         } catch {
           /* ignore */
         }
-      },
-      { once: true }
-    );
+        throw new DOMException('Aborted', 'AbortError');
+      }
+      req.signal.addEventListener(
+        'abort',
+        () => {
+          try {
+            handle.abort?.();
+          } catch {
+            /* ignore */
+          }
+        },
+        { once: true }
+      );
+    }
+    result = await handle.promise;
   }
 
-  const result = await handle.promise;
   if (!result?.ok) {
-    if (result?.reason === 'aborted' || req.signal?.aborted) {
+    if (result?.reason === 'cancelled' || result?.reason === 'aborted' || req.signal?.aborted) {
       throw new DOMException('Aborted', 'AbortError');
     }
     throw new Error(result?.message || 'Image generation failed.');
@@ -561,6 +611,8 @@ export async function generateImage(req) {
     url,
     prompt,
     seed,
+    modelId: currentModelId,
+    fromImage,
     timeMs: typeof result.timeMs === 'number' ? result.timeMs : 0
   };
 }
@@ -570,12 +622,18 @@ export async function generateImage(req) {
  * cleans up (e.g. closes the app in HeymingOS) — the cache stays.
  */
 export async function unloadEngine() {
-  if (!client) return;
   try {
-    await client.unload?.();
+    await client?.unload?.();
   } catch {
     /* ignore */
   }
+  try {
+    await turbo?.unload();
+  } catch {
+    /* ignore */
+  }
+  client = null;
+  turbo = null;
   modelLoaded = false;
   currentModelId = '';
 }

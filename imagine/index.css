@@ -527,28 +527,23 @@ body {
   border-color: color-mix(in srgb, var(--imagine-accent) 60%, transparent);
 }
 
-.imagine-composer-controls {
+.imagine-composer-options {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
+  max-width: 720px;
+  margin: 0 auto 8px;
 }
 
-.imagine-seed-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--imagine-bg-2);
-  border: 1px solid var(--imagine-border);
-  border-radius: 8px;
-  padding: 4px 8px;
-  font-size: 13px;
+.imagine-model-features {
+  margin: 0;
+  flex: 1 1 180px;
+  font-size: 12px;
   color: var(--imagine-fg-dim);
 }
 
-/* Model picker — same pill cosmetics as the seed label so the row
- * reads as one cohesive control bar. The <select> drops native
- * styling and inherits color/font from the pill. */
+.imagine-seed-label,
 .imagine-model-label {
   display: inline-flex;
   align-items: center;
@@ -598,6 +593,59 @@ body {
   margin: 0;
 }
 
+.imagine-seed-label[hidden],
+#imagine-seed-random[hidden] {
+  display: none;
+}
+
+.imagine-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  max-width: 720px;
+  margin: 0 auto 8px;
+}
+
+.imagine-source[hidden] {
+  display: none;
+}
+
+.imagine-source-preview {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--imagine-border);
+}
+
+.imagine-strength {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--imagine-fg-dim);
+}
+
+.imagine-strength[hidden] {
+  display: none;
+}
+
+.imagine-strength input[type='range'] {
+  width: 120px;
+}
+
+.imagine-btn-icon {
+  padding: 6px 10px;
+}
+
+.imagine-composer-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .imagine-btn-ghost {
   background: transparent;
   color: var(--imagine-fg);
@@ -616,10 +664,6 @@ body {
 .imagine-btn-ghost:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.imagine-btn-icon {
-  padding: 6px 10px;
 }
 
 .imagine-generate-btn {
@@ -641,22 +685,6 @@ body {
 .imagine-generate-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-/* Generate Random — same shape as Generate but visually secondary.
- * Sits next to it in the composer; clicking randomizes the seed
- * input then submits, so each press yields a different image. */
-.imagine-generate-btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  color: var(--imagine-accent);
-  border: 1px solid var(--imagine-accent);
-}
-
-.imagine-generate-btn-secondary:hover {
-  background: color-mix(in srgb, var(--imagine-accent) 12%, transparent);
 }
 
 .imagine-stop-btn {

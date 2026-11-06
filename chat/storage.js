@@ -12,8 +12,6 @@ const INSTALLED_KEY_PREFIX = 'heyming.chat.modelInstalled.v3.';
 /** Pre-picker install flag — treated as Hermes 3 8B already cached. */
 const LEGACY_HERMES_INSTALLED_KEY = 'heyming.chat.modelInstalled.v2.hermes3-8b';
 const HERMES_MODEL_ID = 'Hermes-3-Llama-3.1-8B-q4f16_1-MLC';
-/** localStorage key for the user's last-selected chat model id. */
-const SELECTED_MODEL_KEY = 'heyming.chat.selectedModel.v1';
 const MAX_MESSAGES = 80; // keep history bounded
 const MAX_CHARS = 200000; // hard cap on serialized size
 
@@ -141,27 +139,6 @@ export function clearModelInstalledFlag(modelId) {
       return;
     }
     localStorage.removeItem(LEGACY_HERMES_INSTALLED_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-/**
- * @returns {string | null}
- */
-export function loadSelectedModel() {
-  try {
-    const raw = localStorage.getItem(SELECTED_MODEL_KEY);
-    return raw && typeof raw === 'string' ? raw : null;
-  } catch {
-    return null;
-  }
-}
-
-/** @param {string} modelId */
-export function saveSelectedModel(modelId) {
-  try {
-    localStorage.setItem(SELECTED_MODEL_KEY, modelId);
   } catch {
     /* ignore */
   }

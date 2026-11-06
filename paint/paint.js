@@ -204,6 +204,7 @@ import {
 } from './selection.js';
 import { openAdjust as doOpenAdjust, cancelAdjust, commitAdjust } from './adjust-modal.js';
 import { installOSBridge } from './os-bridge.js';
+import { takeStagedImage } from '/paint-handoff.js';
 import { initMenuBar, buildMenuBar } from './menu-bar.js';
 import { COMMANDS, COMMANDS_BY_ID, FILTER_IDS, commandForKey } from './commands.js';
 import {
@@ -7085,13 +7086,33 @@ function init() {
   maybeOfferRestore();
 }
 
+/**
+ * Place an image handed over from another site app (Imagine's "Open in
+ * Paint") as a new layer. Runs after the restore prompt is settled so a
+ * restored session cannot replace it.
+ */
+async function placeStagedImage() {
+  let staged = null;
+  try {
+    staged = await takeStagedImage();
+  } catch {
+    confirmDialog.openAlert("Couldn't read the image handed over to Paint.");
+    return;
+  }
+  if (!staged) return;
+  const type = staged.blob.type || 'image/png';
+  placeEmbeddedFile(new File([staged.blob], staged.fileName, { type }));
+}
+
 function maybeOfferRestore() {
   const auto = readAutosave();
-  if (!auto?.data) return;
   // Only offer if the autosaved project differs from a fresh empty canvas
   // (more than just the initial single blank layer).
-  const layerCount = auto.data.layers?.length ?? 0;
-  if (layerCount === 0) return;
+  const layerCount = auto?.data?.layers?.length ?? 0;
+  if (!auto?.data || layerCount === 0) {
+    void placeStagedImage();
+    return;
+  }
   const ageMin = Math.round((Date.now() - (auto.savedAt ?? 0)) / 60000);
   const ageStr =
     ageMin < 1
@@ -7104,11 +7125,14 @@ function maybeOfferRestore() {
   confirmDialog.openConfirm(
     `Restore your previous Paint session from ${ageStr}?`,
     () => {
-      loadProjectData(auto.data).catch((err) =>
-        confirmDialog.openAlert('Restore failed: ' + err.message)
-      );
+      loadProjectData(auto.data)
+        .then(() => placeStagedImage())
+        .catch((err) => confirmDialog.openAlert('Restore failed: ' + err.message));
     },
-    () => clearAutosave()
+    () => {
+      clearAutosave();
+      void placeStagedImage();
+    }
   );
 }
 

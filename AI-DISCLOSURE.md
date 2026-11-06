@@ -101,10 +101,9 @@ visitor's browser**:
 - **No backend, no API key, no telemetry.** Code IDE is hosted on
   GitHub Pages — there is no first-party server. Conversations,
   prompts, and proposed edits never leave the visitor's machine.
-- `/chat/` uses the same WebLLM runtime on this origin. Its default is
-  the smaller Llama 3.2 3B model, with Hermes 3 8B as an optional
-  quality pick. Choosing Hermes in Chat shares that OPFS cache with
-  Code IDE.
+- `/chat/` uses the same WebLLM runtime on this origin, with a different
+  model: Qwen3 4B (~2.3 GB). Chat does not share Code IDE's Hermes
+  weights.
 - Inline edits (Cmd+K) and proposed file writes go through a
   **mandatory diff-preview step** — the model proposes via the
   `applyEdit` tool (for changes) or `createFile` tool (for new files),

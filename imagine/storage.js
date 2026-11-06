@@ -36,6 +36,7 @@ const IMAGE_KEY_PREFIX = '/imagine/_/img/';
  * @property {string} id  Random id for keying the DOM list.
  * @property {string} prompt
  * @property {number} seed
+ * @property {string} [modelId]  Model that produced the image. Absent on older rows.
  * @property {string} thumbDataUrl  Tiny JPEG dataURL (~3–10 KB).
  * @property {number} createdAt  Unix ms.
  */
@@ -142,7 +143,7 @@ export async function blobToThumbDataUrl(blob) {
   canvas.height = THUMB_SIZE;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get 2D context for thumbnail.');
-  // Cover-fit: SD-Turbo output is square (512×512) so this is a 1:1 fit,
+  // Cover-fit: Janus-Pro output is square, so this is a 1:1 fit,
   // but the math handles non-square sources too in case the model changes.
   const sw = bitmap.width;
   const sh = bitmap.height;
@@ -184,18 +185,9 @@ async function createImageBitmapSafe(blob) {
 }
 
 /**
- * Has the SD-Turbo model been successfully loaded in this browser
- * before? Same role as chat/'s install flag.
- */
-/**
- * Has the given image model been successfully loaded in this browser
- * before? Same role as chat/'s install flag, but parameterized by
- * `modelId` so each model maintains its own install state — flipping
- * between SD-Turbo and Janus-Pro should never trick one model into
- * thinking the other's weights are already cached.
- *
- * Backwards-compatible default: when `modelId` is omitted (callers
- * predating multi-model support), reads the legacy SD-Turbo flag.
+ * Has this model been loaded in this browser before? The bare install
+ * key is the original SD-Turbo flag, so it counts for SD-Turbo and
+ * not for Janus-Pro.
  *
  * @param {string} [modelId]
  */
@@ -203,9 +195,8 @@ export function hasInstalledModel(modelId) {
   try {
     const key = modelId ? `${INSTALLED_KEY_PREFIX}${modelId}` : INSTALLED_KEY;
     if (localStorage.getItem(key) === '1') return true;
-    // Legacy fallback: pre-multi-model installs only set the bare
-    // INSTALLED_KEY. Treat that as "sd-turbo installed" so returning
-    // visitors don't see a fresh install card.
+    // The bare key is the old SD-Turbo install. Do not treat it as
+    // Janus-Pro.
     if (modelId === 'sd-turbo' && localStorage.getItem(INSTALLED_KEY) === '1') return true;
     return false;
   } catch {
@@ -233,14 +224,7 @@ export function clearModelInstalledFlag(modelId) {
   }
 }
 
-/**
- * Read the user's last-selected text-to-image model id from
- * localStorage. Returns null when nothing's saved (first visit) so
- * the caller can fall back to its default — keeps storage agnostic
- * about which models exist.
- *
- * @returns {string | null}
- */
+/** @returns {string | null} */
 export function loadSelectedModel() {
   try {
     const raw = localStorage.getItem(SELECTED_MODEL_KEY);
@@ -263,7 +247,7 @@ export function saveSelectedModel(modelId) {
 //
 // Cache Storage holds the actual PNG output of generation, keyed by
 // the history entry's `id`. Click a past history item → look up the
-// blob here → display it at full 512×512. Falls back gracefully when
+// blob here → display it at full size. Falls back gracefully when
 // `caches` isn't available (unlikely on a WebGPU-capable browser
 // since both gate on secure contexts) or when the entry was created
 // before this caching layer existed (pre-Cache history items).

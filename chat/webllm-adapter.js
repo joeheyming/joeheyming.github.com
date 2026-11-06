@@ -5,29 +5,20 @@
  * first send) into the browser's OPFS cache; subsequent loads are
  * instant.
  *
- * Chat is plain conversation (no `tools`). That lets us default to a
- * 3B instruct model instead of Hermes-3 8B, which was only required
- * because WebLLM gates ChatCompletionRequest.tools to the Hermes
- * family. Hermes stays in the picker as the quality option — GPUs
- * keep getting faster, so the 8B path is the one Moore's-law bet.
+ * One model: Qwen3-4B, quantized q4f16_1 (~2.3 GB download, ~3.4 GB
+ * VRAM). WebLLM marks it low-resource. Thinking mode is off — a
+ * `<think>` block would burn the 4096-token window before the answer.
  */
 
 export const WEBLLM_MODULE_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.84';
 
-/**
- * Default model — Llama 3.2 3B quantized to q4f16_1. ~1.8 GB download,
- * ~2.3 GB VRAM. Marked low-resource in WebLLM; useful chat on iGPUs
- * that cannot hold Hermes 8B. Inference is typically well above the
- * 8B rate on the same GPU.
- */
-const DEFAULT_MODEL = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
+/** Qwen3-4B quantized to q4f16_1. The only chat model. */
+const DEFAULT_MODEL = 'Qwen3-4B-q4f16_1-MLC';
 
-/** Human-readable size of the default model, shown in the install dialog. */
-const DEFAULT_MODEL_SIZE_LABEL = '~1.8 GB';
+/** Human-readable download size, shown in the install dialog. */
+const DEFAULT_MODEL_SIZE_LABEL = '~2.3 GB';
 
 /**
- * Registry of supported chat models.
- *
  * @typedef {Object} ChatModelInfo
  * @property {string} id
  * @property {string} label
@@ -35,26 +26,20 @@ const DEFAULT_MODEL_SIZE_LABEL = '~1.8 GB';
  * @property {string} description
  * @property {string} speedHint
  * @property {boolean} [lowResource]
+ * @property {boolean} [disableThinking]
  *
  * @type {Record<string, ChatModelInfo>}
  */
 export const CHAT_MODELS = {
-  'Llama-3.2-3B-Instruct-q4f16_1-MLC': {
-    id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC',
-    label: 'Llama 3.2 3B',
-    sizeLabel: '~1.8 GB',
+  'Qwen3-4B-q4f16_1-MLC': {
+    id: 'Qwen3-4B-q4f16_1-MLC',
+    label: 'Qwen3 4B',
+    sizeLabel: '~2.3 GB',
     description:
-      'Default chat model. Small enough for most laptops, still useful for drafting, explaining, and summarizing attached documents.',
+      'On-device chat model. Useful for drafting, explaining, and summarizing attached documents on most laptops with WebGPU.',
     speedHint: 'typically tens of tok/s on Apple Silicon or a discrete GPU',
-    lowResource: true
-  },
-  'Hermes-3-Llama-3.1-8B-q4f16_1-MLC': {
-    id: 'Hermes-3-Llama-3.1-8B-q4f16_1-MLC',
-    label: 'Hermes 3 8B',
-    sizeLabel: '~4.5 GB',
-    description:
-      'Larger quality option. Better at long answers and trickier prompts; needs more VRAM. Will feel faster as GPUs improve.',
-    speedHint: '~20–40 tok/s on Apple Silicon, ~10–20 on a discrete GPU'
+    lowResource: true,
+    disableThinking: true
   }
 };
 
@@ -348,9 +333,100 @@ export async function initWebLlm(onProgress, modelId = DEFAULT_MODEL) {
 }
 
 /**
+ * Completion body for the loaded model. Qwen3 thinks by default; that
+ * block is hidden from the visitor and would consume the context
+ * window, so thinking stays off.
+ *
+ * @param {string} modelId
+ * @param {{ messages: Array<object>, tools?: Array<object>, toolChoice?: string }} req
+ */
+export function buildCompletionBody(modelId, req) {
+  const info = getChatModel(modelId);
+  const hasTools = !!(req.tools && req.tools.length);
+  return {
+    messages: req.messages,
+    stream: true,
+    ...(info.disableThinking ? { extra_body: { enable_thinking: false } } : {}),
+    ...(hasTools ? { tools: req.tools, tool_choice: req.toolChoice || 'auto' } : {})
+  };
+}
+
+const THINK_OPEN = '<think>';
+const THINK_CLOSE = '</think>';
+
+/**
+ * Drop Qwen-style `<think>…</think>` blocks from a token stream.
+ * Holds back a trailing partial tag so a split `<think>` is not painted.
+ *
+ * @returns {{ push: (chunk: string) => string, flush: () => string }}
+ */
+export function createThinkFilter() {
+  let pending = '';
+  let inThink = false;
+  let emitted = false;
+
+  function push(chunk) {
+    if (!chunk) return '';
+    pending += chunk;
+    let out = '';
+
+    function emit(text) {
+      if (!text) return;
+      out += text;
+      if (text.trim()) emitted = true;
+    }
+
+    while (pending.length) {
+      if (inThink) {
+        const end = pending.toLowerCase().indexOf(THINK_CLOSE);
+        if (end === -1) {
+          const keep = THINK_CLOSE.length - 1;
+          if (pending.length > keep) pending = pending.slice(-keep);
+          break;
+        }
+        pending = pending.slice(end + THINK_CLOSE.length);
+        inThink = false;
+        if (!emitted) pending = pending.replace(/^\s+/, '');
+        continue;
+      }
+      const start = pending.toLowerCase().indexOf(THINK_OPEN);
+      if (start === -1) {
+        const lt = pending.lastIndexOf('<');
+        if (lt !== -1 && THINK_OPEN.startsWith(pending.slice(lt).toLowerCase())) {
+          emit(pending.slice(0, lt));
+          pending = pending.slice(lt);
+          break;
+        }
+        emit(pending);
+        pending = '';
+        break;
+      }
+      emit(pending.slice(0, start));
+      pending = pending.slice(start + THINK_OPEN.length);
+      inThink = true;
+    }
+    return out;
+  }
+
+  function flush() {
+    if (inThink) {
+      pending = '';
+      inThink = false;
+      return '';
+    }
+    const rest = pending;
+    pending = '';
+    return rest;
+  }
+
+  return { push, flush };
+}
+
+/**
  * Run a streaming chat completion against the loaded engine. Resolves
  * with the fully-assembled message (text + any tool calls). Calls
  * `onDelta` for each incremental content chunk so the UI can paint.
+ * `<think>` blocks are stripped before they reach the UI.
  *
  * @param {{
  *   messages: Array<object>,
@@ -367,18 +443,15 @@ export async function webllmChat(req) {
   }
 
   const hasTools = !!(req.tools && req.tools.length);
-  const toolChoice = req.toolChoice || 'auto';
-  const body = {
-    messages: req.messages,
-    stream: true,
-    ...(hasTools ? { tools: req.tools, tool_choice: toolChoice } : {})
-  };
+  const body = buildCompletionBody(currentModelId, req);
+  const think = createThinkFilter();
 
   console.log('[chat:llm] sending request', {
     messageCount: req.messages.length,
     lastUserMessage: lastUserText(req.messages),
-    toolCount: hasTools ? req.tools.length : 0,
-    toolChoice: hasTools ? toolChoice : '(no tools)'
+    model: currentModelId,
+    thinking: body.extra_body?.enable_thinking === false ? 'off' : 'default',
+    toolCount: hasTools ? req.tools.length : 0
   });
 
   const result = {
@@ -407,8 +480,11 @@ export async function webllmChat(req) {
       if (!choice) continue;
       const delta = choice.delta || {};
       if (typeof delta.content === 'string' && delta.content) {
-        result.content += delta.content;
-        req.onDelta?.({ content: delta.content });
+        const visible = think.push(delta.content);
+        if (visible) {
+          result.content += visible;
+          req.onDelta?.({ content: visible });
+        }
       }
       if (Array.isArray(delta.tool_calls)) {
         for (const tc of delta.tool_calls) {
@@ -424,13 +500,18 @@ export async function webllmChat(req) {
         result.finishReason = choice.finish_reason;
       }
     }
+    const tail = think.flush();
+    if (tail) {
+      result.content += tail;
+      req.onDelta?.({ content: tail });
+    }
   } catch (err) {
     // WebLLM bug: when `tools` is passed and `tool_choice: 'auto'`, the
     // parser tries to interpret EVERY response as JSON for function
     // calling, even when the model legitimately answered in plain text.
     // The model's actual response is preserved verbatim in the error
     // message. Recover it instead of failing the turn.
-    const recovered = recoverPlainTextFromToolParseError(err);
+    const recovered = stripThinking(recoverPlainTextFromToolParseError(err));
     if (recovered) {
       // In practice the tool parser buffers everything and then throws,
       // so result.content is empty here and we emit the full recovered
@@ -569,6 +650,13 @@ function lastUserText(messages) {
  * @returns {string} the recovered text, or '' if the error doesn't
  *   match the known parse-failure shape.
  */
+/** @param {string} text */
+function stripThinking(text) {
+  if (!text) return '';
+  const filter = createThinkFilter();
+  return filter.push(text) + filter.flush();
+}
+
 function recoverPlainTextFromToolParseError(err) {
   if (!err) return '';
   const message =

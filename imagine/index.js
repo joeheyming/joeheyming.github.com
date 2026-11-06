@@ -2,8 +2,9 @@
  * Imagine app entry point — wires the DOM to the local diffusion
  * engine.
  *
- * Architecture: 100% client-side. SD-Turbo runs in the visitor's
- * browser via WebGPU + onnxruntime-web (wrapped through web-txt2img).
+ * Architecture: 100% client-side. Janus-Pro 1B is the default; SD-Turbo
+ * is the other choice in the model menu. SD-Turbo takes a seed and
+ * draws 512×512. Janus-Pro ignores seeds and draws 384×384.
  * No backend, no API key, no third-party endpoint. The page gates
  * entry on WebGPU support; the model is downloaded lazily on the
  * user's explicit Install (or first generate), not on page load.
@@ -11,6 +12,7 @@
 
 import { createOSEmbed } from '/os-embed.js';
 import { createNotifier } from '/notifications.js';
+import { stageImageForPaint } from '/paint-handoff.js';
 import {
   isWebGpuSupported,
   isEngineReady,
@@ -18,7 +20,6 @@ import {
   generateImage,
   probeWebGpu,
   IMAGINE_DEFAULT_MODEL,
-  IMAGINE_DEFAULT_MODEL_SIZE,
   IMAGE_MODELS
 } from './diffusion-adapter.js';
 import {
@@ -49,6 +50,7 @@ const els = {
   install: $('imagine-install'),
   installBtn: /** @type {HTMLButtonElement} */ ($('imagine-install-btn')),
   outputEmpty: $('imagine-output-empty'),
+  outputSub: $('imagine-output-sub'),
   current: $('imagine-current'),
   currentImg: /** @type {HTMLImageElement} */ ($('imagine-current-img')),
   currentCaption: $('imagine-current-caption'),
@@ -56,18 +58,29 @@ const els = {
   progressFill: $('imagine-progress-fill'),
   progressText: $('imagine-progress-text'),
   downloadBtn: /** @type {HTMLButtonElement} */ ($('imagine-download-btn')),
+  paintBtn: /** @type {HTMLButtonElement} */ ($('imagine-paint-btn')),
+  useSourceBtn: /** @type {HTMLButtonElement} */ ($('imagine-use-source-btn')),
   reuseBtn: /** @type {HTMLButtonElement} */ ($('imagine-reuse-btn')),
   history: $('imagine-history'),
   historyList: $('imagine-history-list'),
   historyClearAll: /** @type {HTMLButtonElement} */ ($('imagine-history-clear-all')),
   composer: /** @type {HTMLFormElement} */ ($('imagine-composer')),
   prompt: /** @type {HTMLTextAreaElement} */ ($('imagine-prompt')),
+  model: /** @type {HTMLSelectElement} */ ($('imagine-model')),
+  features: $('imagine-model-features'),
+  seedLabel: $('imagine-seed-label'),
   seed: /** @type {HTMLInputElement} */ ($('imagine-seed')),
   seedRandom: /** @type {HTMLButtonElement} */ ($('imagine-seed-random')),
+  source: $('imagine-source'),
+  sourceFile: /** @type {HTMLInputElement} */ ($('imagine-source-file')),
+  sourcePick: /** @type {HTMLButtonElement} */ ($('imagine-source-pick')),
+  sourcePreview: /** @type {HTMLImageElement} */ ($('imagine-source-preview')),
+  sourceClear: /** @type {HTMLButtonElement} */ ($('imagine-source-clear')),
+  strengthLabel: $('imagine-strength-label'),
+  strength: /** @type {HTMLInputElement} */ ($('imagine-strength')),
+  strengthValue: $('imagine-strength-value'),
   generateBtn: /** @type {HTMLButtonElement} */ ($('imagine-generate-btn')),
-  generateRandomBtn: /** @type {HTMLButtonElement} */ ($('imagine-generate-random-btn')),
   stopBtn: /** @type {HTMLButtonElement} */ ($('imagine-stop-btn')),
-  model: /** @type {HTMLSelectElement} */ ($('imagine-model')),
   installTitle: $('imagine-install-title'),
   installBody: $('imagine-install-body'),
   toasts: $('imagine-toasts')
@@ -97,21 +110,16 @@ let currentTurn = null;
  * Most recently generated result (full-resolution, in memory only).
  * Lost on reload — only the thumbnail in localStorage survives.
  *
- * @type {{ blob: Blob, url: string, prompt: string, seed: number } | null}
+ * @type {{ blob: Blob, url: string, prompt: string, seed: number, modelId?: string, fromImage?: boolean } | null}
  */
 let currentResult = null;
 
+/** Source picture for SD-Turbo image-to-image. Null means text only. */
+let sourceImage = /** @type {HTMLImageElement | null} */ (null);
+let sourceObjectUrl = '';
+
 /** Held URLs for revoke-on-replace. */
 let currentImgObjectUrl = '';
-
-/**
- * The user's currently-selected text-to-image model. Persisted to
- * localStorage and read back on boot. Defaults to SD-Turbo for
- * first-time visitors. Switching models updates the install card,
- * picker, and ensureEngineReady target — but doesn't trigger a
- * download until the user clicks Generate or Install.
- */
-let selectedModelId = IMAGINE_DEFAULT_MODEL;
 
 /**
  * In-flight engine-ready promise. Concurrent callers (e.g. install
@@ -120,6 +128,14 @@ let selectedModelId = IMAGINE_DEFAULT_MODEL;
  * @type {Promise<boolean> | null}
  */
 let engineReadyPromise = null;
+
+/** Model id currently chosen in the menu. Janus-Pro unless the visitor picked SD-Turbo. */
+let selectedModelId = IMAGINE_DEFAULT_MODEL;
+
+/** @returns {(typeof IMAGE_MODELS)[string]} */
+function selectedModel() {
+  return IMAGE_MODELS[selectedModelId] || IMAGE_MODELS[IMAGINE_DEFAULT_MODEL];
+}
 
 // -------------------- Mode line --------------------
 
@@ -133,8 +149,8 @@ function refreshModeLine(state, detail) {
     els.modeLine.textContent = detail ? `Loading model · ${detail}` : 'Loading model…';
     return;
   }
-  const info = IMAGE_MODELS[selectedModelId] || IMAGE_MODELS[IMAGINE_DEFAULT_MODEL];
-  if (isEngineReady(selectedModelId)) {
+  const info = selectedModel();
+  if (isEngineReady(info.id)) {
     els.modeLine.textContent = `Local · ${info.label}`;
     return;
   }
@@ -143,6 +159,21 @@ function refreshModeLine(state, detail) {
 
 function setInstallCardVisible(visible) {
   if (els.install) els.install.hidden = !visible;
+}
+
+/**
+ * Show the controls the selected model actually honors. SD-Turbo gets
+ * the seed field; Janus-Pro does not.
+ *
+ * @param {(typeof IMAGE_MODELS)[string]} info
+ */
+function applyModelFeatures(info) {
+  if (els.features) els.features.textContent = info.features;
+  if (els.outputSub) els.outputSub.textContent = `${info.label}: ${info.features}.`;
+  if (els.seedLabel) els.seedLabel.hidden = !info.supportsSeed;
+  if (els.seedRandom) els.seedRandom.hidden = !info.supportsSeed;
+  if (els.source) els.source.hidden = !info.supportsImage;
+  if (els.useSourceBtn) els.useSourceBtn.hidden = !info.supportsImage;
 }
 
 /**
@@ -157,7 +188,8 @@ function setInstallCardVisible(visible) {
  * silently re-init it; if not, we surface the install card.
  */
 function applySelectedModel() {
-  const info = IMAGE_MODELS[selectedModelId] || IMAGE_MODELS[IMAGINE_DEFAULT_MODEL];
+  const info = selectedModel();
+  applyModelFeatures(info);
 
   if (els.installTitle) {
     els.installTitle.textContent = `Install ${info.label}`;
@@ -181,14 +213,14 @@ function applySelectedModel() {
   refreshModeLine();
 
   // If we're already on the right engine, just refresh copy and bail.
-  if (isEngineReady(selectedModelId)) {
+  if (isEngineReady(info.id)) {
     setInstallCardVisible(false);
     return;
   }
 
   // Selected model is installed before — silently re-init it (the
   // weights are cached; this is fast).
-  if (hasInstalledModel(selectedModelId)) {
+  if (hasInstalledModel(info.id)) {
     setInstallCardVisible(false);
     void ensureEngineReady({ silent: true });
     return;
@@ -314,11 +346,16 @@ async function generateTurn(prompt, seed) {
     const result = await generateImage({
       prompt,
       seed: typeof seed === 'number' ? seed : undefined,
+      image: selectedModel().supportsImage ? sourceImage : null,
+      strength: readStrength(),
       signal: currentTurn.signal,
       onProgress: ({ progress, text }) => setProgress(progress, text)
     });
 
     setCurrentImage(result);
+    if (selectedModel().supportsSeed) {
+      els.seed.value = String(result.seed);
+    }
     window.heymingAchievements?.unlockForCurrentApp('first-action');
     notify(`Generated in ${formatSeconds(result.timeMs)}s`, 'success');
 
@@ -329,6 +366,7 @@ async function generateTurn(prompt, seed) {
         id: entryId,
         prompt: result.prompt,
         seed: result.seed,
+        modelId: result.modelId,
         thumbDataUrl,
         createdAt: Date.now()
       });
@@ -359,13 +397,16 @@ async function generateTurn(prompt, seed) {
 
 function setComposerBusy(busy) {
   els.generateBtn.hidden = busy;
-  els.generateRandomBtn.hidden = busy;
   els.stopBtn.hidden = !busy;
   els.prompt.disabled = busy;
+  els.installBtn.disabled = busy;
+  els.model.disabled = busy;
   els.seed.disabled = busy;
   els.seedRandom.disabled = busy;
-  els.model.disabled = busy;
-  els.installBtn.disabled = busy;
+  els.sourcePick.disabled = busy;
+  els.sourceClear.disabled = busy;
+  els.strength.disabled = busy;
+  els.useSourceBtn.disabled = busy;
 }
 
 // -------------------- Output rendering --------------------
@@ -396,7 +437,7 @@ function setProgress(progress, text) {
 }
 
 /**
- * @param {{ url: string, prompt: string, seed: number, blob: Blob }} result
+ * @param {{ url: string, prompt: string, seed: number, blob: Blob, modelId?: string }} result
  */
 function setCurrentImage(result) {
   if (currentImgObjectUrl) {
@@ -406,8 +447,34 @@ function setCurrentImage(result) {
   currentResult = result;
   els.currentImg.src = result.url;
   els.currentImg.alt = result.prompt;
-  els.currentCaption.textContent = `"${result.prompt}" — seed ${result.seed}`;
+  const size = IMAGE_MODELS[result.modelId || '']?.sizePx;
+  if (size) {
+    els.currentImg.width = size;
+    els.currentImg.height = size;
+  }
+  els.currentCaption.textContent = imageCaption(
+    result.prompt,
+    result.seed,
+    result.modelId,
+    result.fromImage
+  );
   hideProgressOverlay();
+}
+
+/**
+ * Seed belongs in the caption only for models that honor it. Older
+ * history rows have no model id; those were SD-Turbo.
+ *
+ * @param {string} prompt
+ * @param {number} seed
+ * @param {string} [modelId]
+ * @param {boolean} [fromImage]
+ */
+function imageCaption(prompt, seed, modelId, fromImage) {
+  const usesSeed = modelId ? IMAGE_MODELS[modelId]?.supportsSeed === true : true;
+  const seedBit = usesSeed ? ` — seed ${seed}` : '';
+  const imageBit = fromImage ? ' · from image' : '';
+  return `"${prompt}"${seedBit}${imageBit}`;
 }
 
 // -------------------- History --------------------
@@ -431,7 +498,7 @@ function renderHistory() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'imagine-history-item';
-    btn.title = `${entry.prompt} (seed ${entry.seed})`;
+    btn.title = entry.prompt;
     btn.addEventListener('click', () => {
       void loadFromHistory(entry);
     });
@@ -526,7 +593,7 @@ async function doClearAllHistory() {
 }
 
 /**
- * Restore a past generation: fill the composer with prompt + seed,
+ * Restore a past generation: fill the composer with the prompt,
  * and (when available) display the full-resolution PNG from Cache
  * Storage in the main canvas. Falls back to the localStorage
  * thumbnail for entries created before the cache existed; in that
@@ -543,8 +610,10 @@ async function loadFromHistory(entry) {
   if (currentTurn) return; // don't disrupt an in-flight generation
 
   els.prompt.value = entry.prompt;
-  els.seed.value = String(entry.seed);
   autoResize();
+  if (entryUsesSeed(entry)) {
+    els.seed.value = String(entry.seed);
+  }
 
   els.outputEmpty.hidden = true;
   els.current.hidden = false;
@@ -560,7 +629,6 @@ async function loadFromHistory(entry) {
   // No cached full image — display the upscaled thumbnail. We don't
   // assign a downloadable currentResult here because handing the
   // user back a 96px JPEG would be misleading; the reuse path still
-  // works because prompt + seed are populated above.
   if (currentImgObjectUrl) {
     URL.revokeObjectURL(currentImgObjectUrl);
     currentImgObjectUrl = '';
@@ -568,7 +636,11 @@ async function loadFromHistory(entry) {
   currentResult = null;
   els.currentImg.src = entry.thumbDataUrl;
   els.currentImg.alt = entry.prompt;
-  els.currentCaption.textContent = `"${entry.prompt}" — seed ${entry.seed} · regenerate for full quality`;
+  els.currentCaption.textContent = `${imageCaption(
+    entry.prompt,
+    entry.seed,
+    entry.modelId
+  )} · regenerate for full quality`;
 }
 
 // -------------------- Modal dialogs ----------------
@@ -582,7 +654,7 @@ function confirmDownload(opts = {}) {
   const title = opts.title || 'One-time setup';
   const body =
     opts.body ||
-    `This generator runs entirely on your device — no backend, no API key. To do that, your browser needs to download the SD-Turbo model (${IMAGINE_DEFAULT_MODEL_SIZE}) and cache it for future visits. After the download, generation takes 1–5 seconds per image and works offline.`;
+    'This generator runs entirely on your device — no backend, no API key. Janus-Pro 1B downloads once into your browser cache. After that, each image takes about 20–60 seconds and works offline.';
   const primary = opts.primary || 'Download & generate';
   return new Promise((resolve) => {
     const modal = document.createElement('div');
@@ -663,18 +735,6 @@ function formatSeconds(ms) {
   return (ms / 1000).toFixed(1);
 }
 
-function readSeedFromInput() {
-  const raw = els.seed.value.trim();
-  if (!raw) return null;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return Math.floor(n) >>> 0;
-}
-
-function randomSeed() {
-  return Math.floor(Math.random() * 0xffffffff) >>> 0;
-}
-
 // -------------------- Boot --------------------
 
 async function checkWebGpuOrFail() {
@@ -700,21 +760,15 @@ function showUnsupported(detail) {
   els.prompt.disabled = true;
   els.generateBtn.disabled = true;
   els.installBtn.disabled = true;
-  // Generate Random shares the WebGPU dependency.
-  els.generateRandomBtn.disabled = true;
   els.model.disabled = true;
+  els.seed.disabled = true;
+  els.seedRandom.disabled = true;
+  els.sourcePick.disabled = true;
+  els.sourceClear.disabled = true;
+  els.strength.disabled = true;
 }
 
-/**
- * Shared body for both Generate buttons. The plain Generate button
- * uses whatever is currently in the seed input (manual or sticky
- * from a prior 🎲 click); Generate Random stamps a fresh seed in
- * first so each click yields a different image without the user
- * having to bounce off the dice button.
- *
- * @param {{ randomizeSeed?: boolean }} [opts]
- */
-function submitGenerate(opts = {}) {
+function submitGenerate() {
   if (currentTurn) return;
   const prompt = els.prompt.value.trim();
   if (!prompt) {
@@ -722,55 +776,148 @@ function submitGenerate(opts = {}) {
     els.prompt.focus();
     return;
   }
-  if (opts.randomizeSeed) {
-    els.seed.value = String(randomSeed());
+  void generateTurn(prompt, selectedModel().supportsSeed ? readSeedFromInput() : null);
+}
+
+/** @returns {number | null} null when the field is empty or not a number. */
+function readSeedFromInput() {
+  const raw = els.seed.value.trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.floor(n) >>> 0;
+}
+
+function randomSeed() {
+  return Math.floor(Math.random() * 0xffffffff) >>> 0;
+}
+
+/** Strength slider, 0.15–1. Ignored when there is no source image. */
+function readStrength() {
+  const n = Number(els.strength.value);
+  if (!Number.isFinite(n)) return 0.55;
+  return Math.min(1, Math.max(0.15, n));
+}
+
+function updateStrengthLabel() {
+  els.strengthValue.textContent = `${Math.round(readStrength() * 100)}%`;
+}
+
+/**
+ * @param {File} file
+ */
+function setSourceFile(file) {
+  if (!file.type.startsWith('image/')) {
+    notify('Choose an image file.', 'warn');
+    return;
   }
-  const seed = readSeedFromInput();
-  void generateTurn(prompt, seed);
+  if (sourceObjectUrl) URL.revokeObjectURL(sourceObjectUrl);
+  sourceObjectUrl = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    sourceImage = img;
+    els.sourcePreview.src = sourceObjectUrl;
+    els.sourcePreview.hidden = false;
+    els.sourceClear.hidden = false;
+    els.strengthLabel.hidden = false;
+  };
+  img.onerror = () => {
+    notify("Couldn't read that image.", 'error');
+    clearSource();
+  };
+  img.src = sourceObjectUrl;
+}
+
+/**
+ * Take the picture on screen as the next source. Copies the PNG blob
+ * so the source survives a later generation replacing the result.
+ */
+function useCurrentAsSource() {
+  if (!currentResult) {
+    notify('Generate an image first.', 'warn');
+    return;
+  }
+  const blob = currentResult.blob;
+  setSourceFile(new File([blob], 'imagine-result.png', { type: blob.type || 'image/png' }));
+  notify('Using this image as the source.', 'success');
+}
+
+function clearSource() {
+  sourceImage = null;
+  if (sourceObjectUrl) URL.revokeObjectURL(sourceObjectUrl);
+  sourceObjectUrl = '';
+  els.sourcePreview.removeAttribute('src');
+  els.sourcePreview.hidden = true;
+  els.sourceClear.hidden = true;
+  els.strengthLabel.hidden = true;
+}
+
+/**
+ * Older history rows predate the model menu and were all SD-Turbo,
+ * which honors a seed.
+ *
+ * @param {{ modelId?: string }} entry
+ */
+function entryUsesSeed(entry) {
+  if (!entry.modelId) return true;
+  return IMAGE_MODELS[entry.modelId]?.supportsSeed === true;
+}
+
+/**
+ * Download name for the current image: `imagine-<prompt-stem>.png`.
+ * @param {{ prompt?: string, seed?: number, modelId?: string }} result
+ */
+function resultFileName(result) {
+  const safeStem =
+    (result.prompt || 'image')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'image';
+  const seeded =
+    result.modelId && IMAGE_MODELS[result.modelId]?.supportsSeed && typeof result.seed === 'number'
+      ? `-seed${result.seed}`
+      : '';
+  return `imagine-${safeStem}${seeded}.png`;
+}
+
+/**
+ * Stage the current image for Paint, then open Paint. Inside HeymingOS
+ * the OS opens a new Paint window; standalone, Paint opens in a new tab.
+ * Paint places the image as a new layer when it boots.
+ */
+async function openInPaint() {
+  if (!currentResult) return;
+  try {
+    await stageImageForPaint(currentResult.blob, resultFileName(currentResult));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    notify(`Couldn't hand the image to Paint: ${message}`, 'error');
+    return;
+  }
+  if (embed.isEmbedded) {
+    embed.launchApp('paint');
+  } else {
+    window.open('/paint/', '_blank', 'noopener');
+  }
 }
 
 function wireEvents() {
   els.composer.addEventListener('submit', (e) => {
     e.preventDefault();
-    submitGenerate({ randomizeSeed: false });
-  });
-
-  els.generateRandomBtn.addEventListener('click', () => {
-    submitGenerate({ randomizeSeed: true });
+    submitGenerate();
   });
 
   els.prompt.addEventListener('input', autoResize);
   els.prompt.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      // Enter = "give me something new". Each press rolls a fresh
-      // seed, mirroring the dedicated Generate Random button. To
-      // re-run the same seed (e.g. iterating on a prompt that's
-      // close), users click the explicit Generate button.
       e.preventDefault();
-      submitGenerate({ randomizeSeed: true });
+      submitGenerate();
     }
   });
 
   els.stopBtn.addEventListener('click', () => {
     if (currentTurn) currentTurn.abort();
-  });
-
-  els.seedRandom.addEventListener('click', () => {
-    els.seed.value = String(randomSeed());
-  });
-
-  els.model.addEventListener('change', () => {
-    const next = els.model.value;
-    if (!IMAGE_MODELS[next]) return;
-    if (currentTurn) {
-      // Don't allow swapping mid-turn — revert and warn.
-      els.model.value = selectedModelId;
-      notify('Wait for the current generation to finish before switching models.', 'warn');
-      return;
-    }
-    selectedModelId = next;
-    saveSelectedModel(next);
-    applySelectedModel();
   });
 
   els.historyClearAll.addEventListener('click', () => {
@@ -795,39 +942,69 @@ function wireEvents() {
     if (!currentResult) return;
     const a = document.createElement('a');
     a.href = currentResult.url;
-    const safeStem =
-      (currentResult.prompt || 'image')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, 40) || 'image';
-    a.download = `imagine-${safeStem}-seed${currentResult.seed}.png`;
+    a.download = resultFileName(currentResult);
     document.body.appendChild(a);
     a.click();
     a.remove();
   });
 
+  els.paintBtn.addEventListener('click', () => {
+    void openInPaint();
+  });
+
+  els.useSourceBtn.addEventListener('click', useCurrentAsSource);
+
   els.reuseBtn.addEventListener('click', () => {
     if (!currentResult) return;
     els.prompt.value = currentResult.prompt;
-    els.seed.value = String(currentResult.seed);
+    if (entryUsesSeed(currentResult)) els.seed.value = String(currentResult.seed);
     autoResize();
     els.prompt.focus();
   });
+
+  els.seedRandom.addEventListener('click', () => {
+    els.seed.value = String(randomSeed());
+    els.seed.focus();
+  });
+
+  els.model.addEventListener('change', () => {
+    const next = els.model.value;
+    if (!IMAGE_MODELS[next]) {
+      els.model.value = selectedModelId;
+      return;
+    }
+    selectedModelId = next;
+    saveSelectedModel(next);
+    applySelectedModel();
+  });
+
+  els.sourcePick.addEventListener('click', () => {
+    els.sourceFile.click();
+  });
+  els.sourceFile.addEventListener('change', () => {
+    const file = els.sourceFile.files?.[0];
+    els.sourceFile.value = '';
+    if (file) setSourceFile(file);
+  });
+  els.sourceClear.addEventListener('click', clearSource);
+  els.strength.addEventListener('input', updateStrengthLabel);
+}
+
+function populateModelSelect() {
+  const saved = loadSelectedModel();
+  if (saved && IMAGE_MODELS[saved]) selectedModelId = saved;
+  els.model.replaceChildren();
+  for (const info of Object.values(IMAGE_MODELS)) {
+    const option = document.createElement('option');
+    option.value = info.id;
+    option.textContent = info.label;
+    els.model.appendChild(option);
+  }
+  els.model.value = selectedModelId;
 }
 
 async function boot() {
-  // Restore the user's last-selected model BEFORE wiring events
-  // and the install card so the picker, mode line, and install copy
-  // all start in the correct state.
-  const savedModel = loadSelectedModel();
-  if (savedModel && IMAGE_MODELS[savedModel]) {
-    selectedModelId = savedModel;
-  }
-  if (els.model) {
-    els.model.value = selectedModelId;
-  }
-
+  populateModelSelect();
   wireEvents();
   renderHistory();
   refreshModeLine();

@@ -789,7 +789,7 @@ const PAGES = [
         const installBtn = document.getElementById('imagine-install-btn');
         if (installBtn instanceof HTMLButtonElement) installBtn.disabled = false;
         const modeLine = document.getElementById('imagine-mode-line');
-        if (modeLine) modeLine.textContent = 'Local · sd-turbo · ~2.3 GB install required';
+        if (modeLine) modeLine.textContent = 'Local · Janus-Pro 1B or SD-Turbo';
       });
     }
   },
