@@ -319,6 +319,12 @@
   // fullscreen button is opacity 0 until hover, and a link inside a
   // sentence sits on top of the real buttons. A link that is its own
   // list row stays reachable.
+  // The Watch rail is a vertical menu. Arrows must not land on it by
+  // geometry; Left from a far-left poster is the only way in.
+  function inQuicknav(el) {
+    return !!(el && el.closest && el.closest('#tv-quicknav'));
+  }
+
   function poorArrowTarget(el) {
     var style = getComputedStyle(el);
     if (style.opacity === '0' || style.pointerEvents === 'none') return true;
@@ -341,7 +347,7 @@
     if (origin.width >= 2 && origin.height >= 2) {
       for (var i = 0; i < list.length; i += 1) {
         var el = list[i];
-        if (el === from || poorArrowTarget(el)) continue;
+        if (el === from || poorArrowTarget(el) || inQuicknav(el)) continue;
         var rect = el.getBoundingClientRect();
         if (rect.width < 2 || rect.height < 2) continue;
         var ahead = vertical
@@ -372,7 +378,12 @@
     if (!best) {
       var step = forward ? 1 : -1;
       var next = index + step;
-      while (next >= 0 && next < list.length && poorArrowTarget(list[next])) next += step;
+      while (
+        next >= 0 &&
+        next < list.length &&
+        (poorArrowTarget(list[next]) || inQuicknav(list[next]))
+      )
+        next += step;
       if (next >= 0 && next < list.length) best = list[next];
     }
     if (best) best.focus();
@@ -487,6 +498,11 @@
     'keydown',
     function (event) {
       if (!plainArrow(event)) return;
+      // The Watch poster grid claims an arrow in the window capture
+      // phase, before this listener, and marks it. The other posters
+      // are tabindex=-1, so moving focus from geometry would skip the
+      // next card and land on a chip.
+      if (event.heymingGridNav) return;
       if (pullIntoDialog(event)) return;
       var el = eventTargetElement(event);
       if (!el) return;

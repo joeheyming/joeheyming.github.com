@@ -146,29 +146,71 @@ function findFocusableInDirection(src, self, dir) {
 }
 
 /**
+ * Nearest poster or continue card in `dir`, including roving-tabindex
+ * cards (`tabindex=-1`). Used so Up from a ✕ lands on the card above
+ * rather than a tag chip that happens to sit higher on the page.
+ *
+ * @param {DOMRect} src
+ * @param {Element} self
+ * @param {'up'|'down'|'left'|'right'} dir
+ * @returns {HTMLElement|null}
+ */
+function findCardInDirection(src, self, dir) {
+  const cards = /** @type {HTMLElement[]} */ (
+    Array.from(document.querySelectorAll('a.tv-continue-card, a.tv-show-card, a.tv-ep-card'))
+  );
+  const sx = src.left + src.width / 2;
+  const sy = src.top + src.height / 2;
+  let best = null;
+  let bestScore = Infinity;
+  for (const el of cards) {
+    if (el === self || self.contains(el) || el.contains(self)) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) continue;
+    if (el.offsetParent === null) continue;
+    const ex = rect.left + rect.width / 2;
+    const ey = rect.top + rect.height / 2;
+    if (dir === 'up' && ey >= sy) continue;
+    if (dir === 'down' && ey <= sy) continue;
+    if (dir === 'left' && ex >= sx) continue;
+    if (dir === 'right' && ex <= sx) continue;
+    const primary = dir === 'up' || dir === 'down' ? Math.abs(ey - sy) : Math.abs(ex - sx);
+    const orthogonal = dir === 'up' || dir === 'down' ? Math.abs(ex - sx) : Math.abs(ey - sy);
+    const score = primary + orthogonal * 1.5;
+    if (score < bestScore) {
+      bestScore = score;
+      best = el;
+    }
+  }
+  return best;
+}
+
+/** @type {Array<() => void>} */
+const removeNavCleanups = [];
+
+/**
  * D-pad sub-navigation between a card and its inline ✕ button.
  * The ✕ stays at tabindex=-1 so spatial-nav doesn't accidentally
  * land on it from outside the card; this is how a remote-only user
  * still reaches it.
  *
  *   on card:  ArrowUp → focus ✕  ·  Delete/Backspace → click ✕  ·  MediaPlay → click card
- *   on ✕:     ArrowDown → focus card  ·  ArrowUp/Left/Right → findFocusableInDirection
+ *   on ✕:     ArrowDown → focus card  ·  ArrowUp → card above  ·  ArrowLeft/Right → neighbor
  *
- * Up/Left/Right on the ✕ uses findFocusableInDirection because
- * Chromium WebView won't run native spatial-nav from a tabindex=-1
- * element.
+ * Arrows are taken on window capture. `remote.js` moves focus for
+ * every link and button from a document listener and skips
+ * tabindex=-1, so a bubble listener on the card never sees Up and
+ * the ✕ is skipped. The event is marked `heymingGridNav` so that
+ * move does not run afterward.
  *
  * @param {HTMLAnchorElement} card
  * @param {HTMLButtonElement} remove
  */
-function wireRemoveSubNav(card, remove) {
+export function wireRemoveSubNav(card, remove) {
+  /** @type {(() => void) | null} */
+  let cleanup = null;
+
   card.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      e.stopPropagation();
-      remove.focus();
-      return;
-    }
     if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
       e.stopPropagation();
@@ -184,11 +226,31 @@ function wireRemoveSubNav(card, remove) {
     }
   });
 
-  remove.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown') {
-      // Inverse of card.ArrowUp — return focus to the card body.
+  /** @param {KeyboardEvent & { heymingGridNav?: boolean }} e */
+  const onArrow = (e) => {
+    if (!card.isConnected) {
+      cleanup?.();
+      return;
+    }
+    if (e.heymingGridNav || !/^Arrow/.test(e.key || '')) return;
+    const node = e.target;
+    if (!node || /** @type {Node} */ (node).nodeType !== 1) return;
+    const el = /** @type {Element} */ (node);
+    const onRemove = el === remove || remove.contains(el);
+    const onCard = !onRemove && (el === card || card.contains(el));
+    if (!onCard && !onRemove) return;
+
+    if (onCard && e.key === 'ArrowUp') {
       e.preventDefault();
-      e.stopPropagation();
+      e.heymingGridNav = true;
+      remove.focus();
+      return;
+    }
+    if (!onRemove) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      e.heymingGridNav = true;
       card.focus();
       return;
     }
@@ -199,14 +261,25 @@ function wireRemoveSubNav(card, remove) {
 
     // Use the card's rect, not the ✕'s — the ✕ in the top-right
     // corner would skew ArrowLeft toward the previous card's own
-    // ✕ (filtered out, and nothing else nearby).
-    const next = findFocusableInDirection(card.getBoundingClientRect(), card, dir);
-    if (next) {
-      e.preventDefault();
-      e.stopPropagation();
-      next.focus();
-    }
-  });
+    // ✕ (filtered out, and nothing else nearby). Up prefers a card
+    // so the second press leaves the button for the poster above
+    // instead of a tag chip.
+    const origin = card.getBoundingClientRect();
+    const next =
+      (dir === 'up' ? findCardInDirection(origin, card, dir) : null) ||
+      findFocusableInDirection(origin, card, dir);
+    if (!next) return;
+    e.preventDefault();
+    e.heymingGridNav = true;
+    next.focus();
+  };
+  cleanup = () => {
+    window.removeEventListener('keydown', onArrow, true);
+    const i = removeNavCleanups.indexOf(cleanup);
+    if (i >= 0) removeNavCleanups.splice(i, 1);
+  };
+  removeNavCleanups.push(cleanup);
+  window.addEventListener('keydown', onArrow, true);
 }
 
 /**
@@ -814,6 +887,7 @@ export async function mount(slot, ctx) {
       tagReset.removeEventListener('click', onTagReset);
       gridRoving.dispose();
       moviesRoving?.dispose();
+      while (removeNavCleanups.length) removeNavCleanups.pop()?.();
       // Tear down scroll-windowing wiring: stop watching the sentinels
       // and release any pending lazy-poster observations on cards
       // still in DOM. Both observers hold strong refs to their targets

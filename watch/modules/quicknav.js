@@ -134,6 +134,7 @@ async function init() {
   }
 
   document.body.appendChild(nav);
+  attachQuicknavKeys();
 
   // Refresh active-state when the URL changes. `popstate` fires on
   // browser back/forward AND on the router's own manually-dispatched
@@ -240,6 +241,154 @@ function scrollForHash(hash) {
   const id = hash.replace(/^#/, '');
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+let quicknavKeysBound = false;
+
+/**
+ * Where Right from a rail button should land: the search field, or
+ * the first poster in that button's section. The card the user left
+ * can be a long way from the section the button names.
+ * @param {HTMLElement} btn
+ * @returns {HTMLElement | null}
+ */
+function sectionTarget(btn) {
+  /** @type {Record<string, string>} */
+  const sectionId = {
+    search: 'search',
+    recent: 'continue',
+    shows: 'shows',
+    movies: 'movies'
+  };
+  const id = sectionId[btn.dataset.quicknav || ''];
+  const section = id ? document.getElementById(id) : null;
+  if (!section || section.hidden || section.classList.contains('hidden')) return null;
+  if (id === 'search') {
+    return /** @type {HTMLElement | null} */ (section.querySelector('input, textarea')) || section;
+  }
+  return /** @type {HTMLElement | null} */ (
+    section.querySelector('a.tv-continue-card, a.tv-show-card, a.tv-ep-card')
+  );
+}
+
+/**
+ * Visible rail buttons, top to bottom. Hidden entries (no continue
+ * list, or the whole rail on a phone) are skipped.
+ * @returns {HTMLElement[]}
+ */
+function railButtons() {
+  const nav = document.getElementById('tv-quicknav');
+  if (!nav) return [];
+  const rail = getComputedStyle(nav);
+  if (rail.display === 'none' || rail.visibility === 'hidden') return [];
+  return /** @type {HTMLElement[]} */ ([...nav.querySelectorAll('a.tv-quicknav-btn')]).filter(
+    (btn) => {
+      if (btn.hidden || btn.classList.contains('hidden')) return false;
+      const rect = btn.getBoundingClientRect();
+      return rect.width >= 2 && rect.height >= 2;
+    }
+  );
+}
+
+/**
+ * The card under `node` when it is the leftmost poster in its row.
+ * Left from that card is the only arrow that may enter the rail.
+ * @param {EventTarget | null} node
+ * @returns {HTMLElement | null}
+ */
+function farLeftCard(node) {
+  if (!node || /** @type {Node} */ (node).nodeType !== 1) return null;
+  const el = /** @type {Element} */ (node);
+  const card = /** @type {HTMLElement | null} */ (
+    el.closest('a.tv-show-card, a.tv-continue-card, a.tv-ep-card')
+  );
+  if (!card || !card.parentElement) return null;
+  const siblings = /** @type {HTMLElement[]} */ (
+    [...card.parentElement.children].filter(
+      (child) =>
+        child.classList.contains('tv-show-card') ||
+        child.classList.contains('tv-continue-card') ||
+        child.classList.contains('tv-ep-card')
+    )
+  );
+  const top = card.offsetTop;
+  let minLeft = card.offsetLeft;
+  for (const sibling of siblings) {
+    if (Math.abs(sibling.offsetTop - top) > 2) continue;
+    if (sibling.offsetLeft < minLeft) minLeft = sibling.offsetLeft;
+  }
+  if (card.offsetLeft > minLeft + 2) return null;
+  return card;
+}
+
+/**
+ * @param {HTMLElement} card
+ * @param {HTMLElement[]} buttons
+ */
+function nearestButton(card, buttons) {
+  const origin = card.getBoundingClientRect();
+  const cy = origin.top + origin.height / 2;
+  let best = buttons[0];
+  let bestDist = Infinity;
+  for (const btn of buttons) {
+    const rect = btn.getBoundingClientRect();
+    const dist = Math.abs(rect.top + rect.height / 2 - cy);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = btn;
+    }
+  }
+  return best;
+}
+
+/**
+ * Left from a far-left poster enters the rail. On the rail, Up and
+ * Down move between the buttons, and Right focuses the first poster
+ * in that button's section (the search field for Search). Every
+ * other arrow leaves the rail alone, and geometry-based arrow
+ * movement never targets it (see `inQuicknav` in remote.js).
+ */
+export function attachQuicknavKeys() {
+  if (quicknavKeysBound) return;
+  quicknavKeysBound = true;
+
+  /** @param {KeyboardEvent & { heymingGridNav?: boolean }} e */
+  const onKey = (e) => {
+    if (e.heymingGridNav || !/^Arrow/.test(e.key || '')) return;
+    const node = e.target;
+    if (!node || /** @type {Node} */ (node).nodeType !== 1) return;
+    const el = /** @type {Element} */ (node);
+    const railBtn = /** @type {HTMLElement | null} */ (el.closest('a.tv-quicknav-btn'));
+    if (railBtn && railBtn.closest('#tv-quicknav')) {
+      const buttons = railButtons();
+      const index = buttons.indexOf(railBtn);
+      if (index < 0) return;
+      e.preventDefault();
+      e.heymingGridNav = true;
+      if (e.key === 'ArrowDown' && index + 1 < buttons.length) buttons[index + 1].focus();
+      else if (e.key === 'ArrowUp' && index > 0) buttons[index - 1].focus();
+      else if (e.key === 'ArrowRight') {
+        const dest = sectionTarget(railBtn);
+        if (dest) {
+          dest.focus();
+          if (typeof dest.scrollIntoView === 'function') {
+            dest.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          }
+        }
+      }
+      return;
+    }
+    if (e.key !== 'ArrowLeft') return;
+    const card = farLeftCard(el);
+    if (!card) return;
+    const buttons = railButtons();
+    if (buttons.length === 0) return;
+    const next = nearestButton(card, buttons);
+    e.preventDefault();
+    e.heymingGridNav = true;
+    next.focus();
+  };
+  window.addEventListener('keydown', onKey, true);
 }
 
 if (document.readyState === 'loading') {

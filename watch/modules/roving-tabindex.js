@@ -26,6 +26,15 @@
  *
  * The grid's own click handlers stay unchanged — this helper only
  * touches `tabindex` and listens for keydown/focusin.
+ *
+ * The listener is on window, capture phase. `remote.js` moves focus
+ * for every link and button from a document capture listener, and it
+ * ignores tabindex=-1. Sibling cards are tabindex=-1, so that move
+ * skips the next poster and lands on whatever chip sits past the
+ * card's right edge. Window capture runs first; when this grid has a
+ * neighbor in that direction it marks the event and remote.js yields.
+ * An arrow while nothing is focused — the page background, or the
+ * menu button that takes focus on load — lands on this grid's card.
  */
 
 /* eslint-env browser */
@@ -120,15 +129,68 @@ export function applyRovingTabindex(grid, options = {}) {
     items[cursor].focus({ preventScroll: false });
   };
 
-  /** @param {KeyboardEvent} e */
+  /**
+   * Grid item that owns this key, or -1 when the key belongs to a
+   * nested control (the continue-watching ✕) or to something outside
+   * the grid.
+   * @param {EventTarget | null} target
+   * @returns {number}
+   */
+  const itemFromTarget = (node) => {
+    // nodeType, not `instanceof Element`: jsdom tests and the page can
+    // hand us an element from another realm, and instanceof would miss it.
+    if (!node || /** @type {Node} */ (node).nodeType !== 1) return -1;
+    const target = /** @type {Element} */ (node);
+    if (!grid.contains(target)) return -1;
+    const idx = items.findIndex((el) => el === target || el.contains(target));
+    if (idx < 0) return -1;
+    const item = items[idx];
+    if (target !== item) {
+      const nested = target.closest('button, a, input, textarea, select');
+      if (nested && nested !== item) return -1;
+    }
+    return idx;
+  };
+
+  /**
+   * Page background, or the hamburger that focuses itself on load.
+   * Neither is a place the remote meant to stop.
+   * @param {EventTarget | null} node
+   * @returns {boolean}
+   */
+  const idleFocusTarget = (node) => {
+    if (!node || /** @type {Node} */ (node).nodeType !== 1) return true;
+    const el = /** @type {Element} */ (node);
+    if (el === document.body || el === document.documentElement) return true;
+    return el.classList.contains('heyming-nav-toggle');
+  };
+
+  /** @param {KeyboardEvent & { heymingGridNav?: boolean }} e */
   const onKeyDown = (e) => {
-    if (!NAV_KEYS.has(e.key)) return;
+    if (!NAV_KEYS.has(e.key) || e.heymingGridNav) return;
     if (items.length === 0) return;
     // Ignore nav keys typed into a focused input/textarea inside a
     // grid cell (e.g. a search box). Cards are buttons/anchors, not
     // form fields, so this is a defensive check.
     const target = /** @type {Element} */ (e.target);
     if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
+    const idx = itemFromTarget(target);
+    if (idx < 0) {
+      if (!idleFocusTarget(target)) return;
+      const card = items[cursor];
+      const rect = card.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]:not([hidden])')) return;
+      e.preventDefault();
+      e.heymingGridNav = true;
+      card.focus({ preventScroll: false });
+      return;
+    }
+    if (idx !== cursor && items[cursor]) {
+      items[cursor].tabIndex = -1;
+      cursor = idx;
+      items[cursor].tabIndex = 0;
+    }
 
     const { rows, rowOf, colOf } = layoutMap();
     const r = rowOf[cursor];
@@ -162,6 +224,11 @@ export function applyRovingTabindex(grid, options = {}) {
 
     if (next !== cursor) {
       e.preventDefault();
+      // remote.js reads this in its document capture listener and
+      // leaves the key alone. An arrow with no neighbor in the grid
+      // stays unmarked, so Up from the first row can still reach the
+      // chips above.
+      /** @type {KeyboardEvent & { heymingGridNav?: boolean }} */ (e).heymingGridNav = true;
       setCursor(next);
     }
   };
@@ -178,7 +245,7 @@ export function applyRovingTabindex(grid, options = {}) {
   };
 
   scan();
-  grid.addEventListener('keydown', onKeyDown);
+  window.addEventListener('keydown', onKeyDown, true);
   grid.addEventListener('focusin', onFocusIn);
 
   return {
@@ -194,7 +261,7 @@ export function applyRovingTabindex(grid, options = {}) {
       items[cursor].focus({ preventScroll: false });
     },
     dispose() {
-      grid.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', onKeyDown, true);
       grid.removeEventListener('focusin', onFocusIn);
       // Leave tabindex=0 on every child so the grid stays
       // keyboard-reachable after dispose; some callers re-mount the
