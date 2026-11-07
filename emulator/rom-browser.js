@@ -342,6 +342,13 @@ class RomBrowserElement extends HTMLElement {
           font-size: 0.7rem;
           margin-top: 4px;
         }
+        .play-count {
+          color: var(--text-3);
+          font-size: 0.7rem;
+          font-weight: 600;
+          margin-top: 4px;
+          font-variant-numeric: tabular-nums;
+        }
         ${
           tv
             ? ''
@@ -691,6 +698,10 @@ class RomBrowserElement extends HTMLElement {
       const first = romGrid.querySelector('.rom-card');
       if (first) first.focus({ preventScroll: false });
     }
+
+    if (window.heymingCounts && typeof window.heymingCounts.paintShadow === 'function') {
+      window.heymingCounts.paintShadow(this.shadowRoot);
+    }
   }
 
   async loadRom(rom) {
@@ -704,6 +715,13 @@ class RomBrowserElement extends HTMLElement {
     const cfg = this.consoleConfig;
     if (cfg && typeof window.trackEmulatorGame === 'function') {
       window.trackEmulatorGame(cfg.id, rom.title || rom.name);
+    }
+    if (
+      cfg &&
+      window.heymingCounts &&
+      typeof window.heymingCounts.recordEmulatorPlay === 'function'
+    ) {
+      window.heymingCounts.recordEmulatorPlay(cfg.id, rom.title || rom.name);
     }
     if (cfg && cfg.iaExternalDownload && !cfg.iaAllowInBrowser) {
       this.showExternalDownload(rom, restoreList);

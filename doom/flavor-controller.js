@@ -15,6 +15,7 @@
 // mode and stays hidden via body.picker-mode CSS.
 
 (function () {
+  if (window.heymingAnalytics) window.heymingAnalytics.enable('play-counts');
   var params = new URLSearchParams(window.location.search);
   if (window.DoomFlavors) window.DoomFlavors.mount(document);
   var FLAVORS = {};
@@ -92,6 +93,9 @@
           flavor + ':' + entryPath,
           Math.round((Date.now() - startedAt) / 1000)
         );
+        if (window.heymingCounts && typeof window.heymingCounts.recordDoomPlay === 'function') {
+          window.heymingCounts.recordDoomPlay(flavor);
+        }
       } else if (state.phase === 'error' || state.phase === 'exited') {
         unsubscribe();
       }

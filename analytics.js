@@ -776,3 +776,37 @@ try {
 } catch (_) {
   /* private mode or a host with no storage — Continue simply stays hidden */
 }
+
+// Optional features. A page opts in by name; this file does not decide
+// which apps use which feature.
+const ANALYTICS_FEATURES = {
+  'play-counts': '/analytics/counts.mjs'
+};
+
+window.heymingAnalytics = {
+  /**
+   * Load one optional feature. A second call for the same name waits
+   * on the script already in flight.
+   * @param {string} name
+   * @returns {Promise<void>}
+   */
+  enable: function (name) {
+    var src = ANALYTICS_FEATURES[name];
+    if (!src) return Promise.resolve();
+    if (!window.__heymingAnalyticsLoads) window.__heymingAnalyticsLoads = {};
+    if (window.__heymingAnalyticsLoads[name]) return window.__heymingAnalyticsLoads[name];
+    window.__heymingAnalyticsLoads[name] = new Promise(function (resolve) {
+      var script = document.createElement('script');
+      script.type = 'module';
+      script.src = src;
+      script.onload = function () {
+        resolve();
+      };
+      script.onerror = function () {
+        resolve();
+      };
+      document.head.appendChild(script);
+    });
+    return window.__heymingAnalyticsLoads[name];
+  }
+};

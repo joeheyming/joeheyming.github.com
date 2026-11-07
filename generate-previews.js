@@ -1377,6 +1377,12 @@ const PAGES = [
     url: `${BASE_URL}/mahjongg/`,
     output: 'mahjongg/mahjongg-preview.png',
     title: 'Mahjongg'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/analytics/`,
+    output: 'analytics/analytics-preview.png',
+    title: 'Analytics'
   }
 ];
 

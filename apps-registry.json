@@ -2575,5 +2575,26 @@
     },
     "appTier": "experience",
     "geo": true
+  },
+  {
+    "id": "analytics",
+    "name": "Analytics 📊",
+    "shortName": "Analytics",
+    "description": "Play counts for games, DOOM mods, movies, and shows",
+    "detailedDescription": "Running totals for what people start on the emulator, DOOM, and Watch. One anonymous event per play, stored as counts in a Google Sheet. No accounts and no visitor ids.",
+    "icon": "📊",
+    "path": "./analytics/",
+    "category": "utility",
+    "gradient": "from-sky-500/20 to-indigo-500/20",
+    "border": "border-sky-500/30 hover:border-sky-400/50",
+    "taskbarGradient": "from-sky-600 to-indigo-700",
+    "taskbarText": "text-white",
+    "defaultWidth": 800,
+    "defaultHeight": 900,
+    "tags": ["analytics", "counts", "emulator", "doom", "watch", "stats"],
+    "related": ["emulator", "doom", "watch"],
+    "shareCategory": "utility",
+    "appTier": "experience",
+    "geo": false
   }
 ]

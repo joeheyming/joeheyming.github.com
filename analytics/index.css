@@ -1,0 +1,65 @@
+.page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 4.75rem 1.25rem 4rem;
+  color: var(--text-1);
+  font-family: var(--font-ui), system-ui, sans-serif;
+  line-height: 1.45;
+}
+
+h1 {
+  margin: 0 0 0.35rem;
+  font-size: 2rem;
+  line-height: 1.15;
+}
+
+.lede {
+  margin: 0 0 0.75rem;
+  color: var(--text-2);
+}
+
+.jumps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin: 0 0 1.5rem;
+}
+
+.jumps a {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.banner {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+}
+
+[data-play-board] {
+  margin: 0 0 1.75rem;
+}
+
+[data-play-board] h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+[data-play-board] ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-play-board] .empty {
+  margin: 0.25rem 0 0;
+  color: var(--text-2);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding-top: 4.25rem;
+  }
+}

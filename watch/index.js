@@ -36,6 +36,8 @@ import './modules/quicknav.js';
 import { getShow, getMovie } from './modules/data-source.js';
 import { renderBreadcrumbs } from './modules/breadcrumbs.js';
 
+window.heymingAnalytics?.enable('play-counts');
+
 /** @typedef {import('./modules/shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('./modules/movies.js').MovieConfig} MovieConfig */
 

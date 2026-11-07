@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1A73E8" />
+    <title>Analytics — Play Counts for Games and Shows 📊</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="index.css" />
+
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="description"
+      content="Public play counts for this site. See the emulator games, consoles, DOOM mods, movies, and TV shows people start most often. Totals only, from anonymous one-time events, with no accounts. Free."
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="joeheyming.github.io" />
+    <meta property="og:title" content="Analytics — Play Counts for Games and Shows 📊" />
+    <meta
+      property="og:description"
+      content="Public play counts for this site. See the emulator games, consoles, DOOM mods, movies, and TV shows people start most often. Totals only, from anonymous one-time events, with no accounts. Free."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/analytics/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/analytics/analytics-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Analytics — Play Counts for Games and Shows 📊" />
+    <meta
+      name="twitter:description"
+      content="Public play counts for this site. See the emulator games, consoles, DOOM mods, movies, and TV shows people start most often. Totals only, from anonymous one-time events, with no accounts. Free."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/analytics/analytics-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/analytics/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script>
+      heymingAnalytics.enable('play-counts');
+    </script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Analytics",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Public play counts for emulator games, DOOM mods, movies, and TV shows on joeheyming.github.io.",
+            "url": "https://joeheyming.github.io/analytics/",
+            "image": "https://joeheyming.github.io/analytics/analytics-preview.png",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Analytics",
+                "item": "https://joeheyming.github.io/analytics/"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <main class="page">
+      <p id="play-counts-setup" class="banner" hidden>
+        The analytics form is not connected yet, so these lists stay empty.
+      </p>
+      <h1>Analytics</h1>
+      <p class="lede">
+        Running totals for emulator games, DOOM mods, movies, and TV shows people start on this
+        site.
+      </p>
+      <p class="jumps">
+        <a href="/emulator/">Emulator</a>
+        <a href="/doom/">DOOM</a>
+        <a href="/watch/">Watch</a>
+      </p>
+
+      <section data-play-board data-app="emulator" data-kind="console" data-limit="20">
+        <h2>Top emulators</h2>
+        <ol></ol>
+        <p class="empty" hidden>No emulator plays yet.</p>
+      </section>
+      <section
+        data-play-board
+        data-app="emulator"
+        data-kind="game"
+        data-meta="console"
+        data-limit="20"
+      >
+        <h2>Top games</h2>
+        <ol></ol>
+        <p class="empty" hidden>No game plays yet.</p>
+      </section>
+      <section data-play-board data-app="doom" data-kind="flavor" data-limit="20">
+        <h2>Top DOOM flavors</h2>
+        <ol></ol>
+        <p class="empty" hidden>No DOOM plays yet.</p>
+      </section>
+      <section data-play-board data-app="watch" data-kind="show" data-limit="20">
+        <h2>Top TV shows</h2>
+        <ol></ol>
+        <p class="empty" hidden>No show plays yet.</p>
+      </section>
+      <section data-play-board data-app="watch" data-kind="movie" data-limit="20">
+        <h2>Top movies</h2>
+        <ol></ol>
+        <p class="empty" hidden>No movie plays yet.</p>
+      </section>
+      <section data-play-board data-app="watch" data-kind="episode" data-limit="20">
+        <h2>Top episodes</h2>
+        <ol></ol>
+        <p class="empty" hidden>No episode plays yet.</p>
+      </section>
+
+      <feedback-button label="💬 Feedback"></feedback-button>
+    </main>
+  </body>
+</html>

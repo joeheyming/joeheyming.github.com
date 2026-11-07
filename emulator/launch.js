@@ -25,6 +25,8 @@
 (function () {
   'use strict';
 
+  window.heymingAnalytics?.enable('play-counts');
+
   let runtimeBlocked = false;
   /** True when we booted a core without cross-origin isolation (no threads). */
   let singleThreadMode = false;
@@ -850,6 +852,9 @@
     if (!options || !options.tracked) {
       if (typeof window.trackEmulatorGame === 'function') {
         window.trackEmulatorGame(cfg.id, playingTitle);
+      }
+      if (window.heymingCounts && typeof window.heymingCounts.recordEmulatorPlay === 'function') {
+        window.heymingCounts.recordEmulatorPlay(cfg.id, playingTitle);
       }
     }
 
