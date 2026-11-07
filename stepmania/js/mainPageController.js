@@ -894,6 +894,7 @@ export class MainPageController {
     await window.yieldToMain();
 
     const currentSong = songManager.getCurrentSong();
+    this.recordSongPlay(currentSong);
     const parsedData = songManager.getCurrentParsedData();
     const currentDifficulty = songManager.getCurrentDifficulty();
 
@@ -936,6 +937,23 @@ export class MainPageController {
     };
     const lowerDiff = (difficulty || '').toLowerCase();
     return diffMap[lowerDiff] || 'U';
+  }
+
+  /**
+   * Count one play per song start. Restarts reuse the same start and are not counted again.
+   * @param {{ key: string, data: { title?: string } } | null} currentSong
+   */
+  recordSongPlay(currentSong) {
+    if (!currentSong) return;
+    const countsReady =
+      window.heymingAnalytics && typeof window.heymingAnalytics.enable === 'function'
+        ? window.heymingAnalytics.enable('play-counts')
+        : null;
+    Promise.resolve(countsReady).then(() => {
+      if (window.heymingCounts && typeof window.heymingCounts.recordStepmaniaPlay === 'function') {
+        window.heymingCounts.recordStepmaniaPlay(currentSong.key, currentSong.data?.title);
+      }
+    });
   }
 
   /**

@@ -38,7 +38,8 @@ const ID_RE = /^[a-z0-9][a-z0-9:_|-]{0,95}$/;
 const KINDS = {
   emulator: new Set(['console', 'game']),
   doom: new Set(['flavor']),
-  watch: new Set(['movie', 'show', 'episode'])
+  watch: new Set(['movie', 'show', 'episode']),
+  stepmania: new Set(['song'])
 };
 
 const CACHE_KEY = 'heyming-play-counts-v1';
@@ -234,6 +235,19 @@ export function playsForWatch(input) {
       parent: id
     }
   ];
+}
+
+/**
+ * One play per song start. The id is the song key (zenius_<id>, file_<name>, ...), so every
+ * song counts on its own even when several share a pack.
+ * @param {string} songKey
+ * @param {string} [title]
+ */
+export function playsForStepmania(songKey, title) {
+  const id = slugPart(songKey);
+  if (!id) return [];
+  const name = cleanName(String(title || '').replace(ROM_EXT, '')) || id;
+  return [{ app: 'stepmania', kind: 'song', id, name, parent: '' }];
 }
 
 /**
@@ -756,6 +770,13 @@ function install() {
      */
     recordWatchPlay(input) {
       send(playsForWatch(input || {}));
+    },
+    /**
+     * @param {string} songKey
+     * @param {string} [title]
+     */
+    recordStepmaniaPlay(songKey, title) {
+      send(playsForStepmania(songKey, title));
     },
     paint,
     paintShadow(root) {

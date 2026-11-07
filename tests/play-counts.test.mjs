@@ -19,6 +19,7 @@ import {
   paintShadow,
   playsForDoom,
   playsForEmulator,
+  playsForStepmania,
   playsForWatch,
   slugPart,
   submitPlays,
@@ -301,4 +302,33 @@ test('call sites record a play next to the existing analytics event', () => {
   assert.match(doom, /recordDoomPlay\(flavor\)/);
   assert.match(watch, /recordWatchPlay/);
   assert.match(roms, /paintShadow\(this\.shadowRoot\)/);
+});
+
+test('each stepmania song counts on its own, keyed by song key and title', () => {
+  const first = playsForStepmania('zenius_12345', 'Gangnam Style');
+  const second = playsForStepmania('zenius_67890', 'Gangnam Style');
+  assert.equal(first.length, 1);
+  assert.deepEqual(first[0], {
+    app: 'stepmania',
+    kind: 'song',
+    id: 'zenius-12345',
+    name: 'Gangnam Style',
+    parent: ''
+  });
+  assert.notEqual(first[0].id, second[0].id);
+  assert.ok(isRecordable(first[0]));
+  assert.deepEqual(playsForStepmania('', 'Nameless'), []);
+  assert.equal(playsForStepmania('file_song-name.zip', '')[0].name, 'file-song-name');
+  assert.equal(playsForStepmania('file_song-name.zip', 'Song Name.zip')[0].name, 'Song Name');
+});
+
+test('stepmania songs record on Play, not on restarts, and the board is on the page', () => {
+  const controller = readFileSync(path.join(ROOT, 'stepmania/js/mainPageController.js'), 'utf8');
+  const analyticsPage = readFileSync(path.join(ROOT, 'analytics/index.html'), 'utf8');
+  assert.match(controller, /this\.recordSongPlay\(currentSong\)/);
+  assert.match(controller, /enable\('play-counts'\)/);
+  assert.match(controller, /recordStepmaniaPlay\(currentSong\.key,\s*currentSong\.data\?\.title\)/);
+  const restart = controller.slice(controller.indexOf('restartSong() {'));
+  assert.doesNotMatch(restart.slice(0, 200), /recordSongPlay/);
+  assert.match(analyticsPage, /data-app="stepmania" data-kind="song"/);
 });
