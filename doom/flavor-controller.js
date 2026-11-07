@@ -93,9 +93,15 @@
           flavor + ':' + entryPath,
           Math.round((Date.now() - startedAt) / 1000)
         );
-        if (window.heymingCounts && typeof window.heymingCounts.recordDoomPlay === 'function') {
-          window.heymingCounts.recordDoomPlay(flavor);
-        }
+        var countsReady =
+          window.heymingAnalytics && typeof window.heymingAnalytics.enable === 'function'
+            ? window.heymingAnalytics.enable('play-counts')
+            : null;
+        Promise.resolve(countsReady).then(function () {
+          if (window.heymingCounts && typeof window.heymingCounts.recordDoomPlay === 'function') {
+            window.heymingCounts.recordDoomPlay(flavor);
+          }
+        });
       } else if (state.phase === 'error' || state.phase === 'exited') {
         unsubscribe();
       }

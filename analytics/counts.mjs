@@ -688,11 +688,6 @@ function install() {
   function send(plays) {
     const fresh = plays.filter(allowNow);
     if (!fresh.length) return;
-    const local = isLocalDevHost(location.hostname, navigator.userAgent);
-    if (local) {
-      console.log('Play count skipped (localhost):', fresh);
-      return;
-    }
     submitPlays(fresh, { config: CONFIG, isLocal: false, fetchImpl: fetch });
   }
 
@@ -724,7 +719,7 @@ function install() {
       return;
     }
     const cached = readCache(false);
-    if (cached) {
+    if (cached && cached.length) {
       state.rows = cached;
       state.ready = true;
       paint();

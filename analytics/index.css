@@ -1,10 +1,29 @@
+html.hos-page,
+body.hos-page {
+  min-height: 100%;
+  background: var(--surface-0);
+  color: var(--text-1);
+}
+
+body.hos-page {
+  min-height: 100vh;
+}
+
 .page {
   max-width: 44rem;
   margin: 0 auto;
   padding: 4.75rem 1.25rem 4rem;
+  background: var(--surface-0);
   color: var(--text-1);
   font-family: var(--font-ui), system-ui, sans-serif;
   line-height: 1.45;
+}
+
+h1,
+[data-play-board] h2,
+[data-play-board] li,
+[data-play-board] .play-top-name {
+  color: var(--text-1);
 }
 
 h1 {
@@ -13,9 +32,15 @@ h1 {
   line-height: 1.15;
 }
 
+.lede,
+[data-play-board] .empty,
+[data-play-board] .play-count,
+[data-play-board] .play-top-meta {
+  color: var(--text-2);
+}
+
 .lede {
   margin: 0 0 0.75rem;
-  color: var(--text-2);
 }
 
 .jumps {
@@ -26,7 +51,7 @@ h1 {
 }
 
 .jumps a {
-  color: var(--accent-primary);
+  color: var(--accent-blue);
   font-weight: 600;
 }
 
@@ -55,7 +80,6 @@ h1 {
 
 [data-play-board] .empty {
   margin: 0.25rem 0 0;
-  color: var(--text-2);
 }
 
 @media (max-width: 640px) {

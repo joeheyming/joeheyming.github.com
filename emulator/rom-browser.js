@@ -716,6 +716,9 @@ class RomBrowserElement extends HTMLElement {
     if (cfg && typeof window.trackEmulatorGame === 'function') {
       window.trackEmulatorGame(cfg.id, rom.title || rom.name);
     }
+    if (cfg && window.heymingAnalytics && typeof window.heymingAnalytics.enable === 'function') {
+      await window.heymingAnalytics.enable('play-counts');
+    }
     if (
       cfg &&
       window.heymingCounts &&

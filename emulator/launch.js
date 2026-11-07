@@ -853,6 +853,9 @@
       if (typeof window.trackEmulatorGame === 'function') {
         window.trackEmulatorGame(cfg.id, playingTitle);
       }
+      if (window.heymingAnalytics && typeof window.heymingAnalytics.enable === 'function') {
+        await window.heymingAnalytics.enable('play-counts');
+      }
       if (window.heymingCounts && typeof window.heymingCounts.recordEmulatorPlay === 'function') {
         window.heymingCounts.recordEmulatorPlay(cfg.id, playingTitle);
       }
