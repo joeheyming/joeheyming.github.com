@@ -73,7 +73,7 @@ test('right from a poster moves to the next poster, not the chip past its edge',
   assert.equal(amazing.getAttribute('tabindex'), '-1');
 
   const right = key(window, alvin, 'ArrowRight');
-  assert.equal(right.heymingGridNav, true);
+  assert.equal(right.heymingHandled, true);
   assert.equal(window.document.activeElement, amazing);
 
   amazing.focus();
@@ -82,7 +82,7 @@ test('right from a poster moves to the next poster, not the chip past its edge',
 
   alvin.focus();
   const up = key(window, alvin, 'ArrowUp');
-  assert.equal(up.heymingGridNav, undefined);
+  assert.equal(up.heymingHandled, undefined);
   assert.equal(window.document.activeElement, satire);
 
   const movies = window.document.createElement('div');
@@ -97,7 +97,7 @@ test('right from a poster moves to the next poster, not the chip past its edge',
 
   window.document.body.focus();
   const fromBody = key(window, window.document.body, 'ArrowRight');
-  assert.equal(fromBody.heymingGridNav, true);
+  assert.equal(fromBody.heymingHandled, true);
   assert.equal(window.document.activeElement, alvin);
 
   const menu = window.document.createElement('button');

@@ -80,6 +80,9 @@ async function init() {
   nav.id = 'tv-quicknav';
   nav.className = 'tv-quicknav';
   nav.setAttribute('aria-label', 'Watch quick navigation');
+  // remote.js will not geometry-move focus into a subtree marked
+  // this way. Left from a far-left poster is what enters the rail.
+  nav.setAttribute('data-heyming-manual-arrows', '');
 
   // The Recent button is conditional: only rendered when the user
   // has at least one continue-watching entry. We re-check on each
@@ -345,16 +348,17 @@ function nearestButton(card, buttons) {
  * Left from a far-left poster enters the rail. On the rail, Up and
  * Down move between the buttons, and Right focuses the first poster
  * in that button's section (the search field for Search). Every
- * other arrow leaves the rail alone, and geometry-based arrow
- * movement never targets it (see `inQuicknav` in remote.js).
+ * other arrow leaves the rail alone. The rail is marked
+ * data-heyming-manual-arrows so geometry-based movement never
+ * targets it.
  */
 export function attachQuicknavKeys() {
   if (quicknavKeysBound) return;
   quicknavKeysBound = true;
 
-  /** @param {KeyboardEvent & { heymingGridNav?: boolean }} e */
+  /** @param {KeyboardEvent & { heymingHandled?: boolean }} e */
   const onKey = (e) => {
-    if (e.heymingGridNav || !/^Arrow/.test(e.key || '')) return;
+    if (e.heymingHandled || !/^Arrow/.test(e.key || '')) return;
     const node = e.target;
     if (!node || /** @type {Node} */ (node).nodeType !== 1) return;
     const el = /** @type {Element} */ (node);
@@ -364,7 +368,7 @@ export function attachQuicknavKeys() {
       const index = buttons.indexOf(railBtn);
       if (index < 0) return;
       e.preventDefault();
-      e.heymingGridNav = true;
+      e.heymingHandled = true;
       if (e.key === 'ArrowDown' && index + 1 < buttons.length) buttons[index + 1].focus();
       else if (e.key === 'ArrowUp' && index > 0) buttons[index - 1].focus();
       else if (e.key === 'ArrowRight') {
@@ -385,7 +389,7 @@ export function attachQuicknavKeys() {
     if (buttons.length === 0) return;
     const next = nearestButton(card, buttons);
     e.preventDefault();
-    e.heymingGridNav = true;
+    e.heymingHandled = true;
     next.focus();
   };
   window.addEventListener('keydown', onKey, true);

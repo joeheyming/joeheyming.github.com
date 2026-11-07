@@ -79,11 +79,11 @@ test('up on a continue card focuses its remove button, then the card above', asy
   wireRemoveSubNav(card, remove);
   card.focus();
   const toButton = key(window, card, 'ArrowUp');
-  assert.equal(toButton.heymingGridNav, true);
+  assert.equal(toButton.heymingHandled, true);
   assert.equal(window.document.activeElement, remove);
 
   const toCard = key(window, remove, 'ArrowUp');
-  assert.equal(toCard.heymingGridNav, true);
+  assert.equal(toCard.heymingHandled, true);
   assert.equal(window.document.activeElement, above);
 
   remove.focus();

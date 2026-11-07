@@ -165,9 +165,9 @@ export function applyRovingTabindex(grid, options = {}) {
     return el.classList.contains('heyming-nav-toggle');
   };
 
-  /** @param {KeyboardEvent & { heymingGridNav?: boolean }} e */
+  /** @param {KeyboardEvent & { heymingHandled?: boolean }} e */
   const onKeyDown = (e) => {
-    if (!NAV_KEYS.has(e.key) || e.heymingGridNav) return;
+    if (!NAV_KEYS.has(e.key) || e.heymingHandled) return;
     if (items.length === 0) return;
     // Ignore nav keys typed into a focused input/textarea inside a
     // grid cell (e.g. a search box). Cards are buttons/anchors, not
@@ -182,7 +182,7 @@ export function applyRovingTabindex(grid, options = {}) {
       if (rect.width < 2 || rect.height < 2) return;
       if (document.querySelector('[role="dialog"][aria-modal="true"]:not([hidden])')) return;
       e.preventDefault();
-      e.heymingGridNav = true;
+      e.heymingHandled = true;
       card.focus({ preventScroll: false });
       return;
     }
@@ -228,7 +228,7 @@ export function applyRovingTabindex(grid, options = {}) {
       // leaves the key alone. An arrow with no neighbor in the grid
       // stays unmarked, so Up from the first row can still reach the
       // chips above.
-      /** @type {KeyboardEvent & { heymingGridNav?: boolean }} */ (e).heymingGridNav = true;
+      /** @type {KeyboardEvent & { heymingHandled?: boolean }} */ (e).heymingHandled = true;
       setCursor(next);
     }
   };

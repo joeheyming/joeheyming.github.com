@@ -45,7 +45,7 @@ function key(window, el, name) {
 test('the rail opens only from a far-left card and moves vertically', async () => {
   const dom = new JSDOM(
     `<!doctype html><body>
-      <aside id="tv-quicknav">
+      <aside id="tv-quicknav" data-heyming-manual-arrows>
         <a class="tv-quicknav-btn" id="nav-search" data-quicknav="search" href="./#search">Search</a>
         <a class="tv-quicknav-btn" id="nav-shows" data-quicknav="shows" href="./">Shows</a>
         <a class="tv-quicknav-btn" id="nav-movies" data-quicknav="movies" href="./#movies">Movies</a>
@@ -98,7 +98,7 @@ test('the rail opens only from a far-left card and moves vertically', async () =
 
   alvin.focus();
   const intoRail = key(window, alvin, 'ArrowLeft');
-  assert.equal(intoRail.heymingGridNav, true);
+  assert.equal(intoRail.heymingHandled, true);
   assert.equal(window.document.activeElement, shows);
 
   key(window, shows, 'ArrowDown');

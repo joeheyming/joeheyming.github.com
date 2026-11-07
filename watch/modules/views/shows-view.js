@@ -200,7 +200,7 @@ const removeNavCleanups = [];
  * Arrows are taken on window capture. `remote.js` moves focus for
  * every link and button from a document listener and skips
  * tabindex=-1, so a bubble listener on the card never sees Up and
- * the ✕ is skipped. The event is marked `heymingGridNav` so that
+ * the ✕ is skipped. The event is marked `heymingHandled` so that
  * move does not run afterward.
  *
  * @param {HTMLAnchorElement} card
@@ -226,13 +226,13 @@ export function wireRemoveSubNav(card, remove) {
     }
   });
 
-  /** @param {KeyboardEvent & { heymingGridNav?: boolean }} e */
+  /** @param {KeyboardEvent & { heymingHandled?: boolean }} e */
   const onArrow = (e) => {
     if (!card.isConnected) {
       cleanup?.();
       return;
     }
-    if (e.heymingGridNav || !/^Arrow/.test(e.key || '')) return;
+    if (e.heymingHandled || !/^Arrow/.test(e.key || '')) return;
     const node = e.target;
     if (!node || /** @type {Node} */ (node).nodeType !== 1) return;
     const el = /** @type {Element} */ (node);
@@ -242,7 +242,7 @@ export function wireRemoveSubNav(card, remove) {
 
     if (onCard && e.key === 'ArrowUp') {
       e.preventDefault();
-      e.heymingGridNav = true;
+      e.heymingHandled = true;
       remove.focus();
       return;
     }
@@ -250,7 +250,7 @@ export function wireRemoveSubNav(card, remove) {
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      e.heymingGridNav = true;
+      e.heymingHandled = true;
       card.focus();
       return;
     }
@@ -270,7 +270,7 @@ export function wireRemoveSubNav(card, remove) {
       findFocusableInDirection(origin, card, dir);
     if (!next) return;
     e.preventDefault();
-    e.heymingGridNav = true;
+    e.heymingHandled = true;
     next.focus();
   };
   cleanup = () => {
