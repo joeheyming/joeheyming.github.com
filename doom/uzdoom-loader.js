@@ -37,6 +37,11 @@
 import { UZDoomLifecycle as LC } from './lifecycle.js';
 import { syncSavesToIDB } from './uzdoom-loader-idbfs.js';
 import { installUzdomLoaderEngine } from './uzdoom-loader-engine.js';
+import { installWebGLReadPixelsShim } from './webgl-readpixels.js';
+
+// [SITE] Before uzdoom.js creates its GL context. Save thumbnails read the
+// framebuffer as RGB, which WebGL rejects; the shim turns those into RGBA.
+installWebGLReadPixelsShim();
 
 (function guardAudioParam() {
   if (typeof AudioParam === 'undefined') return;
