@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import gameState from '../js/gameState.js';
 import { SimfileParser } from '../js/simfileParser.js';
 import { secondsToBeats, beatsToSeconds, getBPMAtBeat } from '../js/timing.js';
-import { TAP_NOTE_POINTS } from '../js/judgmentPolicy.js';
-import { adjudicateColumnPress } from '../js/columnPressAdjudication.js';
+import { HOLD_LET_GO_SECONDS, TAP_NOTE_POINTS } from '../js/judgmentPolicy.js';
+import { adjudicateColumnPress, advanceHold } from '../js/columnPressAdjudication.js';
 import { calculateDancePoints, calculateGrade } from '../js/score-panel.js';
 import { calculateNoteY, noteFieldY, receptorY } from '../js/noteRenderer.js';
 
@@ -507,13 +507,17 @@ describe('Freeze arrow scoring (regression)', () => {
     return { hit, tapNoteScore, activeHolds };
   }
 
-  it('hold note head does NOT trigger tap scoring', () => {
+  it('hold note head counts immediately, like a tap', () => {
     const noteData = [[4.0, 0, { Type: 2, Duration: 96 }]]; // hold starting at beat 4, 2 beats long
     const result = simulateStep(noteData, 0, 4.0);
 
-    assert.equal(result.hit, false, 'hold head should not set hit=true');
+    assert.equal(result.hit, true, 'the judgment counter ticks on the head');
+    assert.equal(result.tapNoteScore, 0, 'perfect timing on hold head');
+    assert.equal(noteData[0][2].tapNoteScore, 0);
     assert.ok(result.activeHolds[0], 'hold should be tracked in activeHolds');
-    assert.equal(result.activeHolds[0].hitScore, 0, 'perfect timing on hold head');
+    assert.equal(result.activeHolds[0].hitScore, 0);
+    assert.equal(result.activeHolds[0].life, 1);
+    assert.equal(result.activeHolds[0].endBeat, 6);
   });
 
   it('regular tap note DOES trigger tap scoring', () => {
@@ -531,7 +535,9 @@ describe('Freeze arrow scoring (regression)', () => {
     ];
     const result = simulateStep(noteData, 0, 4.0);
 
-    assert.equal(result.hit, false, 'only hold is in window, hit should be false');
+    assert.equal(result.hit, true, 'the hold head is the note this press hit');
+    assert.equal(result.tapNoteScore, 0);
+    assert.equal(noteData[1][2].tapNoteScore, undefined, 'the later tap is not consumed');
     assert.ok(result.activeHolds[0], 'hold should be active');
   });
 
@@ -542,7 +548,94 @@ describe('Freeze arrow scoring (regression)', () => {
     ];
     // Press col 0 (the hold)
     const result = simulateStep(noteData, 0, 4.0);
-    assert.equal(result.hit, false, 'hold head on col 0 should not score as tap');
+    assert.equal(result.hit, true, 'hold head on col 0 counts on the press');
+    assert.equal(noteData[1][2].tapNoteScore, undefined);
+  });
+
+  it('a one-row freeze still finishes held after a normal tap release', () => {
+    const noteData = [[4.0, 0, { Type: 2, Duration: 1 }]];
+    const { activeHolds } = simulateStep(noteData, 0, 4.0);
+    const hold = activeHolds[0];
+
+    // One row is 1/48 of a beat. At 120 BPM that is about 10ms, far inside
+    // the native 250ms let-go window, so lifting counts as held.
+    const result = advanceHold(hold, {
+      keyHeld: false,
+      deltaSeconds: 1 / 60,
+      songBeats: hold.endBeat
+    });
+
+    assert.equal(result.letGo, false);
+    assert.equal(result.finished, true);
+    assert.equal(noteData[0][2].tapNoteScore, 0, 'the head judgment is not rewritten');
+  });
+
+  it('releasing inside the hold window does not drop it', () => {
+    const noteData = [[4.0, 0, { Type: 2, Duration: 96 }]];
+    const { activeHolds } = simulateStep(noteData, 0, 4.0);
+
+    const result = advanceHold(activeHolds[0], {
+      keyHeld: false,
+      deltaSeconds: HOLD_LET_GO_SECONDS - 0.01,
+      songBeats: 4.5
+    });
+
+    assert.equal(result.letGo, false);
+    assert.equal(result.finished, false);
+    assert.ok(activeHolds[0].life > 0);
+  });
+
+  it('releasing for the whole hold window drops once and leaves the head score', () => {
+    const noteData = [[4.0, 0, { Type: 2, Duration: 96 }]];
+    const { activeHolds } = simulateStep(noteData, 0, 4.0);
+    const hold = activeHolds[0];
+
+    const dropped = advanceHold(hold, {
+      keyHeld: false,
+      deltaSeconds: HOLD_LET_GO_SECONDS,
+      songBeats: 4.5
+    });
+    const again = advanceHold(hold, {
+      keyHeld: false,
+      deltaSeconds: 0.016,
+      songBeats: 4.6
+    });
+
+    assert.equal(dropped.letGo, true);
+    assert.equal(dropped.finished, false);
+    assert.equal(again.letGo, false, 'the drop is announced once');
+    assert.equal(hold.wasDropped, true);
+    assert.equal(noteData[0][2].tapNoteScore, 0);
+  });
+
+  it('holding the key refreshes life, and the tail ends the hold', () => {
+    const noteData = [[4.0, 0, { Type: 2, Duration: 96 }]];
+    const { activeHolds } = simulateStep(noteData, 0, 4.0);
+    const hold = activeHolds[0];
+    hold.life = 0.2;
+
+    const held = advanceHold(hold, { keyHeld: true, deltaSeconds: 0.5, songBeats: 5 });
+    const done = advanceHold(hold, { keyHeld: true, deltaSeconds: 0.016, songBeats: 6 });
+
+    assert.equal(held.letGo, false);
+    assert.equal(hold.life, 1);
+    assert.equal(done.finished, true);
+    assert.equal(done.letGo, false);
+  });
+
+  it('autoplay keeps a hold even when the key is up', () => {
+    const noteData = [[4.0, 0, { Type: 2, Duration: 96 }]];
+    const { activeHolds } = simulateStep(noteData, 0, 4.0);
+    activeHolds[0].isAutoplay = true;
+
+    const result = advanceHold(activeHolds[0], {
+      keyHeld: false,
+      deltaSeconds: 1,
+      songBeats: 5
+    });
+
+    assert.equal(result.letGo, false);
+    assert.equal(activeHolds[0].life, 1);
   });
 });
 

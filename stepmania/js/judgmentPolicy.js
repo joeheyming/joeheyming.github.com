@@ -31,6 +31,15 @@ export const MISS_TIMING_INDEX = TIMING_WINDOWS.length - 1;
 export const MINE_TIMING_INDEX = 1;
 
 /**
+ * How long a hold may be released before it drops, in seconds.
+ * Native StepMania `TimingWindowSecondsHold` ("allow enough time to take
+ * your foot off and put it back on"). A freeze shorter than this still
+ * counts when the head is hit, because life cannot drain to zero before
+ * the tail arrives.
+ */
+export const HOLD_LET_GO_SECONDS = 0.25;
+
+/**
  * Points awarded for each judgment type (tap row; mine uses MINE_HIT).
  *
  * Values mirror StepMania `_fallback` theme's `PercentScoreWeight*`

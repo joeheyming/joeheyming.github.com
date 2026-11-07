@@ -8,7 +8,7 @@ import gameState from './gameState.js';
 import { songManager } from './songManager.js';
 import { ARROW_WIDTH } from './config.js';
 import { TAP_NOTE_POINTS, TIMING_WINDOWS, MISS_TIMING_INDEX } from './judgmentPolicy.js';
-import { adjudicateColumnPress } from './columnPressAdjudication.js';
+import { adjudicateColumnPress, advanceHold, startHold } from './columnPressAdjudication.js';
 import { ScorePanel } from './score-panel.js';
 import { LoadingOverlay } from './loading-overlay.js';
 import { secondsToBeats, beatsToSeconds } from './timing.js';
@@ -57,6 +57,13 @@ let colInfos = [];
 // Hold note tracking
 /** @type {Object<number, Object>} */
 const activeHolds = {};
+
+/**
+ * Health lost when a hold is dropped. Native dance
+ * LifePercentChangeLetGo is -8%, and that drop does not break the combo
+ * or rewrite the head judgment.
+ */
+const HOLD_LET_GO_HEALTH = 8;
 
 // Image directory
 const imgDir = '/stepmania/img/';
@@ -250,113 +257,24 @@ function addButtonFeedback(buttonId) {
 // Functions exported at end of file
 
 /**
- * Handle release of a hold note
- * @param {number} col - Column index
+ * Update active hold notes (called each frame).
+ * The head was already scored. This only decides Held vs LetGo.
+ * @param {number} deltaSeconds
  */
-function releaseHold(col) {
-  if (activeHolds[col]) {
-    const hold = activeHolds[col];
-    const songSeconds = chartSecondsNow();
-    const songBeats = secondsToBeats(songSeconds);
-    const holdEndBeat = hold.endBeat;
-
-    if (songBeats < holdEndBeat - 0.1) {
-      hold.wasDropped = true;
-      hold.dropTime = songSeconds;
-
-      const finalScore = Math.max(hold.hitScore, 4);
-
-      gameState.incrementScore(finalScore);
-      gameState.addPoints(TAP_NOTE_POINTS[finalScore]);
-
-      // Apply judgment for combo and gamified score
-      const { combo, multiplier } = gameState.applyJudgment(finalScore);
-
-      // Apply health change for dropped hold
-      gameState.applyHealthChange(finalScore);
-
-      const scores = gameState.getTapNoteScores();
-      const noteData = gameState.getNoteData();
-      ScorePanel.update(finalScore, scores, gameState.getActualPoints(), noteData.length, {
-        combo,
-        multiplier,
-        score: gameState.getScore(),
-        maxCombo: gameState.getMaxCombo()
-      });
-
-      showJudgment('Hold Dropped!', finalScore);
-
-      hold.note[2].holdCompleted = true;
-      delete activeHolds[col];
-    }
-  }
-}
-
-function showJudgment(judgmentText, scoreIndex) {
-  Judgment.showHold(judgmentText, scoreIndex);
-}
-
-/**
- * Update active hold notes (called each frame)
- */
-function updateHolds() {
-  const songSeconds = currentTime;
-  const songBeats = secondsToBeats(songSeconds);
-  const noteData = gameState.getNoteData();
+function updateHolds(deltaSeconds) {
+  const songBeats = secondsToBeats(currentTime);
 
   for (const col in activeHolds) {
     const hold = activeHolds[col];
-    let keyHeld = false;
+    const keyHeld = inputManager.isColumnHeld(parseInt(col, 10));
+    const { letGo, finished } = advanceHold(hold, { keyHeld, deltaSeconds, songBeats });
 
-    // In autoplay mode, holds are always held
-    if (hold.isAutoplay) {
-      keyHeld = true;
-    } else {
-      // Check if column is held via InputManager (handles keyboard, gamepad, touch)
-      keyHeld = inputManager.isColumnHeld(parseInt(col));
+    if (letGo) {
+      gameState.applyDamage(HOLD_LET_GO_HEALTH);
+      Judgment.showText('Hold Dropped!');
     }
 
-    if (!keyHeld && !hold.wasDropped) {
-      hold.wasDropped = true;
-      hold.dropTime = songSeconds;
-    }
-
-    if (keyHeld) {
-      hold.lastCheckTime = songSeconds;
-    }
-
-    if (songBeats >= hold.endBeat) {
-      let finalScore;
-
-      if (hold.wasDropped) {
-        finalScore = Math.max(hold.hitScore, 4);
-      } else {
-        finalScore = hold.hitScore;
-      }
-
-      gameState.incrementScore(finalScore);
-      gameState.addPoints(TAP_NOTE_POINTS[finalScore]);
-
-      // Apply judgment for combo and gamified score
-      const { combo, multiplier } = gameState.applyJudgment(finalScore);
-
-      // Apply health change for hold completion
-      gameState.applyHealthChange(finalScore);
-
-      const scores = gameState.getTapNoteScores();
-      ScorePanel.update(finalScore, scores, gameState.getActualPoints(), noteData.length, {
-        combo,
-        multiplier,
-        score: gameState.getScore(),
-        maxCombo: gameState.getMaxCombo()
-      });
-
-      let judgmentText = ['Perfect!', 'Great!', 'Good', 'OK', 'Almost', 'Miss'][finalScore];
-      if (hold.wasDropped) {
-        judgmentText = 'Hold Broken!';
-      }
-      showJudgment(judgmentText, finalScore);
-
+    if (finished) {
       hold.note[2].holdCompleted = true;
       delete activeHolds[col];
     }
@@ -387,9 +305,7 @@ function update(deltaSeconds, wallSeconds) {
     processAutoplay();
   }
 
-  if (typeof updateHolds === 'function') {
-    updateHolds();
-  }
+  updateHolds(deltaSeconds);
 
   targets.forEach(function (target) {
     target.update(deltaSeconds);
@@ -447,23 +363,12 @@ function processAutoplay() {
       // Auto-hit with perfect timing
       noteProps.tapNoteScore = 0; // Perfect
 
-      // Handle hold notes - start tracking but don't score yet
+      // Head judgment counts immediately, same as a tapped arrow.
+      // The body keeps drawing until the tail; autoplay never lets go.
       if (noteProps.Type === 2 && noteProps.Duration) {
-        activeHolds[noteCol] = {
-          note: note,
-          startBeat: noteBeat,
-          endBeat: noteBeat + noteProps.Duration / 48,
-          startTime: songSeconds,
-          hitScore: 0,
-          wasDropped: false,
-          lastCheckTime: songSeconds,
-          isAutoplay: true
-        };
-        // Hold notes are scored when they complete in updateHolds()
-      } else {
-        // Only score tap notes immediately
-        handleTapNoteScore(0);
+        startHold(activeHolds, noteCol, note, songSeconds, 0, true);
       }
+      handleTapNoteScore(0);
 
       // Visual feedback
       const explosion = explosions[noteCol];
@@ -476,16 +381,6 @@ function processAutoplay() {
       }
     }
   });
-
-  // Auto-hold for hold notes in autoplay
-  for (const col in activeHolds) {
-    const hold = activeHolds[col];
-    if (hold.isAutoplay) {
-      // Simulate key being held
-      hold.lastCheckTime = songSeconds;
-      hold.wasDropped = false;
-    }
-  }
 }
 
 /**
@@ -503,9 +398,6 @@ function initManagers(audioElement = null, video = {}) {
   inputManager.onStep((col) => {
     step(col);
     addButtonFeedback(col);
-  });
-  inputManager.onRelease((col) => {
-    releaseHold(col);
   });
   inputManager.onSpeedChange(changeScrollSpeed);
   inputManager.onScrollModeChange(() => {

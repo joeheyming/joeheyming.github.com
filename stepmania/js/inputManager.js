@@ -156,6 +156,9 @@ class InputManager {
     /** @type {Set<number>} Columns currently held via pointer/touch on step buttons */
     this.touchHeldColumns = new Set();
 
+    /** @type {Set<number>} Columns currently held on a gamepad or dance pad */
+    this.gamepadHeldColumns = new Set();
+
     /** @type {boolean} Whether input is enabled */
     this.enabled = true;
 
@@ -328,8 +331,28 @@ class InputManager {
    */
   isColumnHeld(column) {
     if (this.touchHeldColumns.has(column)) return true;
+    if (this.gamepadHeldColumns.has(column)) return true;
     const keys = this.getKeysForColumn(column);
     return keys.some((keyCode) => this.heldKeys[keyCode]);
+  }
+
+  /**
+   * Digital pad buttons stay down for the whole press. The analog stick
+   * does not come through here: it only emits taps.
+   * @param {number} column
+   * @param {boolean} held
+   */
+  setGamepadHeld(column, held) {
+    if (!this.enabled || !held) {
+      this.gamepadHeldColumns.delete(column);
+      return;
+    }
+    this.gamepadHeldColumns.add(column);
+  }
+
+  /** Drop every pad-held column (disconnect, disable, chart restart). */
+  clearGamepadHeld() {
+    this.gamepadHeldColumns.clear();
   }
 
   /**
@@ -346,6 +369,7 @@ class InputManager {
     this.enabled = false;
     this.heldKeys = {};
     this.touchHeldColumns.clear();
+    this.gamepadHeldColumns.clear();
   }
 
   /**
@@ -354,6 +378,7 @@ class InputManager {
   resetHeldKeys() {
     this.heldKeys = {};
     this.touchHeldColumns.clear();
+    this.gamepadHeldColumns.clear();
   }
 
   // ===========================================================================

@@ -110,6 +110,7 @@ export class GamepadManager {
   removeGamepad(index) {
     this.gamepads = this.gamepads.filter((gp) => gp.index !== index);
     this.isEnabled = this.gamepads.length > 0;
+    inputManager.clearGamepadHeld();
 
     if (!this.isEnabled) {
       this.stopPolling();
@@ -195,6 +196,11 @@ export class GamepadManager {
     directions.forEach((direction) => {
       const wasPressed = direction.buttons.some((btnIndex) => gamepad.lastButtonStates[btnIndex]);
       const isPressed = direction.buttons.some((btnIndex) => gamepad.buttonStates[btnIndex]);
+      const column = this.columnForDirection(direction.name);
+
+      // Holds read this every frame. A rising-edge tap alone made every
+      // freeze drop on the next frame, because nothing stayed "held".
+      if (column !== undefined) inputManager.setGamepadHeld(column, isPressed);
 
       if (isPressed && !wasPressed) {
         newlyPressed.add(direction.name);
@@ -246,6 +252,25 @@ export class GamepadManager {
     }
   }
 
+  /**
+   * @param {string} direction
+   * @returns {number|undefined}
+   */
+  columnForDirection(direction) {
+    switch (direction) {
+      case 'left':
+        return 0;
+      case 'down':
+        return 1;
+      case 'up':
+        return 2;
+      case 'right':
+        return 3;
+      default:
+        return undefined;
+    }
+  }
+
   handleDirectionPress(direction) {
     const now = Date.now();
     const lastTrigger = this.lastTriggerTime[direction] || 0;
@@ -256,21 +281,7 @@ export class GamepadManager {
 
     this.lastTriggerTime[direction] = now;
 
-    let column;
-    switch (direction) {
-      case 'left':
-        column = 0;
-        break;
-      case 'up':
-        column = 2;
-        break;
-      case 'right':
-        column = 3;
-        break;
-      case 'down':
-        column = 1;
-        break;
-    }
+    const column = this.columnForDirection(direction);
 
     if (column !== undefined) {
       // Trigger step via InputManager (handles step + visual feedback)

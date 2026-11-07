@@ -1,6 +1,11 @@
 // Column-press vs chart resolution (hold head, tap, mine). Mutates note rows and activeHolds like the playfield engine.
 
-import { TIMING_WINDOWS, MISS_TIMING_INDEX, MINE_TIMING_INDEX } from './judgmentPolicy.js';
+import {
+  TIMING_WINDOWS,
+  MISS_TIMING_INDEX,
+  MINE_TIMING_INDEX,
+  HOLD_LET_GO_SECONDS
+} from './judgmentPolicy.js';
 
 const NOTHING = { mineHitCount: 0, hit: false, tapNoteScore: 0 };
 
@@ -68,18 +73,71 @@ export function adjudicateColumnPress({ songSeconds, col, noteData, activeHolds,
 
   noteProps.tapNoteScore = score;
 
+  // The head is a normal tap: the judgment counter ticks now, not when the
+  // tail arrives. Native StepMania does the same (UpdateJudgedRows scores
+  // the head as soon as it has a TapNoteScore). The tail is a separate
+  // Held / LetGo tracked by advanceHold.
   if (noteProps.Type === 2 && noteProps.Duration) {
-    activeHolds[col] = {
-      note: note,
-      startBeat: note[0],
-      endBeat: note[0] + noteProps.Duration / 48,
-      startTime: songSeconds,
-      hitScore: score,
-      wasDropped: false,
-      lastCheckTime: songSeconds
-    };
-    return { mineHitCount: 0, hit: false, tapNoteScore: 0 };
+    startHold(activeHolds, col, note, songSeconds, score, false);
   }
 
   return { mineHitCount: 0, hit: true, tapNoteScore: score };
+}
+
+/**
+ * Begin tracking a hold whose head was just judged.
+ * Duration is in note rows (48 per beat), matching the simfile parser.
+ *
+ * @param {Object<number, Object>} activeHolds
+ * @param {number} col
+ * @param {[number, number, Object]} note
+ * @param {number} songSeconds
+ * @param {number} hitScore
+ * @param {boolean} isAutoplay
+ */
+export function startHold(activeHolds, col, note, songSeconds, hitScore, isAutoplay) {
+  const startBeat = note[0];
+  activeHolds[col] = {
+    note,
+    startBeat,
+    endBeat: startBeat + note[2].Duration / 48,
+    startTime: songSeconds,
+    hitScore,
+    life: 1,
+    wasDropped: false,
+    isAutoplay: !!isAutoplay
+  };
+}
+
+/**
+ * Drain or refresh one active hold. The head judgment is already counted
+ * and is not revised here.
+ *
+ * Life stays full while the column is held. Released, it drains across
+ * HOLD_LET_GO_SECONDS, the native hold window. `letGo` is true only on the
+ * frame life first hits zero, so a short freeze the player taps and
+ * releases still finishes held.
+ *
+ * @param {Object} hold
+ * @param {{ keyHeld: boolean, deltaSeconds: number, songBeats: number }} frame
+ * @returns {{ letGo: boolean, finished: boolean }}
+ */
+export function advanceHold(hold, { keyHeld, deltaSeconds, songBeats }) {
+  let letGo = false;
+
+  if (!hold.wasDropped) {
+    if (keyHeld || hold.isAutoplay) {
+      hold.life = 1;
+    } else {
+      const dt = deltaSeconds > 0 ? deltaSeconds : 0;
+      hold.life -= dt / HOLD_LET_GO_SECONDS;
+      if (hold.life <= 0) {
+        hold.life = 0;
+        hold.wasDropped = true;
+        letGo = true;
+      }
+    }
+  }
+
+  return { letGo, finished: songBeats >= hold.endBeat };
 }
