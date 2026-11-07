@@ -116,7 +116,278 @@
       };
       gm._heymingImportRestarts = true;
     }
+    // F5 / F9 are the keys this page documents. EmulatorJS binds quick
+    // save to 1 and quick load to 2, and those slots live in the WASM
+    // heap, so a refresh forgets them. Keep each slot in IndexedDB and
+    // treat F5 / F9 as that quick save.
+    // The current EmulatorJS script reads states with Module.EmulatorJSGetState.
+    // Cores it still ships as "-legacy" (NES fceumm, when the core report
+    // leaves WebGL2 off) do not export that function, so quick save returns
+    // false. Those cores still report the bytes through save_state_info.
+    patchLegacyGetState(emu);
+    persistQuickStates(emu);
+    installSaveHotkeys();
     return true;
+  }
+
+  /**
+   * @param {object} emu
+   * @returns {boolean}
+   */
+  function patchLegacyGetState(emu) {
+    const gm = emu && emu.gameManager;
+    const mod = gm && gm.Module;
+    if (!gm || gm._heymingGetState || typeof gm.getState !== 'function') return false;
+    if (!mod || typeof mod.EmulatorJSGetState === 'function' || typeof mod.cwrap !== 'function') {
+      return false;
+    }
+    let info;
+    try {
+      info = mod.cwrap('save_state_info', 'string', []);
+    } catch (err) {
+      console.warn('Could not read legacy save states', err);
+      return false;
+    }
+    const orig = gm.getState.bind(gm);
+    gm.getState = function getStateLegacy() {
+      if (typeof mod.EmulatorJSGetState === 'function') return orig();
+      const state = String(info()).split('|');
+      if (state[2] !== '1') throw new Error(state[0] || 'save state failed');
+      const size = parseInt(state[0], 10);
+      const dataStart = parseInt(state[1], 10);
+      const heap = mod.HEAPU8;
+      if (!heap || !Number.isFinite(size) || size <= 0 || !Number.isFinite(dataStart)) {
+        throw new Error('save state failed');
+      }
+      // Copy. The heap view is invalid once the core writes again.
+      return new Uint8Array(heap.subarray(dataStart, dataStart + size));
+    };
+    gm._heymingGetState = true;
+    return true;
+  }
+
+  /**
+   * EmulatorJS names a slot `1-quick.state` and writes it on the WASM
+   * filesystem. The same string is the IndexedDB key, prefixed with the
+   * core and the ROM name so two games do not share a slot.
+   * @param {object} emu
+   * @param {number|string} slot
+   * @returns {string}
+   */
+  function slotFileName(slot) {
+    if (!slot) slot = 1;
+    return slot + '-quick.state';
+  }
+
+  /**
+   * @param {object} emu
+   * @returns {string}
+   */
+  function gameStateName(emu) {
+    if (emu && typeof emu.getBaseFileName === 'function') {
+      const name = emu.getBaseFileName();
+      if (name) return name;
+    }
+    const cfg = emu && emu.config;
+    if (cfg && typeof cfg.gameName === 'string' && cfg.gameName.trim()) return cfg.gameName.trim();
+    return '';
+  }
+
+  /**
+   * @param {object} emu
+   * @param {number|string} slot
+   * @returns {string}
+   */
+  function stateStorageKey(emu, slot) {
+    const name = gameStateName(emu);
+    if (!name) return '';
+    const system = (emu.config && (emu.config.system || emu.config.core)) || '';
+    return system + '/' + name + '/' + slotFileName(slot);
+  }
+
+  /**
+   * @param {object} emu
+   * @returns {number|string}
+   */
+  function currentSlot(emu) {
+    const raw =
+      emu && typeof emu.getSettingValue === 'function' && emu.getSettingValue('save-state-slot');
+    return raw || 1;
+  }
+
+  /**
+   * @param {object} emu
+   * @returns {{ put: Function, get: Function } | null}
+   */
+  function statesStore(emu) {
+    const states = emu && emu.storage && emu.storage.states;
+    if (!states || typeof states.put !== 'function' || typeof states.get !== 'function')
+      return null;
+    return states;
+  }
+
+  /**
+   * @param {object} gm
+   * @param {number|string} slot
+   * @returns {Uint8Array | string | null}
+   */
+  function readSlotFile(gm, slot) {
+    if (!gm || !gm.FS || typeof gm.FS.readFile !== 'function') return null;
+    const name = slotFileName(slot);
+    const paths = ['/' + name, name];
+    for (let i = 0; i < paths.length; i++) {
+      try {
+        return gm.FS.readFile(paths[i]);
+      } catch (err) {
+        /* the other path, or the slot was never written */
+      }
+    }
+    return null;
+  }
+
+  /**
+   * @param {object} emu
+   * @param {string} message
+   * @param {string} severity
+   * @param {string} [suffix]
+   */
+  function toast(emu, message, severity, suffix) {
+    const fe = emu && emu.frontend;
+    if (!fe || typeof fe.displayMessage !== 'function') return;
+    fe.displayMessage(message, undefined, suffix, severity);
+  }
+
+  /**
+   * Copy quick-save slots into IndexedDB, and read them back when the
+   * WASM file is gone (a reload).
+   * @param {object} emu
+   * @returns {boolean}
+   */
+  function persistQuickStates(emu) {
+    const gm = emu && emu.gameManager;
+    if (!gm || gm._heymingQuickPersisted) return false;
+    if (typeof gm.quickSave !== 'function' || typeof gm.quickLoad !== 'function') return false;
+    const origSave = gm.quickSave.bind(gm);
+    const origLoad = gm.quickLoad.bind(gm);
+    gm.quickSave = function quickSaveAndKeep(slot) {
+      const ok = origSave(slot);
+      if (!ok) return false;
+      const store = statesStore(emu);
+      const key = stateStorageKey(emu, slot || 1);
+      const data = readSlotFile(gm, slot || 1);
+      if (store && key && data) store.put(key, data);
+      return true;
+    };
+    gm.quickLoad = function quickLoadFromBrowser(slot) {
+      if (readSlotFile(gm, slot || 1)) {
+        origLoad(slot);
+        return Promise.resolve(true);
+      }
+      const store = statesStore(emu);
+      const key = stateStorageKey(emu, slot || 1);
+      if (!store || !key) return Promise.resolve(false);
+      return store.get(key).then(function (data) {
+        if (!data || !gm.FS || typeof gm.FS.writeFile !== 'function') return false;
+        gm.FS.writeFile('/' + slotFileName(slot || 1), data);
+        origLoad(slot);
+        return true;
+      });
+    };
+    gm._heymingQuickPersisted = true;
+    return true;
+  }
+
+  /**
+   * @returns {object | null}
+   */
+  function playingEmulator() {
+    const emu = window.EJS_emulator;
+    if (!emu || !emu.started || !emu.gameManager) return null;
+    return emu;
+  }
+
+  /**
+   * @returns {boolean}
+   */
+  function saveQuickState() {
+    const emu = playingEmulator();
+    if (!emu || typeof emu.gameManager.quickSave !== 'function') return false;
+    persistQuickStates(emu);
+    const slot = currentSlot(emu);
+    let ok = false;
+    try {
+      ok = emu.gameManager.quickSave(slot) !== false;
+    } catch (err) {
+      console.warn('Could not save state', err);
+      ok = false;
+    }
+    if (ok) toast(emu, 'SAVED STATE TO SLOT', 'success', ' ' + slot);
+    else toast(emu, 'FAILED TO SAVE STATE', 'error');
+    return ok;
+  }
+
+  /**
+   * @returns {boolean}
+   */
+  function loadQuickState() {
+    const emu = playingEmulator();
+    if (!emu || typeof emu.gameManager.quickLoad !== 'function') return false;
+    persistQuickStates(emu);
+    const slot = currentSlot(emu);
+    let pending;
+    try {
+      pending = emu.gameManager.quickLoad(slot);
+    } catch (err) {
+      console.warn('Could not load state', err);
+      toast(emu, 'FAILED TO SAVE STATE', 'error');
+      return false;
+    }
+    Promise.resolve(pending).then(function (ok) {
+      if (ok) toast(emu, 'LOADED STATE FROM SLOT', 'success', ' ' + slot);
+      else toast(emu, 'No save state in this browser yet', 'error');
+    });
+    return true;
+  }
+
+  /**
+   * @param {KeyboardEvent} event
+   * @returns {boolean} true when this handler claimed the key
+   */
+  function onSaveHotkey(event) {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) {
+      if (event.repeat && (event.key === 'F5' || event.code === 'F5')) event.preventDefault();
+      return false;
+    }
+    const save = event.key === 'F5' || event.code === 'F5';
+    const load = event.key === 'F9' || event.code === 'F9';
+    if (!save && !load) return false;
+    const target = event.target;
+    const tag = target && target.tagName;
+    if (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      (target && target.isContentEditable)
+    ) {
+      return false;
+    }
+    const emu = window.EJS_emulator;
+    if (!emu || !emu.started) return false;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.type !== 'keydown') return true;
+    if (save) saveQuickState();
+    else loadQuickState();
+    return true;
+  }
+
+  let saveHotkeysInstalled = false;
+
+  function installSaveHotkeys() {
+    if (saveHotkeysInstalled) return;
+    saveHotkeysInstalled = true;
+    window.addEventListener('keydown', onSaveHotkey, true);
+    window.addEventListener('keyup', onSaveHotkey, true);
   }
 
   function attachBrowserSaves() {
@@ -260,6 +531,11 @@
   window.emulatorEjsMount = {
     mount,
     keepSavesInBrowser,
+    patchLegacyGetState,
+    persistQuickStates,
+    saveQuickState,
+    loadQuickState,
+    onSaveHotkey,
     installNdsStylus
   };
 })();

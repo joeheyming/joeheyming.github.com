@@ -393,29 +393,6 @@
     wireTvFocus(bootCard);
   }
 
-  function sendEmuKey(code, key, keyCode) {
-    const opts = {
-      key,
-      code,
-      keyCode,
-      which: keyCode,
-      bubbles: true,
-      cancelable: true
-    };
-    const targets = [window, document, document.getElementById('game')].filter(Boolean);
-    const iframe = document.querySelector('#game iframe');
-    if (iframe && iframe.contentWindow) targets.push(iframe.contentWindow);
-    ['keydown', 'keyup'].forEach((type) => {
-      targets.forEach((target) => {
-        try {
-          target.dispatchEvent(new KeyboardEvent(type, opts));
-        } catch {
-          /* cross-origin iframe */
-        }
-      });
-    });
-  }
-
   async function unlockGameAudio() {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (Ctx) {
@@ -539,12 +516,12 @@
 
     document.getElementById('emu-game-list-btn')?.addEventListener('click', returnToGameList);
     document.getElementById('emu-sound-btn')?.addEventListener('click', unlockGameAudio);
-    document
-      .getElementById('emu-save-btn')
-      ?.addEventListener('click', () => sendEmuKey('F5', 'F5', 116));
-    document
-      .getElementById('emu-load-btn')
-      ?.addEventListener('click', () => sendEmuKey('F9', 'F9', 120));
+    document.getElementById('emu-save-btn')?.addEventListener('click', () => {
+      window.emulatorEjsMount?.saveQuickState();
+    });
+    document.getElementById('emu-load-btn')?.addEventListener('click', () => {
+      window.emulatorEjsMount?.loadQuickState();
+    });
     document.getElementById('game-container')?.addEventListener(
       'pointerdown',
       () => {
