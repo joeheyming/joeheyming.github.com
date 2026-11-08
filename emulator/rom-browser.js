@@ -57,6 +57,7 @@ class RomBrowserElement extends HTMLElement {
   }
 
   disconnectedCallback() {
+    if (this._onTitleScroll) window.removeEventListener('scroll', this._onTitleScroll, true);
     if (this._romLoadController) this._romLoadController.abort();
     this.closeBrowser();
   }
@@ -320,7 +321,7 @@ class RomBrowserElement extends HTMLElement {
         .rom-title {
           font-weight: 700;
           color: var(--text-1);
-          margin-bottom: 4px;
+          margin-bottom: 2px;
           font-size: ${tv ? '1.15rem' : '0.95rem'};
           line-height: 1.25;
           display: -webkit-box;
@@ -328,6 +329,31 @@ class RomBrowserElement extends HTMLElement {
           -webkit-line-clamp: 2;
           overflow: hidden;
         }
+        .rom-variant {
+          color: var(--text-2);
+          font-size: ${tv ? '0.95rem' : '0.75rem'};
+          font-weight: 600;
+          line-height: 1.3;
+          margin-bottom: 4px;
+        }
+        .rom-title-pop {
+          position: fixed;
+          z-index: 40;
+          max-width: min(22rem, calc(100vw - 16px));
+          margin: 0;
+          padding: 8px 10px;
+          border-radius: 8px;
+          border: 1px solid var(--accent-bright);
+          background: var(--surface-0);
+          color: var(--text-1);
+          box-shadow: var(--shadow-card);
+          font-size: 0.95rem;
+          font-weight: 700;
+          line-height: 1.35;
+          pointer-events: none;
+          overflow-wrap: anywhere;
+        }
+        .rom-title-pop[hidden] { display: none !important; }
         .rom-info {
           color: var(--text-2);
           font-size: 0.75rem;
@@ -432,6 +458,121 @@ class RomBrowserElement extends HTMLElement {
         </div>
       </div>
     `;
+    this._ensureTitlePop();
+  }
+
+  /**
+   * Region and revision sit at the end of a No-Intro name. Pull them out
+   * so the card can show them under the clamped title.
+   * @param {string} title
+   * @returns {{ name: string, variant: string }}
+   */
+  _titleParts(title) {
+    const text = String(title || '').trim();
+    const groups = [];
+    let rest = text;
+    let match = rest.match(/^(.*)\s*(\([^)]*\))\s*$/);
+    while (match) {
+      groups.unshift(match[2]);
+      rest = match[1].trim();
+      match = rest.match(/^(.*)\s*(\([^)]*\))\s*$/);
+    }
+    if (!rest || groups.length === 0) return { name: text, variant: '' };
+    return { name: rest, variant: groups.join(' ') };
+  }
+
+  _titleClipped(el) {
+    if (!el) return false;
+    return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1;
+  }
+
+  _hideTitlePop() {
+    if (!this._titlePop) return;
+    this._titlePop.hidden = true;
+    this._titlePopCard = null;
+  }
+
+  _placeTitlePop(card) {
+    const pop = this._titlePop;
+    if (!pop || pop.hidden || !card) return;
+    const rect = card.getBoundingClientRect();
+    const margin = 8;
+    pop.style.maxWidth = Math.min(352, window.innerWidth - margin * 2) + 'px';
+    pop.style.left = '0px';
+    pop.style.top = '0px';
+    const popRect = pop.getBoundingClientRect();
+    let left = rect.left;
+    if (left + popRect.width > window.innerWidth - margin) {
+      left = window.innerWidth - margin - popRect.width;
+    }
+    left = Math.max(margin, left);
+    let top = rect.bottom + 6;
+    if (top + popRect.height > window.innerHeight - margin) {
+      top = rect.top - popRect.height - 6;
+    }
+    if (top < margin) top = margin;
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  }
+
+  _showTitlePop(card) {
+    const pop = this._titlePop;
+    const full = card && card.dataset.fullTitle;
+    const titleEl = card && card.querySelector('.rom-title');
+    const needsPop =
+      !!card && (this._titleClipped(titleEl) || !!card.querySelector('.rom-variant'));
+    if (!pop || !full || !needsPop) {
+      if (this._titlePopCard === card) this._hideTitlePop();
+      return;
+    }
+    pop.textContent = full;
+    pop.hidden = false;
+    this._titlePopCard = card;
+    this._placeTitlePop(card);
+  }
+
+  _ensureTitlePop() {
+    let pop = this.shadowRoot.querySelector('.rom-title-pop');
+    if (!pop) {
+      pop = document.createElement('div');
+      pop.className = 'rom-title-pop';
+      pop.hidden = true;
+      pop.setAttribute('role', 'tooltip');
+      this.shadowRoot.appendChild(pop);
+    }
+    this._titlePop = pop;
+    if (this._titlePopBound) return;
+    this._titlePopBound = true;
+
+    const cardFrom = (event) => {
+      const target = event.target;
+      if (!target || typeof target.closest !== 'function') return null;
+      return target.closest('.rom-card');
+    };
+
+    this.shadowRoot.addEventListener('pointerover', (event) => {
+      const card = cardFrom(event);
+      if (!card || card === this._titlePopCard) return;
+      this._showTitlePop(card);
+    });
+    this.shadowRoot.addEventListener('pointerout', (event) => {
+      const card = cardFrom(event);
+      if (!card || this._titlePopCard !== card) return;
+      const next = event.relatedTarget;
+      if (next && typeof next.closest === 'function' && next.closest('.rom-card') === card) return;
+      if (this.shadowRoot.activeElement === card) return;
+      this._hideTitlePop();
+    });
+    this.shadowRoot.addEventListener('focusin', (event) => {
+      const card = cardFrom(event);
+      if (card) this._showTitlePop(card);
+    });
+    this.shadowRoot.addEventListener('focusout', (event) => {
+      const card = cardFrom(event);
+      if (card && this._titlePopCard === card) this._hideTitlePop();
+    });
+    this._onTitleScroll = () => this._hideTitlePop();
+    window.addEventListener('scroll', this._onTitleScroll, true);
   }
 
   init() {
@@ -635,6 +776,7 @@ class RomBrowserElement extends HTMLElement {
   }
 
   _paintRomWindow() {
+    this._hideTitlePop();
     const roms = this._romWindow || [];
     const shown = roms.slice(0, this._romShown);
     const contentArea = this.shadowRoot.getElementById('contentArea');
@@ -651,15 +793,20 @@ class RomBrowserElement extends HTMLElement {
       const romCard = document.createElement('button');
       romCard.type = 'button';
       romCard.className = 'rom-card';
-      const title = this._escapeHtml(rom.title);
+      const fullTitle = String(rom.title || '');
+      const parts = this._titleParts(fullTitle);
+      const title = this._escapeHtml(parts.name);
+      const variant = this._escapeHtml(parts.variant);
       const description = this._escapeHtml(rom.description);
       const size = this._escapeHtml(rom.size);
+      romCard.dataset.fullTitle = fullTitle;
 
       const sameAsTitle =
         rom.description === rom.title ||
         (rom.title && String(rom.description || '').endsWith(`: ${rom.title}`));
       romCard.innerHTML = `
         <div class="rom-title">${title}</div>
+        ${variant ? `<div class="rom-variant">${variant}</div>` : ''}
         ${sameAsTitle ? '' : `<div class="rom-info">${description}</div>`}
         <div class="rom-size">${size}</div>
       `;
@@ -705,6 +852,7 @@ class RomBrowserElement extends HTMLElement {
   }
 
   async loadRom(rom) {
+    this._hideTitlePop();
     if (typeof window.emulatorPushRomQuery === 'function') window.emulatorPushRomQuery(rom);
     const contentArea = this.shadowRoot.getElementById('contentArea');
     const restoreList = () => {

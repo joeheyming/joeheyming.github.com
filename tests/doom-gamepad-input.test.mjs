@@ -109,6 +109,36 @@ describe('actionsFromPad', () => {
     const mapped = api.actionsFromPad(p);
     assert.equal(mapped.keys.has('menu'), true);
   });
+
+  it('maps a standard DualShock 4 by where the buttons sit', () => {
+    const p = pad({
+      id: 'DUALSHOCK 4 Wireless Controller (STANDARD GAMEPAD)',
+      mapping: 'standard'
+    });
+    p.buttons[0] = button(true);
+    assert.equal(api.actionsFromPad(p).keys.has('use'), true);
+
+    p.buttons[0] = button(false);
+    p.buttons[1] = button(true);
+    assert.equal(api.actionsFromPad(p).keys.has('menu'), true);
+
+    p.buttons[1] = button(false);
+    p.buttons[2] = button(true);
+    assert.equal(api.actionsFromPad(p).keys.has('map'), true);
+
+    p.buttons[2] = button(false);
+    p.buttons[3] = button(true);
+    assert.equal(api.actionsFromPad(p).keys.has('jumpPad'), true);
+
+    p.buttons[3] = button(false);
+    p.buttons[7] = button(true, 1);
+    assert.equal(api.actionsFromPad(p).keys.has('fire'), true);
+
+    p.buttons[7] = button(false);
+    p.buttons[14] = button(true);
+    assert.equal(api.actionsFromPad(p).keys.has('turnL'), true);
+    assert.equal(api.firstConnectedPad([null, p]).id, p.id);
+  });
 });
 
 describe('firstConnectedPad', () => {

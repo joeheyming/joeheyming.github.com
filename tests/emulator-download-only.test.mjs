@@ -59,6 +59,15 @@ const ROMS = [
     fileExtension: '.zip',
     description: 'Classic NES game: Zelda',
     size: '96.0 KB'
+  },
+  {
+    name: 'Legend of Zelda, The - Ocarina of Time (USA) (Rev 1)',
+    title: 'Legend of Zelda, The - Ocarina of Time (USA) (Rev 1)',
+    downloadUrl:
+      'https://archive.org/download/NintendoEntertainmentSystem/LegendOfZeldaTheOcarinaOfTime.zip',
+    fileExtension: '.zip',
+    description: 'Classic NES game: Legend of Zelda, The - Ocarina of Time (USA) (Rev 1)',
+    size: '32.0 MB'
   }
 ];
 
@@ -181,6 +190,45 @@ describe('rom-browser hands off downloads instead of loading ROMs', () => {
     assert.equal(el.shadowRoot.querySelectorAll('.rom-card').length, ROMS.length);
   });
 
+  it('keeps the region visible and pops the full title as soon as the name is cut off', async () => {
+    const el = await mountBrowser(NES_CFG);
+    const cards = [...el.shadowRoot.querySelectorAll('.rom-card')];
+    const card = cards.find((item) => (item.dataset.fullTitle || '').includes('Ocarina'));
+    assert.ok(card);
+    assert.equal(
+      card.querySelector('.rom-title').textContent,
+      'Legend of Zelda, The - Ocarina of Time'
+    );
+    assert.equal(card.querySelector('.rom-variant').textContent, '(USA) (Rev 1)');
+
+    const pop = el.shadowRoot.querySelector('.rom-title-pop');
+    cards[0].dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    assert.equal(pop.hidden, true);
+
+    card.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    assert.equal(pop.hidden, false);
+    assert.equal(pop.textContent, card.dataset.fullTitle);
+
+    const plain = cards[1];
+    const plainTitle = plain.querySelector('.rom-title');
+    Object.defineProperty(plainTitle, 'scrollHeight', { configurable: true, get: () => 48 });
+    Object.defineProperty(plainTitle, 'clientHeight', { configurable: true, get: () => 24 });
+    plain.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    assert.equal(pop.hidden, false);
+    assert.equal(pop.textContent, 'Zelda');
+    card.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+
+    card.dispatchEvent(new window.Event('pointerout', { bubbles: true }));
+    assert.equal(pop.hidden, true);
+
+    card.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
+    assert.equal(pop.hidden, false);
+    assert.equal(pop.textContent, 'Legend of Zelda, The - Ocarina of Time (USA) (Rev 1)');
+
+    card.dispatchEvent(new window.FocusEvent('focusout', { bubbles: true }));
+    assert.equal(pop.hidden, true);
+  });
+
   it('lists results from collection metadata only', async () => {
     const el = await mountBrowser(NES_CFG);
     const cards = el.shadowRoot.querySelectorAll('.rom-card');
@@ -286,6 +334,24 @@ describe('?rom= deep links launch cartridges and hand off discs', () => {
     assert.equal(cleared.searchParams.get('tv'), '1');
     assert.equal(backs, 0);
     assert.doesNotMatch(launchSrc, /history\.back\s*\(/);
+  });
+
+  it('starts a recent on this console without reloading the list away', async () => {
+    await bootShell('https://x/emulator/nes/');
+    const link = window.document.createElement('a');
+    link.className = 'play-top-link';
+    link.href = '/emulator/nes/?rom=Zelda';
+    link.textContent = 'Zelda';
+    window.document.body.appendChild(link);
+
+    link.click();
+    for (let i = 0; i < 5; i += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    }
+
+    assert.equal(new URL(window.location.href).searchParams.get('rom'), 'Zelda');
+    assert.equal(ia.loadRomCalls, 1);
+    assert.deepEqual(launched, ['Zelda.zip']);
   });
 
   it('falls back to the boot card when the title is not in the collection', async () => {

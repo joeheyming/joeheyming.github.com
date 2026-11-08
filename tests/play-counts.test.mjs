@@ -9,6 +9,8 @@ import {
   applyCounts,
   bindPlayTips,
   cleanName,
+  rememberEmulatorPlay,
+  readRecentEmulator,
   consoleIdFromPath,
   countsFromGvizText,
   episodeId,
@@ -345,6 +347,113 @@ test('the hub lists ten games and a console page parks its list in the scroll pa
   applyCounts(doc, counts, { ...env, path: '/emulator/nes/' });
   assert.equal(doc.querySelectorAll('#play-top-console li').length, 10);
   assert.equal(doc.getElementById('play-top-console').parentElement.className, 'boot-card-scroll');
+});
+
+test('a console page puts this browser’s recent games above the shared starts', () => {
+  const storage = {
+    /** @type {Map<string, string>} */
+    values: new Map(),
+    /** @param {string} key */
+    getItem(key) {
+      return this.values.has(key) ? this.values.get(key) : null;
+    },
+    /**
+     * @param {string} key
+     * @param {string} value
+     */
+    setItem(key, value) {
+      this.values.set(key, value);
+    }
+  };
+  rememberEmulatorPlay(
+    storage,
+    'n64',
+    'Legend of Zelda, The - Ocarina of Time (Europe) (En,Fr,De)'
+  );
+  rememberEmulatorPlay(storage, 'nes', 'Metroid');
+  rememberEmulatorPlay(storage, 'n64', 'Super Mario 64 (USA)');
+  rememberEmulatorPlay(storage, 'n64', 'Super Mario 64 (USA)');
+  const saved = readRecentEmulator(storage);
+  assert.deepEqual(
+    saved.map((entry) => `${entry.console}:${entry.title}`),
+    [
+      'n64:Super Mario 64 (USA)',
+      'nes:Metroid',
+      'n64:Legend of Zelda, The - Ocarina of Time (Europe) (En,Fr,De)'
+    ]
+  );
+
+  const counts = [
+    {
+      app: 'emulator',
+      kind: 'game',
+      id: 'n64:super-mario-64-usa',
+      name: 'Super Mario 64 (USA)',
+      parent: 'n64',
+      count: 10
+    },
+    {
+      app: 'emulator',
+      kind: 'game',
+      id: 'n64:goldeneye',
+      name: '007 - GoldenEye (USA)',
+      parent: 'n64',
+      count: 5
+    }
+  ];
+  const dom = new JSDOM(`<!doctype html><body>
+    <div id="boot"><div class="boot-card-scroll"><rom-browser console="n64"></rom-browser></div></div>
+  </body>`);
+  const doc = dom.window.document;
+  const env = {
+    path: '/emulator/n64/',
+    consoles: { n64: { title: 'Nintendo 64' }, nes: { title: 'NES' } },
+    recent: saved,
+    configured: true,
+    ready: true
+  };
+  applyCounts(doc, counts, env);
+  assert.deepEqual(
+    [...doc.querySelectorAll('#play-top-console .play-top-recent .play-top-name')].map(
+      (node) => node.textContent
+    ),
+    ['Super Mario 64 (USA)', 'Legend of Zelda, The - Ocarina of Time (Europe) (En,Fr,De)']
+  );
+  assert.equal(
+    doc.querySelector('#play-top-console .play-top-recent a').getAttribute('href'),
+    '/emulator/n64/?rom=Super%20Mario%2064%20(USA)'
+  );
+  assert.equal(
+    doc.querySelector('#play-top-console .play-top-recent .play-count').textContent,
+    '10'
+  );
+  assert.deepEqual(
+    [...doc.querySelectorAll('#play-top-console > ol .play-top-name')].map(
+      (node) => node.textContent
+    ),
+    ['Super Mario 64 (USA)', '007 - GoldenEye (USA)']
+  );
+
+  applyCounts(doc, [], { ...env, path: '/emulator/', recent: saved });
+  const hub = new JSDOM(`<!doctype html><body>
+    <div id="boot"><div class="picker-grid"></div></div>
+  </body>`);
+  applyCounts(hub.window.document, [], {
+    path: '/emulator/',
+    consoles: env.consoles,
+    recent: saved,
+    configured: true,
+    ready: true
+  });
+  assert.equal(hub.window.document.querySelector('#play-top-games > h3').hidden, true);
+  assert.equal(
+    hub.window.document.querySelector('#play-top-games .play-top-meta').textContent,
+    'Nintendo 64'
+  );
+  assert.equal(
+    hub.window.document.querySelectorAll('#play-top-games .play-top-recent li').length,
+    3
+  );
 });
 
 test('doom does not get the emulator start list', () => {

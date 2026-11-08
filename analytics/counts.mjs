@@ -55,6 +55,9 @@ const CACHE_MS = 120000;
 const DEDUPE_MS = 2000;
 const SITE_LIMIT = 8;
 const START_LIMIT = 10;
+const RECENT_KEY = 'heyming_emulator_recent_v1';
+const RECENT_STORE_LIMIT = 20;
+const RECENT_SHOW = 8;
 
 export const CONFIG = {
   formActionUrl:
@@ -195,6 +198,81 @@ export function formBody(entryIds, play) {
  * @param {string} gameName
  * @param {Record<string, { title?: string }>} [consoles]
  */
+/**
+ * Games this browser started, newest first. The public counts have no
+ * per-visitor clock, so Recent lives here the way StepMania's does.
+ * @param {{ getItem?: (key: string) => string | null } | null | undefined} storage
+ * @returns {Array<{ console: string, title: string, at: number }>}
+ */
+export function readRecentEmulator(storage) {
+  if (!storage || typeof storage.getItem !== 'function') return [];
+  try {
+    const parsed = JSON.parse(storage.getItem(RECENT_KEY) || '[]');
+    if (!Array.isArray(parsed)) return [];
+    /** @type {Array<{ console: string, title: string, at: number }>} */
+    const out = [];
+    for (const entry of parsed) {
+      const row = entry && typeof entry === 'object' ? entry : {};
+      const consoleId = slugPart(/** @type {{ console?: string }} */ (row).console).slice(0, 24);
+      const title = cleanName(/** @type {{ title?: string }} */ (row).title);
+      if (!consoleId || !title) continue;
+      out.push({
+        console: consoleId,
+        title,
+        at: Number(/** @type {{ at?: number }} */ (row).at) || 0
+      });
+      if (out.length >= RECENT_STORE_LIMIT) break;
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * @param {{ getItem?: (key: string) => string | null, setItem?: (key: string, value: string) => void } | null | undefined} storage
+ * @param {string} consoleId
+ * @param {string} title
+ */
+export function rememberEmulatorPlay(storage, consoleId, title) {
+  const id = slugPart(consoleId).slice(0, 24);
+  const name = cleanName(String(title || '').replace(ROM_EXT, ''));
+  if (!storage || typeof storage.setItem !== 'function' || !id || !name) return [];
+  const next = readRecentEmulator(storage).filter(
+    (entry) => !(entry.console === id && entry.title === name)
+  );
+  next.unshift({ console: id, title: name, at: Date.now() });
+  const trimmed = next.slice(0, RECENT_STORE_LIMIT);
+  try {
+    storage.setItem(RECENT_KEY, JSON.stringify(trimmed));
+  } catch {
+    /* private mode */
+  }
+  return trimmed;
+}
+
+/**
+ * @param {Array<{ console: string, title: string }>} entries
+ * @param {Map<string, number>} lookup
+ * @param {string} [consoleId]
+ */
+function recentGameRows(entries, lookup, consoleId) {
+  return (entries || [])
+    .filter((entry) => !consoleId || entry.console === consoleId)
+    .slice(0, RECENT_SHOW)
+    .map((entry) => {
+      const id = gameId(entry.console, entry.title);
+      return {
+        app: 'emulator',
+        kind: 'game',
+        id,
+        name: entry.title,
+        parent: entry.console,
+        count: lookup.get(`emulator|game|${id}`) || 0
+      };
+    });
+}
+
 export function playsForEmulator(consoleId, gameName, consoles) {
   const id = slugPart(consoleId).slice(0, 24);
   if (!id) return [];
@@ -450,6 +528,69 @@ function ensureTop(doc, parent, before, id, title) {
 }
 
 /**
+ * Personal recent plays sit above the shared "start a game" list.
+ * @param {HTMLElement} section
+ * @param {Array<{ app?: string, kind?: string, id: string, name: string, parent?: string, count: number }>} rows
+ * @param {Document} doc
+ * @param {(row: { id: string, name: string, parent?: string, count: number }) => string} metaFor
+ */
+function placeRecent(section, rows, doc, metaFor) {
+  let block = section.querySelector('.play-top-recent');
+  if (!rows.length) {
+    if (block) block.remove();
+    return;
+  }
+  if (!block) {
+    block = doc.createElement('div');
+    block.className = 'play-top-recent';
+    const heading = doc.createElement('h3');
+    heading.textContent = 'Recent';
+    const list = doc.createElement('ol');
+    block.append(heading, list);
+    section.insertBefore(block, section.firstChild);
+  }
+  const list = block.querySelector('ol');
+  if (list) fillList(list, rows, doc, metaFor);
+}
+
+/**
+ * One side list: this browser's recent games, then the shared starts.
+ * @param {Document} doc
+ * @param {Element | null | undefined} parent
+ * @param {Element | null} before
+ * @param {string} id
+ * @param {string} title
+ * @param {Array<{ id: string, name: string, parent?: string, count: number }>} games
+ * @param {Array<{ id: string, name: string, parent?: string, count: number }>} recent
+ * @param {(row: { id: string, name: string, parent?: string, count: number }) => string} metaFor
+ */
+function paintEmulatorList(doc, parent, before, id, title, games, recent, metaFor) {
+  if (!parent || (!games.length && !recent.length)) {
+    doc.getElementById(id)?.remove();
+    return;
+  }
+  const section = ensureTop(doc, parent, before, id, title);
+  if (section.parentElement !== parent) {
+    if (before) parent.insertBefore(section, before);
+    else parent.appendChild(section);
+  }
+  const heading = [...section.children].find((el) => el.tagName === 'H3');
+  const list = [...section.children].find((el) => el.tagName === 'OL');
+  if (heading) heading.hidden = games.length === 0;
+  if (list) {
+    if (games.length) {
+      list.hidden = false;
+      fillList(list, games, doc, metaFor);
+    } else {
+      list.hidden = true;
+      list.replaceChildren();
+      delete list.dataset.sig;
+    }
+  }
+  placeRecent(section, recent, doc, metaFor);
+}
+
+/**
  * Where a count row can start. Empty when there is nothing to open.
  * @param {{ app?: string, kind?: string, id?: string, name?: string, parent?: string }} row
  * @returns {string}
@@ -533,12 +674,14 @@ function fillList(list, rows, doc, metaFor) {
         metaEl.textContent = meta;
         host.appendChild(metaEl);
       }
-      const count = doc.createElement('span');
-      count.className = 'play-count';
-      count.textContent = formatCount(row.count);
-      count.setAttribute('aria-label', playLabel(row.count));
-      count.dataset.tip = playTip(row.count);
-      host.appendChild(count);
+      if (row.count > 0) {
+        const count = doc.createElement('span');
+        count.className = 'play-count';
+        count.textContent = formatCount(row.count);
+        count.setAttribute('aria-label', playLabel(row.count));
+        count.dataset.tip = playTip(row.count);
+        host.appendChild(count);
+      }
       item.appendChild(host);
       return item;
     })
@@ -720,7 +863,7 @@ function paintWatchStarts(doc, rows, params) {
 /**
  * @param {Document} doc
  * @param {Array<{ app: string, kind: string, id: string, name: string, parent: string, count: number }>} counts
- * @param {{ path?: string, search?: string, consoles?: Record<string, { title?: string }>, configured?: boolean, ready?: boolean }} env
+ * @param {{ path?: string, search?: string, consoles?: Record<string, { title?: string }>, configured?: boolean, ready?: boolean, recent?: Array<{ console: string, title: string }> }} env
  */
 export function applyCounts(doc, counts, env) {
   const rows = counts || [];
@@ -776,6 +919,7 @@ export function applyCounts(doc, counts, env) {
   paintWatchStarts(doc, rows, params);
 
   const consoleId = consoleIdFromPath(env.path || '');
+  const recentAll = recentGameRows(env.recent || [], lookup);
   if (consoleId) {
     const host = doc.querySelector('rom-browser');
     const parent = (host && host.parentElement) || doc.getElementById('boot-card');
@@ -785,13 +929,17 @@ export function applyCounts(doc, counts, env) {
       parent: consoleId,
       limit: START_LIMIT
     });
-    if (parent && games.length) {
-      const section = ensureTop(doc, parent, host, 'play-top-console', 'Start a game');
-      const list = section.querySelector('ol');
-      if (list) fillList(list, games, doc, () => '');
-    } else {
-      doc.getElementById('play-top-console')?.remove();
-    }
+    const recent = recentGameRows(env.recent || [], lookup, consoleId);
+    paintEmulatorList(
+      doc,
+      parent,
+      host,
+      'play-top-console',
+      'Start a game',
+      games,
+      recent,
+      () => ''
+    );
     doc.getElementById('play-top-games')?.remove();
   } else {
     const grid = doc.querySelector('.picker-grid');
@@ -799,14 +947,16 @@ export function applyCounts(doc, counts, env) {
       ? topCounts(rows, { app: 'emulator', kind: 'game', limit: START_LIMIT })
       : [];
     const boot = grid && (grid.closest('#boot') || grid.parentElement);
-    if (boot && games.length) {
-      const section = ensureTop(doc, boot, null, 'play-top-games', 'Start a game');
-      if (section.parentElement !== boot) boot.appendChild(section);
-      const list = section.querySelector('ol');
-      if (list) fillList(list, games, doc, (row) => consoleMeta(row.parent, consoles));
-    } else {
-      doc.getElementById('play-top-games')?.remove();
-    }
+    paintEmulatorList(
+      doc,
+      boot,
+      null,
+      'play-top-games',
+      'Start a game',
+      games,
+      grid ? recentAll : [],
+      (row) => consoleMeta(row.parent, consoles)
+    );
     doc.getElementById('play-top-console')?.remove();
   }
 
@@ -891,6 +1041,7 @@ const STYLE = `
 :root[data-mode='tv'] .play-top-watch h3 {
   font-size: 18px;
 }
+.play-top-recent { margin: 0 0 16px; }
 .play-top h3 {
   margin: 0 0 8px;
   font-size: 13px;
@@ -1070,7 +1221,8 @@ function install() {
       search: location.search,
       consoles,
       configured: isConfigured(CONFIG),
-      ready: state.ready
+      ready: state.ready,
+      recent: readRecentEmulator(window.localStorage)
     };
   }
 
@@ -1190,7 +1342,9 @@ function install() {
 
   window.heymingCounts = {
     recordEmulatorPlay(consoleId, gameName) {
+      rememberEmulatorPlay(window.localStorage, consoleId, gameName);
       send(playsForEmulator(consoleId, gameName, liveEnv().consoles));
+      paint();
     },
     recordDoomPlay(flavorId) {
       send(playsForDoom(flavorId, window.DOOM_FLAVORS || []));

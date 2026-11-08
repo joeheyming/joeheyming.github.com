@@ -170,11 +170,37 @@
       items[cursor].focus({ preventScroll: false });
     };
 
+    // A window listener sees the shadow host, not the card. Follow focus
+    // into the shadow, then let remote.js move past the edge of the grid.
+    const keyTarget = (event) => {
+      const path = typeof event.composedPath === 'function' ? event.composedPath() : null;
+      let el = path && path.length ? path[0] : event.target;
+      let guard = 0;
+      while (el && el.shadowRoot && el.shadowRoot.activeElement && guard < 8) {
+        el = el.shadowRoot.activeElement;
+        guard += 1;
+      }
+      return el && el.nodeType === 1 ? el : null;
+    };
+
+    const itemIndex = (node) => {
+      if (!node || node.nodeType !== 1 || !grid.contains(node)) return -1;
+      return items.findIndex((el) => el === node || el.contains(node));
+    };
+
     const onKeyDown = (e) => {
-      if (!NAV_KEYS.has(e.key)) return;
+      if (!NAV_KEYS.has(e.key) || e.heymingHandled) return;
       if (items.length === 0) return;
-      const target = e.target;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      const target = keyTarget(e);
+      if (!target) return;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      const idx = itemIndex(target);
+      if (idx < 0) return;
+      if (idx !== cursor && items[cursor]) {
+        items[cursor].tabIndex = -1;
+        cursor = idx;
+        items[cursor].tabIndex = 0;
+      }
 
       const { rows, rowOf, colOf } = layoutMap();
       const r = rowOf[cursor];
@@ -208,6 +234,10 @@
 
       if (next !== cursor) {
         e.preventDefault();
+        // remote.js runs next, on document, and would skip every
+        // tabindex=-1 sibling. Mark the key so it stays in the grid.
+        // An arrow with no neighbor stays unmarked and can leave.
+        e.heymingHandled = true;
         setCursor(next);
       }
     };
@@ -222,7 +252,7 @@
     };
 
     scan();
-    grid.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, true);
     grid.addEventListener('focusin', onFocusIn);
 
     return {
@@ -231,11 +261,17 @@
       },
       focusFirst() {
         if (items.length === 0) return;
-        if (grid.contains(document.activeElement)) return;
+        let active = document.activeElement;
+        let guard = 0;
+        while (active && active.shadowRoot && active.shadowRoot.activeElement && guard < 8) {
+          active = active.shadowRoot.activeElement;
+          guard += 1;
+        }
+        if (active && grid.contains(active)) return;
         items[cursor].focus({ preventScroll: false });
       },
       dispose() {
-        grid.removeEventListener('keydown', onKeyDown);
+        window.removeEventListener('keydown', onKeyDown, true);
         grid.removeEventListener('focusin', onFocusIn);
         items.forEach((el) => {
           el.tabIndex = 0;

@@ -1,11 +1,12 @@
 // Keyboard access shared by every page.
 //
 // Arrow keys move focus between controls in any browser and at any window
-// size. A button, link, or closed select does not keep the arrow. Space
+// size. A button, link, or closed select does not keep the arrow. A
+// role="button" that is not a real <button> follows the same rule. Space
 // and Enter activate a select or autocomplete; arrows never do.
 // Up and Down leave a number, a slider, or a one-line field. Left and Right
-// still edit those. A game surface keeps its arrows. Play and Pause hit the
-// play control.
+// leave a one-line field when the caret is already at that end. A game
+// surface keeps its arrows. Play and Pause hit the play control.
 (function () {
   'use strict';
 
@@ -98,28 +99,33 @@
     if (event.key !== 'Enter' && event.key !== ' ') return;
     // A key that starts inside a shadow input retargets to the host.
     // Space and Enter still belong to that input. On the host itself
-    // they activate the widget.
-    var path = typeof event.composedPath === 'function' ? event.composedPath() : null;
-    var inner = path && path.length ? path[0] : event.target;
-    if (!inner || inner.nodeType !== 1) return;
+    // they activate the widget. The controller dispatches on the host
+    // while focus sits on the inner control, so follow focus inward.
+    var inner = eventTargetElement(event);
+    if (!inner) return;
     var tag = inner.tagName;
     if (
       tag === 'BUTTON' ||
       tag === 'A' ||
-      tag === 'INPUT' ||
-      tag === 'SELECT' ||
-      tag === 'TEXTAREA' ||
-      tag === 'SUMMARY'
+      tag === 'SUMMARY' ||
+      (tag === 'INPUT' && /^(?:button|submit|checkbox|radio)$/i.test(inner.type || ''))
     ) {
+      // A real key activates these on its own. The controller sends
+      // Enter, which is untrusted, so the browser will not click.
+      if (!event.isTrusted && event.key === 'Enter') {
+        event.preventDefault();
+        inner.click();
+      }
+      return;
+    }
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
       return;
     }
     if (inner.isContentEditable) return;
-    var el = event.target;
-    if (!el || el.nodeType !== 1 || typeof el.getAttribute !== 'function') return;
-    var tabindex = el.getAttribute('tabindex');
+    var tabindex = inner.getAttribute('tabindex');
     if (tabindex === null || tabindex.trim() === '' || Number(tabindex) < 0) return;
     event.preventDefault();
-    el.click();
+    inner.click();
   }
 
   /**
@@ -151,11 +157,23 @@
     return tabindex !== null && tabindex !== '' && Number(tabindex) >= 0;
   }
 
+  // Focus inside <rom-browser> reports the host as the event target.
+  // The button in its shadow is the control arrows and Enter should use.
+  function focusedInside(el) {
+    var node = el;
+    var guard = 0;
+    while (node && node.shadowRoot && node.shadowRoot.activeElement && guard < 8) {
+      node = node.shadowRoot.activeElement;
+      guard += 1;
+    }
+    return node;
+  }
+
   function eventTargetElement(event) {
     var path = typeof event.composedPath === 'function' ? event.composedPath() : null;
     var el = path && path.length ? path[0] : event.target;
     if (!el || el.nodeType !== 1) return null;
-    return el;
+    return focusedInside(el);
   }
 
   // closest() stops at a shadow root, so a closed menu's buttons would
@@ -332,12 +350,24 @@
     return el.tagName === 'A' && style.display === 'inline' && !!el.closest('p');
   }
 
+  // A focusable host is one tab stop, so its fields are not in the page
+  // list. Add the field that actually has focus, or an arrow cannot leave it.
+  function peersOf(from) {
+    var root = typeof from.getRootNode === 'function' ? from.getRootNode() : null;
+    if (!root || root === document || typeof root.querySelectorAll !== 'function') return [from];
+    var extra = [];
+    collectFocusable(root, extra);
+    if (extra.indexOf(from) < 0) extra.push(from);
+    return extra;
+  }
+
   /**
    * Move focus to the nearest control in this arrow's direction.
    * With no layout boxes, fall back to tab order.
    */
   function moveFocus(from, key, event) {
     var list = focusableList(event);
+    if (list.indexOf(from) < 0) list = list.concat(peersOf(from));
     var index = list.indexOf(from);
     if (index < 0) return;
     var origin = from.getBoundingClientRect();
@@ -436,6 +466,33 @@
     );
   }
 
+  // Up and Down always leave a one-line field. Left leaves only at the
+  // start of the text, Right only at the end, so the caret can still move.
+  function atTextEdge(el, key) {
+    if (!el) return false;
+    var line = singleLineText(el);
+    var area = el.tagName === 'TEXTAREA';
+    if (!line && !area) return false;
+    if ((key === 'ArrowUp' || key === 'ArrowDown') && line) return true;
+    var start;
+    var end;
+    var value;
+    try {
+      start = el.selectionStart;
+      end = el.selectionEnd;
+      value = el.value || '';
+    } catch (err) {
+      return false;
+    }
+    if (start == null || end == null || start !== end) return false;
+    if (key === 'ArrowLeft') return start === 0;
+    if (key === 'ArrowRight') return start === value.length;
+    if (!area) return false;
+    if (key === 'ArrowUp') return value.slice(0, start).indexOf('\n') < 0;
+    if (key === 'ArrowDown') return value.slice(start).indexOf('\n') < 0;
+    return false;
+  }
+
   function plainArrow(event) {
     return (
       /^arrow/i.test(event.key || '') &&
@@ -450,6 +507,15 @@
     event.preventDefault();
     event.stopPropagation();
     moveFocus(el, event.key, event);
+  }
+
+  // A <p role="button"> is a button. Arrows leave it. A game surface is a
+  // plain tabindex div and keeps its arrows.
+  function arrowWidget(el) {
+    var tag = el.tagName;
+    if (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY') return true;
+    var role = el.getAttribute('role');
+    return role === 'button' || role === 'link';
   }
 
   /**
@@ -481,7 +547,8 @@
         return false;
       }
     }
-    return true;
+    // A hidden control refuses focus without throwing.
+    return focusedInside(document.activeElement) === el;
   }
 
   // Pages mark their main control with data-initial-focus. Same idea as a
@@ -506,7 +573,11 @@
       var el = eventTargetElement(event);
       if (!el) return;
       var tag = el.tagName;
-      if (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY') {
+      if (arrowWidget(el)) {
+        takeArrow(event, el);
+        return;
+      }
+      if (atTextEdge(el, event.key)) {
         takeArrow(event, el);
         return;
       }
@@ -553,6 +624,25 @@
 
   document.addEventListener('keydown', onKeyDown);
   document.addEventListener('keydown', onActivate);
+
+  // Circle sends Escape. A menu or a dialog takes that key. When
+  // nothing does, it is the TV Back button and leaves this page.
+  // A real Escape key does not, so typing is left alone.
+  window.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape' || event.isTrusted || event.defaultPrevented || event.repeat) {
+      return;
+    }
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (openDialog(document)) return;
+    var el = eventTargetElement(event);
+    if (el && el.tagName === 'SELECT') return;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) {
+      var value = el.value != null ? el.value : el.textContent || '';
+      if (String(value).length) return;
+    }
+    event.preventDefault();
+    window.history.back();
+  });
 
   var style = document.createElement('style');
   // Keyboard focus is visible everywhere. A component that already styles

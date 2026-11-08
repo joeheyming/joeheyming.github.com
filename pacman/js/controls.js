@@ -76,6 +76,7 @@ export class Controls {
   setupGamepadControls() {
     this.gamepadController = createPacmanGamepad({
       onMove: (directions, vector) => {
+        this.syncNavigationOwner();
         this._gamepadKeys = directions;
         this._gamepadVector = vector;
         this.updateDirection();
@@ -94,7 +95,22 @@ export class Controls {
     if (cameraMode === 2) this.game.pacman.addPitch(-y);
   }
 
+  syncNavigationOwner() {
+    const state = this.game.state;
+    const playing =
+      state === GAME_STATES.PLAYING ||
+      state === GAME_STATES.PAUSED ||
+      state === GAME_STATES.DEATH ||
+      state === GAME_STATES.INTRO;
+    const root = document.documentElement;
+    if (playing) root.dataset.gamepadNav = 'game';
+    else if (root.dataset.gamepadNav === 'game') delete root.dataset.gamepadNav;
+  }
+
   handleGamepadAction(action) {
+    // Menus belong to remote.js. The synthesized Enter and Escape
+    // already reach onKeyDown, so the pad must not start the game twice.
+    if (document.documentElement.dataset.gamepadNav !== 'game') return;
     switch (action) {
       case 'primary':
         if (this.game.state === GAME_STATES.START) {

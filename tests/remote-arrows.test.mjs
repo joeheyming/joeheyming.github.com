@@ -100,6 +100,109 @@ test('arrows move focus and a select only opens from space', async () => {
   assert.equal(boardArrow.defaultPrevented, false);
   assert.equal(window.document.activeElement, board);
 
+  const splash = window.document.createElement('p');
+  splash.setAttribute('role', 'button');
+  splash.tabIndex = 0;
+  splash.textContent = 'Token-powered!';
+  window.document.body.appendChild(splash);
+  box(splash, 10, 400, 151, 67);
+  const launch = window.document.createElement('a');
+  launch.href = '/os/';
+  launch.textContent = 'Launch Heyming OS';
+  window.document.body.appendChild(launch);
+  box(launch, 10, 480, 160, 40);
+  splash.focus();
+  const leaveSplash = key(window, splash, 'ArrowDown');
+  assert.equal(leaveSplash.defaultPrevented, true);
+  assert.equal(window.document.activeElement, launch);
+
+  class CardHost extends window.HTMLElement {
+    constructor() {
+      super();
+      const root = this.attachShadow({ mode: 'open' });
+      root.innerHTML = '<button id="one">One</button><button id="two">Two</button>';
+    }
+  }
+  window.customElements.define('card-host', CardHost);
+  const cards = window.document.createElement('card-host');
+  window.document.body.appendChild(cards);
+  const one = cards.shadowRoot.getElementById('one');
+  const two = cards.shadowRoot.getElementById('two');
+  box(one, 10, 600, 80, 40);
+  box(two, 100, 600, 80, 40);
+  one.focus();
+  const fromHost = key(window, cards, 'ArrowRight');
+  assert.equal(fromHost.defaultPrevented, true);
+  assert.equal(cards.shadowRoot.activeElement, two);
+  let clicks = 0;
+  two.addEventListener('click', () => {
+    clicks += 1;
+  });
+  two.focus();
+  key(window, cards, 'Enter');
+  assert.equal(clicks, 1);
+  cards.remove();
+
+  const beforeField = window.document.createElement('button');
+  beforeField.textContent = 'Before';
+  const field = window.document.createElement('input');
+  field.type = 'text';
+  field.value = 'zelda';
+  const afterField = window.document.createElement('button');
+  afterField.textContent = 'After';
+  window.document.body.append(beforeField, field, afterField);
+  box(beforeField, 10, 700, 40, 40);
+  box(field, 60, 700, 80, 40);
+  box(afterField, 150, 700, 40, 40);
+  field.focus();
+  field.setSelectionRange(2, 2);
+  const midCaret = key(window, field, 'ArrowLeft');
+  assert.equal(midCaret.defaultPrevented, false);
+  assert.equal(window.document.activeElement, field);
+  field.setSelectionRange(0, 0);
+  key(window, field, 'ArrowLeft');
+  assert.equal(window.document.activeElement, beforeField);
+  field.focus();
+  field.setSelectionRange(field.value.length, field.value.length);
+  key(window, field, 'ArrowRight');
+  assert.equal(window.document.activeElement, afterField);
+  field.focus();
+  field.setSelectionRange(2, 2);
+  key(window, field, 'ArrowUp');
+  assert.notEqual(window.document.activeElement, field);
+
+  class FieldHost extends window.HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'open' }).innerHTML =
+        '<input id="q" type="search" value="ocarina">';
+    }
+  }
+  window.customElements.define('field-host', FieldHost);
+  const fieldHost = window.document.createElement('field-host');
+  fieldHost.tabIndex = 0;
+  window.document.body.appendChild(fieldHost);
+  const inner = fieldHost.shadowRoot.getElementById('q');
+  box(inner, 60, 760, 80, 40);
+  box(fieldHost, 60, 760, 80, 40);
+  const belowField = window.document.createElement('button');
+  belowField.textContent = 'Below';
+  window.document.body.appendChild(belowField);
+  box(belowField, 60, 820, 40, 40);
+  inner.focus();
+  inner.setSelectionRange(0, 0);
+  key(window, fieldHost, 'ArrowDown');
+  assert.equal(window.document.activeElement, belowField);
+  inner.focus();
+  inner.setSelectionRange(0, 0);
+  key(window, fieldHost, 'ArrowLeft');
+  assert.equal(window.document.activeElement, beforeField);
+  beforeField.remove();
+  field.remove();
+  afterField.remove();
+  fieldHost.remove();
+  belowField.remove();
+
   class MenuWidget extends window.HTMLElement {
     constructor() {
       super();

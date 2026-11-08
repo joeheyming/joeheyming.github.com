@@ -1,6 +1,7 @@
 // Gamepad integration for StepMania - ES Module
 // Supports dance pads, PS2 controllers, and other gamepads
 import { inputManager } from './inputManager.js';
+import { STANDARD_DANCE_BUTTONS, chartOwnsPad, mappingNameForGamepad } from './gamepad-map.js';
 
 export class GamepadManager {
   constructor() {
@@ -50,7 +51,10 @@ export class GamepadManager {
         right: 2,
         up: 3,
         down: 1
-      }
+      },
+      // W3C standard layout. Chrome reports the DualShock 4 this way:
+      // D-pad 12–15 and face buttons in diamond order (square left, circle right).
+      standard: STANDARD_DANCE_BUTTONS
     };
 
     this.currentMapping = 'dancePad';
@@ -118,19 +122,7 @@ export class GamepadManager {
   }
 
   autoDetectController(gamepad) {
-    const name = gamepad.id.toLowerCase();
-
-    if (name.includes('dance') || name.includes('step')) {
-      this.currentMapping = 'dancePad';
-    } else if (name.includes('ps2') || name.includes('playstation')) {
-      this.currentMapping = 'ps2';
-    } else if (name.includes('0e8f') && name.includes('3013')) {
-      this.currentMapping = 'usbGamePad';
-    } else if (name.includes('0079') && name.includes('0011')) {
-      this.currentMapping = 'usbGamePad2';
-    } else {
-      this.currentMapping = 'dancePad';
-    }
+    this.currentMapping = mappingNameForGamepad(gamepad);
   }
 
   startPolling() {
@@ -151,6 +143,15 @@ export class GamepadManager {
   pollGamepads() {
     if (!this.isEnabled) return;
 
+    // The home screen, the library, the settings sheet, and the song
+    // card are site navigation. remote.js moves focus there. A chart
+    // takes the pad.
+    const root = document.documentElement;
+    const chart = chartOwnsPad(document);
+    if (chart) root.dataset.gamepadNav = 'game';
+    else if (root.dataset.gamepadNav === 'game') delete root.dataset.gamepadNav;
+    if (!chart) return;
+
     const gamepads = navigator.getGamepads();
 
     this.gamepads.forEach((gamepad) => {
@@ -163,7 +164,7 @@ export class GamepadManager {
       });
 
       this.checkButtonPresses(gamepad);
-      this.checkAnalogInput(gamepad);
+      this.checkAnalogInput(currentGamepad);
     });
   }
 
@@ -215,11 +216,12 @@ export class GamepadManager {
   }
 
   checkAnalogInput(gamepad) {
-    const leftX = gamepad.axes[0] || 0;
-    const leftY = gamepad.axes[1] || 0;
+    const axes = (gamepad && gamepad.axes) || [];
+    const leftX = axes[0] || 0;
+    const leftY = axes[1] || 0;
 
-    const rightX = gamepad.axes[2] || 0;
-    const rightY = gamepad.axes[3] || 0;
+    const rightX = axes[2] || 0;
+    const rightY = axes[3] || 0;
 
     const useLeftStick = Math.abs(leftX) > Math.abs(rightX) || Math.abs(leftY) > Math.abs(rightY);
     const x = useLeftStick ? leftX : rightX;
@@ -244,11 +246,11 @@ export class GamepadManager {
         }
       }
 
-      if (analogDirections.size > 0) {
-        analogDirections.forEach((direction) => {
-          this.handleDirectionPress(direction);
-        });
-      }
+      analogDirections.forEach((direction) => {
+        const column = this.columnForDirection(direction);
+        if (column !== undefined) inputManager.setGamepadHeld(column, true);
+        this.handleDirectionPress(direction);
+      });
     }
   }
 

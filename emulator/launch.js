@@ -756,6 +756,48 @@
   }
 
   window.addEventListener('popstate', onRomPopState);
+
+  // A recent on this console is a normal link. Following it reloads the
+  // page while Cross is still held, and the new page reads that as Cancel.
+  // Start the game here instead. A recent for another console still navigates.
+  document.addEventListener(
+    'click',
+    function (event) {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.shiftKey
+      ) {
+        return;
+      }
+      const raw =
+        event.target && event.target.nodeType === 1
+          ? event.target
+          : event.target && event.target.parentElement;
+      const link = raw && raw.closest ? raw.closest('a.play-top-link') : null;
+      if (!link || !link.href) return;
+      const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
+      if (!cfg) return;
+      let url;
+      try {
+        url = new URL(link.href, window.location.href);
+      } catch (err) {
+        return;
+      }
+      const rom = url.searchParams.get('rom');
+      if (!rom) return;
+      const dest = url.pathname.replace(/\/+$/, '');
+      const here = window.location.pathname.replace(/\/+$/, '');
+      if (dest !== here) return;
+      event.preventDefault();
+      pushRomQuery({ name: rom, title: rom });
+      tryDeeplinkRom(cfg, rom);
+    },
+    true
+  );
   window.emulatorPushRomQuery = pushRomQuery;
   window.emulatorClearRomQuery = clearRomQuery;
 
@@ -905,6 +947,7 @@
     if (bootEl) bootEl.classList.add('hidden');
     if (gameContainer) gameContainer.classList.add('visible');
     if (emuHeader) emuHeader.classList.add('is-playing');
+    document.documentElement.dataset.gamepadNav = 'game';
 
     // Unlock once per console lander app id (derived from the registry).
     if (Object.keys(window.EMULATOR_CONSOLES || {}).includes(cfg.id)) {

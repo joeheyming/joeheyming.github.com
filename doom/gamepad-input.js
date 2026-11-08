@@ -202,10 +202,22 @@ var controller = createGamepadController({
   onRelease: releaseAll
 });
 
+function gameOwnsPad(state) {
+  var phase = state && state.phase;
+  return phase === 'launching' || phase === 'playing';
+}
+
+function syncNavigationOwner(state) {
+  var root = document.documentElement;
+  if (!root) return;
+  if (gameOwnsPad(state)) root.dataset.gamepadNav = 'game';
+  else if (root.dataset.gamepadNav === 'game') delete root.dataset.gamepadNav;
+}
+
 if (UZDoomLifecycle && typeof UZDoomLifecycle.subscribe === 'function') {
   UZDoomLifecycle.subscribe(function (state) {
-    var phase = state && state.phase;
-    if (phase !== 'launching' && phase !== 'playing') releaseAll();
+    syncNavigationOwner(state);
+    if (!gameOwnsPad(state)) releaseAll();
   });
 }
 

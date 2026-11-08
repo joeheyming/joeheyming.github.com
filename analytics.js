@@ -85,6 +85,8 @@
   if (!script || !script.src) return;
   var src = script.src.replace(/analytics\.js(?:\?.*)?$/, 'remote.js');
   document.write('<script src="' + src + '"></script>');
+  var pad = script.src.replace(/analytics\.js(?:\?.*)?$/, 'gamepad-keys.js');
+  document.write('<script type="module" src="' + pad + '"></script>');
 })();
 
 // assuming google analytics is already loaded

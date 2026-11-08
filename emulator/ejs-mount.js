@@ -16,6 +16,52 @@
    * @param {File|null} [opts.biosFile]
    * @param {() => void} [opts.onExit] — Exit Emulation toolbar callback
    */
+  // Chrome often leaves slot 0 empty and puts a DualShock 4 at index 1.
+  // EmulatorJS then looks up its pad list by that index and misses the
+  // controller. Repack connected pads into the lowest slots, and report the
+  // new slot as `index`, before the loader starts polling.
+  function packGamepadSlots(pads) {
+    const list = pads ? Array.from(pads) : [];
+    const connected = [];
+    for (let i = 0; i < list.length; i++) {
+      if (list[i]) connected.push(list[i]);
+    }
+    let alreadyPacked = true;
+    for (let i = 0; i < connected.length; i++) {
+      if (connected[i].index !== i) alreadyPacked = false;
+    }
+    if (alreadyPacked) return list;
+
+    const packed = new Array(list.length).fill(null);
+    for (let slot = 0; slot < connected.length; slot++) {
+      const pad = connected[slot];
+      packed[slot] = new Proxy(pad, {
+        get(target, prop) {
+          if (prop === 'index') return slot;
+          const value = target[prop];
+          return typeof value === 'function' ? value.bind(target) : value;
+        }
+      });
+    }
+    return packed;
+  }
+
+  function installCompactGamepadSlots() {
+    if (installCompactGamepadSlots.installed) return;
+    const nav = navigator;
+    if (!nav || typeof nav.getGamepads !== 'function') return;
+    const original = nav.getGamepads.bind(nav);
+    function packedGetGamepads() {
+      return packGamepadSlots(original());
+    }
+    try {
+      nav.getGamepads = packedGetGamepads;
+      installCompactGamepadSlots.installed = true;
+    } catch (err) {
+      console.warn('Could not compact gamepad slots', err);
+    }
+  }
+
   function mount(opts) {
     opts = opts || {};
     const cfg = opts.cfg;
@@ -23,6 +69,8 @@
       console.error('emulatorEjsMount.mount: no console cfg; bailing.');
       return;
     }
+
+    installCompactGamepadSlots();
 
     const romSource = opts.romSource;
     const romName = opts.romName;
@@ -530,6 +578,7 @@
 
   window.emulatorEjsMount = {
     mount,
+    packGamepadSlots,
     keepSavesInBrowser,
     patchLegacyGetState,
     persistQuickStates,
