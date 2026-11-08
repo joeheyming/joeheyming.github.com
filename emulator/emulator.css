@@ -530,6 +530,12 @@ body {
   margin-left: auto;
 }
 
+/* Narrow phones: the full label collides with the Menu toggle once this
+ * button sits in the top-right cluster. The accessible name stays on the button. */
+.emu-exit-short {
+  display: none;
+}
+
 .emu-chrome-btn {
   background: rgba(20, 20, 24, 0.72);
   border: 1px solid var(--border);
@@ -697,12 +703,26 @@ kbd {
   position: fixed;
   /* Top-right cluster with the related-projects 🎯 FAB — keeps both
    * clear of the boot card / game canvas (they used to sit bottom-left
-   * and bottom-right and collided with controls). */
+   * and bottom-right and collided with controls). The game-list button
+   * joins this row while a game is running; anchoring on the right keeps
+   * Share put and lets that button grow to the left. */
   top: 10px;
   right: 84px;
   bottom: auto;
   left: auto;
   z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-overlay > #emu-game-list-btn {
+  margin-left: 0;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  white-space: nowrap;
 }
 
 /* Pull the sitewide 🎯 related-projects FAB up into the same cluster.
@@ -731,6 +751,16 @@ kbd {
 /* Leave room for the top-right share + 🎯 cluster over the breadcrumb bar. */
 #emu-header.app-header .app-breadcrumbs {
   padding-right: 170px;
+}
+
+@media (max-width: 340px) {
+  .share-overlay > #emu-game-list-btn .emu-exit-full {
+    display: none;
+  }
+
+  .share-overlay > #emu-game-list-btn .emu-exit-short {
+    display: inline;
+  }
 }
 
 @media (max-width: 768px) {
