@@ -285,8 +285,60 @@ a.tv-crumb:hover {
   }
 }
 
-.play-top-rail .play-top {
+.play-top-rail .play-top,
+.tv-landing > .play-top {
   margin: 0 0 8px;
+}
+
+/* A start list that is still a direct child of the landing (before the
+   rail is in place) sits beside the posters, not across the top. */
+@media (min-width: 980px) {
+  .tv-landing:has(> .play-top) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+    column-gap: 22px;
+    align-items: start;
+  }
+
+  .tv-landing:has(> .play-top) > :not(.play-top) {
+    grid-column: 1;
+  }
+
+  .tv-landing > .play-top {
+    grid-column: 2;
+    grid-row: 1 / span 12;
+    position: sticky;
+    top: 76px;
+    align-self: start;
+    max-height: calc(100vh - 96px);
+    padding-left: 16px;
+    border-left: 1px solid var(--tv-card-border);
+    overflow: auto;
+  }
+}
+
+@media (min-width: 980px) and (orientation: portrait) {
+  .tv-landing:has(> .play-top) {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  }
+
+  .tv-landing:has(> .play-top) > :not(.play-top) {
+    grid-column: 2;
+  }
+
+  .tv-landing > .play-top {
+    grid-column: 1;
+    padding-left: 0;
+    padding-right: 16px;
+    border-left: 0;
+    border-right: 1px solid var(--tv-card-border);
+  }
+}
+
+@media (max-width: 979px) {
+  .tv-landing > .play-top {
+    order: 2;
+  }
 }
 
 .play-top-rail .play-top-name {

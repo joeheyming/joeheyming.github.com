@@ -795,12 +795,13 @@ export function applyCounts(doc, counts, env) {
     doc.getElementById('play-top-games')?.remove();
   } else {
     const grid = doc.querySelector('.picker-grid');
-    const games = topCounts(rows, { app: 'emulator', kind: 'game', limit: START_LIMIT });
-    const boot = doc.getElementById('boot');
-    const parent = boot || (grid && grid.parentElement);
-    if (parent && games.length) {
-      const section = ensureTop(doc, parent, null, 'play-top-games', 'Start a game');
-      if (section.parentElement !== parent) parent.appendChild(section);
+    const games = grid
+      ? topCounts(rows, { app: 'emulator', kind: 'game', limit: START_LIMIT })
+      : [];
+    const boot = grid && (grid.closest('#boot') || grid.parentElement);
+    if (boot && games.length) {
+      const section = ensureTop(doc, boot, null, 'play-top-games', 'Start a game');
+      if (section.parentElement !== boot) boot.appendChild(section);
       const list = section.querySelector('ol');
       if (list) fillList(list, games, doc, (row) => consoleMeta(row.parent, consoles));
     } else {

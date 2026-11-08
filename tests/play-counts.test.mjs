@@ -347,6 +347,30 @@ test('the hub lists ten games and a console page parks its list in the scroll pa
   assert.equal(doc.getElementById('play-top-console').parentElement.className, 'boot-card-scroll');
 });
 
+test('doom does not get the emulator start list', () => {
+  const counts = [
+    {
+      app: 'emulator',
+      kind: 'game',
+      id: 'nes:mario',
+      name: 'Super Mario Bros.',
+      parent: 'nes',
+      count: 26
+    },
+    { app: 'doom', kind: 'flavor', id: 'classic', name: 'Classic DOOM', parent: '', count: 9 }
+  ];
+  const dom = new JSDOM(`<!doctype html><body>
+    <div class="overlay" id="boot">
+      <p class="picker-lead">Pick a game.</p>
+      <button class="flavor-card" data-flavor="classic" aria-label="Launch Classic DOOM"></button>
+    </div>
+  </body>`);
+  const doc = dom.window.document;
+  applyCounts(doc, counts, { path: '/doom/', configured: true, ready: true });
+  assert.equal(doc.getElementById('play-top-games'), null);
+  assert.equal(doc.querySelector('.flavor-card .play-count').textContent, '9');
+});
+
 test('a play count tip shows as soon as the pointer is on the number', () => {
   const dom = new JSDOM(`<!doctype html><body>
     <div id="host"></div>
