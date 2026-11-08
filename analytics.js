@@ -13,6 +13,7 @@
 //   speller_word_rendered  Periodic Speller produced a spelling
 //   content_shared         Shared via share.js / share FAB
 //   next_app_click         Clicked a next-app offer (Doom exit/fail, or home Continue)
+//   play_link_click        Clicked a play-count shortcut (analytics board or an app's start list)
 //   emulator_game_start    A game chosen on any emulator page (tile, file, or link)
 //
 // Actionable health:
@@ -762,13 +763,28 @@ if (isLocalDevHost()) {
 // offers and the homepage Continue chip. One listener covers every page
 // because analytics.js is already on all of them.
 document.addEventListener('click', function (event) {
+  const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
   let node = event.target;
   if (node && node.nodeType !== 1) node = node.parentElement;
-  const link = node && node.closest ? node.closest('[data-next-app]') : null;
-  if (!link) return;
-  const id = link.getAttribute('data-next-app') || '';
-  const surface = link.getAttribute('data-next-surface') || 'next';
-  window.trackEvent('next_app_click', 'Growth', (surface + ':' + id).slice(0, 100));
+  const fromPath = (selector) => {
+    for (const item of path) {
+      if (item && item.nodeType === 1 && item.matches && item.matches(selector)) return item;
+    }
+    return node && node.closest ? node.closest(selector) : null;
+  };
+  const next = fromPath('[data-next-app]');
+  if (next) {
+    const id = next.getAttribute('data-next-app') || '';
+    const surface = next.getAttribute('data-next-surface') || 'next';
+    window.trackEvent('next_app_click', 'Growth', (surface + ':' + id).slice(0, 100));
+  }
+  const play = fromPath('[data-play-link]');
+  if (!play) return;
+  const surface = play.getAttribute('data-play-link') || 'play';
+  const name = (play.getAttribute('data-play-name') || play.textContent || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  window.trackEvent('play_link_click', 'Growth', (surface + ':' + name).slice(0, 100));
 });
 
 try {

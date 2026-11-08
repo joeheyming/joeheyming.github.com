@@ -49,6 +49,7 @@
     <link rel="canonical" href="https://joeheyming.github.io/analytics/" />
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/proxy.js"></script>
     <script>
       heymingAnalytics.enable('play-counts');
     </script>
@@ -106,50 +107,66 @@
         Running totals for emulator games, DOOM mods, movies, TV shows, and StepMania songs people
         start on this site.
       </p>
-      <p class="jumps">
-        <a href="/emulator/">Emulator</a>
-        <a href="/doom/">DOOM</a>
-        <a href="/watch/">Watch</a>
-        <a href="/stepmania/">StepMania</a>
-      </p>
+      <nav class="jumps" aria-label="Play count sections">
+        <a href="#top-emulators">Emulators</a>
+        <a href="#top-games">Games</a>
+        <a href="#top-doom">DOOM</a>
+        <a href="#top-shows">Shows</a>
+        <a href="#top-movies">Movies</a>
+        <a href="#top-episodes">Episodes</a>
+        <a href="#top-songs">Songs</a>
+      </nav>
 
-      <section data-play-board data-app="emulator" data-kind="console" data-limit="20">
+      <section
+        id="top-emulators"
+        data-play-board
+        data-app="emulator"
+        data-kind="console"
+        data-limit="50"
+      >
         <h2>Top emulators</h2>
         <ol></ol>
         <p class="empty" hidden>No emulator plays yet.</p>
       </section>
       <section
+        id="top-games"
         data-play-board
         data-app="emulator"
         data-kind="game"
         data-meta="console"
-        data-limit="20"
+        data-limit="50"
       >
         <h2>Top games</h2>
         <ol></ol>
         <p class="empty" hidden>No game plays yet.</p>
       </section>
-      <section data-play-board data-app="doom" data-kind="flavor" data-limit="20">
+      <section id="top-doom" data-play-board data-app="doom" data-kind="flavor" data-limit="50">
         <h2>Top DOOM flavors</h2>
         <ol></ol>
         <p class="empty" hidden>No DOOM plays yet.</p>
       </section>
-      <section data-play-board data-app="watch" data-kind="show" data-limit="20">
+      <section id="top-shows" data-play-board data-app="watch" data-kind="show" data-limit="50">
         <h2>Top TV shows</h2>
         <ol></ol>
         <p class="empty" hidden>No show plays yet.</p>
       </section>
-      <section data-play-board data-app="watch" data-kind="movie" data-limit="20">
+      <section id="top-movies" data-play-board data-app="watch" data-kind="movie" data-limit="50">
         <h2>Top movies</h2>
         <ol></ol>
         <p class="empty" hidden>No movie plays yet.</p>
       </section>
-      <section data-play-board data-app="watch" data-kind="episode" data-limit="20">
+      <section
+        id="top-episodes"
+        data-play-board
+        data-app="watch"
+        data-kind="episode"
+        data-limit="50"
+      >
         <h2>Top episodes</h2>
         <ol></ol>
         <p class="empty" hidden>No episode plays yet.</p>
       </section>
-      <section data-play-board data-app="stepmania" data-kind="song" data-limit="20">
+      <section id="top-songs" data-play-board data-app="stepmania" data-kind="song" data-limit="50">
         <h2>Top StepMania songs</h2>
         <ol></ol>
         <p class="empty" hidden>No StepMania plays yet.</p>

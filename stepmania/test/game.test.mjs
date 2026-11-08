@@ -6,7 +6,12 @@ import { secondsToBeats, beatsToSeconds, getBPMAtBeat } from '../js/timing.js';
 import { HOLD_LET_GO_SECONDS, TAP_NOTE_POINTS } from '../js/judgmentPolicy.js';
 import { adjudicateColumnPress, advanceHold } from '../js/columnPressAdjudication.js';
 import { calculateDancePoints, calculateGrade } from '../js/score-panel.js';
-import { calculateNoteY, noteFieldY, receptorY } from '../js/noteRenderer.js';
+import {
+  calculateNoteFrameIndex,
+  calculateNoteY,
+  noteFieldY,
+  receptorY
+} from '../js/noteRenderer.js';
 
 // ==========================================================================
 // GameState
@@ -926,5 +931,25 @@ describe('CMod note positioning', () => {
         `ratio=${offset12 / offset8} expected=1.5`
       );
     });
+  });
+});
+
+describe('Note animation frame', () => {
+  it('stays on the sprite sheet before beat 0', () => {
+    // Beethoven Virus's #OFFSET is -6.234 at 162 BPM, so the first arrow
+    // scrolls in around beat -2. The old remainder went negative and the
+    // canvas clipped that frame away until the note was on the receptor.
+    for (let beat = -20; beat < 0; beat += 0.25) {
+      const frame = calculateNoteFrameIndex(beat, 0);
+      assert.ok(frame >= 0 && frame < 16, `frame ${frame} at beat ${beat}`);
+    }
+    assert.equal(calculateNoteFrameIndex(-16.8, 0), 13);
+  });
+
+  it('matches the 4-beat cycle once the clock is positive', () => {
+    assert.equal(calculateNoteFrameIndex(0, 0), 0);
+    assert.equal(calculateNoteFrameIndex(2, 0), 8);
+    assert.equal(calculateNoteFrameIndex(1, 0.5), 12);
+    assert.equal(calculateNoteFrameIndex(4, 0), 0);
   });
 });

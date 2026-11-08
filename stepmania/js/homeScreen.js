@@ -1,6 +1,7 @@
 // Idle home overlay shown when no song is loaded.
 
 import { blockReasonForSong, getFavorites, getRecentSongs } from './zeniusLibraryStorage.js';
+import { loadPopularSongs } from './popularSongs.js';
 
 /**
  * @param {string} zeniusUrl
@@ -32,13 +33,13 @@ function escapeHtml(text) {
  * @param {{ zeniusUrl: string, title: string }[]} entries
  * @param {string} emptyText
  */
-function renderLinkList(mount, entries, emptyText) {
+function renderLinkList(mount, entries, emptyText, max = 8, playSurface = '') {
   if (entries.length === 0) {
     mount.innerHTML = `<p class="sm-home-empty">${escapeHtml(emptyText)}</p>`;
     return;
   }
   const items = entries
-    .slice(0, 8)
+    .slice(0, max)
     .map((entry) => {
       const title = entry.title && entry.title.trim() ? entry.title.trim() : 'Unknown song';
       const blocked = blockReasonForSong(entry);
@@ -48,10 +49,90 @@ function renderLinkList(mount, entries, emptyText) {
         )}">${escapeHtml(title)}<span class="sm-sr-only"> (${escapeHtml(blocked)})</span></span>`;
       }
       const href = zeniusPlayHref(entry.zeniusUrl);
-      return `<a class="sm-home-chip" href="${escapeHtml(href)}">${escapeHtml(title)}</a>`;
+      const tracked = playSurface
+        ? ` data-play-link="${escapeHtml(playSurface)}" data-play-name="${escapeHtml(title)}"`
+        : '';
+      return `<a class="sm-home-chip"${tracked} href="${escapeHtml(href)}">${escapeHtml(
+        title
+      )}</a>`;
     })
     .join('');
   mount.innerHTML = items;
+}
+
+const POPULAR_PREVIEW = 5;
+const POPULAR_MORE = 20;
+
+let popularToken = 0;
+let popularExpanded = false;
+let popularFull = false;
+/** @type {{ zeniusUrl: string, title: string, simfileId?: string }[]} */
+let popularEntries = [];
+
+function popularHasMore() {
+  if (popularEntries.length < POPULAR_PREVIEW) return false;
+  if (popularFull) return popularEntries.length > POPULAR_PREVIEW;
+  return true;
+}
+
+function paintPopular() {
+  const section = document.getElementById('sm-home-popular');
+  const mount = document.getElementById('sm-home-popular-chips');
+  if (!section || !mount) return;
+  if (!popularEntries.length) {
+    section.hidden = true;
+    mount.replaceChildren();
+    return;
+  }
+  const shown = popularExpanded ? popularEntries : popularEntries.slice(0, POPULAR_PREVIEW);
+  renderLinkList(mount, shown, '', shown.length, 'sm-home-popular');
+  section.hidden = false;
+  const more = document.getElementById('sm-home-popular-more');
+  const hint = document.getElementById('sm-home-popular-hint');
+  const extra = popularHasMore();
+  if (more) {
+    more.classList.toggle('is-static', !extra);
+    more.setAttribute('aria-expanded', popularExpanded && extra ? 'true' : 'false');
+  }
+  if (hint) {
+    hint.hidden = !extra;
+    hint.textContent = popularExpanded ? 'Show less' : 'Show more';
+  }
+}
+
+function refreshPopular() {
+  const section = document.getElementById('sm-home-popular');
+  const mount = document.getElementById('sm-home-popular-chips');
+  if (!section || !mount) return Promise.resolve();
+  const token = ++popularToken;
+  const limit = popularExpanded ? POPULAR_MORE : POPULAR_PREVIEW;
+  return loadPopularSongs(limit)
+    .then((entries) => {
+      if (token !== popularToken) return;
+      popularEntries = entries;
+      if (limit === POPULAR_MORE) popularFull = true;
+      if (popularFull && popularEntries.length <= POPULAR_PREVIEW) popularExpanded = false;
+      paintPopular();
+    })
+    .catch(() => {
+      if (token !== popularToken) return;
+      section.hidden = true;
+    });
+}
+
+/**
+ * The "Played a lot" heading opens the rest of that list, and folds it again.
+ * @returns {Promise<void>}
+ */
+export function togglePopularList() {
+  if (popularExpanded) {
+    popularExpanded = false;
+    paintPopular();
+    return Promise.resolve();
+  }
+  if (popularEntries.length < POPULAR_PREVIEW) return Promise.resolve();
+  popularExpanded = true;
+  return refreshPopular();
 }
 
 export function refreshHomeLists() {
@@ -63,6 +144,7 @@ export function refreshHomeLists() {
   if (savedEl) {
     renderLinkList(savedEl, getFavorites(), 'Heart a chart in the library to save it.');
   }
+  return refreshPopular();
 }
 
 /**
@@ -185,6 +267,13 @@ export function bindHomeScreen(handlers = {}) {
   focusHomeBrowse();
   if (homeActionsBound) return;
   homeActionsBound = true;
+
+  const popularMore = document.getElementById('sm-home-popular-more');
+  if (popularMore) {
+    popularMore.addEventListener('click', () => {
+      void togglePopularList();
+    });
+  }
 
   const browse = document.getElementById('sm-home-browse');
   if (browse) {

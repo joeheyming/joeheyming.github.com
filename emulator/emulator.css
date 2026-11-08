@@ -312,6 +312,79 @@ body {
   margin-top: 0;
 }
 
+/* Console lander: the start list is a side panel, so the ROM grid keeps
+   the card. Landscape puts the panel on the right, portrait on the left.
+   A narrow window has no room for a column, so the list follows the grid. */
+@media (min-width: 760px) {
+  .boot-card-scroll:has(> #play-top-console) {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
+    column-gap: 18px;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .boot-card-scroll:has(> #play-top-console) > rom-browser {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .boot-card-scroll > #play-top-console {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    width: auto;
+    max-height: 100%;
+    margin: 0;
+    padding-left: 16px;
+    border-left: 1px solid var(--border);
+    overflow: auto;
+  }
+
+  .boot-card-scroll > #play-top-console .play-top-name {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (min-width: 760px) and (orientation: portrait) {
+  .boot-card-scroll:has(> #play-top-console) {
+    grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  }
+
+  .boot-card-scroll:has(> #play-top-console) > rom-browser {
+    grid-column: 2;
+  }
+
+  .boot-card-scroll > #play-top-console {
+    grid-column: 1;
+    padding-left: 0;
+    padding-right: 16px;
+    border-left: 0;
+    border-right: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 759px) {
+  .boot-card-scroll:has(> #play-top-console) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .boot-card-scroll:has(> #play-top-console) > rom-browser {
+    order: 0;
+  }
+
+  .boot-card-scroll > #play-top-console {
+    order: 1;
+    margin: 12px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+}
+
 .bios-panel {
   margin-bottom: 16px;
   padding: 14px 16px;
@@ -735,6 +808,98 @@ kbd {
   color: var(--text-dim);
   text-align: center;
   line-height: 1.5;
+}
+
+/* The start list is a sibling of the picker card. On a wide window it
+   sits in the gutter beside the tiles: the right gutter in landscape,
+   the left gutter in portrait. The card keeps its width, so the tiles
+   stay put. A narrow window has no gutter, so the list follows the card. */
+#boot > #play-top-games {
+  width: min(280px, 100%);
+  margin: 16px 0 0;
+}
+
+#boot > #play-top-games .play-top-name {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 980px) {
+  #boot:has(> #play-top-games) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 640px) minmax(220px, 1fr);
+    grid-template-rows: auto auto;
+    align-content: safe center;
+    justify-items: stretch;
+    column-gap: 20px;
+  }
+
+  #boot:has(> #play-top-games) > .brand {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: center;
+  }
+
+  #boot:has(> #play-top-games) > #boot-card {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: center;
+    width: 100%;
+  }
+
+  #boot:has(> #play-top-games) > #play-top-games {
+    grid-row: 2;
+    align-self: start;
+    width: auto;
+    max-width: 280px;
+    margin: 0;
+    max-height: min(70vh, 100%);
+    overflow: auto;
+  }
+}
+
+@media (min-width: 980px) and (orientation: landscape) {
+  #boot:has(> #play-top-games) > #play-top-games {
+    grid-column: 3;
+    justify-self: start;
+  }
+}
+
+@media (min-width: 980px) and (orientation: portrait) {
+  #boot:has(> #play-top-games) {
+    grid-template-columns: minmax(220px, 1fr) minmax(0, 640px) minmax(0, 1fr);
+  }
+
+  #boot:has(> #play-top-games) > #play-top-games {
+    grid-column: 1;
+    justify-self: end;
+  }
+}
+
+@media (min-width: 980px) and (max-width: 1239px) {
+  :root[data-mode='tv'] #boot:has(> #play-top-games) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: safe center;
+  }
+
+  :root[data-mode='tv'] #boot:has(> #play-top-games) > #play-top-games {
+    width: min(280px, 100%);
+    max-width: none;
+    margin: 16px 0 0;
+  }
+}
+
+@media (min-width: 1240px) {
+  :root[data-mode='tv'] #boot:has(> #play-top-games) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 900px) minmax(220px, 1fr);
+  }
+}
+
+@media (min-width: 1240px) and (orientation: portrait) {
+  :root[data-mode='tv'] #boot:has(> #play-top-games) {
+    grid-template-columns: minmax(220px, 1fr) minmax(0, 900px) minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 480px) {

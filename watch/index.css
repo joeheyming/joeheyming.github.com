@@ -201,6 +201,122 @@ a.tv-crumb:hover {
   gap: 22px;
 }
 
+/* The header (landing intro, a show's banner) stays full width. The
+   start lists sit beside the posters or episodes, the same way the emulator parks its list
+   beside the picker. Landscape uses the right side, portrait the left.
+   A narrow window has no column, so the rail follows the guide. */
+:is(.tv-landing-main, .tv-episodes-main) {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+@media (min-width: 980px) {
+  :is(.tv-landing-main, .tv-episodes-main):has(> .play-top-rail) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
+    column-gap: 22px;
+    align-items: start;
+  }
+
+  :is(.tv-landing-main, .tv-episodes-main):has(> .play-top-rail) > :not(.play-top-rail) {
+    grid-column: 1;
+  }
+
+  :is(.tv-landing-main, .tv-episodes-main):has(> .play-top-rail) > .play-top-rail {
+    grid-column: 2;
+    grid-row: 1 / span 12;
+    position: sticky;
+    top: 76px;
+    align-self: start;
+    max-height: calc(100vh - 96px);
+    margin: 0;
+    padding-left: 16px;
+    border-left: 1px solid var(--tv-card-border);
+    overflow: auto;
+  }
+}
+
+@media (min-width: 980px) and (orientation: portrait) {
+  :is(.tv-landing-main, .tv-episodes-main):has(> .play-top-rail) {
+    grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  }
+
+  :is(.tv-landing-main, .tv-episodes-main):has(> .play-top-rail) > :not(.play-top-rail) {
+    grid-column: 2;
+  }
+
+  :is(.tv-landing-main, .tv-episodes-main):has(> .play-top-rail) > .play-top-rail {
+    grid-column: 1;
+    padding-left: 0;
+    padding-right: 16px;
+    border-left: 0;
+    border-right: 1px solid var(--tv-card-border);
+  }
+}
+
+@media (max-width: 979px) {
+  :is(.tv-landing-main, .tv-episodes-main) > .play-top-rail {
+    order: 1;
+    margin: 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--tv-card-border);
+  }
+}
+
+@media (max-width: 1239px) {
+  :root[data-mode='tv'] :is(.tv-landing-main, .tv-episodes-main):has(> .play-top-rail) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  :root[data-mode='tv'] :is(.tv-landing-main, .tv-episodes-main) > .play-top-rail {
+    grid-column: auto;
+    grid-row: auto;
+    position: static;
+    order: 1;
+    max-height: none;
+    margin: 0;
+    padding: 8px 0 0;
+    border: 0;
+    border-top: 1px solid var(--tv-card-border);
+    overflow: visible;
+  }
+}
+
+.play-top-rail .play-top {
+  margin: 0 0 8px;
+}
+
+.play-top-rail .play-top-name {
+  overflow-wrap: anywhere;
+}
+
+/* Episode codes are one short line. The shared row is a 44px tap
+   target sized for show titles, which leaves a tall empty column here. */
+.tv-episodes-main .play-top-row {
+  min-height: 0;
+  padding: 2px 0;
+}
+
+@media (min-width: 980px) {
+  .tv-episodes-main:has(> .play-top-rail) {
+    grid-template-columns: minmax(0, 1fr) minmax(132px, 168px);
+  }
+}
+
+@media (min-width: 980px) and (orientation: portrait) {
+  .tv-episodes-main:has(> .play-top-rail) {
+    grid-template-columns: minmax(132px, 168px) minmax(0, 1fr);
+  }
+}
+
+:root[data-mode='tv'] .tv-episodes-main .play-top-row {
+  min-height: 44px;
+  padding: 8px 0;
+}
+
 .tv-landing-intro {
   text-align: center;
   max-width: 68ch;

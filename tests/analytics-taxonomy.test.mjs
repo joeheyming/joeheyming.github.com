@@ -14,6 +14,7 @@ const ALLOWED = new Set([
   'speller_word_rendered',
   'content_shared',
   'next_app_click',
+  'play_link_click',
   'exception',
   'error_occurred',
   'web_vital_inp',

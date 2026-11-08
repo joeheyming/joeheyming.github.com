@@ -7,6 +7,7 @@ import { JSDOM } from 'jsdom';
 import {
   CONFIG,
   applyCounts,
+  bindPlayTips,
   cleanName,
   consoleIdFromPath,
   countsFromGvizText,
@@ -25,6 +26,13 @@ import {
   submitPlays,
   topCounts
 } from '../analytics/counts.mjs';
+import {
+  isZeniusPlaceholder,
+  lookupZeniusTitles,
+  zeniusSimfileId,
+  zeniusSongName,
+  zeniusTitleFromHtml
+} from '../analytics/zenius-titles.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -201,9 +209,11 @@ test('gviz rows become ranked counts and ignore the header', () => {
 
 test('badges and top lists render counts and a second pass does not duplicate them', () => {
   const dom = new JSDOM(`<!doctype html><body>
-    <div id="boot-card">
-      <div class="picker-grid">
-        <a class="picker-tile" href="/emulator/nes/"><span class="picker-title">NES</span></a>
+    <div id="boot">
+      <div id="boot-card">
+        <div class="picker-grid">
+          <a class="picker-tile" href="/emulator/nes/"><span class="picker-title">NES</span></a>
+        </div>
       </div>
     </div>
     <button class="flavor-card" data-flavor="mario" aria-label="Launch Mario DOOM"><span class="name">Mario</span></button>
@@ -241,6 +251,13 @@ test('badges and top lists render counts and a second pass does not duplicate th
   applyCounts(doc, counts, env);
   assert.equal(doc.querySelector('.picker-tile .play-count').textContent, '4');
   assert.equal(doc.querySelector('.picker-tile .play-count').getAttribute('aria-label'), '4 plays');
+  assert.equal(doc.querySelector('.picker-tile .play-count').dataset.tip, 'Started 4 times');
+  assert.equal(doc.querySelector('.picker-tile .play-count').hasAttribute('title'), false);
+  assert.equal(doc.querySelector('#play-top-games .play-count').dataset.tip, 'Started 9 times');
+  assert.equal(doc.querySelector('.flavor-card .play-count').dataset.tip, 'Started 7 times');
+  assert.equal(doc.querySelector('[data-show] .play-count').dataset.tip, 'Started 3 times');
+  assert.equal(doc.querySelector('.tv-ep-card .play-count').dataset.tip, 'Started 1 time');
+  assert.equal(doc.querySelector('[data-play-board] .play-count').dataset.tip, 'Started 7 times');
   assert.equal(doc.querySelectorAll('.picker-tile .play-count').length, 1);
   assert.equal(doc.querySelector('.flavor-card .play-count').textContent, '7');
   assert.equal(
@@ -254,13 +271,32 @@ test('badges and top lists render counts and a second pass does not duplicate th
     (node) => node.textContent
   );
   assert.deepEqual(games, ['Zelda', 'Mario']);
+  assert.equal(
+    doc.querySelector('#play-top-games a').getAttribute('href'),
+    '/emulator/snes/?rom=Zelda'
+  );
   assert.equal(doc.querySelector('#play-top-games .play-top-meta').textContent, 'SNES');
+  assert.equal(doc.getElementById('play-top-games').parentElement.id, 'boot');
+  assert.equal(doc.querySelector('#boot-card #play-top-games'), null);
   assert.equal(doc.querySelector('[data-play-board] li .play-top-name').textContent, 'Mario DOOM');
+  assert.equal(
+    doc.querySelector('[data-play-board] a').getAttribute('href'),
+    '/doom/?flavor=mario'
+  );
+  assert.equal(
+    doc.querySelector('[data-play-board] a').getAttribute('data-play-link'),
+    'analytics'
+  );
+  assert.equal(
+    doc.querySelector('[data-play-board] a').getAttribute('data-play-name'),
+    'Mario DOOM'
+  );
   assert.equal(doc.querySelector('[data-play-board] .empty').hidden, true);
 
   paintShadow(doc.getElementById('roms'), counts);
   paintShadow(doc.getElementById('roms'), counts);
   assert.equal(doc.querySelector('.rom-card .play-count').textContent, '9');
+  assert.equal(doc.querySelector('.rom-card .play-count').dataset.tip, 'Started 9 times');
   assert.equal(doc.querySelectorAll('.rom-card .play-count').length, 1);
 
   applyCounts(doc, counts, { ...env, path: '/emulator/nes/' });
@@ -271,6 +307,65 @@ test('badges and top lists render counts and a second pass does not duplicate th
     ),
     ['Mario']
   );
+  assert.equal(
+    doc.querySelector('#play-top-console a').getAttribute('href'),
+    '/emulator/nes/?rom=Mario'
+  );
+  assert.equal(
+    doc.querySelector('#play-top-console a').getAttribute('data-play-link'),
+    'play-top-console'
+  );
+});
+
+test('the hub lists ten games and a console page parks its list in the scroll panel', () => {
+  const counts = Array.from({ length: 12 }, (_, index) => ({
+    app: 'emulator',
+    kind: 'game',
+    id: `nes:game-${index}`,
+    name: `Game ${index}`,
+    parent: 'nes',
+    count: 20 - index
+  }));
+  const dom = new JSDOM(`<!doctype html><body>
+    <div id="boot">
+      <div id="boot-card">
+        <div class="picker-grid"></div>
+        <div class="boot-card-scroll"><rom-browser console="nes"></rom-browser></div>
+      </div>
+    </div>
+  </body>`);
+  const doc = dom.window.document;
+  const env = {
+    consoles: { nes: { title: 'NES' } },
+    configured: true,
+    ready: true
+  };
+  applyCounts(doc, counts, { ...env, path: '/emulator/' });
+  assert.equal(doc.querySelectorAll('#play-top-games li').length, 10);
+  applyCounts(doc, counts, { ...env, path: '/emulator/nes/' });
+  assert.equal(doc.querySelectorAll('#play-top-console li').length, 10);
+  assert.equal(doc.getElementById('play-top-console').parentElement.className, 'boot-card-scroll');
+});
+
+test('a play count tip shows as soon as the pointer is on the number', () => {
+  const dom = new JSDOM(`<!doctype html><body>
+    <div id="host"></div>
+  </body>`);
+  const doc = dom.window.document;
+  const root = doc.getElementById('host').attachShadow({ mode: 'open' });
+  const badge = doc.createElement('span');
+  badge.className = 'play-count';
+  badge.dataset.tip = 'Started 9 times';
+  badge.textContent = '9';
+  root.appendChild(badge);
+  bindPlayTips(doc);
+  const Hover = dom.window.PointerEvent || dom.window.MouseEvent;
+  badge.dispatchEvent(new Hover('pointerover', { bubbles: true, composed: true }));
+  const tip = doc.querySelector('.play-count-tip');
+  assert.equal(tip.hidden, false);
+  assert.equal(tip.textContent, 'Started 9 times');
+  badge.dispatchEvent(new Hover('pointerout', { bubbles: true, composed: true }));
+  assert.equal(tip.hidden, true);
 });
 
 test('a zero count stays off the card and an empty board says so', () => {
@@ -322,6 +417,63 @@ test('each stepmania song counts on its own, keyed by song key and title', () =>
   assert.equal(playsForStepmania('file_song-name.zip', 'Song Name.zip')[0].name, 'Song Name');
 });
 
+test('a zenius id looks up the song title on the simfile page and remembers it', async () => {
+  assert.equal(zeniusSimfileId('zenius 26360'), '26360');
+  assert.equal(zeniusSimfileId('zenius-26360'), '26360');
+  assert.equal(zeniusSimfileId('zenius_26360'), '26360');
+  assert.equal(isZeniusPlaceholder('zenius 26360', 'zenius-26360'), '26360');
+  assert.equal(isZeniusPlaceholder('Max 300', 'zenius-26360'), '');
+  assert.equal(zeniusTitleFromHtml('<h1>Max &amp; 300</h1>'), 'Max & 300');
+
+  const memory = new Map();
+  let fetches = 0;
+  const fetchText = async (url) => {
+    fetches += 1;
+    assert.match(url, /simfileid=26360$/);
+    return '<h1>Max 300</h1>';
+  };
+  assert.equal(
+    await zeniusSongName('zenius 26360', { fetchText, memory, storage: null }),
+    'Max 300'
+  );
+  assert.equal(
+    await zeniusSongName('zenius-26360', { fetchText, memory, storage: null }),
+    'Max 300'
+  );
+  assert.equal(fetches, 1);
+  const again = await lookupZeniusTitles(['26360'], { fetchText, memory, storage: null });
+  assert.equal(again.get('26360'), 'Max 300');
+  assert.equal(fetches, 1);
+});
+
+test('the stepmania board uses a remembered zenius title', async () => {
+  await lookupZeniusTitles(['424242'], {
+    fetchText: async () => '<h1>Paranoia</h1>',
+    storage: null
+  });
+  const dom = new JSDOM(
+    '<!doctype html><body><section data-play-board data-app="stepmania" data-kind="song"><h2>Songs</h2><ol></ol><p class="empty" hidden></p></section></body>'
+  );
+  applyCounts(
+    dom.window.document,
+    [
+      {
+        app: 'stepmania',
+        kind: 'song',
+        id: 'zenius-424242',
+        name: 'zenius 424242',
+        parent: '',
+        count: 4
+      }
+    ],
+    { configured: true, ready: true }
+  );
+  assert.equal(
+    dom.window.document.querySelector('[data-play-board] .play-top-name').textContent,
+    'Paranoia'
+  );
+});
+
 test('stepmania songs record on Play, not on restarts, and the board is on the page', () => {
   const controller = readFileSync(path.join(ROOT, 'stepmania/js/mainPageController.js'), 'utf8');
   const analyticsPage = readFileSync(path.join(ROOT, 'analytics/index.html'), 'utf8');
@@ -331,4 +483,128 @@ test('stepmania songs record on Play, not on restarts, and the board is on the p
   const restart = controller.slice(controller.indexOf('restartSong() {'));
   assert.doesNotMatch(restart.slice(0, 200), /recordSongPlay/);
   assert.match(analyticsPage, /data-app="stepmania" data-kind="song"/);
+  assert.match(analyticsPage, /href="#top-songs"/);
+  assert.match(analyticsPage, /id="top-songs"/);
+  assert.equal(analyticsPage.match(/data-limit="50"/g).length, 7);
+  assert.match(analyticsPage, /id="top-shows"/);
+  assert.match(analyticsPage, /id="top-episodes"/);
+});
+
+test('watch pages link the shows, movies, and episodes people actually start', () => {
+  const counts = [
+    { app: 'watch', kind: 'show', id: 'simpsons', name: 'The Simpsons', parent: '', count: 50 },
+    { app: 'watch', kind: 'show', id: 'southpark', name: 'South Park', parent: '', count: 10 },
+    {
+      app: 'watch',
+      kind: 'movie',
+      id: 'simpsons-movie',
+      name: 'The Simpsons Movie',
+      parent: '',
+      count: 8
+    },
+    {
+      app: 'watch',
+      kind: 'episode',
+      id: 'simpsons|s12e21',
+      name: 'The Simpsons S12E21',
+      parent: 'simpsons',
+      count: 20
+    },
+    {
+      app: 'watch',
+      kind: 'episode',
+      id: 'simpsons|s01e01',
+      name: 'The Simpsons S01E01 Homer',
+      parent: 'simpsons',
+      count: 9
+    },
+    {
+      app: 'watch',
+      kind: 'episode',
+      id: 'southpark|s01e01',
+      name: 'South Park S01E01',
+      parent: 'southpark',
+      count: 4
+    }
+  ];
+  const env = { path: '/watch/', configured: true, ready: true };
+  const landing = new JSDOM(`<!doctype html><body>
+    <section class="tv-landing">
+      <div class="tv-landing-intro"><div class="tv-tags"></div></div>
+      <div id="shows"></div>
+      <div id="movies" class="tv-movies-section"><div class="tv-section-label"></div></div>
+    </section>
+  </body>`);
+  const landingDoc = landing.window.document;
+  applyCounts(landingDoc, counts, { ...env, search: '' });
+  applyCounts(landingDoc, counts, { ...env, search: '' });
+  assert.deepEqual(
+    [...landingDoc.querySelectorAll('#play-top-shows .play-top-name')].map(
+      (node) => node.textContent
+    ),
+    ['The Simpsons', 'South Park']
+  );
+  assert.equal(
+    landingDoc.querySelector('#play-top-shows a').getAttribute('href'),
+    '/watch/?show=simpsons'
+  );
+  assert.equal(
+    landingDoc.querySelector('.tv-landing > .tv-landing-intro').nextElementSibling.className,
+    'tv-landing-main'
+  );
+  assert.equal(
+    landingDoc.querySelector('.tv-landing-intro .tv-tags').parentElement.className,
+    'tv-landing-intro'
+  );
+  assert.equal(
+    landingDoc.getElementById('play-top-rail').parentElement.className,
+    'tv-landing-main'
+  );
+  assert.equal(landingDoc.getElementById('play-top-rail').nextElementSibling.id, 'shows');
+  assert.equal(landingDoc.querySelector('#play-top-shows').parentElement.id, 'play-top-rail');
+  assert.equal(
+    landingDoc.querySelector('#play-top-movies a').getAttribute('href'),
+    '/watch/?movie=simpsons-movie'
+  );
+  assert.equal(landingDoc.querySelector('#movies #play-top-movies'), null);
+  assert.equal(landingDoc.getElementById('play-top-episodes'), null);
+
+  const guide = new JSDOM(`<!doctype html><body>
+    <section class="tv-episodes">
+      <div class="tv-show-banner"></div>
+      <div class="tv-section"><div class="tv-chip-row"></div></div>
+      <div class="tv-section"><div class="tv-ep-grid"></div></div>
+    </section>
+  </body>`);
+  const guideDoc = guide.window.document;
+  applyCounts(guideDoc, counts, { ...env, search: '?show=simpsons' });
+  assert.deepEqual(
+    [...guideDoc.querySelectorAll('#play-top-episodes .play-top-name')].map(
+      (node) => node.textContent
+    ),
+    ['S12E21', 'S01E01 Homer']
+  );
+  assert.equal(
+    guideDoc.querySelector('#play-top-episodes a').getAttribute('href'),
+    '/watch/?show=simpsons&s=12&e=21'
+  );
+  assert.equal(guideDoc.getElementById('play-top-shows'), null);
+  assert.equal(
+    guideDoc.querySelector('.tv-episodes > .tv-show-banner').nextElementSibling.className,
+    'tv-episodes-main'
+  );
+  assert.equal(guideDoc.querySelector('#play-top-episodes').parentElement.id, 'play-top-rail-ep');
+  assert.equal(
+    guideDoc.getElementById('play-top-rail-ep').parentElement.className,
+    'tv-episodes-main'
+  );
+  assert.equal(
+    guideDoc.getElementById('play-top-rail-ep').nextElementSibling.className,
+    'tv-section'
+  );
+  assert.equal(guideDoc.querySelector('.tv-show-banner #play-top-rail-ep'), null);
+
+  applyCounts(guideDoc, counts, { ...env, search: '?show=simpsons&s=12&e=21' });
+  assert.equal(guideDoc.getElementById('play-top-episodes'), null);
+  assert.equal(guideDoc.getElementById('play-top-rail-ep'), null);
 });

@@ -358,6 +358,14 @@ zenius-browser.modal-open .modal {
   outline-offset: 2px;
 }
 
+.zenius-popular-block[hidden] {
+  display: none;
+}
+
+.zenius-popular-block {
+  flex-shrink: 0;
+}
+
 .zenius-secondary-row {
   display: flex;
   align-items: flex-start;

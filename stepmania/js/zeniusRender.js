@@ -7,6 +7,7 @@ import {
 } from './zeniusLibraryStorage.js';
 import { fetchTopSimfilesFromListUrl } from './zeniusFetch.js';
 import { SPOTLIGHT_TOP_N } from './zeniusParsers.js';
+import { loadPopularSongs } from './popularSongs.js';
 
 function escapeHtml(text) {
   return String(text)
@@ -184,6 +185,11 @@ export const ZENIUS_BROWSER_SHADOW_HTML = `      <style>
               <div class="zenius-spotlight" id="zenius-spotlight" hidden>
                 <p class="zenius-spotlight-hint" id="zenius-spotlight-hint" hidden>Loading lists…</p>
                 <div id="zenius-spotlight-sections" class="zenius-spotlight-sections"></div>
+              </div>
+
+              <div class="zenius-popular-block" id="zenius-popular-block" hidden>
+                <span class="zenius-recent-label">Played a lot</span>
+                <div class="zenius-recent-chips" id="zenius-popular-chips" role="list"></div>
               </div>
 
               <div class="zenius-secondary-row" id="zenius-secondary-row">
@@ -665,7 +671,43 @@ export function displayZeniusFavoritesGrid(browser) {
   updateZeniusBrowserLayout(browser);
 }
 
+export function renderZeniusPopularChips(browser) {
+  const block = browser.shadowRoot.getElementById('zenius-popular-block');
+  const wrap = browser.shadowRoot.getElementById('zenius-popular-chips');
+  if (!block || !wrap) return;
+  const token = (browser._popularToken || 0) + 1;
+  browser._popularToken = token;
+  loadPopularSongs(5)
+    .then((entries) => {
+      if (browser._popularToken !== token) return;
+      wrap.replaceChildren();
+      if (!entries.length) {
+        block.hidden = true;
+        return;
+      }
+      block.hidden = false;
+      for (const entry of entries) {
+        const a = document.createElement('a');
+        a.className = 'zenius-recent-chip';
+        a.setAttribute('role', 'listitem');
+        a.setAttribute('data-play-link', 'zenius-popular');
+        a.setAttribute('data-play-name', entry.title);
+        const qs = new URLSearchParams();
+        qs.set('zenius', entry.zeniusUrl);
+        a.href = `${window.location.origin}${window.location.pathname}?${qs.toString()}`;
+        a.textContent = entry.title;
+        a.title = entry.title;
+        wrap.appendChild(a);
+      }
+    })
+    .catch(() => {
+      if (browser._popularToken !== token) return;
+      block.hidden = true;
+    });
+}
+
 export function renderZeniusRecentChips(browser) {
+  renderZeniusPopularChips(browser);
   const wrap = browser.shadowRoot.getElementById('zenius-recent-chips');
   const block = browser.shadowRoot.getElementById('zenius-recent-block');
   if (!wrap || !block) {

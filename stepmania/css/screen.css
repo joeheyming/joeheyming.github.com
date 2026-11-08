@@ -296,6 +296,54 @@ body {
   font-size: 0.85rem;
 }
 
+.sm-home-popular {
+  width: min(100%, 36rem);
+  margin: 0.15rem auto 0;
+  text-align: left;
+}
+
+.sm-home-popular .sm-home-heading {
+  margin: 0;
+}
+
+.sm-home-more {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0 0 0.35rem;
+  padding: 0.2rem 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sm-home-more.is-static {
+  cursor: default;
+}
+
+.sm-home-more-hint {
+  color: var(--accent-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.sm-home-more:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+  border-radius: 0.2rem;
+}
+
+.sm-home-popular .sm-home-chip {
+  font-size: 0.92rem;
+  padding: 0.45rem 0.8rem;
+}
+
 .sm-home-actions {
   display: flex;
   justify-content: center;

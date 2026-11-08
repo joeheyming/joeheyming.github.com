@@ -60,6 +60,29 @@ test('next_app_click records the surface and the app', () => {
   assert.deepEqual(events, [['next_app_click', 'Growth', 'doom_exit:emulator']]);
 });
 
+test('play_link_click records a shortcut, including one inside a shadow root', () => {
+  const dom = load('http://localhost/analytics/', '<!doctype html><html><body></body></html>');
+  const events = [];
+  dom.window.eval(readFileSync(path.join(ROOT, 'analytics.js'), 'utf8'));
+  dom.window.trackEvent = function (name, category, label) {
+    events.push([name, category, label]);
+  };
+  dom.window.document.body.innerHTML =
+    '<a data-play-link="analytics" data-play-name="NES">NES <span>203</span></a>';
+  dom.window.document.querySelector('a').click();
+
+  const host = dom.window.document.createElement('div');
+  const root = host.attachShadow({ mode: 'open' });
+  root.innerHTML = '<a data-play-link="zenius-popular" data-play-name="Gargoyle">Gargoyle</a>';
+  dom.window.document.body.appendChild(host);
+  root.querySelector('a').click();
+
+  assert.deepEqual(events, [
+    ['play_link_click', 'Growth', 'analytics:NES'],
+    ['play_link_click', 'Growth', 'zenius-popular:Gargoyle']
+  ]);
+});
+
 test('doom exit and flavor failure offer emulator, stepmania, and pacman', () => {
   const html = readFileSync(path.join(ROOT, 'doom/index.html'), 'utf8');
   const dom = load('http://localhost/doom/', html);

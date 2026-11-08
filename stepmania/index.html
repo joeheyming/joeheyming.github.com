@@ -421,6 +421,20 @@
           <div id="sm-home" class="sm-home">
             <h3 class="sm-home-title">Pick a song</h3>
             <p id="sm-boot-error" class="sm-boot-error" role="alert" hidden></p>
+            <section class="sm-home-section sm-home-popular" id="sm-home-popular" hidden>
+              <h4 class="sm-home-heading">
+                <button
+                  type="button"
+                  id="sm-home-popular-more"
+                  class="sm-home-more"
+                  aria-expanded="false"
+                >
+                  Played a lot
+                  <span class="sm-home-more-hint" id="sm-home-popular-hint" hidden>Show more</span>
+                </button>
+              </h4>
+              <div id="sm-home-popular-chips" class="sm-home-chips"></div>
+            </section>
             <div class="sm-home-actions">
               <button type="button" id="sm-home-browse" class="sm-home-browse">Browse songs</button>
             </div>

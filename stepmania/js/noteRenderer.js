@@ -139,14 +139,18 @@ export function drawHoldBody(x, headY, endY, options = {}) {
  */
 export function calculateNoteFrameIndex(musicBeat, noteBeat, numFrames = 16) {
   const animateOverBeats = 4;
-  const musicBeatRemainder = musicBeat % animateOverBeats;
+  // JS `%` keeps the dividend's sign. A negative #OFFSET lead-in makes
+  // musicBeat negative, and a negative frame makes drawImage clip the arrow
+  // to nothing until the beat clock crosses 0.
+  const musicBeatRemainder = ((musicBeat % animateOverBeats) + animateOverBeats) % animateOverBeats;
   const percentThroughAnimation = musicBeatRemainder / animateOverBeats;
   const noteFrameIndex = percentThroughAnimation * numFrames;
 
   const beatFraction = noteBeat - Math.floor(noteBeat);
   const frameOffset = beatFraction * numFrames;
 
-  return Math.round(noteFrameIndex + frameOffset) % numFrames;
+  const raw = Math.round(noteFrameIndex + frameOffset);
+  return ((raw % numFrames) + numFrames) % numFrames;
 }
 
 /**
