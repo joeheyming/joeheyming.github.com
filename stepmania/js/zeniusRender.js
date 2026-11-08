@@ -144,6 +144,8 @@ export const ZENIUS_BROWSER_SHADOW_HTML = `      <style>
               </div>
             </div>
 
+            <p class="sr-only" id="search-status" role="status"></p>
+
             <div class="zenius-main-scroll" id="zenius-main-scroll">
               <div class="list-toolbar hidden" id="list-toolbar" aria-label="List options">
                 <label class="list-toolbar-label" for="zenius-sort-select">Sort</label>

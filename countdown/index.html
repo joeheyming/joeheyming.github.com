@@ -189,7 +189,7 @@
 
     <!-- Language Selector -->
     <div class="locale-selector-wrapper">
-      <locale-selector tabindex="0" aria-label="Language"></locale-selector>
+      <locale-selector tabindex="0"></locale-selector>
     </div>
 
     <div class="container">
@@ -205,6 +205,8 @@
           <event-autocomplete
             id="eventAutocomplete"
             tabindex="0"
+            data-initial-focus
+            label="Counting down to"
             placeholder="Search events..."
           ></event-autocomplete>
           <button class="toggle-custom-btn" id="toggleCustomBtn" title="Create custom event">
@@ -283,7 +285,6 @@
         <celebration-video-selector
           id="celebrationVideoSelector"
           tabindex="0"
-          aria-label="Celebration video"
         ></celebration-video-selector>
       </div>
 

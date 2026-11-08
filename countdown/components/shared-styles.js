@@ -26,6 +26,114 @@ export function onClickOutside(element, callback) {
 }
 
 /**
+ * Give a widget first look at keys that start inside it.
+ *
+ * remote.js takes arrows from a focused shadow button during document
+ * capture, before the widget's own listeners run. This listens on window
+ * capture, which runs first. When the handler returns true, the event is
+ * marked so remote.js leaves it alone.
+ *
+ * @param {HTMLElement} host
+ * @param {(event: KeyboardEvent) => boolean} handler
+ * @returns {() => void} cleanup
+ */
+export function claimKeys(host, handler) {
+  const view = host.ownerDocument && host.ownerDocument.defaultView;
+  if (!view) return () => {};
+  const listener = (event) => {
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+    if (!path.includes(host)) return;
+    if (handler(event)) event.heymingHandled = true;
+  };
+  view.addEventListener('keydown', listener, true);
+  return () => view.removeEventListener('keydown', listener, true);
+}
+
+/**
+ * Home and End in an open list jump to the first and last option.
+ *
+ * @param {KeyboardEvent} event
+ * @param {number} length
+ * @returns {number|null}
+ */
+export function homeEndKey(event, length) {
+  if (length <= 0) return null;
+  if (event.key === 'Home') return 0;
+  if (event.key === 'End') return length - 1;
+  return null;
+}
+
+/**
+ * Keys for an open select-only list (WAI-ARIA APG combobox): Up and Down
+ * move, Home and End jump, Enter and Space choose, Escape closes and keeps
+ * focus. Left and Right close the list and let remote.js move focus on.
+ *
+ * @param {HTMLElement} host
+ * @param {{
+ *   isOpen: () => boolean,
+ *   count: () => number,
+ *   highlighted: () => number,
+ *   highlight: (index: number) => void,
+ *   choose: (index: number) => void,
+ *   close: () => void
+ * }} menu
+ * @returns {() => void} cleanup
+ */
+export function selectMenuKeys(host, menu) {
+  return claimKeys(host, (event) => {
+    if (!menu.isOpen() || event.defaultPrevented) return false;
+    if (event.ctrlKey || event.metaKey || event.altKey) return false;
+    const key = event.key;
+    const claim = () => {
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    };
+    if (key === 'Escape') {
+      menu.close();
+      return claim();
+    }
+    if (key === 'Tab') {
+      menu.close();
+      return false;
+    }
+    if (key === 'Enter' || key === ' ') {
+      menu.choose(menu.highlighted());
+      return claim();
+    }
+    const length = menu.count();
+    const edge = homeEndKey(event, length);
+    if (edge !== null) {
+      menu.highlight(edge);
+      return claim();
+    }
+    const next = dropdownArrow(event, menu.highlighted(), length);
+    if (next === null) return false;
+    if (next === 'leave') {
+      menu.close();
+      return false;
+    }
+    menu.highlight(next);
+    return true;
+  });
+}
+
+/** Visually hidden text that screen readers still read. */
+export const srOnlyStyles = `
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+`;
+
+/**
  * Arrow keys inside an open menu. Up and Down move the highlight. Left,
  * Right, and an arrow past either end leave the menu so focus can move.
  *

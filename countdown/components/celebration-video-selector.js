@@ -3,17 +3,22 @@
  * A dropdown for selecting which YouTube video plays during celebration
  */
 import { localeService } from '../i18n/locale-service.js';
-import { dropdownArrow } from './shared-styles.js';
+import { onClickOutside, selectMenuKeys } from './shared-styles.js';
 import YouTubePlayer from './youtube-player.js';
 
 class CelebrationVideoSelector extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open', delegatesFocus: true });
     this.isOpen = false;
+    this._customOpen = false;
+    this._highlighted = 0;
     this._selectedKey = 'CELEBRATION';
     this._customVideoId = null;
     this._ready = false;
+    this._shadowBound = false;
+    this._clickOutsideCleanup = null;
+    this._releaseKeys = null;
   }
 
   static get observedAttributes() {
@@ -22,23 +27,28 @@ class CelebrationVideoSelector extends HTMLElement {
 
   async connectedCallback() {
     if (this.tabIndex < 0) this.tabIndex = 0;
-    this._highlighted = 0;
     await localeService.ready();
     this._ready = true;
 
     this.render();
     this.setupEventListeners();
-    this._bindHostKeys();
 
     // Re-render when locale changes
+    if (this._unsubscribe) this._unsubscribe();
     this._unsubscribe = localeService.subscribe(() => {
+      const refocus = this.shadowRoot.activeElement && this.shadowRoot.activeElement.id;
       this.render();
-      this.setupEventListeners();
+      if (refocus && this.el(refocus)) this.el(refocus).focus();
     });
   }
 
   disconnectedCallback() {
     if (this._unsubscribe) this._unsubscribe();
+    this._unsubscribe = null;
+    if (this._clickOutsideCleanup) this._clickOutsideCleanup();
+    this._clickOutsideCleanup = null;
+    if (this._releaseKeys) this._releaseKeys();
+    this._releaseKeys = null;
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -404,38 +414,54 @@ class CelebrationVideoSelector extends HTMLElement {
           border-radius: 3px;
           font-family: monospace;
         }
+
+        .custom-error {
+          font-size: 0.75rem;
+          color: #fca5a5;
+          margin-top: 6px;
+        }
+
+        .custom-error:empty {
+          display: none;
+        }
       </style>
 
       <div class="label">
-        <span class="label-icon">🎬</span>
-        <span>${localeService.str('ui.celebrationVideo') || 'Celebration Video'}</span>
+        <span class="label-icon" aria-hidden="true">🎬</span>
+        <span id="label">${localeService.str('ui.celebrationVideo') || 'Celebration Video'}</span>
       </div>
 
       <div class="selector-container">
-        <button class="selector-button" id="selectorBtn" aria-haspopup="listbox" aria-expanded="false">
-          <span class="video-emoji">${isCustom ? '🎥' : currentOption.emoji}</span>
+        <button class="selector-button" id="selectorBtn" role="combobox" aria-haspopup="listbox"
+          aria-expanded="false" aria-controls="dropdown" aria-labelledby="label currentName">
+          <span class="video-emoji" aria-hidden="true">${
+            isCustom ? '🎥' : currentOption.emoji
+          }</span>
           <div class="video-info">
-            <div class="video-name">${isCustom ? 'Custom Video' : currentOption.label}</div>
+            <div class="video-name" id="currentName">${
+              isCustom ? 'Custom Video' : currentOption.label
+            }</div>
             <div class="video-artist">${isCustom ? this._customVideoId : currentOption.artist}</div>
           </div>
-          <span class="chevron" id="chevron">▼</span>
+          <span class="chevron" id="chevron" aria-hidden="true">▼</span>
         </button>
-        <button class="custom-btn ${
-          isCustom ? 'active' : ''
-        }" id="customBtn" title="Use custom YouTube video">
-          🔗
+        <button class="custom-btn ${isCustom ? 'active' : ''}" id="customBtn"
+          title="Use custom YouTube video" aria-label="Use custom YouTube video"
+          aria-expanded="false" aria-controls="customInputContainer">
+          <span aria-hidden="true">🔗</span>
         </button>
       </div>
 
-      <div class="dropdown" id="dropdown" role="listbox">
+      <div class="dropdown" id="dropdown" role="listbox" aria-labelledby="label">
         ${options
           .map(
-            (opt) => `
+            (opt, index) => `
           <div class="dropdown-item ${opt.key === this._selectedKey ? 'selected' : ''}"
+               id="video-option-${index}"
                data-key="${opt.key}"
                role="option"
                aria-selected="${opt.key === this._selectedKey}">
-            <span class="video-emoji">${opt.emoji}</span>
+            <span class="video-emoji" aria-hidden="true">${opt.emoji}</span>
             <div class="video-info">
               <div class="video-name">${opt.label}</div>
               <div class="video-artist">${opt.artist}</div>
@@ -444,151 +470,220 @@ class CelebrationVideoSelector extends HTMLElement {
         `
           )
           .join('')}
+        <div class="dropdown-item ${isCustom ? 'selected' : ''}"
+             id="video-option-custom"
+             data-key="CUSTOM"
+             role="option"
+             aria-selected="${isCustom}">
+          <span class="video-emoji" aria-hidden="true">🔗</span>
+          <div class="video-info">
+            <div class="video-name">Custom video…</div>
+            <div class="video-artist">YouTube link or video ID</div>
+          </div>
+        </div>
       </div>
 
-      <div class="custom-input-container" id="customInputContainer">
-        <label class="custom-input-label">Enter YouTube Video ID or URL</label>
+      <div class="custom-input-container" id="customInputContainer" role="group"
+        aria-labelledby="customLabel">
+        <label class="custom-input-label" id="customLabel" for="customInput">Enter YouTube Video ID or URL</label>
         <div class="custom-input-row">
-          <input type="text" 
-                 class="custom-input" 
-                 id="customInput" 
+          <input type="text"
+                 class="custom-input"
+                 id="customInput"
+                 aria-describedby="customHelp customError"
                  placeholder="e.g., dQw4w9WgXcQ or full URL"
                  value="${this._customVideoId || ''}">
           <button class="apply-btn" id="applyBtn">Apply</button>
         </div>
-        <div class="help-text">
+        <div class="custom-error" id="customError" role="alert"></div>
+        <div class="help-text" id="customHelp">
           Paste a YouTube URL like <code>youtube.com/watch?v=xxx</code> or just the video ID
         </div>
       </div>
     `;
+    this.isOpen = false;
+    this._customOpen = false;
   }
 
+  el(id) {
+    return this.shadowRoot.getElementById(id);
+  }
+
+  items() {
+    return [...this.shadowRoot.querySelectorAll('#dropdown .dropdown-item')];
+  }
+
+  // Listeners live on the shadow root and the host, so a locale re-render
+  // does not add a second copy.
   setupEventListeners() {
-    const btn = this.shadowRoot.getElementById('selectorBtn');
-    const dropdown = this.shadowRoot.getElementById('dropdown');
-    const chevron = this.shadowRoot.getElementById('chevron');
-    const customBtn = this.shadowRoot.getElementById('customBtn');
-    const customInputContainer = this.shadowRoot.getElementById('customInputContainer');
-    const customInput = this.shadowRoot.getElementById('customInput');
-    const applyBtn = this.shadowRoot.getElementById('applyBtn');
-
-    let customOpen = false;
-
-    const closeAll = () => {
-      this.isOpen = false;
-      customOpen = false;
-      dropdown.classList.remove('open');
-      chevron.classList.remove('open');
-      customInputContainer.classList.remove('open');
-      btn.setAttribute('aria-expanded', 'false');
-    };
-
-    btn.addEventListener('click', () => {
-      customOpen = false;
-      customInputContainer.classList.remove('open');
-      this.isOpen = !this.isOpen;
-      dropdown.classList.toggle('open', this.isOpen);
-      chevron.classList.toggle('open', this.isOpen);
-      btn.setAttribute('aria-expanded', this.isOpen);
-      if (this.isOpen) this._highlightSelected();
-    });
-
-    customBtn.addEventListener('click', () => {
-      this.isOpen = false;
-      dropdown.classList.remove('open');
-      chevron.classList.remove('open');
-      customOpen = !customOpen;
-      customInputContainer.classList.toggle('open', customOpen);
-    });
-
-    dropdown.addEventListener('click', (e) => {
-      const item = e.target.closest('.dropdown-item');
-      if (item) {
-        const key = item.dataset.key;
-        this._selectedKey = key;
-        this._customVideoId = null;
-        closeAll();
-        this.updateDisplay();
-        this._dispatchChange();
-        this._savePreference();
-      }
-    });
-
-    applyBtn.addEventListener('click', () => {
-      const value = customInput.value.trim();
-      if (value) {
-        const videoId = this._extractVideoId(value);
-        if (videoId) {
-          this._customVideoId = videoId;
-          this._selectedKey = 'CUSTOM';
-          closeAll();
-          this.updateDisplay();
-          this._dispatchChange();
-          this._savePreference();
+    if (!this._shadowBound) {
+      this._shadowBound = true;
+      this.shadowRoot.addEventListener('click', (event) => {
+        const target = event.target;
+        const item = target.closest('#dropdown .dropdown-item');
+        if (item) {
+          this.choose(this.items().indexOf(item));
+        } else if (target.closest('#selectorBtn')) {
+          this.isOpen ? this.closeList() : this.openList();
+        } else if (target.closest('#customBtn')) {
+          this._customOpen ? this.closeCustom() : this.openCustom();
+        } else if (target.closest('#applyBtn')) {
+          this.applyCustom();
         }
-      }
-    });
+      });
 
-    customInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        applyBtn.click();
-      }
-    });
+      this.shadowRoot.addEventListener('keydown', (event) => {
+        const inCustom = event.target.closest && event.target.closest('#customInputContainer');
+        if (inCustom && event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          this.closeCustom();
+          this.el('selectorBtn').focus();
+          return;
+        }
+        if (event.target.id === 'customInput' && event.key === 'Enter') {
+          event.preventDefault();
+          event.stopPropagation();
+          this.applyCustom();
+          return;
+        }
+        if (event.altKey && event.key === 'ArrowDown' && !this.isOpen && !inCustom) {
+          event.preventDefault();
+          this.openList();
+        }
+      });
 
-    // Close on outside click
-    document.addEventListener('click', (e) => {
-      if (!this.contains(e.target) && (this.isOpen || customOpen)) {
-        closeAll();
-      }
+      // OK on a remote clicks the focused host, not the control inside it.
+      this.addEventListener('click', (event) => {
+        if (event.composedPath()[0] !== this) return;
+        if (this._customOpen && this.shadowRoot.activeElement === this.el('customInput')) {
+          this.applyCustom();
+        } else if (!this.isOpen) {
+          this.openList();
+        } else {
+          this.choose(this._highlighted);
+        }
+      });
+
+      this.addEventListener('focusout', () => {
+        setTimeout(() => {
+          if (this.shadowRoot.activeElement) return;
+          if (this.isOpen) this.closeList();
+        }, 0);
+      });
+    }
+
+    if (this._clickOutsideCleanup) this._clickOutsideCleanup();
+    this._clickOutsideCleanup = onClickOutside(this, () => {
+      if (this.isOpen) this.closeList();
+      if (this._customOpen) this.closeCustom();
+    });
+    if (this._releaseKeys) this._releaseKeys();
+    this._releaseKeys = selectMenuKeys(this, {
+      isOpen: () => this.isOpen,
+      count: () => this.items().length,
+      highlighted: () => this._highlighted,
+      highlight: (index) => {
+        this._highlighted = index;
+        this._paintHighlight();
+      },
+      choose: (index) => this.choose(index),
+      close: () => this.closeList()
     });
   }
 
-  // Arrow navigation cannot enter this shadow tree. OK clicks the host.
-  _bindHostKeys() {
-    if (this._hostBound) return;
-    this._hostBound = true;
-    this.addEventListener('click', (event) => {
-      if (event.composedPath()[0] !== this) return;
-      const btn = this.shadowRoot.getElementById('selectorBtn');
-      if (!this.isOpen) {
-        btn?.click();
-        return;
-      }
-      const item = this.shadowRoot.querySelectorAll('#dropdown .dropdown-item')[this._highlighted];
-      if (item) item.click();
-      else btn?.click();
-    });
-    this.addEventListener('keydown', (event) => {
-      if (!this.isOpen) return;
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        this.shadowRoot.getElementById('selectorBtn')?.click();
-        return;
-      }
-      const items = [...this.shadowRoot.querySelectorAll('#dropdown .dropdown-item')];
-      const next = dropdownArrow(event, this._highlighted, items.length);
-      if (next === null) return;
-      if (next === 'leave') {
-        this.shadowRoot.getElementById('selectorBtn')?.click();
-        return;
-      }
-      this._highlighted = next;
-      this._paintHighlight(items);
-    });
+  openList() {
+    this.closeCustom();
+    this.isOpen = true;
+    this.el('dropdown').classList.add('open');
+    this.el('chevron').classList.add('open');
+    this.el('selectorBtn').setAttribute('aria-expanded', 'true');
+    this._highlightSelected();
+  }
+
+  closeList() {
+    this.isOpen = false;
+    this.el('dropdown').classList.remove('open');
+    this.el('chevron').classList.remove('open');
+    const btn = this.el('selectorBtn');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.removeAttribute('aria-activedescendant');
+    this.updateDisplay();
+  }
+
+  openCustom() {
+    if (this.isOpen) this.closeList();
+    this._customOpen = true;
+    this.el('customInputContainer').classList.add('open');
+    this.el('customBtn').setAttribute('aria-expanded', 'true');
+    this.el('customError').textContent = '';
+    const input = this.el('customInput');
+    input.focus();
+    if (typeof input.select === 'function') input.select();
+  }
+
+  closeCustom() {
+    this._customOpen = false;
+    this.el('customInputContainer').classList.remove('open');
+    this.el('customBtn').setAttribute('aria-expanded', 'false');
+  }
+
+  choose(index) {
+    const item = this.items()[index];
+    if (!item) {
+      this.closeList();
+      return;
+    }
+    const key = item.dataset.key;
+    if (key === 'CUSTOM') {
+      this.openCustom();
+      return;
+    }
+    this._selectedKey = key;
+    this._customVideoId = null;
+    this.closeList();
+    this._dispatchChange();
+    this._savePreference();
+  }
+
+  applyCustom() {
+    const input = this.el('customInput');
+    const error = this.el('customError');
+    const videoId = this._extractVideoId(input.value.trim());
+    if (!videoId) {
+      error.textContent = 'That is not a YouTube link or 11-character video ID.';
+      input.setAttribute('aria-invalid', 'true');
+      input.focus();
+      return;
+    }
+    error.textContent = '';
+    input.removeAttribute('aria-invalid');
+    this._customVideoId = videoId;
+    this._selectedKey = 'CUSTOM';
+    this.closeCustom();
+    this.updateDisplay();
+    this._dispatchChange();
+    this._savePreference();
+    this.el('selectorBtn').focus();
   }
 
   _highlightSelected() {
-    const items = [...this.shadowRoot.querySelectorAll('#dropdown .dropdown-item')];
+    const items = this.items();
     const selected = items.findIndex((item) => item.classList.contains('selected'));
     this._highlighted = selected >= 0 ? selected : 0;
-    this._paintHighlight(items);
+    this._paintHighlight();
   }
 
-  _paintHighlight(items) {
+  // While open, aria-selected follows the highlight (APG select-only combobox).
+  _paintHighlight() {
+    const items = this.items();
     items.forEach((item, index) => {
-      item.classList.toggle('highlighted', index === this._highlighted);
+      const active = index === this._highlighted;
+      item.classList.toggle('highlighted', active);
+      item.setAttribute('aria-selected', String(active));
     });
     const current = items[this._highlighted];
+    if (current) this.el('selectorBtn').setAttribute('aria-activedescendant', current.id);
     if (current && typeof current.scrollIntoView === 'function') {
       current.scrollIntoView({ block: 'nearest' });
     }
@@ -668,7 +763,7 @@ class CelebrationVideoSelector extends HTMLElement {
     items.forEach((item) => {
       const isSelected = item.dataset.key === this._selectedKey;
       item.classList.toggle('selected', isSelected);
-      item.setAttribute('aria-selected', isSelected);
+      if (!this.isOpen) item.setAttribute('aria-selected', String(isSelected));
     });
   }
 }

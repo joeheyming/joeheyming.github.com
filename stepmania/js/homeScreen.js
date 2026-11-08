@@ -226,7 +226,12 @@ function bindHomeArrows() {
 function focusHomeBrowse() {
   if (!homeMenuOwnsArrows()) return;
   const browse = document.getElementById('sm-home-browse');
-  if (browse) browse.focus();
+  if (!browse) return;
+  try {
+    browse.focus({ preventScroll: true, focusVisible: true });
+  } catch {
+    browse.focus();
+  }
 }
 
 /**
@@ -340,6 +345,7 @@ export function hideHomeScreen() {
   const home = document.getElementById('sm-home');
   const gameArea = document.getElementById('sm-micro');
   if (home) {
+    if (home.contains(document.activeElement)) document.activeElement.blur();
     home.hidden = true;
   }
   if (gameArea) {

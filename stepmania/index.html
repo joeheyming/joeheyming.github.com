@@ -436,7 +436,9 @@
               <div id="sm-home-popular-chips" class="sm-home-chips"></div>
             </section>
             <div class="sm-home-actions">
-              <button type="button" id="sm-home-browse" class="sm-home-browse">Browse songs</button>
+              <button type="button" id="sm-home-browse" class="sm-home-browse" data-initial-focus>
+                Browse songs
+              </button>
             </div>
             <div class="sm-home-lists">
               <section class="sm-home-section">
@@ -604,11 +606,11 @@
            cross-axis size, and `lg:overflow-y-auto` actually scrolls. -->
       <div
         class="score-panel w-full lg:w-80 xl:w-96 lg:flex-shrink-0 bg-surface-0/30 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-hairline-accent lg:min-h-0 lg:max-h-full lg:overflow-y-auto"
-        tabindex="0"
+        role="region"
         aria-label="Score and controls"
       >
         <!-- Score Display -->
-        <div class="mb-6 score-compact">
+        <div class="mb-6 score-compact" hidden>
           <h2 class="text-xl font-bold text-text-1 mb-3 text-center">Score</h2>
           <score-panel id="score-panel"></score-panel>
         </div>

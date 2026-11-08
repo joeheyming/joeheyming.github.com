@@ -5,10 +5,28 @@ import {
   onClickOutside,
   dropdownStyles,
   chevronStyles,
-  dropdownArrow
+  dropdownArrow,
+  claimKeys,
+  homeEndKey,
+  srOnlyStyles
 } from './components/shared-styles.js';
 
 const FILTER_DEBOUNCE_MS = 120;
+
+function escapeAttr(value) {
+  return String(value).replace(/[&"<>]/g, (c) =>
+    c === '&' ? '&amp;' : c === '"' ? '&quot;' : c === '<' ? '&lt;' : '&gt;'
+  );
+}
+
+// "new years" matches "New Year's Day". Apostrophes and extra spaces stay out of the comparison.
+function searchText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/['’ʼ`´]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 /**
  * Event Autocomplete Web Component
@@ -17,7 +35,7 @@ const FILTER_DEBOUNCE_MS = 120;
 class EventAutocomplete extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open', delegatesFocus: true });
     this.events = [];
     this.filteredEvents = [];
     this.highlightedIndex = 0;
@@ -26,6 +44,9 @@ class EventAutocomplete extends HTMLElement {
     this._clickOutsideCleanup = null;
     this._filterTimer = null;
     this._pendingFilterQuery = null;
+    // Painted row order. Category groups do not follow filteredEvents.
+    this.visibleEvents = null;
+    this._releaseKeys = null;
   }
 
   async connectedCallback() {
@@ -45,6 +66,9 @@ class EventAutocomplete extends HTMLElement {
       this.updateInputDisplay();
     }
 
+    // The page focuses this host before the field exists. Typing belongs in the field.
+    this.focusSearch();
+
     // Subscribe to locale changes
     this._localeUnsubscribe = localeService.subscribe(() => {
       this.renderDropdown();
@@ -58,6 +82,8 @@ class EventAutocomplete extends HTMLElement {
     this.cancelPendingFilter();
     if (this._localeUnsubscribe) this._localeUnsubscribe();
     if (this._clickOutsideCleanup) this._clickOutsideCleanup();
+    if (this._releaseKeys) this._releaseKeys();
+    this._releaseKeys = null;
   }
 
   // Get localized UI string from centralized strings
@@ -289,22 +315,44 @@ class EventAutocomplete extends HTMLElement {
           background: rgba(239, 68, 68, 0.2);
           color: #ef4444;
         }
+        ${srOnlyStyles}
       </style>
 
       <div class="input-wrapper">
         <input type="text" placeholder="${
           this.getAttribute('placeholder') || 'Search events...'
-        }" autocomplete="off" />
-        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        }" autocomplete="off" role="combobox" aria-autocomplete="list"
+          aria-expanded="false" aria-controls="eventListbox" aria-label="${
+            escapeAttr(this.getAttribute('label') || 'Event to count down to')
+          }" />
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M6 9l6 6 6-6"/>
         </svg>
       </div>
-      <div class="dropdown"></div>
+      <div class="dropdown" id="eventListbox" role="listbox" aria-label="Events"></div>
+      <div class="sr-only" role="status" aria-live="polite"></div>
     `;
 
     this.input = this.shadowRoot.querySelector('input');
     this.dropdown = this.shadowRoot.querySelector('.dropdown');
     this.chevron = this.shadowRoot.querySelector('.chevron');
+    this.status = this.shadowRoot.querySelector('[role="status"]');
+  }
+
+  // The active option is announced through aria-activedescendant. Focus
+  // stays in the field, so typing keeps working.
+  syncActiveOption() {
+    if (!this.input) return;
+    const active = this.isOpen ? this.dropdown.querySelector('.item.highlighted') : null;
+    if (active && active.id) this.input.setAttribute('aria-activedescendant', active.id);
+    else this.input.removeAttribute('aria-activedescendant');
+  }
+
+  announceCount() {
+    if (!this.status || !this.isOpen) return;
+    const count = this.menuEvents().length;
+    this.status.textContent =
+      count === 0 ? 'No events found' : count === 1 ? '1 event' : `${count} events`;
   }
 
   groupEventsByCategory(events) {
@@ -321,16 +369,19 @@ class EventAutocomplete extends HTMLElement {
     if (!this.dropdown) return;
 
     if (this.filteredEvents.length === 0) {
-      this.dropdown.innerHTML = '<div class="no-results">No events found</div>';
+      this.visibleEvents = [];
+      this.dropdown.innerHTML = '<div class="no-results" role="presentation">No events found</div>';
+      this.syncActiveOption();
       return;
     }
 
     // Group events by category
     const grouped = this.groupEventsByCategory(this.filteredEvents);
 
-    // Render with category headers
+    // Render with category headers. The highlight follows this painted
+    // order, which is not the date order stored in filteredEvents.
     let html = '';
-    let globalIndex = 0;
+    const visibleEvents = [];
 
     // Custom events first if any
     const categoryOrder = [
@@ -349,9 +400,14 @@ class EventAutocomplete extends HTMLElement {
       const events = grouped[category];
       if (!events || events.length === 0) return;
 
-      html += `<div class="category-header">${this.getCategoryLabel(category)}</div>`;
+      html += `<div role="group" aria-labelledby="cat-${category}">`;
+      html += `<div class="category-header" id="cat-${category}" role="presentation">${this.getCategoryLabel(
+        category
+      )}</div>`;
 
       events.forEach((event) => {
+        const index = visibleEvents.length;
+        visibleEvents.push(event);
         const isCustom = event.category === 'custom';
         const eventDateObj = new Date(event.date);
         const formattedDate = Number.isFinite(eventDateObj.getTime())
@@ -361,50 +417,60 @@ class EventAutocomplete extends HTMLElement {
               year: 'numeric'
             }).format(eventDateObj)
           : '';
+        const highlighted = index === this.highlightedIndex;
+        const label = this.getEventLabel(event);
         html += `
-          <div class="item${globalIndex === this.highlightedIndex ? ' highlighted' : ''}${
+          <div class="item${highlighted ? ' highlighted' : ''}${
           this.selectedEvent?.id === event.id ? ' selected' : ''
-        }" data-id="${event.id}" data-index="${globalIndex}">
-            <span class="emoji">${event.emoji}</span>
+        }" id="event-option-${index}" role="option" aria-selected="${highlighted}"
+            data-id="${event.id}" data-index="${index}">
+            <span class="emoji" aria-hidden="true">${event.emoji}</span>
             <div class="info">
-              <div class="name">${this.getEventLabel(event)}</div>
+              <div class="name">${label}</div>
               <div class="date">${formattedDate}</div>
             </div>
             <span class="days-badge">${this.getDaysAway(event.date)}</span>
             ${
               isCustom
-                ? `<button class="delete-btn" data-delete-id="${event.id}" title="Delete">✕</button>`
+                ? `<button class="delete-btn" data-delete-id="${
+                    event.id
+                  }" tabindex="-1" aria-label="Delete ${escapeAttr(
+                    label
+                  )}" title="Delete">✕</button>`
                 : ''
             }
           </div>
         `;
-        globalIndex++;
       });
+      html += '</div>';
     });
 
+    this.visibleEvents = visibleEvents;
     this.dropdown.innerHTML = html;
+    this.syncActiveOption();
   }
 
   filterEvents(query) {
     this.cancelPendingFilter();
     const sorted = [...this.events].sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
 
-    if (!query.trim()) {
+    const queryText = searchText(query);
+    if (!queryText) {
       this.filteredEvents = sorted;
     } else {
-      const lowerQuery = query.toLowerCase();
       this.filteredEvents = sorted.filter((event) => {
-        const localizedLabel = this.getEventLabel(event).toLowerCase();
+        const localizedLabel = searchText(this.getEventLabel(event));
         return (
-          event.label.toLowerCase().includes(lowerQuery) ||
-          event.name.toLowerCase().includes(lowerQuery) ||
-          localizedLabel.includes(lowerQuery)
+          searchText(event.label).includes(queryText) ||
+          searchText(event.name).includes(queryText) ||
+          localizedLabel.includes(queryText)
         );
       });
     }
 
     this.highlightedIndex = this.filteredEvents.length > 0 ? 0 : -1;
     this.renderDropdown();
+    if (queryText) this.announceCount();
   }
 
   scheduleFilter(query) {
@@ -439,10 +505,81 @@ class EventAutocomplete extends HTMLElement {
     this.isOpen = true;
     this.dropdown.classList.add('open');
     this.chevron.classList.add('open');
+    this.input.setAttribute('aria-expanded', 'true');
     // Show all events when opening - user can type to filter
     if (resetFilter) {
       this.filterEvents('');
+      this.highlightSelected();
     }
+    this.syncActiveOption();
+    this.announceCount();
+  }
+
+  menuEvents() {
+    return this.visibleEvents || this.filteredEvents;
+  }
+
+  highlightedEvent() {
+    const events = this.menuEvents();
+    if (this.highlightedIndex < 0 || this.highlightedIndex >= events.length) return null;
+    return events[this.highlightedIndex] || null;
+  }
+
+  highlightSelected() {
+    const events = this.menuEvents();
+    if (!events.length) return;
+    const selected = this.selectedEvent
+      ? events.findIndex((event) => event.id === this.selectedEvent.id)
+      : -1;
+    const next = selected >= 0 ? selected : 0;
+    if (next !== this.highlightedIndex) {
+      this.highlightedIndex = next;
+      this.renderDropdown();
+    }
+    this.scrollToHighlighted();
+  }
+
+  // Arrows and OK follow the painted rows. The listener is on window
+  // during capture so a focused shadow input cannot lose the arrow to
+  // page focus movement before this menu sees it.
+  handleMenuKey(event) {
+    if (!this.isOpen || event.defaultPrevented) return false;
+    if (event.ctrlKey || event.metaKey || event.altKey) return false;
+    const key = event.key;
+    if (key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.close();
+      return true;
+    }
+    // Left and Right move the caret in the field. remote.js moves focus
+    // once the caret is already at that end.
+    const inField = this.shadowRoot.activeElement === this.input;
+    if ((key === 'ArrowLeft' || key === 'ArrowRight') && inField) return false;
+    if (key === 'ArrowUp' || key === 'ArrowDown' || key === 'Enter') {
+      this.flushPendingFilter();
+    }
+    if (key === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      const choice = this.highlightedEvent();
+      if (choice) this.selectEvent(choice.id);
+      return true;
+    }
+    const jump = (key === 'Home' || key === 'End') && !inField;
+    const edge = jump ? homeEndKey(event, this.menuEvents().length) : null;
+    const next =
+      edge !== null ? edge : dropdownArrow(event, this.highlightedIndex, this.menuEvents().length);
+    if (next === null) return false;
+    if (next === 'leave') {
+      this.close();
+      return false;
+    }
+    event.preventDefault();
+    this.highlightedIndex = next;
+    this.renderDropdown();
+    this.scrollToHighlighted();
+    return true;
   }
 
   close() {
@@ -450,7 +587,9 @@ class EventAutocomplete extends HTMLElement {
     this.isOpen = false;
     this.dropdown.classList.remove('open');
     this.chevron.classList.remove('open');
+    this.input.setAttribute('aria-expanded', 'false');
     this.highlightedIndex = 0;
+    this.syncActiveOption();
     // Restore selected event text if nothing new was selected
     this.updateInputDisplay();
   }
@@ -472,6 +611,27 @@ class EventAutocomplete extends HTMLElement {
     }
   }
 
+  focusSearch() {
+    if (!this.input) return;
+    const view = this.ownerDocument && this.ownerDocument.defaultView;
+    const active = view && view.document.activeElement;
+    if (active === this) this.input.focus();
+  }
+
+  // A letter typed while the host itself is focused never reaches the inner field.
+  takeTypedKey(event) {
+    if (!this.input || !event.key || event.key.length !== 1) return false;
+    if (event.metaKey || event.ctrlKey || event.altKey) return false;
+    if (this.shadowRoot.activeElement === this.input) return false;
+    event.preventDefault();
+    this._suppressSelectAll = true;
+    this.input.focus();
+    this.input.value = event.key;
+    this.input.setSelectionRange(event.key.length, event.key.length);
+    this.input.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  }
+
   scrollToHighlighted() {
     const highlighted = this.dropdown.querySelector('.highlighted');
     if (highlighted) {
@@ -486,6 +646,11 @@ class EventAutocomplete extends HTMLElement {
     // Focus selects the text. It does not open the list: an arrow must be
     // able to leave, and only Enter, Space, or OK opens the menu.
     this.input.addEventListener('focus', () => {
+      if (this._suppressSelectAll) {
+        this._suppressSelectAll = false;
+        shouldSelectAll = false;
+        return;
+      }
       shouldSelectAll = true;
       setTimeout(() => {
         if (shouldSelectAll) {
@@ -520,6 +685,11 @@ class EventAutocomplete extends HTMLElement {
 
     // Keyboard navigation - let browser handle modifier keys (Ctrl+A, Cmd+C, etc.)
     this.input.addEventListener('keydown', (e) => {
+      if (e.altKey && e.key === 'ArrowDown' && !this.isOpen) {
+        e.preventDefault();
+        this.open();
+        return;
+      }
       // Allow all modifier key combinations (Ctrl, Cmd, Alt) to work normally
       if (e.ctrlKey || e.metaKey || e.altKey) {
         return;
@@ -527,10 +697,6 @@ class EventAutocomplete extends HTMLElement {
 
       // User is typing without modifiers, don't auto-select on next focus
       shouldSelectAll = false;
-
-      if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
-        this.flushPendingFilter();
-      }
 
       // A closed field lets arrows move focus. Enter and Space open it.
       if (!this.isOpen && (e.key === 'Enter' || e.key === ' ')) {
@@ -543,75 +709,64 @@ class EventAutocomplete extends HTMLElement {
         return;
       }
 
-      if (
-        this.isOpen &&
-        (e.key === 'ArrowUp' ||
-          e.key === 'ArrowDown' ||
-          e.key === 'ArrowLeft' ||
-          e.key === 'ArrowRight')
-      ) {
-        const next = dropdownArrow(e, this.highlightedIndex, this.filteredEvents.length);
-        if (next === 'leave') {
-          this.close();
-          return;
-        }
-        if (typeof next === 'number') {
-          this.highlightedIndex = next;
-          this.renderDropdown();
-          this.scrollToHighlighted();
-        }
-        return;
-      }
+      if (this.handleMenuKey(e)) return;
 
-      switch (e.key) {
-        case 'Enter':
-          e.preventDefault();
-          if (this.highlightedIndex >= 0 && this.filteredEvents[this.highlightedIndex]) {
-            this.selectEvent(this.filteredEvents[this.highlightedIndex].id);
-          }
-          break;
-        case 'Escape':
-          this.close();
-          this.input.blur();
-          break;
-        case 'Tab':
-          this.close();
-          break;
-      }
+      if (e.key === 'Tab') this.close();
     });
 
     // Click outside to close (with cleanup)
+    if (this._clickOutsideCleanup) this._clickOutsideCleanup();
     this._clickOutsideCleanup = onClickOutside(this, () => {
       if (this.isOpen) this.close();
     });
 
-    // OK on a remote clicks this field, not the input inside it.
-    // That click opens the list. A second OK chooses the highlighted event.
-    // Left and Right do not change the event.
+    if (this._releaseKeys) this._releaseKeys();
+    this._releaseKeys = claimKeys(this, (event) => this.handleMenuKey(event));
+
+    // Listeners on the host survive a re-render, so they are added once.
+    if (!this._hostBound) {
+      this._hostBound = true;
+      this.bindHostListeners();
+    }
+
+    this.setupDropdownListeners();
+  }
+
+  bindHostListeners() {
+    // Focus moving to another control closes the list. Wait a tick so a
+    // mouse click on a row is not lost while focus settles.
+    this.addEventListener('focusout', () => {
+      setTimeout(() => {
+        if (this.isOpen && !this.shadowRoot.activeElement) this.close();
+      }, 0);
+    });
+
+    // OK on a remote clicks this field. The click's first target is often
+    // the input inside the shadow tree, not the host. A click on a row
+    // still belongs to that row.
     this.addEventListener('click', (event) => {
-      if (event.composedPath()[0] !== this) return;
+      const origin = event.composedPath()[0];
+      if (!origin || origin.nodeType !== 1) return;
+      if (origin.closest && origin.closest('.item, .delete-btn, .dropdown')) return;
       if (!this.isOpen) {
         this.open();
         return;
       }
-      const choice = this.filteredEvents[this.highlightedIndex];
+      // A mouse click on the text places the caret. The remote's OK is a
+      // click on the host, or a click that did not come from the mouse.
+      if (origin === this.input && event.isTrusted && event.detail > 0) return;
+      const choice = this.highlightedEvent();
       if (choice) this.selectEvent(choice.id);
       else this.close();
     });
 
     this.addEventListener('keydown', (event) => {
-      if (!this.isOpen || event.defaultPrevented) return;
-      const next = dropdownArrow(event, this.highlightedIndex, this.filteredEvents.length);
-      if (next === null) return;
-      if (next === 'leave') {
-        this.close();
-        return;
-      }
-      this.highlightedIndex = next;
-      this.renderDropdown();
-      this.scrollToHighlighted();
+      if (this.takeTypedKey(event)) return;
+      this.handleMenuKey(event);
     });
+  }
 
+  setupDropdownListeners() {
     // Dropdown item interactions
     this.dropdown.addEventListener('click', (e) => {
       // Check if delete button was clicked

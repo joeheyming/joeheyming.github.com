@@ -190,6 +190,10 @@ class ScorePanelElement extends HTMLElementBase {
   connectedCallback() {
     this.render();
     adoptSharedStyles(this.shadowRoot);
+    // The menu loads without the play engine, so this block stays hidden
+    // until a song actually brings the score in.
+    const block = this.closest('.score-compact');
+    if (block) block.hidden = false;
   }
 
   /**
@@ -248,11 +252,16 @@ class ScorePanelElement extends HTMLElementBase {
           font-size: 1.875rem;
           font-weight: 700;
           text-align: center;
-          background: linear-gradient(to right, var(--sm-percent-lo), var(--sm-percent-hi));
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
+          color: var(--sm-percent-hi, var(--text-1));
           margin-bottom: 0.75rem;
+        }
+        @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+          .percent-score {
+            background: linear-gradient(to right, var(--sm-percent-lo), var(--sm-percent-hi));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+          }
         }
         .score-list {
           display: flex;

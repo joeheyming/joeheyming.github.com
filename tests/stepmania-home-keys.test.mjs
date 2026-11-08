@@ -98,6 +98,7 @@ test('home screen arrows move between controls and do not step', async () => {
   const { InputManager } = await import(INPUT);
 
   bindHomeScreen();
+  assert.equal(window.document.activeElement.id, 'sm-home-browse');
   const manager = new InputManager({ forTests: true, storage: window.localStorage });
   const steps = [];
   const toggles = [];

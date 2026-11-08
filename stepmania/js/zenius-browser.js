@@ -18,6 +18,7 @@ import {
   updateZeniusBrowserLayout
 } from './zeniusRender.js';
 import { formatLoadError } from './songLoader.js';
+import { matchesSearchText } from './searchText.js';
 
 /**
  * Letters stay in the field so they don't hit game shortcuts. Arrows,
@@ -476,7 +477,7 @@ class ZeniusBrowserElement extends HTMLElement {
       const currentContent = this.cache.get(currentUrl);
       const items = currentContent?.items || [];
       items.forEach((item) => {
-        const matchesSearch = item.name.toLowerCase().includes(query.toLowerCase());
+        const matchesSearch = matchesSearchText(item.name, query);
         if (item.type === 'simfile' && matchesSearch) {
           searchResults.push({ ...item, sourceUrl: currentUrl });
         }
@@ -486,7 +487,7 @@ class ZeniusBrowserElement extends HTMLElement {
       this.cache.forEach((content, url) => {
         const items = content?.items || [];
         items.forEach((item) => {
-          if (item.name.toLowerCase().includes(query.toLowerCase())) {
+          if (matchesSearchText(item.name, query)) {
             searchResults.push({ ...item, sourceUrl: url });
           }
         });
@@ -494,6 +495,13 @@ class ZeniusBrowserElement extends HTMLElement {
     }
 
     this.displaySearchResults(searchResults, this.currentPath);
+    this.announceResultCount(searchResults.length);
+  }
+
+  /** @param {number} count */
+  announceResultCount(count) {
+    const status = this.shadowRoot.getElementById('search-status');
+    if (status) status.textContent = count === 1 ? '1 result' : `${count} results`;
   }
 
   /**
@@ -585,10 +593,12 @@ class ZeniusBrowserElement extends HTMLElement {
           }”. Try other spellings or use the Category tab.`
         );
         this.shadowRoot.getElementById('item-count').textContent = '0 results';
+        this.announceResultCount(0);
         this.shadowRoot.getElementById('current-path').textContent = 'Search (no matches)';
       } else {
         this.displaySearchResults(results);
         this.shadowRoot.getElementById('item-count').textContent = `${results.length} results`;
+        this.announceResultCount(results.length);
         this.shadowRoot.getElementById('current-path').textContent = `Search: “${
           songTitle || songArtist
         }”`;

@@ -55,6 +55,16 @@ function saveRecent(entry) {
   }
 }
 
+function deepActiveElement() {
+  let node = document.activeElement;
+  let guard = 0;
+  while (node && node.shadowRoot && node.shadowRoot.activeElement && guard < 8) {
+    node = node.shadowRoot.activeElement;
+    guard += 1;
+  }
+  return node instanceof HTMLElement ? node : null;
+}
+
 // ---------- The web component -------------------------------------------
 
 class SongBrowserElement extends HTMLElement {
@@ -77,20 +87,22 @@ class SongBrowserElement extends HTMLElement {
     this._curated = null;
     /** Set by the engine via `setOnError`. */
     this._onError = null;
+    /** @type {HTMLElement | null} */
+    this._previouslyFocused = null;
     /** Save handler bound for outside-click close. */
     this._onBackdropClick = (ev) => {
       if (ev.target === this._backdrop) this.close();
     };
-    /** Esc-to-close handler. */
-    this._onKeyDown = (ev) => {
-      if (ev.key === 'Escape' && !this.hidden) this.close();
-    };
+    this._onKeyDown = (ev) => this._handleKeyDown(ev);
+    this._onTabKey = (ev) => this._handleTabKey(ev);
   }
 
   connectedCallback() {
+    this.hidden = true;
     this.render();
     this.bindEvents();
-    this.hidden = true;
+    window.removeEventListener('keydown', this._onTabKey, true);
+    window.addEventListener('keydown', this._onTabKey, true);
     this._loadCurated();
     this._renderRecent();
   }
@@ -98,6 +110,7 @@ class SongBrowserElement extends HTMLElement {
   disconnectedCallback() {
     if (this._searchAbort) this._searchAbort.abort();
     document.removeEventListener('keydown', this._onKeyDown);
+    window.removeEventListener('keydown', this._onTabKey, true);
   }
 
   setOnError(fn) {
@@ -105,17 +118,100 @@ class SongBrowserElement extends HTMLElement {
   }
 
   open() {
+    if (this.hidden) {
+      const active = deepActiveElement();
+      if (!active || !this.shadowRoot.contains(active)) this._previouslyFocused = active;
+    }
     this.hidden = false;
     document.addEventListener('keydown', this._onKeyDown);
-    requestAnimationFrame(() => {
-      const search = this.shadowRoot.getElementById('search-input');
-      if (search) search.focus();
-    });
+    // The search field is in the Internet Archive panel, which stays hidden
+    // until that tab is selected. Focusing it while hidden does nothing.
+    this._activateTab('ia');
+    const search = this.shadowRoot.getElementById('search-input');
+    if (search) search.focus();
   }
 
   close() {
+    const wasOpen = !this.hidden;
     this.hidden = true;
     document.removeEventListener('keydown', this._onKeyDown);
+    if (wasOpen) this._restoreFocus();
+  }
+
+  _restoreFocus() {
+    const previous = this._previouslyFocused;
+    this._previouslyFocused = null;
+    if (previous && previous.isConnected) {
+      previous.focus();
+      if (deepActiveElement() === previous) return;
+    }
+    const fallback = document.getElementById('open-song-browser');
+    if (fallback) fallback.focus();
+  }
+
+  _ownsFocus() {
+    const active = deepActiveElement();
+    if (!active || active === document.body || active === document.documentElement) return true;
+    if (active === this || this.shadowRoot.contains(active)) return true;
+    const root = active.getRootNode();
+    const host = root && root.host;
+    if (host && host !== this && !host.hidden && host.shadowRoot) {
+      if (host.shadowRoot.querySelector('[role="dialog"][aria-modal="true"]')) return false;
+    }
+    return true;
+  }
+
+  _focusable() {
+    const dialog = this.shadowRoot.querySelector('[role="dialog"]');
+    if (!dialog) return [];
+    return [
+      ...dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]')
+    ].filter((el) => {
+      if (el.disabled || el.hidden || el.closest('[hidden]')) return false;
+      const tabindex = el.getAttribute('tabindex');
+      return tabindex === null || Number(tabindex) >= 0;
+    });
+  }
+
+  _handleKeyDown(ev) {
+    if (this.hidden || !this._ownsFocus()) return;
+    if (ev.key === 'Escape') {
+      if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
+      // remote.js calls history.back() for an untrusted Escape once this dialog is gone.
+      ev.preventDefault();
+      this.close();
+      return;
+    }
+    if (ev.key !== 'Tab' || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    const items = this._focusable();
+    if (!items.length) return;
+    const index = items.indexOf(deepActiveElement());
+    ev.preventDefault();
+    const next = ev.shiftKey
+      ? items[(index <= 0 ? items.length : index) - 1]
+      : items[index === -1 || index === items.length - 1 ? 0 : index + 1];
+    next.focus();
+  }
+
+  _handleTabKey(ev) {
+    if (this.hidden || ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
+    const key = ev.key;
+    if (key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'Home' && key !== 'End') return;
+    const active = deepActiveElement();
+    if (!active || active.getAttribute('role') !== 'tab' || !this.shadowRoot.contains(active)) {
+      return;
+    }
+    const tabs = [...this.shadowRoot.querySelectorAll('[role="tab"]')];
+    const index = tabs.indexOf(active);
+    if (index < 0) return;
+    let next = index;
+    if (key === 'ArrowRight') next = (index + 1) % tabs.length;
+    else if (key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+    else if (key === 'Home') next = 0;
+    else next = tabs.length - 1;
+    ev.preventDefault();
+    ev.heymingHandled = true;
+    this._activateTab(tabs[next].dataset.tab, { focusTab: true });
   }
 
   // ---------- Rendering ------------------------------------------------
@@ -218,7 +314,15 @@ class SongBrowserElement extends HTMLElement {
           padding: 8px 12px; font: inherit;
         }
         .search-row input:focus {
-          outline: none; border-color: #6366f1;
+          border-color: #6366f1;
+        }
+        button:focus-visible, .tab:focus-visible, .card:focus-visible, .chip:focus-visible,
+        .search-row input:focus-visible {
+          outline: 3px solid #ffbf47; outline-offset: 2px;
+        }
+        .sr-only {
+          position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+          overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
         }
         .status { font-size: 13px; color: #94a3b8; padding: 8px 0; }
         .status.error { color: #f87171; }
@@ -250,17 +354,17 @@ class SongBrowserElement extends HTMLElement {
         .open-pane button:hover { background: #4f46e5; }
       </style>
       <div class="backdrop" part="backdrop">
-        <div class="modal" role="dialog" aria-modal="true" aria-label="Pick a song">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="song-browser-title">
           <header>
-            <h2>Pick a song</h2>
+            <h2 id="song-browser-title">Pick a song</h2>
             <button class="close" type="button" aria-label="Close">Close</button>
           </header>
-          <nav class="tabs" role="tablist">
-            <button class="tab" data-tab="curated" role="tab" aria-selected="true">Curated</button>
-            <button class="tab" data-tab="ia" role="tab" aria-selected="false">Internet Archive</button>
-            <button class="tab" data-tab="file" role="tab" aria-selected="false">Open file</button>
+          <nav class="tabs" role="tablist" aria-label="Song sources">
+            <button id="tab-curated" class="tab" data-tab="curated" role="tab" aria-selected="true" aria-controls="panel-curated" tabindex="0">Curated</button>
+            <button id="tab-ia" class="tab" data-tab="ia" role="tab" aria-selected="false" aria-controls="panel-ia" tabindex="-1">Internet Archive</button>
+            <button id="tab-file" class="tab" data-tab="file" role="tab" aria-selected="false" aria-controls="panel-file" tabindex="-1">Open file</button>
           </nav>
-          <section class="panel" id="panel-curated" role="tabpanel">
+          <section class="panel" id="panel-curated" role="tabpanel" aria-labelledby="tab-curated">
             <div id="recent-section" class="recent-section" hidden>
               <p class="section-label">Recent</p>
               <div id="recent-chips" class="chips"></div>
@@ -269,17 +373,18 @@ class SongBrowserElement extends HTMLElement {
             <div id="curated-grid" class="grid"></div>
             <p id="curated-status" class="status" hidden></p>
           </section>
-          <section class="panel" id="panel-ia" role="tabpanel" hidden>
+          <section class="panel" id="panel-ia" role="tabpanel" aria-labelledby="tab-ia" hidden>
             <div class="search-row">
               <input
                 id="search-input" type="search"
+                aria-label="Search Internet Archive"
                 placeholder="Search Internet Archive (e.g. Bach, Chopin, Joplin)"
                 autocomplete="off" />
             </div>
             <p id="search-status" class="status" hidden></p>
             <div id="search-grid" class="grid"></div>
           </section>
-          <section class="panel" id="panel-file" role="tabpanel" hidden>
+          <section class="panel" id="panel-file" role="tabpanel" aria-labelledby="tab-file" hidden>
             <div class="open-pane">
               <div class="icon" aria-hidden="true">🎼</div>
               <div class="copy">
@@ -289,6 +394,7 @@ class SongBrowserElement extends HTMLElement {
               <button id="pick-file" type="button">Choose file…</button>
             </div>
           </section>
+          <div id="search-count" class="sr-only" role="status" aria-live="polite"></div>
         </div>
       </div>
     `;
@@ -336,17 +442,25 @@ class SongBrowserElement extends HTMLElement {
     });
   }
 
-  _activateTab(name) {
+  _activateTab(name, opts = {}) {
     const root = this.shadowRoot;
-    for (const tab of root.querySelectorAll('.tab')) {
+    let selected = null;
+    for (const tab of root.querySelectorAll('[role="tab"]')) {
       const sel = tab.dataset.tab === name;
-      tab.setAttribute('aria-selected', String(sel));
+      tab.setAttribute('aria-selected', sel ? 'true' : 'false');
+      tab.tabIndex = sel ? 0 : -1;
+      if (sel) selected = tab;
     }
     root.getElementById('panel-curated').hidden = name !== 'curated';
     root.getElementById('panel-ia').hidden = name !== 'ia';
     root.getElementById('panel-file').hidden = name !== 'file';
+    if (opts.focusTab) {
+      if (selected) selected.focus();
+      return;
+    }
     if (name === 'ia') {
-      requestAnimationFrame(() => root.getElementById('search-input').focus());
+      const search = root.getElementById('search-input');
+      if (search) search.focus();
     }
   }
 
@@ -476,6 +590,9 @@ class SongBrowserElement extends HTMLElement {
     el.hidden = !text;
     el.textContent = text;
     el.classList.toggle('error', isError);
+    if (id !== 'search-status') return;
+    const live = this.shadowRoot.getElementById('search-count');
+    if (live) live.textContent = text || '';
   }
 
   // ---------- Recent chips --------------------------------------------

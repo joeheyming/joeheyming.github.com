@@ -15,6 +15,15 @@ const SCOPE = 'stepmania';
 // UTILITY FUNCTIONS
 // ============================================================================
 
+/** @returns {Element|null} */
+function deepActiveElement() {
+  let node = document.activeElement;
+  while (node && node.shadowRoot && node.shadowRoot.activeElement) {
+    node = node.shadowRoot.activeElement;
+  }
+  return node;
+}
+
 /**
  * Copy text to clipboard (with fallback for older browsers)
  * @param {string} text - Text to copy
@@ -138,10 +147,46 @@ class GameOverModalElement extends HTMLElement {
     // Callbacks
     this._onRestart = null;
     this._onClose = null;
+
+    /** @type {Element|null} */
+    this._returnFocus = null;
+    this._onWindowKey = (event) => this._handleKey(event);
   }
 
   connectedCallback() {
     this.render();
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener('keydown', this._onWindowKey, true);
+  }
+
+  /** @param {KeyboardEvent} event */
+  _handleKey(event) {
+    if (!this._visible) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.hide();
+      return;
+    }
+    if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) return;
+    const buttons = [...this.shadowRoot.querySelectorAll('.buttons button')];
+    if (buttons.length === 0) return;
+    const active = this.shadowRoot.activeElement;
+    const index = buttons.indexOf(/** @type {HTMLButtonElement} */ (active));
+    const first = buttons[0];
+    const last = buttons[buttons.length - 1];
+    if (index === -1) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && index === 0) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && index === buttons.length - 1) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   render() {
@@ -218,8 +263,13 @@ class GameOverModalElement extends HTMLElement {
           color: #f87171;
         }
       </style>
-      <div class="game-over-content">
-        <h2 style="${titleColor}">${title}</h2>
+      <div
+        class="game-over-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="game-over-title"
+      >
+        <h2 id="game-over-title" style="${titleColor}">${title}</h2>
         ${failedBadge}
 
         <div class="score-box">
@@ -493,8 +543,14 @@ class GameOverModalElement extends HTMLElement {
       window.trackEvent('song_complete', 'StepMania', `Song ${status} - ${percentage}`, totalNotes);
     }
 
+    if (!this._visible) {
+      const active = deepActiveElement();
+      this._returnFocus = active && !this.shadowRoot.contains(active) ? active : null;
+    }
     this._visible = true;
     this.render();
+    window.addEventListener('keydown', this._onWindowKey, true);
+    this.shadowRoot.querySelector('.restart-btn')?.focus({ focusVisible: true });
   }
 
   /**
@@ -532,8 +588,13 @@ class GameOverModalElement extends HTMLElement {
    * Hide the game over modal
    */
   hide() {
+    const wasVisible = this._visible;
     this._visible = false;
+    window.removeEventListener('keydown', this._onWindowKey, true);
     this.render();
+    const target = this._returnFocus;
+    this._returnFocus = null;
+    if (wasVisible && target instanceof HTMLElement && target.isConnected) target.focus();
 
     if (this._onClose) {
       this._onClose();

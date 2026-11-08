@@ -50,7 +50,7 @@ describe('stepmania ready and loading screens', () => {
     assert.equal(root.getElementById('play-btn').textContent, 'Start · Expert 10');
     assert.equal(root.querySelectorAll('.chart-choice').length, 2);
     assert.equal(
-      root.querySelector('.chart-choice[data-index="1"]').getAttribute('aria-pressed'),
+      root.querySelector('.chart-choice[data-index="1"]').getAttribute('aria-checked'),
       'true'
     );
     assert.equal(root.getElementById('browse-btn'), null);
@@ -59,7 +59,7 @@ describe('stepmania ready and loading screens', () => {
     root.querySelector('.chart-choice[data-index="0"]').click();
     assert.equal(root.getElementById('play-btn').textContent, 'Start · Easy 4');
     assert.equal(
-      root.querySelector('.chart-choice[data-index="0"]').getAttribute('aria-pressed'),
+      root.querySelector('.chart-choice[data-index="0"]').getAttribute('aria-checked'),
       'true'
     );
   });
@@ -113,7 +113,7 @@ describe('stepmania ready and loading screens', () => {
     root.querySelector('.chart-choice[data-index="1"]').click();
     assert.equal(root.getElementById('play-btn').textContent, 'Getting the audio…');
     assert.equal(
-      root.querySelector('.chart-choice[data-index="1"]').getAttribute('aria-pressed'),
+      root.querySelector('.chart-choice[data-index="1"]').getAttribute('aria-checked'),
       'true'
     );
 

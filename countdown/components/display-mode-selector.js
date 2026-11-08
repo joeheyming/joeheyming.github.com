@@ -3,7 +3,13 @@
  * A dropdown for selecting countdown display modes
  */
 import { localeService } from '../i18n/locale-service.js';
-import { onClickOutside, dropdownStyles, chevronStyles, dropdownArrow } from './shared-styles.js';
+import {
+  onClickOutside,
+  dropdownStyles,
+  chevronStyles,
+  selectMenuKeys,
+  srOnlyStyles
+} from './shared-styles.js';
 
 // Display mode definitions with icons
 const DISPLAY_MODE_DEFS = [
@@ -37,6 +43,12 @@ function getDisplayModes() {
   })).sort((a, b) => a.name.localeCompare(b.name, localeService.locale));
 }
 
+function displayLabel() {
+  const text = localeService.str('ui.display');
+  const label = text && text !== 'ui.display' ? text.replace(/[:：]\s*$/, '') : '';
+  return label || 'Display';
+}
+
 // Export getter function for use elsewhere (don't cache at module load time)
 export function getDisplayModesList() {
   return getDisplayModes();
@@ -48,12 +60,14 @@ export const DISPLAY_MODES = DISPLAY_MODE_DEFS.map((def) => def.id);
 class DisplayModeSelector extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open', delegatesFocus: true });
     this.isOpen = false;
     this.selectedMode = 'standard';
     this._highlighted = 0;
     this._ready = false;
     this._clickOutsideCleanup = null;
+    this._releaseKeys = null;
+    this._shadowBound = false;
   }
 
   static get observedAttributes() {
@@ -69,16 +83,45 @@ class DisplayModeSelector extends HTMLElement {
     this.render();
     this.setupEventListeners();
 
-    // Re-render when locale changes
+    // Re-render when locale changes. Listeners live on the shadow root and
+    // the host, so they survive the new markup.
+    if (this._unsubscribe) this._unsubscribe();
     this._unsubscribe = localeService.subscribe(() => {
+      const refocus = this.shadowRoot.activeElement === this.btn;
       this.render();
-      this.setupEventListeners();
+      if (refocus) this.btn.focus();
     });
   }
 
   disconnectedCallback() {
     if (this._unsubscribe) this._unsubscribe();
+    this._unsubscribe = null;
     if (this._clickOutsideCleanup) this._clickOutsideCleanup();
+    this._clickOutsideCleanup = null;
+    if (this._releaseKeys) this._releaseKeys();
+    this._releaseKeys = null;
+  }
+
+  items() {
+    return this.dropdown ? [...this.dropdown.querySelectorAll('.dropdown-item')] : [];
+  }
+
+  choose(index) {
+    const item = this.items()[index];
+    if (!item) {
+      this.close();
+      return;
+    }
+    const mode = item.dataset.mode;
+    this.selectedMode = mode;
+    this.close();
+    this.updateDisplay();
+    this.dispatchEvent(
+      new CustomEvent('mode-change', {
+        detail: { mode },
+        bubbles: true
+      })
+    );
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -206,26 +249,31 @@ class DisplayModeSelector extends HTMLElement {
             display: none;
           }
         }
+
+        ${srOnlyStyles}
       </style>
 
-      <button class="selector-button" id="selectorBtn" aria-haspopup="listbox" aria-expanded="false">
-        <span class="mode-icon">${currentMode.icon}</span>
+      <span class="sr-only" id="label">${displayLabel()}</span>
+      <button class="selector-button" id="selectorBtn" role="combobox" aria-haspopup="listbox"
+        aria-expanded="false" aria-controls="dropdown" aria-labelledby="label currentName">
+        <span class="mode-icon" aria-hidden="true">${currentMode.icon}</span>
         <div class="mode-info">
-          <div class="mode-name">${currentMode.name}</div>
+          <div class="mode-name" id="currentName">${currentMode.name}</div>
           <div class="mode-description">${currentMode.description}</div>
         </div>
-        <span class="chevron" id="chevron">▼</span>
+        <span class="chevron" id="chevron" aria-hidden="true">▼</span>
       </button>
 
-      <div class="dropdown" id="dropdown" role="listbox">
+      <div class="dropdown" id="dropdown" role="listbox" aria-labelledby="label">
         ${modes
           .map(
-            (mode) => `
+            (mode, index) => `
           <div class="dropdown-item ${mode.id === this.selectedMode ? 'selected' : ''}"
+               id="mode-option-${index}"
                data-mode="${mode.id}"
                role="option"
                aria-selected="${mode.id === this.selectedMode}">
-            <span class="mode-icon">${mode.icon}</span>
+            <span class="mode-icon" aria-hidden="true">${mode.icon}</span>
             <div class="mode-info">
               <div class="mode-name">${mode.name}</div>
               <div class="mode-description">${mode.description}</div>
@@ -241,69 +289,56 @@ class DisplayModeSelector extends HTMLElement {
     this.btn = this.shadowRoot.getElementById('selectorBtn');
     this.dropdown = this.shadowRoot.getElementById('dropdown');
     this.chevron = this.shadowRoot.getElementById('chevron');
+    this.isOpen = false;
   }
 
   setupEventListeners() {
-    // Remove old click-outside listener if exists
-    if (this._clickOutsideCleanup) {
-      this._clickOutsideCleanup();
+    if (!this._shadowBound) {
+      this._shadowBound = true;
+      this.shadowRoot.addEventListener('click', (event) => {
+        const item = event.target.closest('.dropdown-item');
+        if (item) {
+          this.choose(this.items().indexOf(item));
+          return;
+        }
+        if (event.target.closest('#selectorBtn')) this.toggle();
+      });
+      this.shadowRoot.addEventListener('keydown', (event) => {
+        if (event.altKey && event.key === 'ArrowDown' && !this.isOpen) {
+          event.preventDefault();
+          this.open();
+        }
+      });
+
+      // OK on a remote clicks the focused host, not the button inside it.
+      this.addEventListener('click', (event) => {
+        if (event.composedPath()[0] !== this) return;
+        if (!this.isOpen) this.open();
+        else this.choose(this._highlighted);
+      });
+
+      this.addEventListener('focusout', () => {
+        setTimeout(() => {
+          if (this.isOpen && !this.shadowRoot.activeElement) this.close();
+        }, 0);
+      });
     }
 
-    this.btn.addEventListener('click', () => this.toggle());
-
-    this.dropdown.addEventListener('click', (e) => {
-      const item = e.target.closest('.dropdown-item');
-      if (item) {
-        const mode = item.dataset.mode;
-        this.selectedMode = mode;
-        this.close();
-        this.updateDisplay();
-
-        // Dispatch custom event
-        this.dispatchEvent(
-          new CustomEvent('mode-change', {
-            detail: { mode },
-            bubbles: true
-          })
-        );
-      }
-    });
-
-    // Click outside to close (with cleanup)
+    if (this._clickOutsideCleanup) this._clickOutsideCleanup();
     this._clickOutsideCleanup = onClickOutside(this, () => {
       if (this.isOpen) this.close();
     });
-
-    // OK clicks this element. The button inside handles its own click.
-    this.addEventListener('click', (event) => {
-      if (event.composedPath()[0] !== this) return;
-      if (!this.isOpen) {
-        this.open();
-        return;
-      }
-      const item = [...this.dropdown.querySelectorAll('.dropdown-item')][this._highlighted];
-      if (item) item.click();
-      else this.close();
-    });
-
-    // A closed menu lets arrows move focus. An open menu uses Up and Down
-    // to move through the list, and any other arrow closes it and moves on.
-    this.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.isOpen) {
-        e.preventDefault();
-        this.close();
-        return;
-      }
-      if (!this.isOpen) return;
-      const items = [...this.dropdown.querySelectorAll('.dropdown-item')];
-      const next = dropdownArrow(e, this._highlighted, items.length);
-      if (next === null) return;
-      if (next === 'leave') {
-        this.close();
-        return;
-      }
-      this._highlighted = next;
-      this._paintHighlight(items);
+    if (this._releaseKeys) this._releaseKeys();
+    this._releaseKeys = selectMenuKeys(this, {
+      isOpen: () => this.isOpen,
+      count: () => this.items().length,
+      highlighted: () => this._highlighted,
+      highlight: (index) => {
+        this._highlighted = index;
+        this._paintHighlight();
+      },
+      choose: (index) => this.choose(index),
+      close: () => this.close()
     });
   }
 
@@ -316,17 +351,22 @@ class DisplayModeSelector extends HTMLElement {
     this.dropdown.classList.add('open');
     this.chevron.classList.add('open');
     this.btn.setAttribute('aria-expanded', 'true');
-    const items = [...this.dropdown.querySelectorAll('.dropdown-item')];
+    const items = this.items();
     const selected = items.findIndex((item) => item.classList.contains('selected'));
     this._highlighted = selected >= 0 ? selected : 0;
-    this._paintHighlight(items);
+    this._paintHighlight();
   }
 
-  _paintHighlight(items) {
+  // While open, aria-selected follows the highlight (APG select-only combobox).
+  _paintHighlight() {
+    const items = this.items();
     items.forEach((item, index) => {
-      item.classList.toggle('highlighted', index === this._highlighted);
+      const active = index === this._highlighted;
+      item.classList.toggle('highlighted', active);
+      item.setAttribute('aria-selected', String(active));
     });
     const current = items[this._highlighted];
+    if (current) this.btn.setAttribute('aria-activedescendant', current.id);
     if (current && typeof current.scrollIntoView === 'function') {
       current.scrollIntoView({ block: 'nearest' });
     }
@@ -337,6 +377,8 @@ class DisplayModeSelector extends HTMLElement {
     this.dropdown.classList.remove('open');
     this.chevron.classList.remove('open');
     this.btn.setAttribute('aria-expanded', 'false');
+    this.btn.removeAttribute('aria-activedescendant');
+    this.updateDisplay();
   }
 
   updateDisplay() {
@@ -358,7 +400,7 @@ class DisplayModeSelector extends HTMLElement {
     items.forEach((item) => {
       const isSelected = item.dataset.mode === this.selectedMode;
       item.classList.toggle('selected', isSelected);
-      item.setAttribute('aria-selected', isSelected);
+      if (!this.isOpen) item.setAttribute('aria-selected', String(isSelected));
     });
   }
 }

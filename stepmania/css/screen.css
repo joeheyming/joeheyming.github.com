@@ -151,11 +151,15 @@ body {
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
+  /* Take the free space beside the toolbar. A long song title ellipsizes
+     inside that space; a short tagline does not shrink into the gap. */
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .sm-title {
   margin: 0;
+  flex: none;
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -171,6 +175,7 @@ body {
 
 .sm-subtitle {
   margin: 0;
+  flex: 1 1 auto;
   min-width: 0;
   font-size: 0.85rem;
   font-weight: 600;
@@ -182,6 +187,7 @@ body {
 
 .sm-toolbar {
   display: flex;
+  flex: none;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
@@ -520,8 +526,7 @@ step-button:not(:defined) {
 }
 
 score-panel:not(:defined) {
-  display: block;
-  min-height: 12rem;
+  display: none;
 }
 
 /* Logo styling */

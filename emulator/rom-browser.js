@@ -17,6 +17,16 @@
 // the tab, so the list opens a window and grows when asked.
 const ROM_PAGE_SIZE = 48;
 
+// Apostrophes are removed; other punctuation becomes a space so
+// "zelda links" and "zeldas awakening" both meet "Link's Awakening".
+const normalizeSearchText = (value) =>
+  String(value ?? '')
+    .toLowerCase()
+    .replace(/['’ʼ`´]/g, '')
+    .replace(/[:\-_.,!?&/]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 class RomBrowserElement extends HTMLElement {
   constructor() {
     super();
@@ -430,6 +440,17 @@ class RomBrowserElement extends HTMLElement {
           border-color: var(--accent-bright);
           box-shadow: 0 0 0 2px var(--accent-bright-ring);
         }
+        .visually-hidden {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
       </style>
 
       <div class="library">
@@ -444,15 +465,16 @@ class RomBrowserElement extends HTMLElement {
         </div>
         <div class="library-tools">
           <div class="search-container" id="searchContainer" ${tv ? 'hidden' : ''}>
-            <input type="text" class="search-input" id="searchInput" placeholder="Search games...">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search games..." aria-label="Search games">
           </div>
           ${
             tv
-              ? '<button class="search-toggle" id="searchToggleBtn" type="button">Search</button>'
+              ? '<button class="search-toggle" id="searchToggleBtn" type="button" aria-expanded="false" aria-controls="searchContainer">Search</button>'
               : ''
           }
         </div>
         </div>
+        <p id="searchStatus" class="visually-hidden" role="status" aria-live="polite"></p>
         <div class="content-area" id="contentArea">
           <div class="loading">Loading ROM collection...</div>
         </div>
@@ -585,11 +607,12 @@ class RomBrowserElement extends HTMLElement {
         const box = this.shadowRoot.getElementById('searchContainer');
         if (!box) return;
         const show = box.hasAttribute('hidden');
+        if (show) box.removeAttribute('hidden');
+        else box.setAttribute('hidden', '');
+        searchToggle.setAttribute('aria-expanded', show ? 'true' : 'false');
         if (show) {
-          box.removeAttribute('hidden');
           searchInput.focus();
         } else {
-          box.setAttribute('hidden', '');
           searchInput.value = '';
           this.handleSearch('');
         }
@@ -769,6 +792,44 @@ class RomBrowserElement extends HTMLElement {
       .replace(/"/g, '&quot;');
   }
 
+  _deepActive() {
+    let active = document.activeElement;
+    let guard = 0;
+    while (active && active.shadowRoot && active.shadowRoot.activeElement && guard < 8) {
+      active = active.shadowRoot.activeElement;
+      guard += 1;
+    }
+    return active || null;
+  }
+
+  // The first paint is the one chance to place focus. A later repaint
+  // must not pull it back. Typing in the search field is left alone.
+  // On TV, a control this repaint removed still needs a card under the
+  // remote, so focus moves to the first card.
+  _focusGameList(card) {
+    if (!card || this._listFocused) return;
+    this._listFocused = true;
+    const active = this._deepActive();
+    if (active === this.shadowRoot.getElementById('searchInput')) return;
+    const placeholder =
+      !active ||
+      active === document.body ||
+      active === document.documentElement ||
+      active.id === 'loadRomBtn' ||
+      (active.classList && active.classList.contains('heyming-nav-toggle'));
+    const remote = window.heymingRemote;
+    if (remote && typeof remote.focusIfIdle === 'function') {
+      remote.focusIfIdle(card, placeholder, true);
+      return;
+    }
+    if (!placeholder) return;
+    try {
+      card.focus({ preventScroll: true, focusVisible: true });
+    } catch (err) {
+      card.focus();
+    }
+  }
+
   renderRoms(roms) {
     this._romWindow = roms;
     this._romShown = ROM_PAGE_SIZE;
@@ -777,10 +838,12 @@ class RomBrowserElement extends HTMLElement {
 
   _paintRomWindow() {
     this._hideTitlePop();
+    const prior = this._deepActive();
     const roms = this._romWindow || [];
     const shown = roms.slice(0, this._romShown);
     const contentArea = this.shadowRoot.getElementById('contentArea');
     if (!contentArea) return;
+    const focusWasInList = !!(prior && contentArea.contains(prior));
     if (this._romRoving) {
       this._romRoving.dispose();
       this._romRoving = null;
@@ -800,6 +863,7 @@ class RomBrowserElement extends HTMLElement {
       const description = this._escapeHtml(rom.description);
       const size = this._escapeHtml(rom.size);
       romCard.dataset.fullTitle = fullTitle;
+      if (fullTitle) romCard.setAttribute('aria-label', fullTitle);
 
       const sameAsTitle =
         rom.description === rom.title ||
@@ -836,18 +900,27 @@ class RomBrowserElement extends HTMLElement {
     }
 
     const lb = window.emulatorLeanback;
+    const firstCard = romGrid.querySelector('.rom-card');
+    const lostListFocus = focusWasInList && !prior.isConnected;
     if (lb && typeof lb.applyRovingTabindex === 'function') {
       this._romRoving = lb.applyRovingTabindex(romGrid, {
         selector: '.rom-card'
       });
-      if (this.isTv) this._romRoving.focusFirst();
+      if (this.isTv && lostListFocus) this._romRoving.focusFirst();
+      else if (!this.isTv) this._focusGameList(firstCard);
     } else if (this.isTv) {
-      const first = romGrid.querySelector('.rom-card');
-      if (first) first.focus({ preventScroll: false });
+      if (lostListFocus && firstCard) firstCard.focus({ preventScroll: false });
+    } else {
+      this._focusGameList(firstCard);
     }
 
     if (window.heymingCounts && typeof window.heymingCounts.paintShadow === 'function') {
       window.heymingCounts.paintShadow(this.shadowRoot);
+    }
+
+    if (firstCard && !this._romListReady) {
+      this._romListReady = true;
+      this.dispatchEvent(new CustomEvent('rom-list-ready', { bubbles: true }));
     }
   }
 
@@ -864,15 +937,19 @@ class RomBrowserElement extends HTMLElement {
     if (cfg && typeof window.trackEmulatorGame === 'function') {
       window.trackEmulatorGame(cfg.id, rom.title || rom.name);
     }
-    if (cfg && window.heymingAnalytics && typeof window.heymingAnalytics.enable === 'function') {
-      await window.heymingAnalytics.enable('play-counts');
-    }
-    if (
-      cfg &&
-      window.heymingCounts &&
-      typeof window.heymingCounts.recordEmulatorPlay === 'function'
-    ) {
-      window.heymingCounts.recordEmulatorPlay(cfg.id, rom.title || rom.name);
+    // Recording the play loads a script. The click must not wait on it.
+    if (cfg) {
+      const analytics = window.heymingAnalytics;
+      const ready =
+        analytics && typeof analytics.enable === 'function'
+          ? analytics.enable('play-counts')
+          : undefined;
+      Promise.resolve(ready).then(() => {
+        const counts = window.heymingCounts;
+        if (counts && typeof counts.recordEmulatorPlay === 'function') {
+          counts.recordEmulatorPlay(cfg.id, rom.title || rom.name);
+        }
+      });
     }
     if (cfg && cfg.iaExternalDownload && !cfg.iaAllowInBrowser) {
       this.showExternalDownload(rom, restoreList);
@@ -1011,8 +1088,9 @@ class RomBrowserElement extends HTMLElement {
   // the sega rom browser since it already scored exact substring hits
   // ahead of in-order character matches and was the better UX of the two.
   fuzzyScore(text, query) {
-    const t = text.toLowerCase();
-    const q = query.toLowerCase();
+    const t = normalizeSearchText(text);
+    const q = normalizeSearchText(query);
+    if (!q) return 0;
 
     if (t.includes(q)) return 1000 + (1000 - t.indexOf(q));
 
@@ -1036,23 +1114,28 @@ class RomBrowserElement extends HTMLElement {
     return qi === q.length ? score : 0;
   }
 
+  _announceSearchCount(count) {
+    const status = this.shadowRoot && this.shadowRoot.getElementById('searchStatus');
+    if (!status || !this.allRoms.length) return;
+    status.textContent = count === 1 ? '1 result' : `${count} results`;
+  }
+
   handleSearch(query) {
-    if (!query.trim()) {
+    if (!normalizeSearchText(query)) {
       this.filteredRoms = [...this.allRoms];
-      this.renderRoms(this.filteredRoms);
-      return;
+    } else {
+      const scored = this.allRoms
+        .map((rom) => ({
+          rom,
+          score: Math.max(this.fuzzyScore(rom.title, query), this.fuzzyScore(rom.name, query))
+        }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score);
+
+      this.filteredRoms = scored.map(({ rom }) => rom);
     }
-
-    const scored = this.allRoms
-      .map((rom) => ({
-        rom,
-        score: Math.max(this.fuzzyScore(rom.title, query), this.fuzzyScore(rom.name, query))
-      }))
-      .filter(({ score }) => score > 0)
-      .sort((a, b) => b.score - a.score);
-
-    this.filteredRoms = scored.map(({ rom }) => rom);
     this.renderRoms(this.filteredRoms);
+    this._announceSearchCount(this.filteredRoms.length);
   }
 }
 

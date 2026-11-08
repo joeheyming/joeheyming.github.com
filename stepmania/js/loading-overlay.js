@@ -101,12 +101,47 @@ class LoadingOverlayElement extends HTMLElement {
     this._allowRetry = true;
     this._artist = '';
     this._audioReady = true;
+    this._playWhenReady = false;
+    this._onChartKey = (event) => this.handleChartKey(event);
   }
 
   connectedCallback() {
     this.render();
     adoptSharedStyles(this.shadowRoot);
     this.bindEvents();
+    // The window capture phase runs before remote.js moves focus on arrows.
+    window.addEventListener('keydown', this._onChartKey, true);
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener('keydown', this._onChartKey, true);
+  }
+
+  /**
+   * APG radio group: Left/Right/Home/End move the selection and focus.
+   * Up and Down stay with remote.js so focus can leave the chips.
+   * @param {KeyboardEvent} event
+   */
+  handleChartKey(event) {
+    if (this._state !== STATES.READY || event.defaultPrevented) return;
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (!keys.includes(event.key)) return;
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+    if (!path.includes(this)) return;
+    const active = this.shadowRoot.activeElement;
+    if (!(active instanceof HTMLElement) || !active.classList.contains('chart-choice')) return;
+    const count = this._charts.length;
+    if (!count) return;
+    const current = Number(active.dataset.index);
+    let next = current;
+    if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = count - 1;
+    else next = (current + (event.key === 'ArrowRight' ? 1 : -1) + count) % count;
+    event.preventDefault();
+    event.heymingHandled = true;
+    this.selectChart(next);
+    this.shadowRoot.querySelector('.chart-choice[data-index="' + next + '"]')?.focus();
   }
 
   /**
@@ -128,8 +163,10 @@ class LoadingOverlayElement extends HTMLElement {
     const chartsHtml = this._charts
       .map((item, i) => {
         const tone = difficultyTone(item.difficulty);
-        const pressed = i === this._currentDifficulty ? 'true' : 'false';
-        return `<button type="button" class="chart-choice tone-${tone}" data-index="${i}" aria-pressed="${pressed}">
+        const checked = i === this._currentDifficulty;
+        return `<button type="button" role="radio" class="chart-choice tone-${tone}" data-index="${i}" aria-checked="${checked}" tabindex="${
+          checked ? 0 : -1
+        }">
           <span class="chart-name">${escapeHtml(item.difficulty || 'Chart')}</span>
           <span class="chart-rating">${escapeHtml(item.rating ?? '')}</span>
         </button>`;
@@ -224,7 +261,7 @@ class LoadingOverlayElement extends HTMLElement {
           gap: 0.05rem;
           box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pure-black) 18%, transparent);
         }
-        .chart-choice[aria-pressed="true"] {
+        .chart-choice[aria-checked="true"] {
           outline: 2px solid var(--text-1);
           outline-offset: 3px;
         }
@@ -340,7 +377,7 @@ class LoadingOverlayElement extends HTMLElement {
           }" id="status" aria-live="polite">${escapeHtml(this._status)}</p>
           <div class="chart-list ${
             showCharts ? '' : 'hidden'
-          }" id="chart-list" role="group" aria-label="Difficulty">
+          }" id="chart-list" role="radiogroup" aria-label="Difficulty">
             ${chartsHtml}
           </div>
           <div class="actions ${isLoading ? '' : 'hidden'}" id="loading-buttons">
@@ -424,16 +461,12 @@ class LoadingOverlayElement extends HTMLElement {
           event.target instanceof Element ? event.target.closest('.chart-choice') : null;
         if (!(button instanceof HTMLElement)) return;
         this.selectChart(Number(button.dataset.index));
-      });
-      chartList.addEventListener('keydown', (event) => {
-        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+        // A pointer click only highlights the chart. Enter, Space, and the
+        // remote's OK send a click with no pointer detail, and that starts
+        // the song. A real mouse click has detail > 0.
+        if (event.detail > 0) return;
         event.preventDefault();
-        const count = this._charts.length;
-        if (!count) return;
-        const delta = event.key === 'ArrowRight' ? 1 : -1;
-        const next = (this._currentDifficulty + delta + count) % count;
-        this.selectChart(next);
-        this.shadowRoot.querySelector('.chart-choice[data-index="' + next + '"]')?.focus();
+        this.playSelected();
       });
     }
 
@@ -453,7 +486,7 @@ class LoadingOverlayElement extends HTMLElement {
         return;
       }
       if (e.key !== 'Tab') return;
-      const controls = this.visibleControls();
+      const controls = this.visibleControls().filter((el) => el.tabIndex >= 0);
       if (controls.length === 0) return;
       const active = this.shadowRoot.activeElement;
       const first = controls[0];
@@ -475,11 +508,23 @@ class LoadingOverlayElement extends HTMLElement {
     if (!Number.isInteger(index) || index < 0 || index >= this._charts.length) return;
     this._currentDifficulty = index;
     this.shadowRoot.querySelectorAll('.chart-choice').forEach((button, i) => {
-      button.setAttribute('aria-pressed', i === index ? 'true' : 'false');
+      button.setAttribute('aria-checked', i === index ? 'true' : 'false');
+      button.setAttribute('tabindex', i === index ? '0' : '-1');
     });
     const playBtn = this.shadowRoot.getElementById('play-btn');
     if (playBtn && this._audioReady) playBtn.textContent = startLabel(this._charts[index]);
     if (this._onDifficultyChange) this._onDifficultyChange(index);
+  }
+
+  /** Start the selected chart, or remember to start once the audio arrives. */
+  playSelected() {
+    if (this._state !== STATES.READY) return;
+    if (!this._audioReady) {
+      this._playWhenReady = true;
+      return;
+    }
+    this._playWhenReady = false;
+    if (this._onPlay) this._onPlay();
   }
 
   visibleControls() {
@@ -506,8 +551,8 @@ class LoadingOverlayElement extends HTMLElement {
       return;
     }
     if (this._state === STATES.READY && !this._audioReady) {
-      const pressed = this.shadowRoot.querySelector('.chart-choice[aria-pressed="true"]');
-      const chartBtn = pressed || this.shadowRoot.querySelector('.chart-choice');
+      const checked = this.shadowRoot.querySelector('.chart-choice[aria-checked="true"]');
+      const chartBtn = checked || this.shadowRoot.querySelector('.chart-choice');
       if (chartBtn instanceof HTMLElement) chartBtn.focus({ focusVisible: true });
       return;
     }
@@ -628,6 +673,7 @@ class LoadingOverlayElement extends HTMLElement {
     } = options;
 
     this._state = STATES.READY;
+    this._playWhenReady = false;
     this._audioReady = audioReady !== false;
     this._title = songTitle || 'Song';
     this._artist = artist || '';
@@ -654,6 +700,8 @@ class LoadingOverlayElement extends HTMLElement {
     if (this._state !== STATES.READY) return;
     this._audioReady = true;
     this._status = '';
+    const startNow = this._playWhenReady;
+    this._playWhenReady = false;
     const playBtn = this.shadowRoot.getElementById('play-btn');
     if (playBtn) {
       playBtn.disabled = false;
@@ -664,6 +712,7 @@ class LoadingOverlayElement extends HTMLElement {
       statusEl.textContent = '';
       statusEl.classList.add('hidden');
     }
+    if (startNow && this._onPlay) this._onPlay();
   }
 
   /**
@@ -706,6 +755,7 @@ class LoadingOverlayElement extends HTMLElement {
 
   hide() {
     this._state = STATES.HIDDEN;
+    this._playWhenReady = false;
     const overlay = this.shadowRoot.getElementById('overlay');
     if (overlay) overlay.classList.add('hidden');
   }

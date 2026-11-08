@@ -38,7 +38,8 @@ function shown(el) {
   /** @type {Element | null} */
   let node = el;
   while (node && node.nodeType === 1) {
-    if (/** @type {HTMLElement} */ (node).hidden) return false;
+    const el = /** @type {HTMLElement} */ (node);
+    if (el.hidden || el.classList.contains('hidden')) return false;
     const style = getComputedStyle(node);
     if (style.display === 'none' || style.visibility === 'hidden') return false;
     if (node.parentElement) {
@@ -63,23 +64,39 @@ const DIALOG_SELECTOR = '[role="dialog"][aria-modal="true"], dialog[open]';
  * @returns {boolean}
  */
 export function chartOwnsPad(doc) {
+  if (!doc || typeof doc.getElementById !== 'function') return true;
   const home = doc.getElementById('sm-home');
   if (!home || !home.hidden) return false;
   const overlay = /** @type {(HTMLElement & { state?: string }) | null} */ (
     doc.getElementById('loading-overlay')
   );
   if (overlay && overlay.state && overlay.state !== 'hidden') return false;
-  const roots = [doc];
-  const hosts = doc.querySelectorAll(
-    'loading-overlay, zenius-browser, sm-settings-sheet, game-over-modal, difficulty-selector'
-  );
-  for (const host of hosts) {
-    if (host.shadowRoot) roots.push(host.shadowRoot);
-  }
-  for (const root of roots) {
+  for (const root of shadowRoots(doc)) {
     for (const dialog of root.querySelectorAll(DIALOG_SELECTOR)) {
       if (shown(dialog)) return false;
     }
   }
   return true;
+}
+
+/**
+ * The document plus every open shadow root, so a dialog inside any custom
+ * element counts as covering the chart.
+ * @param {Document} doc
+ * @returns {Array<Document | ShadowRoot>}
+ */
+function shadowRoots(doc) {
+  /** @type {Array<Document | ShadowRoot>} */
+  const roots = [];
+  /** @type {Array<Document | ShadowRoot>} */
+  const stack = [doc];
+  while (stack.length) {
+    const root = stack.pop();
+    if (!root || typeof root.querySelectorAll !== 'function') continue;
+    roots.push(root);
+    for (const el of root.querySelectorAll('*')) {
+      if (el.shadowRoot) stack.push(el.shadowRoot);
+    }
+  }
+  return roots;
 }

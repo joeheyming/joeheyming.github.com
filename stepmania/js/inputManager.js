@@ -2,6 +2,7 @@
 // Manages keyboard, gamepad, and touch input with configurable key bindings
 
 import { audioManager } from './audioManager.js';
+import { chartOwnsPad } from './gamepad-map.js';
 import { homeMenuOwnsArrows } from './homeScreen.js';
 
 /**
@@ -512,9 +513,10 @@ class InputManager {
   }
 
   /**
-   * A lane binding owns this key. Swallow it so later listeners (fullscreen,
-   * restart) do not also run. Arrow keys still belong to the song picker.
-   * Ctrl/Cmd/Alt chords stay with the browser and the nav drawer.
+   * A lane binding owns this key only while a chart is on screen and nothing
+   * covers it. Swallow it then so later listeners (fullscreen, restart) do
+   * not also run. Up/down/left/right stay with a shadow overlay or the song
+   * picker. Ctrl/Cmd/Alt chords stay with the browser and the nav drawer.
    * @param {KeyboardEvent} event
    * @param {number} keyCode
    * @param {'down'|'up'} phase
@@ -524,7 +526,12 @@ class InputManager {
     const column = this.keyBindings[keyCode];
     if (column === undefined) return false;
     if (event.ctrlKey || event.metaKey || event.altKey) return false;
-    if (homeMenuOwnsArrows() && keyCode >= 37 && keyCode <= 40) return false;
+    const arrows = keyCode >= 37 && keyCode <= 40;
+    // The home menu still swallows WASD. Arrows, and every lane key while a
+    // shadow overlay covers the chart, are left for that overlay.
+    if (typeof document !== 'undefined' && !chartOwnsPad(document)) {
+      if (arrows || !homeMenuOwnsArrows()) return false;
+    }
     if (this._settingsSheetOpen()) return false;
 
     if (!homeMenuOwnsArrows()) {
@@ -564,8 +571,8 @@ class InputManager {
 
   /**
    * Buttons, links, fields, and the audio bar keep their keys.
-   * A plain tabindex region (the score panel) does not: during a chart
-   * those arrows are still steps.
+   * The score column is not one of them: during a chart those arrows
+   * are still steps.
    * @param {Event} event
    * @returns {boolean}
    */

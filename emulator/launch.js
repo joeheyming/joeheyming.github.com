@@ -208,10 +208,95 @@
       </p>`;
   }
 
+  // Keyboard, a remote, and a controller all move from the focused control.
+  // The nav toggle does not count: it takes focus on load.
+  function focusWhenIdle(el, force) {
+    if (!el) return false;
+    const remote = window.heymingRemote;
+    if (remote && typeof remote.focusIfIdle === 'function') {
+      return remote.focusIfIdle(el, !!force, true);
+    }
+    if (!force) {
+      const active = document.activeElement;
+      const idle =
+        !active ||
+        active === document.body ||
+        active === document.documentElement ||
+        (active.classList && active.classList.contains('heyming-nav-toggle'));
+      if (!idle) return false;
+    }
+    try {
+      el.focus({ preventScroll: true, focusVisible: true });
+    } catch (err) {
+      try {
+        el.focus();
+      } catch (err2) {
+        return false;
+      }
+    }
+    return document.activeElement === el;
+  }
+
+  function deepActive() {
+    let active = document.activeElement;
+    let guard = 0;
+    while (active && active.shadowRoot && active.shadowRoot.activeElement && guard < 8) {
+      active = active.shadowRoot.activeElement;
+      guard += 1;
+    }
+    return active;
+  }
+
+  // wireTvFocus runs before any card exists, so it can only reach the
+  // search toggle. Once the list paints, take that focus if the visitor
+  // has not moved to another control.
+  function focusFirstRomCardIfIdle(bootCard) {
+    if (!isTv()) return;
+    const browser = bootCard.querySelector('rom-browser');
+    const root = browser && browser.shadowRoot;
+    if (!root) return;
+    const card = root.querySelector('.rom-card');
+    if (!card) return;
+    const active = deepActive();
+    const toggle = root.getElementById('searchToggleBtn');
+    const idle =
+      !active ||
+      active === document.body ||
+      active === document.documentElement ||
+      active === bootCard ||
+      active === toggle ||
+      (active.classList && active.classList.contains('heyming-nav-toggle'));
+    if (!idle) return;
+    try {
+      card.focus({ preventScroll: false });
+    } catch (err) {
+      try {
+        card.focus();
+      } catch (err2) {
+        return;
+      }
+    }
+  }
+
   function wireTvFocus(bootCard) {
     const lb = leanback();
-    if (!lb || !isTv()) return;
+    if (lb && isTv()) {
+      wireTvGrid(bootCard, lb);
+      return;
+    }
 
+    // Desktop and a phone: land on the first console, or Load ROM while
+    // the collection is still on its way. The game list takes over once
+    // it paints, if focus is still on this placeholder.
+    const start = bootCard.querySelector('.picker-grid .picker-tile, #loadRomBtn');
+    if (!start) return;
+    const previous = document.querySelector('[data-initial-focus]');
+    if (previous && previous !== start) previous.removeAttribute('data-initial-focus');
+    start.setAttribute('data-initial-focus', '');
+    focusWhenIdle(start, false);
+  }
+
+  function wireTvGrid(bootCard, lb) {
     if (pickerRoving) {
       pickerRoving.dispose();
       pickerRoving = null;
@@ -229,8 +314,15 @@
     }
 
     // Console boot card: focus a game card once the list is painted, or the
-    // search toggle while the collection is still loading.
-    const romRoot = bootCard.querySelector('rom-browser')?.shadowRoot;
+    // search toggle while the collection is still loading. The ready event
+    // covers the usual case, where this runs before any card exists.
+    const browser = bootCard.querySelector('rom-browser');
+    if (browser) {
+      browser.addEventListener('rom-list-ready', () => {
+        focusFirstRomCardIfIdle(bootCard);
+      });
+    }
+    const romRoot = browser?.shadowRoot;
     const focusTarget =
       romRoot?.querySelector('.rom-card') || romRoot?.getElementById('searchToggleBtn') || null;
     if (focusTarget) focusTarget.focus({ preventScroll: false });
@@ -913,12 +1005,18 @@
       if (typeof window.trackEmulatorGame === 'function') {
         window.trackEmulatorGame(cfg.id, playingTitle);
       }
-      if (window.heymingAnalytics && typeof window.heymingAnalytics.enable === 'function') {
-        await window.heymingAnalytics.enable('play-counts');
-      }
-      if (window.heymingCounts && typeof window.heymingCounts.recordEmulatorPlay === 'function') {
-        window.heymingCounts.recordEmulatorPlay(cfg.id, playingTitle);
-      }
+      // Recording the play loads a script. The launch must not wait on it.
+      const analytics = window.heymingAnalytics;
+      const ready =
+        analytics && typeof analytics.enable === 'function'
+          ? analytics.enable('play-counts')
+          : undefined;
+      Promise.resolve(ready).then(() => {
+        const counts = window.heymingCounts;
+        if (counts && typeof counts.recordEmulatorPlay === 'function') {
+          counts.recordEmulatorPlay(cfg.id, playingTitle);
+        }
+      });
     }
 
     if (!wasmSupported()) {

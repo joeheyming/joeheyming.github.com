@@ -121,10 +121,10 @@ test('Notepad autosave waits for idle typing and flushes on pagehide', async () 
   dom.window.close();
 });
 
-test('analytics reports the slowest buffered interaction on pagehide', () => {
+function loadInpPage(url) {
   const dom = new JSDOM('<!doctype html><button id="submit">Submit</button>', {
     runScripts: 'outside-only',
-    url: 'https://joeheyming.github.io/wordle-finder/'
+    url
   });
   const observers = [];
 
@@ -146,27 +146,115 @@ test('analytics reports the slowest buffered interaction on pagehide', () => {
 
   dom.window.PerformanceObserver = FakePerformanceObserver;
   dom.window.eval(readFileSync(path.join(ROOT, 'analytics.js'), 'utf8'));
+  return { dom, observers };
+}
+
+function deliverInp(observer, entry) {
+  observer.records.push(entry);
+  observer.callback({ getEntries: () => observer.records.splice(0) });
+}
+
+function reportedInp(dom) {
+  return dom.window.dataLayer
+    .map((args) => Array.from(args))
+    .filter((args) => args[0] === 'event' && args[1] === 'web_vital_inp');
+}
+
+test('analytics reports the slowest buffered interaction on pagehide', () => {
+  const { dom, observers } = loadInpPage('https://joeheyming.github.io/wordle-finder/');
 
   assert.equal(observers.length, 1);
   const submit = dom.window.document.getElementById('submit');
-  observers[0].records.push({
+  deliverInp(observers[0], {
     interactionId: 1,
     duration: 287,
     name: 'click',
     target: submit
   });
-  observers[0].callback({ getEntries: () => observers[0].records.splice(0) });
   submit.remove();
   dom.window.dispatchEvent(new dom.window.Event('pagehide'));
 
-  const inpEvent = dom.window.dataLayer
-    .map((args) => Array.from(args))
-    .find((args) => args[0] === 'event' && args[1] === 'web_vital_inp');
+  const [inpEvent] = reportedInp(dom);
   assert.ok(inpEvent);
   assert.equal(inpEvent[2].event_category, 'Web Vitals');
   assert.equal(inpEvent[2].event_label, 'click button#submit');
   assert.equal(inpEvent[2].value, 287);
+  assert.equal(inpEvent[2].page_path, '/wordle-finder/');
   dom.window.close();
+});
+
+test('analytics names a click whose target was removed before Event Timing', () => {
+  const { dom, observers } = loadInpPage('https://joeheyming.github.io/wordle-finder/');
+  const submit = dom.window.document.getElementById('submit');
+  const event = new dom.window.MouseEvent('click', { bubbles: true, composed: true });
+  submit.dispatchEvent(event);
+  deliverInp(observers[0], {
+    interactionId: 1,
+    duration: 640,
+    name: 'click',
+    startTime: event.timeStamp,
+    target: null
+  });
+  dom.window.dispatchEvent(new dom.window.Event('pagehide'));
+
+  const [inpEvent] = reportedInp(dom);
+  assert.equal(inpEvent[2].event_label, 'click button#submit');
+  assert.equal(inpEvent[2].value, 640);
+  dom.window.close();
+});
+
+test('analytics names the control inside a shadow root', () => {
+  const { dom, observers } = loadInpPage('https://joeheyming.github.io/stepmania/');
+  const host = dom.window.document.createElement('loading-overlay');
+  host.id = 'loading-overlay';
+  dom.window.document.body.appendChild(host);
+  const button = dom.window.document.createElement('button');
+  button.id = 'play-btn';
+  host.attachShadow({ mode: 'open' }).appendChild(button);
+  const event = new dom.window.MouseEvent('click', { bubbles: true, composed: true });
+  button.dispatchEvent(event);
+  deliverInp(observers[0], {
+    interactionId: 1,
+    duration: 420,
+    name: 'click',
+    startTime: event.timeStamp,
+    target: host
+  });
+  dom.window.dispatchEvent(new dom.window.Event('pagehide'));
+
+  const [inpEvent] = reportedInp(dom);
+  assert.equal(inpEvent[2].event_label, 'click loading-overlay#loading-overlay button#play-btn');
+  dom.window.close();
+});
+
+test('analytics caps a multi-day interaction and records the page path', () => {
+  const { dom, observers } = loadInpPage('https://joeheyming.github.io/doom');
+  const submit = dom.window.document.getElementById('submit');
+  deliverInp(observers[0], {
+    interactionId: 1,
+    duration: 444570536,
+    name: 'pointerup',
+    target: submit
+  });
+  dom.window.dispatchEvent(new dom.window.Event('pagehide'));
+
+  const [inpEvent] = reportedInp(dom);
+  assert.equal(inpEvent[2].event_label, 'pointerup button#submit');
+  assert.equal(inpEvent[2].value, 10000);
+  assert.equal(inpEvent[2].page_path, '/doom/');
+  dom.window.close();
+});
+
+test('Emulator ROM clicks do not wait on the play counter', () => {
+  const roms = readFileSync(path.join(ROOT, 'emulator/rom-browser.js'), 'utf8');
+  const loadRomStart = roms.indexOf('async loadRom(rom)');
+  const loadRom = roms.slice(loadRomStart, roms.indexOf('contentArea.innerHTML', loadRomStart));
+  assert.doesNotMatch(loadRom, /await[^;]*enable\('play-counts'\)/);
+
+  const launch = readFileSync(path.join(ROOT, 'emulator/launch.js'), 'utf8');
+  const launchStart = launch.indexOf('window.launchEmulator = async function');
+  const tracking = launch.slice(launchStart, launch.indexOf('wasmSupported()', launchStart));
+  assert.doesNotMatch(tracking, /await[^;]*enable\('play-counts'\)/);
 });
 
 test('Doom caps catch-up work in its browser main loop', () => {

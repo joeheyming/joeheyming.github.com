@@ -59,6 +59,12 @@ class DifficultySelectorElement extends HTMLElement {
         </select>
       </span>
     `;
+    this.shadowRoot.getElementById('difficulty-select').addEventListener('change', (event) => {
+      const selectedIndex = parseInt(event.target.value);
+      if (!isNaN(selectedIndex) && selectedIndex >= 0) {
+        this.handleDifficultySelection(selectedIndex);
+      }
+    });
   }
 
   bindEvents() {
@@ -174,14 +180,6 @@ class DifficultySelectorElement extends HTMLElement {
       option.disabled = true;
       select.appendChild(option);
     }
-
-    // Add change event listener
-    select.addEventListener('change', (event) => {
-      const selectedIndex = parseInt(event.target.value);
-      if (!isNaN(selectedIndex) && selectedIndex >= 0) {
-        this.handleDifficultySelection(selectedIndex);
-      }
-    });
   }
 
   /**

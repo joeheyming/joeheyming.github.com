@@ -5,6 +5,16 @@
 import { JUDGMENT_LABELS } from './judgment-policy.js';
 import { calculateGrade, calculateRawScore, calculateDancePoints } from './scoring.js';
 
+function deepActiveElement() {
+  let node = document.activeElement;
+  let guard = 0;
+  while (node && node.shadowRoot && node.shadowRoot.activeElement && guard < 8) {
+    node = node.shadowRoot.activeElement;
+    guard += 1;
+  }
+  return node instanceof HTMLElement ? node : null;
+}
+
 class GameOverModalElement extends HTMLElement {
   /** @type {GameOverModalElement | null} */
   static _instance = null;
@@ -21,12 +31,21 @@ class GameOverModalElement extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._onRetry = null;
     this._onPickAnother = null;
+    /** @type {HTMLElement | null} */
+    this._previouslyFocused = null;
+    this._onKeyDown = (ev) => this._handleKeyDown(ev);
   }
 
   connectedCallback() {
+    this.hidden = true;
     this.render();
     this.bindEvents();
-    this.hidden = true;
+    window.removeEventListener('keydown', this._onKeyDown, true);
+    window.addEventListener('keydown', this._onKeyDown, true);
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener('keydown', this._onKeyDown, true);
   }
 
   setHandlers({ onRetry, onPickAnother }) {
@@ -43,6 +62,8 @@ class GameOverModalElement extends HTMLElement {
    */
   show({ tapNoteScores, totalNotes, maxCombo, songLabel }) {
     if (!this.shadowRoot.firstChild) return;
+    const active = deepActiveElement();
+    if (!active || !this.shadowRoot.contains(active)) this._previouslyFocused = active;
     const grade = calculateGrade(tapNoteScores, totalNotes);
     const score = calculateRawScore(tapNoteScores);
     const dp = calculateDancePoints(tapNoteScores);
@@ -69,10 +90,69 @@ class GameOverModalElement extends HTMLElement {
     }
 
     this.hidden = false;
+    const retry = root.getElementById('retry');
+    if (retry) retry.focus();
   }
 
   hide() {
+    const wasOpen = !this.hidden;
     this.hidden = true;
+    if (wasOpen) this._restoreFocus();
+  }
+
+  _restoreFocus() {
+    const previous = this._previouslyFocused;
+    this._previouslyFocused = null;
+    if (previous && previous.isConnected) {
+      previous.focus();
+      if (deepActiveElement() === previous) return;
+    }
+    const fallback = document.getElementById('open-song-browser');
+    if (fallback) fallback.focus();
+  }
+
+  _focusable() {
+    const dialog = this.shadowRoot.querySelector('[role="dialog"]');
+    if (!dialog) return [];
+    return [
+      ...dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]')
+    ].filter((el) => {
+      if (el.disabled || el.hidden || el.closest('[hidden]')) return false;
+      const tabindex = el.getAttribute('tabindex');
+      return tabindex === null || Number(tabindex) >= 0;
+    });
+  }
+
+  _handleKeyDown(ev) {
+    if (this.hidden || !this._ownsFocus()) return;
+    if (ev.key === 'Escape') {
+      if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
+      // remote.js calls history.back() for an untrusted Escape once this dialog is gone.
+      ev.preventDefault();
+      this.hide();
+      return;
+    }
+    if (ev.key !== 'Tab' || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    const items = this._focusable();
+    if (!items.length) return;
+    const index = items.indexOf(deepActiveElement());
+    ev.preventDefault();
+    const next = ev.shiftKey
+      ? items[(index <= 0 ? items.length : index) - 1]
+      : items[index === -1 || index === items.length - 1 ? 0 : index + 1];
+    next.focus();
+  }
+
+  _ownsFocus() {
+    const active = deepActiveElement();
+    if (!active || active === document.body || active === document.documentElement) return true;
+    if (active === this || this.shadowRoot.contains(active)) return true;
+    const root = active.getRootNode();
+    const host = root && root.host;
+    if (host && host !== this && !host.hidden && host.shadowRoot) {
+      if (host.shadowRoot.querySelector('[role="dialog"][aria-modal="true"]')) return false;
+    }
+    return true;
   }
 
   render() {
@@ -101,7 +181,7 @@ class GameOverModalElement extends HTMLElement {
           box-shadow: 0 30px 60px -10px rgba(0,0,0,0.6);
         }
         .song-label {
-          font-size: 13px; color: #94a3b8; margin-bottom: 8px;
+          font-size: 13px; color: #94a3b8; font-weight: 400; margin: 0 0 8px;
         }
         .grade {
           font-size: 64px; font-weight: 900; line-height: 1;
@@ -144,18 +224,21 @@ class GameOverModalElement extends HTMLElement {
           cursor: pointer;
         }
         button:hover { border-color: #6366f1; }
+        button:focus-visible { outline: 3px solid #ffbf47; outline-offset: 3px; }
         button.primary { background: #6366f1; border-color: #6366f1; color: white; }
         button.primary:hover { background: #4f46e5; }
       </style>
       <div class="scrim">
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="grade">
-          <div class="song-label" id="song-label">Song complete</div>
-          <div class="grade" id="grade">—</div>
-          <div class="percent" id="percent">0.00%</div>
-          <div class="stats">
-            <div class="stat"><span class="label">Score</span><span id="score" class="value">0</span></div>
-            <div class="stat"><span class="label">Max combo</span><span id="maxcombo" class="value">0</span></div>
-            <div class="stat"><span class="label">Dance points</span><span id="dp" class="value">0 / 0</span></div>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="song-label" aria-describedby="score-summary">
+          <h2 class="song-label" id="song-label">Song complete</h2>
+          <div id="score-summary">
+            <div class="grade" id="grade">—</div>
+            <div class="percent" id="percent">0.00%</div>
+            <div class="stats">
+              <div class="stat"><span class="label">Score</span><span id="score" class="value">0</span></div>
+              <div class="stat"><span class="label">Max combo</span><span id="maxcombo" class="value">0</span></div>
+              <div class="stat"><span class="label">Dance points</span><span id="dp" class="value">0 / 0</span></div>
+            </div>
           </div>
           <div id="tally"></div>
           <div class="actions">
@@ -173,8 +256,8 @@ class GameOverModalElement extends HTMLElement {
       this.hide();
     });
     this.shadowRoot.getElementById('pick').addEventListener('click', () => {
-      if (this._onPickAnother) this._onPickAnother();
       this.hide();
+      if (this._onPickAnother) this._onPickAnother();
     });
   }
 }

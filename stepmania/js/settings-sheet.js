@@ -11,6 +11,15 @@ const COLUMN_META = [
   { id: COLUMNS.RIGHT, name: 'Right' }
 ];
 
+/** @returns {Element|null} */
+function deepActiveElement() {
+  let node = document.activeElement;
+  while (node && node.shadowRoot && node.shadowRoot.activeElement) {
+    node = node.shadowRoot.activeElement;
+  }
+  return node;
+}
+
 class SettingsSheetElement extends HTMLElement {
   constructor() {
     super();
@@ -18,6 +27,8 @@ class SettingsSheetElement extends HTMLElement {
     /** @type {number|null} */
     this._listeningColumn = null;
     this._hint = '';
+    /** @type {Element|null} */
+    this._returnFocus = null;
     this._onKeyDown = (ev) => this._handleCapture(ev);
     this._onDocKey = (ev) => {
       if (this.hidden) return;
@@ -30,9 +41,7 @@ class SettingsSheetElement extends HTMLElement {
 
   connectedCallback() {
     this.hidden = true;
-    this.render();
-    adoptSharedStyles(this.shadowRoot);
-    this.bindEvents();
+    this._refresh();
   }
 
   disconnectedCallback() {
@@ -41,12 +50,14 @@ class SettingsSheetElement extends HTMLElement {
   }
 
   open() {
+    if (this.hidden) {
+      const active = deepActiveElement();
+      this._returnFocus = active && active !== document.body ? active : null;
+    }
     this.hidden = false;
     this._listeningColumn = null;
     this._hint = 'Click a column, then press a key to add it.';
-    this.render();
-    adoptSharedStyles(this.shadowRoot);
-    this.bindEvents();
+    this._refresh();
     document.addEventListener('keydown', this._onKeyDown, true);
     document.addEventListener('keydown', this._onDocKey);
     const closeBtn = this.shadowRoot.getElementById('close-btn');
@@ -61,6 +72,34 @@ class SettingsSheetElement extends HTMLElement {
     if (document.activeElement === this) this.blur();
     document.removeEventListener('keydown', this._onKeyDown, true);
     document.removeEventListener('keydown', this._onDocKey);
+    const target = this._returnFocus;
+    this._returnFocus = null;
+    if (target instanceof HTMLElement && target.isConnected) target.focus();
+  }
+
+  /** Re-render and keep focus on the equivalent control while the sheet is open. */
+  _refresh() {
+    const active = this.shadowRoot.activeElement;
+    let selector = '';
+    if (active instanceof HTMLElement) {
+      if (active.id) selector = `#${active.id}`;
+      else if (active.hasAttribute('data-scroll')) {
+        selector = `[data-scroll="${active.getAttribute('data-scroll')}"]`;
+      } else if (active.hasAttribute('data-add-col')) {
+        selector = `[data-add-col="${active.getAttribute('data-add-col')}"]`;
+      } else if (active.hasAttribute('data-unbind')) {
+        const add = active.closest('.row')?.querySelector('[data-add-col]');
+        if (add) selector = `[data-add-col="${add.getAttribute('data-add-col')}"]`;
+      }
+    }
+    this.render();
+    adoptSharedStyles(this.shadowRoot);
+    this.bindEvents();
+    if (this.hidden) return;
+    const target =
+      (selector && this.shadowRoot.querySelector(selector)) ||
+      this.shadowRoot.getElementById('close-btn');
+    if (target instanceof HTMLElement) target.focus();
   }
 
   toggle() {
@@ -83,9 +122,7 @@ class SettingsSheetElement extends HTMLElement {
         inputManager.resetKeyBindings();
         this._listeningColumn = null;
         this._hint = 'Restored WASD and arrow keys.';
-        this.render();
-        adoptSharedStyles(this.shadowRoot);
-        this.bindEvents();
+        this._refresh();
       });
     }
     this.shadowRoot.querySelectorAll('[data-scroll]').forEach((btn) => {
@@ -93,18 +130,14 @@ class SettingsSheetElement extends HTMLElement {
         const direction = btn.getAttribute('data-scroll') === 'down' ? 'down' : 'up';
         gameState.setScrollDirection(direction);
         this._hint = direction === 'down' ? 'Notes fall downward.' : 'Notes rise to the top.';
-        this.render();
-        adoptSharedStyles(this.shadowRoot);
-        this.bindEvents();
+        this._refresh();
       });
     });
     this.shadowRoot.querySelectorAll('[data-add-col]').forEach((btn) => {
       btn.addEventListener('click', () => {
         this._listeningColumn = Number(btn.getAttribute('data-add-col'));
         this._hint = `Press a key for ${COLUMN_META[this._listeningColumn].name}…`;
-        this.render();
-        adoptSharedStyles(this.shadowRoot);
-        this.bindEvents();
+        this._refresh();
       });
     });
     this.shadowRoot.querySelectorAll('[data-unbind]').forEach((btn) => {
@@ -112,9 +145,7 @@ class SettingsSheetElement extends HTMLElement {
         const code = Number(btn.getAttribute('data-unbind'));
         inputManager.unbindKey(code);
         this._hint = `Removed ${keyCodeLabel(code)}.`;
-        this.render();
-        adoptSharedStyles(this.shadowRoot);
-        this.bindEvents();
+        this._refresh();
       });
     });
   }
@@ -130,18 +161,14 @@ class SettingsSheetElement extends HTMLElement {
 
     if (isReservedActionKey(keyCode)) {
       this._hint = `${keyCodeLabel(keyCode)} is reserved (play / speed / rate).`;
-      this.render();
-      adoptSharedStyles(this.shadowRoot);
-      this.bindEvents();
+      this._refresh();
       return;
     }
 
     const ok = inputManager.bindKey(keyCode, this._listeningColumn);
     this._listeningColumn = null;
     this._hint = ok ? `Bound ${keyCodeLabel(keyCode)}.` : 'Could not bind that key.';
-    this.render();
-    adoptSharedStyles(this.shadowRoot);
-    this.bindEvents();
+    this._refresh();
   }
 
   render() {

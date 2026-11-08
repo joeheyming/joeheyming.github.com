@@ -484,12 +484,21 @@ window.trackError = function (errorData) {
 // Console INP reports can be traced back to an event and element. Event
 // Timing exposes no input values or text; the label contains only the event
 // type and a short structural selector such as "click button#submit".
+// Values above 10s are capped. A backgrounded tab can report a multi-day
+// duration, and that one sample would own the Event value sum.
+const INP_VALUE_CAP_MS = 10000;
+const INP_RECENT_TARGET_LIMIT = 32;
+
 function initInpTracking() {
   if (typeof PerformanceObserver === 'undefined') return;
 
   let worstInteraction = null;
   let lastReportedDuration = 0;
   let observer = null;
+  // Event Timing's target is null once a handler removes the node, and a
+  // shadow host hides the control inside the root. The capture listener
+  // records the selector while the node is still connected.
+  const recentTargets = [];
 
   function describeTarget(target) {
     if (!(target instanceof Element)) return 'unknown';
@@ -506,18 +515,45 @@ function initInpTracking() {
     return label.slice(0, 70);
   }
 
+  function rememberEventTarget(event) {
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+    let inner = null;
+    for (const node of path) {
+      if (node instanceof Element) {
+        inner = node;
+        break;
+      }
+    }
+    if (!inner && event.target instanceof Element) inner = event.target;
+    const host = event.target instanceof Element ? event.target : null;
+    const label =
+      inner && host && inner !== host
+        ? `${describeTarget(host)} ${describeTarget(inner)}`
+        : describeTarget(inner || host);
+    recentTargets.push({ name: event.type, timeStamp: event.timeStamp, label });
+    if (recentTargets.length > INP_RECENT_TARGET_LIMIT) recentTargets.shift();
+  }
+
+  function labelForEntry(entry) {
+    const startTime = entry.startTime;
+    if (typeof startTime === 'number') {
+      for (let i = recentTargets.length - 1; i >= 0; i--) {
+        const recent = recentTargets[i];
+        if (recent.name !== entry.name) continue;
+        if (Math.abs(recent.timeStamp - startTime) < 1) return recent.label;
+      }
+    }
+    return describeTarget(entry.target);
+  }
+
   function considerEntries(entries) {
     for (const entry of entries) {
       if (!entry.interactionId) continue;
       if (!worstInteraction || entry.duration > worstInteraction.duration) {
-        // PerformanceEventTiming.target becomes null when an interaction
-        // removes its target (launch buttons and loading overlays commonly
-        // do this). Snapshot the diagnostic fields while the node is still
-        // connected instead of retaining the live performance entry.
         worstInteraction = {
           duration: entry.duration,
           name: entry.name,
-          targetLabel: describeTarget(entry.target)
+          targetLabel: labelForEntry(entry)
         };
       }
     }
@@ -527,11 +563,13 @@ function initInpTracking() {
     if (observer) considerEntries(observer.takeRecords());
     if (!worstInteraction || worstInteraction.duration <= lastReportedDuration) return;
     lastReportedDuration = worstInteraction.duration;
+    const duration = Math.round(worstInteraction.duration);
     window.trackEvent(
       'web_vital_inp',
       'Web Vitals',
       `${worstInteraction.name} ${worstInteraction.targetLabel}`.slice(0, 100),
-      Math.round(worstInteraction.duration)
+      duration > INP_VALUE_CAP_MS ? INP_VALUE_CAP_MS : duration,
+      { page_path: normalizePagePath(window.location.pathname) }
     );
   }
 
@@ -544,6 +582,10 @@ function initInpTracking() {
     // Event Timing is not available in this browser.
     return;
   }
+
+  ['pointerdown', 'pointerup', 'click', 'keydown', 'keyup'].forEach((type) => {
+    document.addEventListener(type, rememberEventTarget, true);
+  });
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) reportWorstInteraction();

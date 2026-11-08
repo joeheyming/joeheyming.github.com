@@ -12,6 +12,16 @@ const STATES = {
   READY: 'ready'
 };
 
+function deepActiveElement() {
+  let node = document.activeElement;
+  let guard = 0;
+  while (node && node.shadowRoot && node.shadowRoot.activeElement && guard < 8) {
+    node = node.shadowRoot.activeElement;
+    guard += 1;
+  }
+  return node instanceof HTMLElement ? node : null;
+}
+
 class LoadingOverlayElement extends HTMLElement {
   /** @type {LoadingOverlayElement | null} */
   static _instance = null;
@@ -31,6 +41,8 @@ class LoadingOverlayElement extends HTMLElement {
     this._title = '';
     this._message = '';
     this._readyTimer = 0;
+    /** @type {HTMLElement | null} */
+    this._previouslyFocused = null;
   }
 
   connectedCallback() {
@@ -39,6 +51,7 @@ class LoadingOverlayElement extends HTMLElement {
   }
 
   setState(state, opts = {}) {
+    const previous = this._state;
     this._state = STATES[state.toUpperCase()] || state;
     if (typeof opts.title === 'string') this._title = opts.title;
     if (typeof opts.message === 'string') this._message = opts.message;
@@ -51,6 +64,7 @@ class LoadingOverlayElement extends HTMLElement {
       this._readyTimer = setTimeout(() => this.setState('hidden'), 600);
     }
     this._update();
+    this._syncFocus(previous);
   }
 
   setProgress(p) {
@@ -115,6 +129,7 @@ class LoadingOverlayElement extends HTMLElement {
           font: inherit; font-weight: 600;
         }
         button:hover { background: #4f46e5; }
+        button:focus-visible { outline: 3px solid #ffbf47; outline-offset: 3px; }
 
         :host([data-state="ready"]) .card {
           animation: pulse 600ms ease;
@@ -127,12 +142,15 @@ class LoadingOverlayElement extends HTMLElement {
         :host([data-state="error"]) .icon { color: #f87171; }
       </style>
       <div class="scrim" part="scrim">
-        <div class="card" role="status" aria-live="polite">
-          <div id="spinner" class="spinner"></div>
-          <div id="icon" class="icon" hidden></div>
-          <div id="title" class="title"></div>
-          <div id="msg" class="msg"></div>
-          <div id="bar" class="bar" hidden><div></div></div>
+        <div class="card">
+          <div id="status-region" role="status" aria-live="polite">
+            <div id="spinner" class="spinner"></div>
+            <div id="icon" class="icon" hidden></div>
+            <div id="title" class="title"></div>
+            <div id="msg" class="msg"></div>
+            <div id="bar" class="bar" hidden><div></div></div>
+          </div>
+          <div id="error-alert" class="msg" role="alert" hidden></div>
           <button id="retry" type="button" hidden>Try again</button>
         </div>
       </div>
@@ -153,10 +171,21 @@ class LoadingOverlayElement extends HTMLElement {
     const msgEl = root.getElementById('msg');
     const bar = root.getElementById('bar');
     const retry = root.getElementById('retry');
+    const errorAlert = root.getElementById('error-alert');
 
     titleEl.textContent = this._title;
-    msgEl.textContent = this._message;
-    msgEl.hidden = !this._message;
+    if (this._state === STATES.ERROR) {
+      msgEl.textContent = '';
+      msgEl.hidden = true;
+      const alertText = this._message || this._title;
+      errorAlert.textContent = alertText;
+      errorAlert.hidden = !alertText;
+    } else {
+      errorAlert.textContent = '';
+      errorAlert.hidden = true;
+      msgEl.textContent = this._message;
+      msgEl.hidden = !this._message;
+    }
 
     spinner.hidden = this._state !== STATES.LOADING;
     bar.hidden = this._state !== STATES.LOADING || this._progress <= 0;
@@ -174,6 +203,26 @@ class LoadingOverlayElement extends HTMLElement {
       icon.hidden = true;
       retry.hidden = true;
     }
+  }
+
+  _syncFocus(previous) {
+    if (!this.shadowRoot.firstChild) return;
+    if (this._state === STATES.ERROR) {
+      if (previous !== STATES.ERROR) {
+        const active = deepActiveElement();
+        if (!active || !this.shadowRoot.contains(active)) this._previouslyFocused = active;
+      }
+      const retry = this.shadowRoot.getElementById('retry');
+      if (retry && !retry.hidden) retry.focus();
+      return;
+    }
+    if (this._state === STATES.HIDDEN && previous !== STATES.HIDDEN) this._restoreFocus();
+  }
+
+  _restoreFocus() {
+    const previous = this._previouslyFocused;
+    this._previouslyFocused = null;
+    if (previous && previous.isConnected) previous.focus();
   }
 }
 

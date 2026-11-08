@@ -8,31 +8,51 @@ import {
   dropdownStyles,
   chevronStyles,
   selectorButtonStyles,
-  dropdownArrow
+  selectMenuKeys,
+  srOnlyStyles
 } from './shared-styles.js';
 
 class LocaleSelector extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open', delegatesFocus: true });
     this.isOpen = false;
+    this._highlighted = 0;
     this._clickOutsideCleanup = null;
+    this._releaseKeys = null;
   }
 
   async connectedCallback() {
     if (this.tabIndex < 0) this.tabIndex = 0;
-    this._highlighted = 0;
     await localeService.ready();
-    this.render();
-    this.setupEventListeners();
+    if (!this.btn) {
+      this.render();
+      this.setupEventListeners();
+    }
+    this.bindDocumentListeners();
 
     // Listen for locale changes
+    if (this._unsubscribe) this._unsubscribe();
     this._unsubscribe = localeService.subscribe(() => this.updateDisplay());
   }
 
   disconnectedCallback() {
     if (this._unsubscribe) this._unsubscribe();
+    this._unsubscribe = null;
     if (this._clickOutsideCleanup) this._clickOutsideCleanup();
+    this._clickOutsideCleanup = null;
+    if (this._releaseKeys) this._releaseKeys();
+    this._releaseKeys = null;
+  }
+
+  items() {
+    return this.dropdown ? [...this.dropdown.querySelectorAll('.dropdown-item')] : [];
+  }
+
+  choose(index) {
+    const item = this.items()[index];
+    if (item) localeService.locale = item.dataset.locale;
+    this.close();
   }
 
   render() {
@@ -98,26 +118,39 @@ class LocaleSelector extends HTMLElement {
           border-radius: 4px;
           margin-left: 8px;
         }
+
+        ${srOnlyStyles}
       </style>
 
-      <button class="selector-btn" id="selectorBtn">
-        <span class="globe-icon">🌐</span>
-        <span class="locale-code" id="localeCode">${currentLocale?.code || 'en'}</span>
-        <span class="chevron" id="chevron">▼</span>
+      <span class="sr-only" id="label">Language</span>
+      <button class="selector-btn" id="selectorBtn" role="combobox" aria-haspopup="listbox"
+        aria-expanded="false" aria-controls="dropdown" aria-labelledby="label localeName">
+        <span class="globe-icon" aria-hidden="true">🌐</span>
+        <span class="locale-code" id="localeCode" aria-hidden="true">${
+          currentLocale?.code || 'en'
+        }</span>
+        <span class="sr-only" id="localeName">${currentLocale?.name || 'English'}</span>
+        <span class="chevron" id="chevron" aria-hidden="true">▼</span>
       </button>
 
-      <div class="dropdown" id="dropdown">
+      <div class="dropdown" id="dropdown" role="listbox" aria-labelledby="label">
         ${SUPPORTED_LOCALES.map(
-          (locale) => `
-          <div class="dropdown-item ${locale.code === localeService.locale ? 'selected' : ''}" 
+          (locale, index) => `
+          <div class="dropdown-item ${locale.code === localeService.locale ? 'selected' : ''}"
+               id="locale-option-${index}" role="option"
+               aria-selected="${locale.code === localeService.locale}"
                data-locale="${locale.code}">
             <div class="locale-info">
               <span class="locale-name">${locale.name}${
             locale.rtl ? '<span class="rtl-badge">RTL</span>' : ''
           }</span>
-              <span class="locale-native">${locale.nativeName}</span>
+              <span class="locale-native" lang="${locale.code}">${locale.nativeName}</span>
             </div>
-            ${locale.code === localeService.locale ? '<span class="locale-check">✓</span>' : ''}
+            ${
+              locale.code === localeService.locale
+                ? '<span class="locale-check" aria-hidden="true">✓</span>'
+                : ''
+            }
           </div>
         `
         ).join('')}
@@ -129,63 +162,54 @@ class LocaleSelector extends HTMLElement {
     this.dropdown = this.shadowRoot.getElementById('dropdown');
     this.chevron = this.shadowRoot.getElementById('chevron');
     this.localeCodeEl = this.shadowRoot.getElementById('localeCode');
+    this.localeNameEl = this.shadowRoot.getElementById('localeName');
   }
 
+  // Bound once: the shadow tree is rendered once and only updated after.
   setupEventListeners() {
-    // Remove old click-outside listener if exists
-    if (this._clickOutsideCleanup) {
-      this._clickOutsideCleanup();
-    }
-
     this.btn.addEventListener('click', () => this.toggle());
+    this.btn.addEventListener('keydown', (event) => {
+      if (event.altKey && event.key === 'ArrowDown' && !this.isOpen) {
+        event.preventDefault();
+        this.open();
+      }
+    });
 
     this.dropdown.addEventListener('click', (e) => {
       const item = e.target.closest('.dropdown-item');
-      if (item) {
-        const locale = item.dataset.locale;
-        localeService.locale = locale;
-        this.close();
-      }
+      if (item) this.choose(this.items().indexOf(item));
     });
 
-    // Click outside to close (with cleanup)
+    // OK on a remote clicks the focused host, not the button inside it.
+    this.addEventListener('click', (event) => {
+      if (event.composedPath()[0] !== this) return;
+      if (!this.isOpen) this.open();
+      else this.choose(this._highlighted);
+    });
+
+    this.addEventListener('focusout', () => {
+      setTimeout(() => {
+        if (this.isOpen && !this.shadowRoot.activeElement) this.close();
+      }, 0);
+    });
+  }
+
+  bindDocumentListeners() {
+    if (this._clickOutsideCleanup) this._clickOutsideCleanup();
     this._clickOutsideCleanup = onClickOutside(this, () => {
       if (this.isOpen) this.close();
     });
-
-    // Arrow navigation stops on this host. The button inside the shadow
-    // is invisible to it. OK clicks the host and opens the list.
-    this.addEventListener('click', (event) => {
-      if (event.composedPath()[0] !== this) return;
-      if (!this.isOpen) {
-        this.open();
-        return;
-      }
-      const item = this.dropdown.querySelectorAll('.dropdown-item')[this._highlighted];
-      if (!item) {
-        this.close();
-        return;
-      }
-      localeService.locale = item.dataset.locale;
-      this.close();
-    });
-
-    this.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && this.isOpen) {
-        event.preventDefault();
-        this.close();
-        return;
-      }
-      if (!this.isOpen) return;
-      const items = [...this.dropdown.querySelectorAll('.dropdown-item')];
-      const next = dropdownArrow(event, this._highlighted, items.length);
-      if (next === null) return;
-      if (next === 'leave') {
-        this.close();
-        return;
-      }
-      this._highlighted = next;
-      this._paintHighlight(items);
+    if (this._releaseKeys) this._releaseKeys();
+    this._releaseKeys = selectMenuKeys(this, {
+      isOpen: () => this.isOpen,
+      count: () => this.items().length,
+      highlighted: () => this._highlighted,
+      highlight: (index) => {
+        this._highlighted = index;
+        this._paintHighlight();
+      },
+      choose: (index) => this.choose(index),
+      close: () => this.close()
     });
   }
 
@@ -197,17 +221,23 @@ class LocaleSelector extends HTMLElement {
     this.isOpen = true;
     this.dropdown.classList.add('open');
     this.chevron.classList.add('open');
-    const items = [...this.dropdown.querySelectorAll('.dropdown-item')];
+    this.btn.setAttribute('aria-expanded', 'true');
+    const items = this.items();
     const selected = items.findIndex((item) => item.classList.contains('selected'));
     this._highlighted = selected >= 0 ? selected : 0;
-    this._paintHighlight(items);
+    this._paintHighlight();
   }
 
-  _paintHighlight(items) {
+  // While open, aria-selected follows the highlight (APG select-only combobox).
+  _paintHighlight() {
+    const items = this.items();
     items.forEach((item, index) => {
-      item.classList.toggle('highlighted', index === this._highlighted);
+      const active = index === this._highlighted;
+      item.classList.toggle('highlighted', active);
+      item.setAttribute('aria-selected', String(active));
     });
     const current = items[this._highlighted];
+    if (current) this.btn.setAttribute('aria-activedescendant', current.id);
     if (current && typeof current.scrollIntoView === 'function') {
       current.scrollIntoView({ block: 'nearest' });
     }
@@ -217,12 +247,18 @@ class LocaleSelector extends HTMLElement {
     this.isOpen = false;
     this.dropdown.classList.remove('open');
     this.chevron.classList.remove('open');
+    this.btn.setAttribute('aria-expanded', 'false');
+    this.btn.removeAttribute('aria-activedescendant');
+    this.updateDisplay();
   }
 
   updateDisplay() {
-    // Update locale code display
+    const current = SUPPORTED_LOCALES.find((l) => l.code === localeService.locale);
     if (this.localeCodeEl) {
       this.localeCodeEl.textContent = localeService.locale;
+    }
+    if (this.localeNameEl && current) {
+      this.localeNameEl.textContent = current.name;
     }
 
     // Update selected state in dropdown
@@ -230,11 +266,15 @@ class LocaleSelector extends HTMLElement {
     items.forEach((item) => {
       const isSelected = item.dataset.locale === localeService.locale;
       item.classList.toggle('selected', isSelected);
+      if (!this.isOpen) item.setAttribute('aria-selected', String(isSelected));
 
       // Update checkmark
       const existingCheck = item.querySelector('.locale-check');
       if (isSelected && !existingCheck) {
-        item.insertAdjacentHTML('beforeend', '<span class="locale-check">✓</span>');
+        item.insertAdjacentHTML(
+          'beforeend',
+          '<span class="locale-check" aria-hidden="true">✓</span>'
+        );
       } else if (!isSelected && existingCheck) {
         existingCheck.remove();
       }
