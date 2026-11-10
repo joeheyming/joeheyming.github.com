@@ -671,13 +671,10 @@ export async function mount(slot, ctx) {
     playStartTracked = true;
     window.heymingAchievements?.unlockForCurrentApp('first-action');
     trackWatchConversion('watch_played', 1);
-    const countsReady =
-      window.heymingAnalytics && typeof window.heymingAnalytics.enable === 'function'
-        ? window.heymingAnalytics.enable('play-counts')
-        : null;
-    Promise.resolve(countsReady).then(() => {
-      if (window.heymingCounts && typeof window.heymingCounts.recordWatchPlay === 'function') {
-        window.heymingCounts.recordWatchPlay({
+    if (window.heymingAnalytics && typeof window.heymingAnalytics.whenCounts === 'function') {
+      window.heymingAnalytics.whenCounts((counts) => {
+        if (typeof counts.recordWatchPlay !== 'function') return;
+        counts.recordWatchPlay({
           movie: isMovie,
           id: show.id,
           name: show.name,
@@ -685,8 +682,8 @@ export async function mount(slot, ctx) {
           episode: current.episode,
           episodeTitle: current.title
         });
-      }
-    });
+      });
+    }
   });
 
   const keydown = (e) => {

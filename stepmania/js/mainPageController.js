@@ -945,15 +945,12 @@ export class MainPageController {
    */
   recordSongPlay(currentSong) {
     if (!currentSong) return;
-    const countsReady =
-      window.heymingAnalytics && typeof window.heymingAnalytics.enable === 'function'
-        ? window.heymingAnalytics.enable('play-counts')
-        : null;
-    Promise.resolve(countsReady).then(() => {
-      if (window.heymingCounts && typeof window.heymingCounts.recordStepmaniaPlay === 'function') {
-        window.heymingCounts.recordStepmaniaPlay(currentSong.key, currentSong.data?.title);
-      }
-    });
+    if (window.heymingAnalytics && typeof window.heymingAnalytics.whenCounts === 'function') {
+      window.heymingAnalytics.whenCounts((counts) => {
+        if (typeof counts.recordStepmaniaPlay !== 'function') return;
+        counts.recordStepmaniaPlay(currentSong.key, currentSong.data?.title);
+      });
+    }
   }
 
   /**

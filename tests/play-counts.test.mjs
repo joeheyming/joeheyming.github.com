@@ -68,6 +68,8 @@ test('apps opt in to play counts through heymingAnalytics.enable', () => {
   const analytics = readFileSync(path.join(ROOT, 'analytics.js'), 'utf8');
   assert.match(analytics, /window\.heymingAnalytics = \{/);
   assert.match(analytics, /'play-counts': '\/analytics\/counts\.mjs'/);
+  assert.match(analytics, /whenCounts: function/);
+  assert.match(analytics, /__heymingCountWaiters/);
   assert.doesNotMatch(analytics, /emulator\|doom\|watch/);
   assert.doesNotMatch(analytics, /recordEmulatorPlay/);
   for (const file of [
@@ -611,7 +613,7 @@ test('stepmania songs record on Play, not on restarts, and the board is on the p
   const controller = readFileSync(path.join(ROOT, 'stepmania/js/mainPageController.js'), 'utf8');
   const analyticsPage = readFileSync(path.join(ROOT, 'analytics/index.html'), 'utf8');
   assert.match(controller, /this\.recordSongPlay\(currentSong\)/);
-  assert.match(controller, /enable\('play-counts'\)/);
+  assert.match(controller, /whenCounts\(\(counts\) => \{/);
   assert.match(controller, /recordStepmaniaPlay\(currentSong\.key,\s*currentSong\.data\?\.title\)/);
   const restart = controller.slice(controller.indexOf('restartSong() {'));
   assert.doesNotMatch(restart.slice(0, 200), /recordSongPlay/);

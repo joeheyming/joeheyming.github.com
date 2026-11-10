@@ -1191,9 +1191,20 @@ export function bindPlayTips(doc) {
   doc.addEventListener('scroll', () => hide(), true);
 }
 
+function flushCountWaiters() {
+  const waiters = window.__heymingCountWaiters || [];
+  window.__heymingCountWaiters = [];
+  for (const fn of waiters) {
+    try {
+      fn(window.heymingCounts);
+    } catch {
+      /* one bad play must not drop the rest */
+    }
+  }
+}
+
 function install() {
   if (window.__heymingCountsInstalled) return;
-  window.__heymingCountsInstalled = true;
   bindPlayTips(document);
 
   if (!document.getElementById('play-counts-style')) {
@@ -1376,6 +1387,8 @@ function install() {
       return withZeniusTitles(topCounts(state.rows, filter || {}));
     }
   };
+  window.__heymingCountsInstalled = true;
+  flushCountWaiters();
 
   const start = () => {
     paint();

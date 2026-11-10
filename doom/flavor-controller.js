@@ -93,15 +93,13 @@
           flavor + ':' + entryPath,
           Math.round((Date.now() - startedAt) / 1000)
         );
-        var countsReady =
-          window.heymingAnalytics && typeof window.heymingAnalytics.enable === 'function'
-            ? window.heymingAnalytics.enable('play-counts')
-            : null;
-        Promise.resolve(countsReady).then(function () {
-          if (window.heymingCounts && typeof window.heymingCounts.recordDoomPlay === 'function') {
-            window.heymingCounts.recordDoomPlay(flavor);
-          }
-        });
+        // Same turn as the analytics event. A promise callback here does
+        // not run once the engine owns the page, so the sheet never moves.
+        if (window.heymingAnalytics && typeof window.heymingAnalytics.whenCounts === 'function') {
+          window.heymingAnalytics.whenCounts(function (counts) {
+            if (typeof counts.recordDoomPlay === 'function') counts.recordDoomPlay(flavor);
+          });
+        }
       } else if (state.phase === 'error' || state.phase === 'exited') {
         unsubscribe();
       }

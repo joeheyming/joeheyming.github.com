@@ -1007,16 +1007,13 @@
       }
       // Recording the play loads a script. The launch must not wait on it.
       const analytics = window.heymingAnalytics;
-      const ready =
-        analytics && typeof analytics.enable === 'function'
-          ? analytics.enable('play-counts')
-          : undefined;
-      Promise.resolve(ready).then(() => {
-        const counts = window.heymingCounts;
-        if (counts && typeof counts.recordEmulatorPlay === 'function') {
-          counts.recordEmulatorPlay(cfg.id, playingTitle);
-        }
-      });
+      if (analytics && typeof analytics.whenCounts === 'function') {
+        analytics.whenCounts((counts) => {
+          if (typeof counts.recordEmulatorPlay === 'function') {
+            counts.recordEmulatorPlay(cfg.id, playingTitle);
+          }
+        });
+      }
     }
 
     if (!wasmSupported()) {

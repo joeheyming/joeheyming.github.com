@@ -868,5 +868,24 @@ window.heymingAnalytics = {
       document.head.appendChild(script);
     });
     return window.__heymingAnalyticsLoads[name];
+  },
+
+  /**
+   * Run fn with the play-count recorder on this turn when it is already
+   * loaded. Otherwise keep fn until the module installs. A play must not
+   * wait on a promise callback: the Doom engine can queue that callback
+   * and never return to it, so the sheet stays put while Analytics still
+   * records the launch.
+   * @param {(counts: object) => void} fn
+   */
+  whenCounts: function (fn) {
+    if (typeof fn !== 'function') return;
+    if (window.heymingCounts) {
+      fn(window.heymingCounts);
+      return;
+    }
+    if (!window.__heymingCountWaiters) window.__heymingCountWaiters = [];
+    window.__heymingCountWaiters.push(fn);
+    this.enable('play-counts');
   }
 };

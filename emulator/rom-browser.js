@@ -938,15 +938,13 @@ class RomBrowserElement extends HTMLElement {
       window.trackEmulatorGame(cfg.id, rom.title || rom.name);
     }
     // Recording the play loads a script. The click must not wait on it.
-    if (cfg) {
-      const analytics = window.heymingAnalytics;
-      const ready =
-        analytics && typeof analytics.enable === 'function'
-          ? analytics.enable('play-counts')
-          : undefined;
-      Promise.resolve(ready).then(() => {
-        const counts = window.heymingCounts;
-        if (counts && typeof counts.recordEmulatorPlay === 'function') {
+    if (
+      cfg &&
+      window.heymingAnalytics &&
+      typeof window.heymingAnalytics.whenCounts === 'function'
+    ) {
+      window.heymingAnalytics.whenCounts((counts) => {
+        if (typeof counts.recordEmulatorPlay === 'function') {
           counts.recordEmulatorPlay(cfg.id, rom.title || rom.name);
         }
       });

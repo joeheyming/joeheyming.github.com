@@ -190,6 +190,13 @@ describe('doom flavors', () => {
     );
     assert.match(controller, /trackLaunchWhenPlaying\(flavor, 'autolaunch', tStart\)/);
     assert.match(controller, /trackLaunchWhenPlaying\(flavor, 'picker', tStart\)/);
+    const handler = controller.slice(
+      controller.indexOf('function trackLaunchWhenPlaying'),
+      controller.indexOf('function waitForLoader')
+    );
+    assert.match(handler, /whenCounts\(function \(counts\)/);
+    assert.match(handler, /counts\.recordDoomPlay\(flavor\)/);
+    assert.doesNotMatch(handler, /Promise\.resolve/);
     assert.equal(
       (controller.match(/trackDoomEvent\(\s*'doom_engine_launched'/g) || []).length,
       1,
