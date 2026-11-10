@@ -78,6 +78,17 @@
     window.DoomNextApps.mount(parent, 'doom_fail');
   }
 
+  // The sheet counts the click. The engine often never reaches a playable
+  // frame, and once it does a follow-up post does not run. Google Analytics
+  // still waits for that frame so doom_engine_launched stays a real start.
+  function recordDoomClick(flavor) {
+    if (!flavor || !window.heymingAnalytics) return;
+    if (typeof window.heymingAnalytics.whenCounts !== 'function') return;
+    window.heymingAnalytics.whenCounts(function (counts) {
+      if (typeof counts.recordDoomPlay === 'function') counts.recordDoomPlay(flavor);
+    });
+  }
+
   // A launch request is not a successful engine launch. Wait for the shared
   // lifecycle to confirm the first playable frame, then detach so one run
   // produces exactly one outcome event.
@@ -93,13 +104,6 @@
           flavor + ':' + entryPath,
           Math.round((Date.now() - startedAt) / 1000)
         );
-        // Same turn as the analytics event. A promise callback here does
-        // not run once the engine owns the page, so the sheet never moves.
-        if (window.heymingAnalytics && typeof window.heymingAnalytics.whenCounts === 'function') {
-          window.heymingAnalytics.whenCounts(function (counts) {
-            if (typeof counts.recordDoomPlay === 'function') counts.recordDoomPlay(flavor);
-          });
-        }
       } else if (state.phase === 'error' || state.phase === 'exited') {
         unsubscribe();
       }
@@ -544,6 +548,7 @@
     btn.addEventListener('click', async function () {
       if (window.UZDoomLifecycle && window.UZDoomLifecycle.get() !== 'primed') return;
       var tStart = Date.now();
+      recordDoomClick(flavor);
       trackLaunchWhenPlaying(flavor, 'autolaunch', tStart);
       btn.textContent = 'Loading…';
       btn.disabled = true;
@@ -604,6 +609,7 @@
       card.addEventListener('click', async function () {
         if (card.disabled) return;
         var flavor = card.dataset.flavor;
+        recordDoomClick(flavor);
         // Push a history entry so Back returns to the picker, and so a
         // COI reload resumes this game instead of forgetting the click.
         if (FLAVORS[flavor]) {

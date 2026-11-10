@@ -671,19 +671,6 @@ export async function mount(slot, ctx) {
     playStartTracked = true;
     window.heymingAchievements?.unlockForCurrentApp('first-action');
     trackWatchConversion('watch_played', 1);
-    if (window.heymingAnalytics && typeof window.heymingAnalytics.whenCounts === 'function') {
-      window.heymingAnalytics.whenCounts((counts) => {
-        if (typeof counts.recordWatchPlay !== 'function') return;
-        counts.recordWatchPlay({
-          movie: isMovie,
-          id: show.id,
-          name: show.name,
-          season: current.season,
-          episode: current.episode,
-          episodeTitle: current.title
-        });
-      });
-    }
   });
 
   const keydown = (e) => {
@@ -958,6 +945,22 @@ export async function mount(slot, ctx) {
 
     current = ep;
     playStartTracked = false;
+    // Count the choice, not a successful video start. A dead source still
+    // means someone tried to watch this episode or movie.
+    if (window.heymingAnalytics && typeof window.heymingAnalytics.whenCounts === 'function') {
+      const chosen = ep;
+      window.heymingAnalytics.whenCounts((counts) => {
+        if (typeof counts.recordWatchPlay !== 'function') return;
+        counts.recordWatchPlay({
+          movie: isMovie,
+          id: show.id,
+          name: show.name,
+          season: chosen.season,
+          episode: chosen.episode,
+          episodeTitle: chosen.title
+        });
+      });
+    }
 
     // Loading a new episode hides any leftover end-card. Important
     // for both autoplay and manual Prev/Next transitions.

@@ -347,14 +347,27 @@ export function submitPlays(plays, deps) {
   for (const play of plays) {
     if (!isRecordable(play)) continue;
     const body = formBody(deps.config.entryIds, play);
-    Promise.resolve(
-      deps.fetchImpl(deps.config.formActionUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body
-      })
-    ).catch(() => {});
+    // sendBeacon is queued outside the page's fetch group. Doom's engine
+    // start drops an in-flight form POST, so a click that then loads the
+    // game never reached the sheet. A beacon is already handed off.
+    const payload = body.toString();
+    const queued =
+      typeof deps.beaconImpl === 'function' &&
+      deps.beaconImpl(
+        deps.config.formActionUrl,
+        new Blob([payload], { type: 'application/x-www-form-urlencoded' })
+      );
+    if (!queued) {
+      Promise.resolve(
+        deps.fetchImpl(deps.config.formActionUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          keepalive: true,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body
+        })
+      ).catch(() => {});
+    }
     sent += 1;
   }
   return sent;
@@ -1286,7 +1299,15 @@ function install() {
   function send(plays) {
     const fresh = plays.filter(allowNow);
     if (!fresh.length) return;
-    submitPlays(fresh, { config: CONFIG, isLocal: false, fetchImpl: fetch });
+    submitPlays(fresh, {
+      config: CONFIG,
+      isLocal: false,
+      fetchImpl: fetch,
+      beaconImpl:
+        typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function'
+          ? navigator.sendBeacon.bind(navigator)
+          : null
+    });
   }
 
   function readCache(allowStale) {

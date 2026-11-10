@@ -778,6 +778,17 @@
     const bootCard = document.getElementById('boot-card');
     const wanted = romQuery.trim();
     if (!wanted || !bootCard) return;
+    // Count the click before the ROM download. A failed fetch is still a start.
+    if (typeof window.trackEmulatorGame === 'function') {
+      window.trackEmulatorGame(cfg.id, wanted);
+    }
+    if (window.heymingAnalytics && typeof window.heymingAnalytics.whenCounts === 'function') {
+      window.heymingAnalytics.whenCounts((counts) => {
+        if (typeof counts.recordEmulatorPlay === 'function') {
+          counts.recordEmulatorPlay(cfg.id, wanted);
+        }
+      });
+    }
     const acquire = romAcquire();
     const streams = !(cfg.iaExternalDownload && !cfg.iaAllowInBrowser);
 
@@ -832,7 +843,7 @@
       const romData = await ia.loadRom(rom, { signal: controller.signal });
       if (controller.signal.aborted) return;
       const romFile = acquire.fileFromRomBytes(romData, rom);
-      window.launchEmulator(romFile, romFile.name);
+      window.launchEmulator(romFile, romFile.name, { tracked: true });
     } catch (err) {
       if (controller.signal.aborted || (err && err.name === 'AbortError')) return;
       console.error('Deep-link ROM load failed:', err);

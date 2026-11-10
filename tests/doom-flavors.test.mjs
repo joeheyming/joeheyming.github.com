@@ -183,7 +183,7 @@ describe('doom flavors', () => {
     assert.match(stub, /location\.replace/);
   });
 
-  it('counts a launch only after the engine reaches playing', () => {
+  it('counts a flavor click before the engine starts, and the analytics event after', () => {
     assert.match(
       controller,
       /function trackLaunchWhenPlaying[\s\S]*state\.phase === 'playing'[\s\S]*trackDoomEvent\(\s*'doom_engine_launched'/
@@ -194,9 +194,17 @@ describe('doom flavors', () => {
       controller.indexOf('function trackLaunchWhenPlaying'),
       controller.indexOf('function waitForLoader')
     );
-    assert.match(handler, /whenCounts\(function \(counts\)/);
-    assert.match(handler, /counts\.recordDoomPlay\(flavor\)/);
-    assert.doesNotMatch(handler, /Promise\.resolve/);
+    assert.doesNotMatch(handler, /recordDoomPlay/);
+    const cardClick = controller.slice(
+      controller.indexOf("card.addEventListener('click'"),
+      controller.indexOf('await primeFlavor')
+    );
+    assert.match(cardClick, /recordDoomClick\(flavor\)/);
+    const heroClick = controller.slice(
+      controller.indexOf("btn.addEventListener('click'"),
+      controller.indexOf("trackLaunchWhenPlaying(flavor, 'autolaunch'")
+    );
+    assert.match(heroClick, /recordDoomClick\(flavor\)/);
     assert.equal(
       (controller.match(/trackDoomEvent\(\s*'doom_engine_launched'/g) || []).length,
       1,

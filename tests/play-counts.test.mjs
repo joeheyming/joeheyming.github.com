@@ -177,13 +177,34 @@ test('submits leave the honeypot empty and skip a local or unwired form', () => 
       config: wired,
       isLocal: false,
       fetchImpl: (_url, init) => {
-        calls.push(init.body);
+        calls.push(init);
         return Promise.resolve();
       }
     }),
     1
   );
-  const body = calls[0];
+  const sent = calls[0];
+  assert.equal(sent.keepalive, true);
+  const body = sent.body;
+  const beacons = [];
+  assert.equal(
+    submitPlays([play], {
+      config: wired,
+      isLocal: false,
+      fetchImpl: () => {
+        calls.push('fetch-after-beacon');
+        return Promise.resolve();
+      },
+      beaconImpl: (url, blob) => {
+        beacons.push({ url, type: blob.type, size: blob.size });
+        return true;
+      }
+    }),
+    1
+  );
+  assert.equal(beacons.length, 1);
+  assert.equal(beacons[0].type, 'application/x-www-form-urlencoded');
+  assert.equal(calls.includes('fetch-after-beacon'), false);
   assert.equal(body.get('entry.6'), '');
   assert.equal(body.get('entry.1'), 'doom');
   assert.equal(body.get('entry.3'), 'classic');
