@@ -123,7 +123,7 @@ describe('doom flavors', () => {
   });
 
   it('fetches Pokémon DOOM from the inner archive zip, not the video bundle', () => {
-    const pokemon = sliceFlavor('pokemon');
+    const pokemon = sliceFlavor('pokemon', 'simpsons');
     assert.match(pokemon, /bundledIwad: 'freedoom2\.wad'/);
     assert.match(
       pokemon,
@@ -133,6 +133,27 @@ describe('doom flavors', () => {
     assert.doesNotMatch(pokemon, /Read Me/);
     assert.doesNotMatch(pokemon, /\.mp4/);
     assert.equal(existsSync(path.join(ROOT, 'doom/pkmnv9r.wad')), false);
+  });
+
+  it('fetches Simpsons sprites then sounds, with Homer faces last', () => {
+    const simpsons = sliceFlavor('simpsons', 'pirate');
+    assert.match(simpsons, /themes\/simpsons\/simpsons\.zip/);
+    assert.doesNotMatch(simpsons, /freedoom2/);
+    const sprites = simpsons.indexOf('SIMPTEMP.WAD');
+    const sounds = simpsons.indexOf('SIMP_SND.WAD');
+    const faces = simpsons.indexOf('HOMERGFX.WAD');
+    assert.ok(sprites > -1 && sounds > sprites && faces > sounds, 'homer faces load last');
+    assert.doesNotMatch(simpsons, /SIMPSONS\.BAT/);
+    assert.equal(existsSync(path.join(ROOT, 'doom/SIMPTEMP.WAD')), false);
+  });
+
+  it('fetches Pirate Doom as one Doom II wad', () => {
+    const pirate = sliceFlavor('pirate');
+    assert.match(pirate, /bundledIwad: 'freedoom2\.wad'/);
+    assert.match(pirate, /Ports\/p-r\/pirates\.zip/);
+    assert.match(pirate, /Pirates!\.wad/);
+    assert.doesNotMatch(pirate, /credits/);
+    assert.equal(existsSync(path.join(ROOT, 'doom/Pirates!.wad')), false);
   });
 
   it('fetches the short block and Roblox maps without their unfinished extras', () => {

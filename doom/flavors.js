@@ -392,6 +392,56 @@
           files: ['pkmnv9r.wad']
         }
       ]
+    },
+    {
+      // 1994 Doom 1 sprite and sound swap. The player is Homer.
+      // The DOS install merged HOMERGFX into the sprite wad; load
+      // it last so the status-bar faces and title picture win.
+      // Freedoom Phase 1 is the default IWAD.
+      id: 'simpsons',
+      title: 'Simpsons DOOM',
+      brand: 'Simpsons DOOM',
+      card: '🍩 Simpsons DOOM',
+      menu: '🍩 Simpsons DOOM',
+      desc: 'Homer and the Springfield cast.',
+      tagline: 'Simpsons Doom by Blauwkamp and Fuoco, running in your browser.',
+      launchLabel: 'Launch Simpsons DOOM',
+      emoji: '🍩',
+      inkLight: '#b45309',
+      inkDark: '#fde68a',
+      accentDim: '#78350f',
+      zips: [
+        {
+          url: 'https://youfailit.net/pub/idgames/themes/simpsons/simpsons.zip',
+          label: 'simpsons.zip',
+          files: ['SIMPTEMP.WAD', 'SIMP_SND.WAD', 'HOMERGFX.WAD']
+        }
+      ]
+    },
+    {
+      // Arch's 2014 GZDoom campaign. Nineteen Doom II maps, entered
+      // at MAP41. Map music is MIDI. HIGHWAY, the Barnacle Bar
+      // intermission, is MP3 and stays silent.
+      id: 'pirate',
+      title: 'Pirate DOOM',
+      brand: 'Pirate DOOM',
+      card: '🏴‍☠️ Pirate DOOM',
+      menu: '🏴‍☠️ Pirate DOOM',
+      desc: 'Ships, rum, and cutlasses.',
+      tagline: 'Pirate Doom by Arch, running in your browser.',
+      launchLabel: 'Launch Pirate DOOM',
+      emoji: '🏴‍☠️',
+      inkLight: '#0f766e',
+      inkDark: '#2dd4bf',
+      accentDim: '#134e4a',
+      bundledIwad: 'freedoom2.wad',
+      zips: [
+        {
+          url: 'https://youfailit.net/pub/idgames/levels/doom2/Ports/p-r/pirates.zip',
+          label: 'pirates.zip',
+          files: ['Pirates!.wad']
+        }
+      ]
     }
   ];
 
