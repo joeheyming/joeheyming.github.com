@@ -122,11 +122,24 @@ describe('doom flavors', () => {
     assert.equal(existsSync(path.join(ROOT, 'doom/SIGIL_V1_23.wad')), false);
   });
 
+  it('fetches Pokémon DOOM from the inner archive zip, not the video bundle', () => {
+    const pokemon = sliceFlavor('pokemon');
+    assert.match(pokemon, /bundledIwad: 'freedoom2\.wad'/);
+    assert.match(
+      pokemon,
+      /archive\.org\/download\/pokemon-doom-wad\/pokemon-doom-wad\.zip\/pokemon-doom-wad\.zip/
+    );
+    assert.match(pokemon, /pkmnv9r\.wad/);
+    assert.doesNotMatch(pokemon, /Read Me/);
+    assert.doesNotMatch(pokemon, /\.mp4/);
+    assert.equal(existsSync(path.join(ROOT, 'doom/pkmnv9r.wad')), false);
+  });
+
   it('fetches the short block and Roblox maps without their unfinished extras', () => {
     const doomcraft = sliceFlavor('doomcraft', 'lego');
     const lego = sliceFlavor('lego', 'blockfort');
     const fort = sliceFlavor('blockfort', 'roblox');
-    const roblox = sliceFlavor('roblox');
+    const roblox = sliceFlavor('roblox', 'pokemon');
     assert.match(doomcraft, /dmcraft\.zip/);
     assert.match(doomcraft, /DMCRAFT\.wad/);
     assert.match(lego, /legob-sp\.zip/);

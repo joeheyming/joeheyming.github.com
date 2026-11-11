@@ -365,6 +365,33 @@
           files: ['spykid.wad']
         }
       ]
+    },
+    {
+      // John Dizon's Pokémon DOOM v9r (2008): Kanto and Johto towns
+      // on Doom II, with DeHackEd monsters and MUS music. The
+      // archive.org item's outer zip is an IGN video plus this
+      // inner zip. Fetch the inner zip only. Its readme forbids
+      // redistribution, so the wad stays out of the tree.
+      id: 'pokemon',
+      title: 'Pokémon DOOM',
+      brand: 'Pokémon DOOM',
+      card: '⚡ Pokémon DOOM',
+      menu: '⚡ Pokémon DOOM',
+      desc: 'Kanto and Johto towns.',
+      tagline: 'John Dizon’s Pokémon DOOM, running in your browser.',
+      launchLabel: 'Launch Pokémon DOOM',
+      emoji: '⚡',
+      inkLight: '#ca8a04',
+      inkDark: '#facc15',
+      accentDim: '#422006',
+      bundledIwad: 'freedoom2.wad',
+      zips: [
+        {
+          url: 'https://archive.org/download/pokemon-doom-wad/pokemon-doom-wad.zip/pokemon-doom-wad.zip',
+          label: 'pokemon-doom-wad.zip',
+          files: ['pkmnv9r.wad']
+        }
+      ]
     }
   ];
 
