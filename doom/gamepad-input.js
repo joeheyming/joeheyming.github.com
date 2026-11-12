@@ -42,8 +42,10 @@ const EXTRA_BINDINGS = {
   weapprev: { key: '[', code: 'BracketLeft', keyCode: 219 },
   jumpPad: { key: 'j', code: 'KeyJ', keyCode: 74 },
   speed: { key: 'Shift', code: 'ShiftLeft', keyCode: 16 },
-  lookUp: { key: 'ArrowUp', code: 'ArrowUp', keyCode: 38 },
-  lookDown: { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40 },
+  // Same keys as the keyboard arrows. lod-input-binds.cfg maps those
+  // to +forward / +back. Look stays on the right stick.
+  moveForward: { key: 'ArrowUp', code: 'ArrowUp', keyCode: 38 },
+  moveBack: { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40 },
   map: { key: 'Tab', code: 'Tab', keyCode: 9 }
 };
 
@@ -63,8 +65,8 @@ export const BUTTON_ACTIONS = {
   [STANDARD_BUTTONS.SELECT]: ['menu'],
   [STANDARD_BUTTONS.START]: ['menu'],
   [STANDARD_BUTTONS.LEFT_STICK]: ['speed'],
-  [STANDARD_BUTTONS.DPAD_UP]: ['lookUp'],
-  [STANDARD_BUTTONS.DPAD_DOWN]: ['lookDown'],
+  [STANDARD_BUTTONS.DPAD_UP]: ['moveForward'],
+  [STANDARD_BUTTONS.DPAD_DOWN]: ['moveBack'],
   [STANDARD_BUTTONS.DPAD_LEFT]: ['turnL'],
   [STANDARD_BUTTONS.DPAD_RIGHT]: ['turnR']
 };

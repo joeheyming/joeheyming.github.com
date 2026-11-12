@@ -258,6 +258,11 @@ export function installUzdomLoaderEngine(ctx) {
           'bind ctrl "+attack"\n' +
           'bind leftarrow "+left"\n' +
           'bind rightarrow "+right"\n' +
+          // Up/Down walk, so the on-page "WASD or arrows" help is true.
+          // GZDoom menus read the raw arrow scancodes before these binds,
+          // so the title screen and option menus still move on the same keys.
+          'bind uparrow "+forward"\n' +
+          'bind downarrow "+back"\n' +
           // Mobile-only touch buttons (ALT / WPN) dispatch synthetic
           // KeyboardEvents on these otherwise-unused keys. Bound on
           // desktop too so curious keyboard players get the same
