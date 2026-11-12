@@ -102,6 +102,31 @@
   color: var(--lc-muted);
 }
 
+.live-chat__tz:not(:empty)::before {
+  content: '·';
+  margin: 0 0.4em;
+}
+
+.live-chat__msg {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  word-break: break-word;
+}
+
+.live-chat__body {
+  min-width: 0;
+}
+
+.live-chat__time {
+  flex: none;
+  color: var(--lc-muted);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .live-chat__min {
   appearance: none;
   border: 0;
@@ -137,10 +162,6 @@
   flex-direction: column;
   gap: 6px;
   scrollbar-width: thin;
-}
-
-.live-chat__msg {
-  word-break: break-word;
 }
 
 .live-chat__who {

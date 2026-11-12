@@ -15,6 +15,7 @@ import {
   preloadTextModel,
   validateMessageShape
 } from './moderate.js';
+import { chatTimeStamp, formatChatTime, formatChatTimeTitle, localTimeZoneLabel } from './time.js';
 
 /**
  * @typedef {import('./gviz.js').ChatMessage} ChatMessage
@@ -228,7 +229,7 @@ export function mountLiveChat(opts = {}) {
     <button type="button" class="live-chat__chip" aria-label="Open live chat">Chat</button>
     <section class="live-chat__panel" aria-label="Live chat" hidden>
       <header class="live-chat__header">
-        <div class="live-chat__title">Live chat</div>
+        <div class="live-chat__title">Live chat<span class="live-chat__tz"></span></div>
         <button type="button" class="live-chat__min" aria-label="Minimize chat">−</button>
       </header>
       <div class="live-chat__demo" hidden>Demo mode — wire Form/Sheet to go live</div>
@@ -251,6 +252,13 @@ export function mountLiveChat(opts = {}) {
   `;
 
   document.body.appendChild(root);
+
+  const tzEl = /** @type {HTMLElement} */ (root.querySelector('.live-chat__tz'));
+  const tzLabel = localTimeZoneLabel();
+  if (tzLabel) {
+    tzEl.textContent = tzLabel;
+    tzEl.title = 'Times are shown in your local time zone';
+  }
 
   const chip = /** @type {HTMLButtonElement} */ (root.querySelector('.live-chat__chip'));
   const panel = /** @type {HTMLElement} */ (root.querySelector('.live-chat__panel'));
@@ -307,20 +315,54 @@ export function mountLiveChat(opts = {}) {
     return `hsl(${h % 360} 55% 62%)`;
   }
 
+  /**
+   * A poll can replace a message we already timed (our own send, or a previous
+   * read that had a clock) with a date-only sheet cell. Keep the clock we have.
+   * @param {ChatMessage[]} incoming
+   * @returns {ChatMessage[]}
+   */
+  function keepKnownTimes(incoming) {
+    /** @type {Map<string, number>} */
+    const known = new Map();
+    for (const m of messages) {
+      if (m.hasTime !== false) known.set(m.id, m.ts);
+    }
+    return incoming.map((m) => {
+      if (m.hasTime !== false) return m;
+      const ts = known.get(m.id);
+      if (ts == null) return m;
+      return { ...m, ts, hasTime: true };
+    });
+  }
+
   function renderFeed() {
     const frag = document.createDocumentFragment();
     for (const m of messages) {
+      const hasTime = m.hasTime !== false;
       const row = document.createElement('div');
       row.className = 'live-chat__msg';
       row.dataset.id = m.id;
+      const body = document.createElement('div');
+      body.className = 'live-chat__body';
       const who = document.createElement('span');
       who.className = 'live-chat__who';
       who.style.color = colorFor(m.name);
       who.textContent = m.name;
-      const body = document.createElement('span');
-      body.className = 'live-chat__text';
-      body.textContent = m.message;
-      row.append(who, document.createTextNode(' '), body);
+      const text = document.createElement('span');
+      text.className = 'live-chat__text';
+      text.textContent = m.message;
+      body.append(who, document.createTextNode(' '), text);
+      row.append(body);
+      const label = formatChatTime(m.ts, { hasTime });
+      if (label) {
+        const when = document.createElement('time');
+        when.className = 'live-chat__time';
+        when.dateTime = chatTimeStamp(m.ts, hasTime);
+        when.textContent = label;
+        const title = formatChatTimeTitle(m.ts, { hasTime });
+        if (title) when.title = title;
+        row.append(when);
+      }
       frag.appendChild(row);
     }
     feed.replaceChildren(frag);
@@ -377,8 +419,10 @@ export function mountLiveChat(opts = {}) {
       return;
     }
     try {
-      const table = await fetchTab(CONFIG.messagesTab);
-      messages = parseMessages(table, room).slice(-CONFIG.maxMessagesPerRoom);
+      // headers=1: a text timestamp column otherwise comes back unlabeled,
+      // and every row is dropped because no "message" column is found.
+      const table = await fetchTab(CONFIG.messagesTab, { headers: 1 });
+      messages = keepKnownTimes(parseMessages(table, room)).slice(-CONFIG.maxMessagesPerRoom);
       renderFeed();
     } catch (err) {
       console.warn('Live chat Messages read failed', err);
@@ -513,6 +557,7 @@ export function mountLiveChat(opts = {}) {
     const optimistic = {
       id,
       ts: now,
+      hasTime: true,
       uuid: getUuid(),
       room,
       name: nick,

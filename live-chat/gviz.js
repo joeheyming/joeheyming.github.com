@@ -2,12 +2,16 @@ import { CONFIG } from './config.js';
 
 /**
  * @param {string} tab
+ * @param {{ headers?: number }} [options]
  * @returns {Promise<{ cols: string[], rows: unknown[][] }>}
  */
-export async function fetchTab(tab) {
+export async function fetchTab(tab, options = {}) {
+  const headerCount = Number(options.headers);
+  const headerQuery =
+    Number.isInteger(headerCount) && headerCount > 0 ? `&headers=${headerCount}` : '';
   const url = `https://docs.google.com/spreadsheets/d/${
     CONFIG.sheetId
-  }/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}`;
+  }/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}${headerQuery}`;
   const text = await fetch(url, { cache: 'no-store' }).then((r) => r.text());
   const m = text.match(/setResponse\(([\s\S]*)\);?\s*$/);
   if (!m) throw new Error('gviz parse failed');
@@ -29,12 +33,31 @@ export function parseTs(v) {
   if (typeof v === 'string') {
     const m = v.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/);
     if (m) {
-      return new Date(+m[1], +m[2], +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime();
+      // Date(y,m,d) is a calendar day. Keep it on that day everywhere (UTC
+      // midnight) so a viewer west of UTC does not see the previous date.
+      if (m[4] == null) return Date.UTC(+m[1], +m[2], +m[3]);
+      return new Date(+m[1], +m[2], +m[3], +m[4], +(m[5] || 0), +(m[6] || 0)).getTime();
     }
     const t = Date.parse(v);
     return Number.isNaN(t) ? 0 : t;
   }
   return 0;
+}
+
+/**
+ * False when the cell is only a calendar day. gviz drops the clock if the
+ * column's number format has no time, and a made-up midnight would be wrong.
+ * @param {unknown} v
+ * @returns {boolean}
+ */
+export function cellHasTime(v) {
+  if (typeof v === 'number') return Number.isFinite(v) && v > 0;
+  if (v instanceof Date) return !Number.isNaN(v.getTime());
+  if (typeof v !== 'string') return false;
+  if (/^Date\(\d+,\d+,\d+\)$/.test(v)) return false;
+  if (/^Date\(/.test(v)) return true;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v.trim())) return false;
+  return v.trim() !== '';
 }
 
 /**
@@ -70,6 +93,7 @@ export function isEnabledCell(v) {
  * @typedef {{
  *   id: string,
  *   ts: number,
+ *   hasTime: boolean,
  *   uuid: string,
  *   room: string,
  *   name: string,
@@ -78,12 +102,37 @@ export function isEnabledCell(v) {
  */
 
 /**
+ * Plain-text timestamp columns make gviz return blank labels and keep the
+ * header row as data. Promote that row when it is clearly the schema.
+ * @param {{ cols: string[], rows: unknown[][] }} table
+ */
+export function normalizeTable(table) {
+  const cols = table.cols || [];
+  const rows = table.rows || [];
+  if (cols.some((col) => String(col || '').trim())) return { cols, rows };
+  const first = rows[0];
+  if (!first) return { cols, rows };
+  const head = first.map((cell) =>
+    String(cell ?? '')
+      .trim()
+      .toLowerCase()
+  );
+  if (!head.includes('message') && !head.includes('timestamp') && !head.includes('room')) {
+    return { cols, rows };
+  }
+  return {
+    cols: first.map((cell) => String(cell ?? '').trim()),
+    rows: rows.slice(1)
+  };
+}
+
+/**
  * @param {{ cols: string[], rows: unknown[][] }} table
  * @param {string} room
  * @returns {ChatMessage[]}
  */
 export function parseMessages(table, room) {
-  const { cols, rows } = table;
+  const { cols, rows } = normalizeTable(table);
   const iTs = colIndex(cols, ['timestamp', 'ts', 'time']);
   const iUuid = colIndex(cols, ['uuid']);
   const iRoom = colIndex(cols, ['room']);
@@ -103,17 +152,20 @@ export function parseMessages(table, room) {
 
     const name = iName >= 0 ? String(row[iName] ?? '').trim() : 'Anon';
     const uuid = iUuid >= 0 ? String(row[iUuid] ?? '').trim() : '';
+    const rawTs = iTs >= 0 ? row[iTs] : null;
+    const parsedTs = parseTs(rawTs);
+    // A missing timestamp falls back to "now", which does have a clock.
+    const hasTime = parsedTs ? cellHasTime(rawTs) : true;
     const storedId =
       iId >= 0 && row[iId] != null && String(row[iId]).trim() ? String(row[iId]).trim() : '';
     // Older Apps Script column detection matched "id" inside "uuid".
     const id =
-      storedId && storedId !== uuid
-        ? storedId
-        : `${uuid}-${parseTs(iTs >= 0 ? row[iTs] : null)}-${message.slice(0, 12)}`;
+      storedId && storedId !== uuid ? storedId : `${uuid}-${parsedTs}-${message.slice(0, 12)}`;
 
     out.push({
       id,
-      ts: parseTs(iTs >= 0 ? row[iTs] : null) || Date.now(),
+      ts: parsedTs || Date.now(),
+      hasTime,
       uuid,
       room: roomVal || room,
       name: name || 'Anon',
