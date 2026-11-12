@@ -7,7 +7,8 @@
          The song menu is plain HTML and does not wait on that. -->
     <script src="/coi-serviceworker.js"></script>
     <!-- A zenius= link starts the chart download before Tailwind and the
-         play engine. The difficulty dialog reads this once it can parse. -->
+         play engine. js/zeniusEntry.js takes this head start once and hands it
+         to fetchZeniusSimfile; nothing else reads it. -->
     <script>
       (function () {
         var zenius;
@@ -218,7 +219,8 @@
         window.__applySmNeon();
       })();
     </script>
-    <script src="/nav.js"></script>
+    <!-- Inline <share-button> in the toolbar; suppress the floating FAB. -->
+    <script src="/site.js" data-share-fab="off"></script>
 
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
@@ -710,12 +712,7 @@
 
     <!-- Non-module scripts that need to be loaded first (global utilities) -->
     <script src="../proxy.js"></script>
-    <!-- Inline <share-button> in the toolbar; suppress the floating FAB. -->
-    <script src="/share.js" data-share-fab="off"></script>
-    <script src="/feedback.js"></script>
-
     <!-- Song menu only. The play engine, library, and JSZip load on demand. -->
-    <script src="/achievements.js"></script>
     <script type="module" src="./js/main.js"></script>
     <script type="module">
       import { mountLiveChat } from '/live-chat/index.js';

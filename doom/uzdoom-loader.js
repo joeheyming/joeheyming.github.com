@@ -35,6 +35,10 @@
 //                                    ships a server-hosted default)
 
 import { UZDoomLifecycle as LC } from './lifecycle.js';
+import { ensureEngine } from './engine.js';
+import { mountDoomChat } from './live-chat-mount.js';
+import './touch-input.js';
+import './gamepad-input.js';
 import { syncSavesToIDB } from './uzdoom-loader-idbfs.js';
 import { installUzdomLoaderEngine } from './uzdoom-loader-engine.js';
 import { installWebGLReadPixelsShim } from './webgl-readpixels.js';
@@ -324,7 +328,9 @@ const { bootEngine } = installUzdomLoaderEngine({
   setStatusRight
 });
 
-$('launchBtn').addEventListener('click', async () => {
+// The one launch path: the manual-mode button, the flavor picker, the hero
+// button, and ?iwad= auto-launch all end here.
+async function launchEngine() {
   if (LC.get() !== 'primed') return;
   LC.markLaunching();
   window.heymingAchievements?.unlockForCurrentApp('first-action');
@@ -334,8 +340,9 @@ $('launchBtn').addEventListener('click', async () => {
   // Paint the status before uzdoom.js parses. That script is the long
   // task that was landing on the first click's INP.
   if (typeof window.yieldToMain === 'function') await window.yieldToMain();
+  await mountDoomChat();
   try {
-    if (window.UZDoomEngine) await window.UZDoomEngine.ensure();
+    await ensureEngine();
   } catch (e) {
     console.warn('[uzdoom scripts] engine load failed:', e);
     setStatus('Engine failed to load. Reload and try again.');
@@ -347,7 +354,8 @@ $('launchBtn').addEventListener('click', async () => {
   } else {
     Module.onRuntimeInitialized = bootEngine;
   }
-});
+}
+$('launchBtn').addEventListener('click', launchEngine);
 
 setInterval(() => {
   if (!LC.isRunning()) return;
@@ -508,9 +516,10 @@ export const UZDoomLoader = {
     });
     return Promise.resolve();
   },
-  launch: function () {
+  /** @returns {Promise<boolean>} false when nothing is primed */
+  launch: async function () {
     if (LC.get() !== 'primed') return false;
-    $('launchBtn').click();
+    await launchEngine();
     return true;
   },
   isPrimed: function () {

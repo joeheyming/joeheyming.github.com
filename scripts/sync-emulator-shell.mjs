@@ -14,6 +14,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { siteBootTag } from './site-boot.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const consolesPath = join(root, 'emulator/consoles.js');
@@ -196,10 +197,7 @@ function landerHtml(cfg) {
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
-    <script src="/achievements.js"></script>
-    <script src="/nav.js" data-nav-size="compact"></script>
-    <script src="/feedback.js"></script>
-    <script src="/share.js" data-share-fab="off"></script>
+    ${siteBootTag({ navSize: 'compact', shareFab: 'off' })}
     <script src="/proxy.js"></script>
 
     <script src="/emulator/leanback.js"></script>
@@ -209,9 +207,7 @@ function landerHtml(cfg) {
     <script src="/emulator/games-sheet.js"></script>
     <script src="/emulator/rom-browser.js"></script>
     <script src="/shared/breadcrumbs.js"></script>
-    <script src="/emulator/socd.js"></script>
     <script src="/emulator/bios.js"></script>
-    <script src="/emulator/ejs-mount.js"></script>
     <script src="/emulator/launch.js"></script>
 
     <link rel="stylesheet" href="/emulator/emulator.css" />

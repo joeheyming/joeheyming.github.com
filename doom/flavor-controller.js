@@ -110,17 +110,30 @@
     });
   }
 
-  // Wait for window.UZDoomLoader to publish (loader IIFE runs
-  // after engine scripts inject post-COI). Bounded poll, ~50ms.
-  async function waitForLoader() {
-    var deadline = Date.now() + 30000;
-    while (!window.UZDoomLoader) {
-      if (Date.now() > deadline) throw new Error('UZDoomLoader never appeared');
-      await new Promise(function (r) {
-        setTimeout(r, 50);
-      });
+  // The picker does not load the loader, its input modules, or the
+  // engine until a flavor launches. A failed import is forgotten so the
+  // next click retries.
+  var loaderReady = null;
+  function waitForLoader() {
+    if (window.UZDoomLoader) return Promise.resolve(window.UZDoomLoader);
+    if (!loaderReady) {
+      loaderReady = import('./uzdoom-loader.js').then(
+        function (mod) {
+          return mod.UZDoomLoader;
+        },
+        function (err) {
+          loaderReady = null;
+          throw err;
+        }
+      );
     }
-    return window.UZDoomLoader;
+    return loaderReady;
+  }
+
+  function loadClassic(src) {
+    return import('/shared/lazy.js').then(function (lazy) {
+      return lazy.loadScript(src);
+    });
   }
 
   // Streaming fetch with byte-level progress callbacks. Used by
@@ -144,6 +157,7 @@
   // Direct CDN misses are the common first-load failure. One proxy pass
   // after the direct retry, then the caller records doom_flavor_failed.
   async function fetchViaProxy(url, onProgress) {
+    if (!window.proxyService) await loadClassic('/proxy.js');
     var proxy = window.proxyService;
     if (!proxy || typeof proxy.fetchBinary !== 'function') {
       throw new TypeError('Failed to fetch');
@@ -355,11 +369,11 @@
     return { name: bundled + ' (bundled)', data: null, bundled: bundled };
   }
 
-  // Pull named WADs out of a downloaded zip, in zipWads order.
-  // UZDoomModdbArchive is published by moddb-archive.js, which is a
-  // deferred module and has run before a flavor can launch.
+  // Pull named WADs out of a downloaded zip, in zipWads order. The
+  // archive module loads with the first zip flavor.
   async function unpackZipWads(bytes, names) {
     var archive = window.UZDoomModdbArchive;
+    if (!archive) archive = (await import('./moddb-archive.js')).UZDoomModdbArchive;
     if (!archive || typeof archive.extractZip !== 'function') {
       throw new Error('archive helper missing');
     }
@@ -552,15 +566,8 @@
       trackLaunchWhenPlaying(flavor, 'autolaunch', tStart);
       btn.textContent = 'Loading…';
       btn.disabled = true;
-      // Yield so the Loading label paints before WASM boot work.
-      if (typeof window.yieldToMain === 'function') {
-        await window.yieldToMain();
-      } else {
-        await new Promise(function (r) {
-          setTimeout(r, 0);
-        });
-      }
-      if (window.UZDoomLoader) window.UZDoomLoader.launch();
+      // launch() yields to paint before it parses the engine.
+      if (window.UZDoomLoader) await window.UZDoomLoader.launch();
     });
     return ui;
   }

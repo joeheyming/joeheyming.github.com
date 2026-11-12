@@ -66,7 +66,7 @@ async function loadZeniusChart(zeniusUrl, difficulty, gen) {
   }
 
   try {
-    const simfileDataPromise = fetchZeniusSimfile(simfileId);
+    const simfileDataPromise = fetchZeniusSimfile(simfileId, undefined, takeHeadStart(simfileId));
     await whenLoadingOverlay();
     if (gen !== generation) return { cancelled: true };
 
@@ -108,6 +108,19 @@ async function loadZeniusChart(zeniusUrl, difficulty, gen) {
   } finally {
     window.dispatchEvent(new Event('sm-chart-ready'));
   }
+}
+
+/**
+ * The download index.html started for this simfile before any module
+ * parsed, taken once so a second prime fetches fresh.
+ * @param {string} simfileId
+ * @returns {Promise<import('./songLoader.js').ZeniusHeadStart> | null}
+ */
+function takeHeadStart(simfileId) {
+  const slot = window.__zeniusPagePrefetch;
+  if (!slot || String(slot.id) !== String(simfileId) || !slot.promise) return null;
+  window.__zeniusPagePrefetch = undefined;
+  return slot.promise;
 }
 
 function whenLoadingOverlay() {

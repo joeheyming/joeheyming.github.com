@@ -264,8 +264,8 @@ test('Doom caps catch-up work in its browser main loop', () => {
 });
 
 test('Doom does not parse the engine while the flavor picker is idle', () => {
-  const loader = readFileSync(path.join(ROOT, 'doom/engine-loader.js'), 'utf8');
-  assert.match(loader, /UZDoomEngine/);
+  const loader = readFileSync(path.join(ROOT, 'doom/engine.js'), 'utf8');
+  assert.match(loader, /export const ensureEngine = once\(/);
   assert.doesNotMatch(loader, /DOMContentLoaded/);
 
   const flavors = readFileSync(path.join(ROOT, 'doom/flavors.js'), 'utf8');
@@ -273,10 +273,15 @@ test('Doom does not parse the engine while the flavor picker is idle', () => {
   assert.doesNotMatch(flavors, /btn\.disabled = true/);
 
   const launch = readFileSync(path.join(ROOT, 'doom/uzdoom-loader.js'), 'utf8');
-  const clickStart = launch.indexOf("$('launchBtn').addEventListener('click'");
+  const clickStart = launch.indexOf('async function launchEngine()');
+  assert.ok(clickStart > 0, 'uzdoom-loader.js defines launchEngine');
+  assert.match(launch, /\$\('launchBtn'\)\.addEventListener\('click', launchEngine\)/);
+  assert.match(launch, /await launchEngine\(\)/, 'UZDoomLoader.launch calls launchEngine directly');
+  assert.doesNotMatch(launch, /\$\('launchBtn'\)\.click\(\)/);
   const click = launch.slice(clickStart, launch.indexOf('setInterval(', clickStart));
-  assert.ok(click.indexOf('yieldToMain') < click.indexOf('UZDoomEngine'));
-  assert.ok(click.indexOf('UZDoomEngine') < click.indexOf('bootEngine()'));
+  assert.ok(click.indexOf('yieldToMain') < click.indexOf('ensureEngine()'));
+  assert.ok(click.indexOf('mountDoomChat()') < click.indexOf('ensureEngine()'));
+  assert.ok(click.indexOf('ensureEngine()') < click.indexOf('bootEngine()'));
 });
 
 test('StepMania paints interaction feedback before heavy continuations', () => {

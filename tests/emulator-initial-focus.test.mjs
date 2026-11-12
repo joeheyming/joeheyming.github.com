@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { JSDOM } from 'jsdom';
+import { appWindow, loadClassic } from './load-app-script.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -23,19 +24,19 @@ function installFocus(window) {
 }
 
 test('the emulator hub focuses the first console', async () => {
-  const dom = new JSDOM(
+  const window = appWindow(
     '<!doctype html><div id="brand"></div><div id="boot-card"></div><button class="heyming-nav-toggle">Menu</button>',
-    { runScripts: 'outside-only', url: 'https://joeheyming.github.io/emulator/' }
+    { url: 'https://joeheyming.github.io/emulator/' }
   );
-  const { window } = dom;
   installFocus(window);
   window.EMULATOR_CONSOLES = {
     nes: { id: 'nes', emoji: '🎮', title: 'NES', subtitle: 'Nintendo' },
     snes: { id: 'snes', emoji: '🎮', title: 'SNES', subtitle: 'Super' }
   };
   window.document.querySelector('.heyming-nav-toggle').focus();
-  window.eval(readFileSync(path.join(ROOT, 'emulator/launch.js'), 'utf8'));
+  loadClassic(window, 'emulator/launch.js');
   await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(window.__loadedScripts, [], 'the hub loads no game-list scripts');
 
   const tile = window.document.querySelector('.picker-tile');
   assert.equal(window.document.activeElement, tile);

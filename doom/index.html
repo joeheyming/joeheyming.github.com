@@ -385,38 +385,22 @@
     <!-- Site chrome: analytics + back button + feedback widget. -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
-    <script src="/nav.js" data-nav-size="compact"></script>
-    <script src="/feedback.js"></script>
+    <script src="/site.js" data-nav-size="compact" data-share-fab="off"></script>
     <!-- data-share-fab="off" suppresses share.js's generic floating share
          button on this page. Doom ships its own dedicated chrome share
          button (share-button.js below) and we don't want both. The
          🎯 related-projects panel from share.js still renders normally. -->
-    <script src="/share.js" data-share-fab="off"></script>
-    <script src="/achievements.js"></script>
     <!-- Persistent "Share DOOM" button in the page chrome. Doom has no easy
          level-end hook so the share moment has to be always-on rather than
          tied to a gameplay event. -->
     <script src="share-button.js"></script>
-    <!-- Shared CORS proxy service. Used by the moddb browser to fetch
-         listings, mod pages, and binary downloads cross-origin. Safe to
-         load on every visit — does not run anything until called. -->
-    <script src="/proxy.js"></script>
 
-    <!-- Engine subsystems. Deferred so they run after HTML parse but
-         before DOMContentLoaded, in document order. -->
+    <!-- Engine subsystems the picker watches. Deferred so they run after
+         HTML parse but before DOMContentLoaded, in document order. The
+         loader, inputs, engine, proxy, and mod browser load on launch or
+         in manual mode (boot.js). -->
     <script type="module" src="lifecycle.js"></script>
     <script type="module" src="coi.js"></script>
-    <script type="module" src="touch-input.js"></script>
-    <script type="module" src="gamepad-input.js"></script>
-    <!-- moddb mod browser. The three files are independent of the WASM
-         engine (no COI dependency) and only invoke it via UZDoomLoader
-         after the user clicks "Fetch & launch". Order matters: archive +
-         iwad helpers must publish their globals before the browser
-         touches them. Deferred so they run after HTML parse and after
-         /proxy.js has installed window.proxyService. -->
-    <script type="module" src="moddb-archive.js"></script>
-    <script type="module" src="moddb-iwad.js"></script>
-    <script type="module" src="moddb-browser.js"></script>
 
     <!-- uzdoom-loader.js expects a specific DOM layout and specific IDs
          (iwadPicker, modPicker, sfPicker, launchBtn, status, canvas,
@@ -920,10 +904,6 @@
          from its own IIFE. -->
     <script src="module-stub.js"></script>
 
-    <!-- Engine script injection. UZDoomEngine.ensure() loads uzdoom.js
-         on launch, after COI. The picker does not wait on that parse. -->
-    <script src="engine-loader.js"></script>
-
     <!-- Flavor controller. URL modes:
            ?manual=1        → bail; full uzdoom-loader picker UI takes over.
            ?flavor=classic  → auto-prime original DOOM (doom.wad fetched
@@ -941,10 +921,8 @@
          mode and stays hidden via body.picker-mode CSS. -->
     <script src="next-apps.js"></script>
     <script src="flavor-controller.js"></script>
-    <!-- Live chat (desktop only). room=doom; Meta!A1 kill switch when wired. -->
-    <script type="module">
-      import { mountLiveChat } from '/live-chat/index.js';
-      mountLiveChat({ room: 'doom' });
-    </script>
+    <!-- Manual-mode loading, launch preload on intent, and live chat
+         (desktop only, mounted when idle and before the engine). -->
+    <script type="module" src="boot.js"></script>
   </body>
 </html>

@@ -10,10 +10,10 @@
 // picker calls it, and so does a tile click and a `?rom=` deep link after
 // the Archive bytes are wrapped in a File. A tile writes `?rom=<name>` with
 // pushHistorySilent so Back returns to the list without a second page view.
-// Sega CD and Saturn deep
-// links stay on the download handoff. Mounting (EJS_* globals, loader.js, SOCD)
-// lives in emulator/ejs-mount.js; BIOS in emulator/bios.js. This file keeps
-// chrome, achievements, and boot-card orchestration.
+// Sega CD and Saturn deep links stay on the download handoff. Once a game is
+// chosen, launchEmulator loads the play path (emulator/play.js: play chrome,
+// achievements, Ruffle or emulator/ejs-mount.js) and hands it the ROM. BIOS
+// lives in emulator/bios.js. This file keeps boot-card orchestration.
 //
 // Lean-back (TV / console): hides the file picker, starts `?rom=<name>`
 // in the page when that console streams, and wires D-pad focus via
@@ -31,6 +31,31 @@
   /** True when we booted a core without cross-origin isolation (no threads). */
   let singleThreadMode = false;
   let pickerRoving = null;
+
+  // Pages list only what their first screen renders. The game list (a
+  // console page) and the play path load here, in this order, when needed.
+  const LISTING_SCRIPTS = [
+    '/emulator/internet-archive.js',
+    '/emulator/rom-acquire.js',
+    '/emulator/games-sheet.js',
+    '/emulator/rom-browser.js',
+    '/emulator/bios.js'
+  ];
+  const PLAY_SCRIPTS = ['/emulator/socd.js', '/emulator/ejs-mount.js', '/emulator/play.js'];
+  const RUFFLE_PLAY_SCRIPTS = ['/emulator/play.js'];
+
+  /** Flash runs in Ruffle, which the flash page loads itself; no EmulatorJS mount. */
+  function playScripts(cfg) {
+    return cfg.player === 'ruffle' ? RUFFLE_PLAY_SCRIPTS : PLAY_SCRIPTS;
+  }
+
+  function lazy() {
+    return import('/shared/lazy.js');
+  }
+
+  function loadInOrder(srcs) {
+    return lazy().then((l) => l.loadScriptsInOrder(srcs));
+  }
 
   function ready(fn) {
     if (document.readyState !== 'loading') fn();
@@ -485,25 +510,10 @@
 
     bios()?.wireBiosControls(cfg);
     wireTvFocus(bootCard);
-  }
-
-  async function unlockGameAudio() {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (Ctx) {
-      try {
-        const ctx = new Ctx();
-        if (ctx.state === 'suspended') await ctx.resume();
-      } catch {
-        /* ignore */
-      }
-    }
-    document.querySelectorAll('audio, video').forEach((el) => {
-      el.muted = false;
-      const play = el.play && el.play();
-      if (play && typeof play.catch === 'function') play.catch(() => {});
-    });
-    const btn = document.getElementById('emu-sound-btn');
-    if (btn) btn.textContent = 'Sound on — click the game if still silent';
+    lazy().then(
+      (l) => l.preloadOnIntent(bootCard, playScripts(cfg)),
+      () => {}
+    );
   }
 
   /**
@@ -576,71 +586,6 @@
     url.searchParams.delete('rom');
     url.hash = '';
     window.location.assign(`${url.pathname}${url.search}`);
-  }
-
-  function placeGameListButton() {
-    const btn = document.getElementById('emu-game-list-btn');
-    const bar = document.getElementById('emu-play-chrome');
-    const overlay = document.querySelector('.share-overlay');
-    if (!btn || !bar) return;
-    // TV hides the share cluster, so the exit stays on the play bar there.
-    if (!isTv() && overlay) {
-      if (btn.parentElement !== overlay) overlay.insertBefore(btn, overlay.firstChild);
-    } else if (btn.parentElement !== bar) {
-      bar.appendChild(btn);
-    }
-  }
-
-  function mountPlayChrome(cfg) {
-    let bar = document.getElementById('emu-play-chrome');
-    if (!bar) {
-      bar = document.createElement('div');
-      bar.id = 'emu-play-chrome';
-      document.body.appendChild(bar);
-    }
-    const bits = [];
-    if (cfg.showSaveStates) {
-      bits.push(
-        '<button type="button" class="emu-chrome-btn" id="emu-save-btn">Save (F5)</button>'
-      );
-      bits.push(
-        '<button type="button" class="emu-chrome-btn" id="emu-load-btn">Load (F9)</button>'
-      );
-      bits.push(
-        '<span class="emu-chrome-note">Quick save — not the in-game memory card menu.</span>'
-      );
-    }
-    if (cfg.audioUnlock || cfg.audioNote) {
-      bits.push(
-        '<button type="button" class="emu-chrome-btn" id="emu-sound-btn">Sound off — click to enable</button>'
-      );
-    }
-    // Kept out of the save row so a missed Save click can't quit the game.
-    // placeGameListButton parks it in the top-right share cluster.
-    bits.push(
-      '<button type="button" class="emu-chrome-btn emu-chrome-exit" id="emu-game-list-btn" aria-label="Back to game list">' +
-        '<span class="emu-exit-full">Back to game list</span>' +
-        '<span class="emu-exit-short">← Games</span>' +
-        '</button>'
-    );
-    bar.innerHTML = bits.join('');
-
-    document.getElementById('emu-game-list-btn')?.addEventListener('click', returnToGameList);
-    placeGameListButton();
-    document.getElementById('emu-sound-btn')?.addEventListener('click', unlockGameAudio);
-    document.getElementById('emu-save-btn')?.addEventListener('click', () => {
-      window.emulatorEjsMount?.saveQuickState();
-    });
-    document.getElementById('emu-load-btn')?.addEventListener('click', () => {
-      window.emulatorEjsMount?.loadQuickState();
-    });
-    document.getElementById('game-container')?.addEventListener(
-      'pointerdown',
-      () => {
-        if (cfg.audioUnlock || cfg.audioNote) unlockGameAudio();
-      },
-      { once: true }
-    );
   }
 
   function renderPicker() {
@@ -920,6 +865,21 @@
     const bootUi = () => {
       if (booted || runtimeBlocked) return;
       booted = true;
+      if (cfg && !romAcquire()) {
+        // The hub lists consoles, not games. A console reached from it
+        // without its own page loads the game list first.
+        loadInOrder(LISTING_SCRIPTS).then(
+          () => {
+            booted = false;
+            bootUi();
+          },
+          (err) => {
+            console.error('emulator: game list did not load', err);
+            insertBootNotice('The game list did not load. Refresh the page and try again.');
+          }
+        );
+        return;
+      }
       if (cfg) {
         identityCfg = cfg;
         applyConsoleIdentity(cfg);
@@ -974,30 +934,6 @@
     }
   });
 
-  // Public entry point: handed a File (local picker, Play in browser, or a
-  // ?rom= deep link). BIOS gate + chrome, then Ruffle or emulatorEjsMount.
-  async function mountRuffle(romSource) {
-    const game = document.getElementById('game');
-    const RufflePlayer = window.RufflePlayer;
-    if (!game || !RufflePlayer || typeof RufflePlayer.newest !== 'function') {
-      if (game) game.textContent = 'Flash player failed to load. Reload and try again.';
-      return;
-    }
-    game.replaceChildren();
-    const player = RufflePlayer.newest().createPlayer();
-    player.style.width = '100%';
-    player.style.height = '100%';
-    game.appendChild(player);
-    const url = URL.createObjectURL(romSource);
-    try {
-      await player.ruffle().load(url);
-    } catch (err) {
-      URL.revokeObjectURL(url);
-      game.textContent = 'Could not start this Flash game.';
-      console.error(err);
-    }
-  }
-
   window.launchEmulator = async function launchEmulator(romSource, romName, options) {
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
     if (!cfg) {
@@ -1045,39 +981,17 @@
       }
     }
 
-    if (typeof window.prependBaseTitle === 'function') window.prependBaseTitle(playingTitle);
-
-    const bootEl = document.getElementById('boot');
-    const gameContainer = document.getElementById('game-container');
-    const emuHeader = document.getElementById('emu-header');
-    if (bootEl) bootEl.classList.add('hidden');
-    if (gameContainer) gameContainer.classList.add('visible');
-    if (emuHeader) emuHeader.classList.add('is-playing');
-    document.documentElement.dataset.gamepadNav = 'game';
-
-    // Unlock once per console lander app id (derived from the registry).
-    if (Object.keys(window.EMULATOR_CONSOLES || {}).includes(cfg.id)) {
-      window.heymingAchievements?.unlockForCurrentApp('first-action');
-    }
-
-    mountPlayChrome(cfg);
-
-    if (cfg.player === 'ruffle') {
-      await mountRuffle(romSource);
+    try {
+      await loadInOrder(playScripts(cfg));
+    } catch (err) {
+      console.error('launchEmulator: play scripts did not load', err);
+      insertBootNotice('The emulator did not load. Check your connection and try again.');
       return;
     }
 
-    const mountApi = window.emulatorEjsMount;
-    if (!mountApi || typeof mountApi.mount !== 'function') {
-      console.error(
-        'launchEmulator: emulatorEjsMount missing; load ejs-mount.js before launch.js.'
-      );
-      return;
-    }
-    mountApi.mount({
-      cfg,
-      romSource,
+    await window.emulatorPlay.play(romSource, cfg, {
       romName,
+      title: playingTitle,
       biosFile: biosApi ? biosApi.getActiveFile() : null,
       onExit: returnToGameList
     });

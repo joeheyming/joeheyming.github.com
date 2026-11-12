@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   resolveZeniusUrl,
   formatLoadError,
@@ -182,14 +183,11 @@ describe('fetchZeniusSimfile', () => {
 
   it('uses a head-start page and chart instead of fetching them again', async () => {
     const chartUrl = 'https://zenius-i-vanisher.com/simfiles/Song.sm';
-    globalThis.__zeniusPagePrefetch = {
-      id: '1',
-      promise: Promise.resolve({
-        html: '<h1>Early Song</h1><a href="/simfiles/Song.sm">SM</a><a href="/simfiles/Song.ogg">OGG</a>',
-        chartUrl,
-        chartText: Promise.resolve('#TITLE:Early Song;\n#NOTEDATA:;')
-      })
-    };
+    const headStart = Promise.resolve({
+      html: '<h1>Early Song</h1><a href="/simfiles/Song.sm">SM</a><a href="/simfiles/Song.ogg">OGG</a>',
+      chartUrl,
+      chartText: Promise.resolve('#TITLE:Early Song;\n#NOTEDATA:;')
+    });
     /** @type {string[]} */
     const fetched = [];
     const transport = {
@@ -205,12 +203,18 @@ describe('fetchZeniusSimfile', () => {
       }
     };
 
-    const result = await fetchZeniusSimfile('1', transport);
+    const result = await fetchZeniusSimfile('1', transport, headStart);
 
     assert.equal(result.title, 'Early Song');
     assert.equal(result.simfileText, '#TITLE:Early Song;\n#NOTEDATA:;');
     assert.equal(fetched.length, 0);
-    assert.equal(globalThis.__zeniusPagePrefetch, undefined);
+  });
+
+  it('leaves the page head start to zeniusEntry', () => {
+    const loader = readFileSync(new URL('../js/songLoader.js', import.meta.url), 'utf8');
+    assert.doesNotMatch(loader, /__zeniusPagePrefetch/);
+    const entry = readFileSync(new URL('../js/zeniusEntry.js', import.meta.url), 'utf8');
+    assert.match(entry, /fetchZeniusSimfile\(simfileId, undefined, takeHeadStart\(simfileId\)\)/);
   });
 });
 

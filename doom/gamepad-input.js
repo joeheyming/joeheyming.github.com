@@ -202,6 +202,10 @@ var controller = createGamepadController({
   onRelease: releaseAll
 });
 
+// This module loads with the launch, after gamepadconnected has already
+// fired for a pad the visitor used on the picker.
+controller.start();
+
 function gameOwnsPad(state) {
   var phase = state && state.phase;
   return phase === 'launching' || phase === 'playing';

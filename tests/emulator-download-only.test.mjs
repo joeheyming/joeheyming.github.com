@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
+import { appWindow, loadClassic } from './load-app-script.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => readFileSync(join(repoRoot, rel), 'utf8');
@@ -19,8 +20,6 @@ const read = (rel) => readFileSync(join(repoRoot, rel), 'utf8');
 const romAcquireSrc = read('emulator/rom-acquire.js');
 const romBrowserSrc = read('emulator/rom-browser.js');
 const launchSrc = read('emulator/launch.js');
-const consolesSrc = read('emulator/consoles.js');
-
 const NES_CFG = {
   id: 'nes',
   title: 'NES',
@@ -281,19 +280,10 @@ describe('?rom= deep links launch cartridges and hand off discs', () => {
    * @param {string} url
    */
   async function bootShell(url) {
-    const dom = new JSDOM(PAGE, { runScripts: 'outside-only', url });
-    window = dom.window;
-    if (typeof window.WebAssembly === 'undefined') window.WebAssembly = WebAssembly;
-    // jsdom ships no matchMedia; launch.js reads it for the dark-mode accent mix.
-    window.matchMedia = () => ({
-      matches: false,
-      addEventListener() {},
-      removeEventListener() {}
-    });
-    window.eval(consolesSrc);
-    window.eval(romAcquireSrc);
+    window = appWindow(PAGE, { url });
+    loadClassic(window, 'emulator/consoles.js', 'emulator/rom-acquire.js');
     ia = stubIaClient(window);
-    window.eval(launchSrc);
+    loadClassic(window, 'emulator/launch.js');
 
     launched = [];
     const shellLaunch = window.launchEmulator;
@@ -352,6 +342,18 @@ describe('?rom= deep links launch cartridges and hand off discs', () => {
     assert.equal(new URL(window.location.href).searchParams.get('rom'), 'Zelda');
     assert.equal(ia.loadRomCalls, 1);
     assert.deepEqual(launched, ['Zelda.zip']);
+  });
+
+  it('preloads the play scripts only once the visitor points at the game list', async () => {
+    await bootShell('https://x/emulator/nes/');
+    assert.deepEqual(window.__preloaded, []);
+    const card = window.document.getElementById('boot-card');
+    card.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    assert.deepEqual(window.__preloaded, [
+      '/emulator/socd.js',
+      '/emulator/ejs-mount.js',
+      '/emulator/play.js'
+    ]);
   });
 
   it('falls back to the boot card when the title is not in the collection', async () => {

@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
+import { appWindow, loadClassic } from './load-app-script.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => readFileSync(join(repoRoot, rel), 'utf8');
@@ -14,9 +15,6 @@ const read = (rel) => readFileSync(join(repoRoot, rel), 'utf8');
 const romAcquireSrc = read('emulator/rom-acquire.js');
 const romBrowserSrc = read('emulator/rom-browser.js');
 const leanbackSrc = read('emulator/leanback.js');
-const launchSrc = read('emulator/launch.js');
-const consolesSrc = read('emulator/consoles.js');
-
 const NES_CFG = {
   id: 'nes',
   title: 'NES',
@@ -258,24 +256,17 @@ describe('TV focus lands on the first ROM after the list loads', () => {
    * @param {Promise<void> | null} gate
    */
   function boot(gate) {
-    const dom = new JSDOM(PAGE, {
-      runScripts: 'outside-only',
-      url: 'https://joeheyming.github.io/emulator/nes/?tv=1'
-    });
-    const { window } = dom;
-    if (typeof window.WebAssembly === 'undefined') window.WebAssembly = WebAssembly;
+    const window = appWindow(PAGE, { url: 'https://joeheyming.github.io/emulator/nes/?tv=1' });
     window.crossOriginIsolated = true;
-    window.matchMedia = () => ({
-      matches: false,
-      addEventListener() {},
-      removeEventListener() {}
-    });
-    window.eval(consolesSrc);
-    window.eval(romAcquireSrc);
-    window.eval(leanbackSrc);
-    window.eval(romBrowserSrc);
+    loadClassic(
+      window,
+      'emulator/consoles.js',
+      'emulator/rom-acquire.js',
+      'emulator/leanback.js',
+      'emulator/rom-browser.js'
+    );
     stubIaClient(window, gate);
-    window.eval(launchSrc);
+    loadClassic(window, 'emulator/launch.js');
     return window;
   }
 

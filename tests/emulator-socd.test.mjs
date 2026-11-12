@@ -170,38 +170,81 @@ describe('emulator SOCD filter', () => {
   });
 });
 
+/** @param {string} source */
+function emulatorScripts(source) {
+  return [...source.matchAll(/<script src="(\/(?:emulator|shared)\/[^"]+)"><\/script>/g)].map(
+    (m) => m[1]
+  );
+}
+
+/** @param {string} name */
+function scriptList(name) {
+  const launch = read('emulator/launch.js');
+  const match = launch.match(new RegExp(`const ${name} = \\[([^\\]]*)\\]`));
+  assert.ok(match, `launch.js defines ${name}`);
+  return [...match[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+}
+
 describe('emulator SOCD wiring', () => {
-  it('is loaded by every emulator page that loads launch.js', () => {
-    // Discovered rather than listed so a newly added console page is covered
-    // the moment it ships.
-    const pages = globSync('emulator/**/index.html', { cwd: repoRoot }).filter((page) =>
-      read(page).includes('/emulator/launch.js')
-    );
-    assert.ok(pages.length > 1, 'expected the hub plus per-console pages');
-    for (const page of pages) {
+  // Discovered rather than listed so a newly added console page is covered
+  // the moment it ships.
+  const landers = globSync('emulator/*/index.html', { cwd: repoRoot }).filter((page) =>
+    read(page).includes('/emulator/launch.js')
+  );
+
+  it('loads socd.js before ejs-mount.js on the play path, not on page load', () => {
+    assert.deepEqual(scriptList('PLAY_SCRIPTS'), [
+      '/emulator/socd.js',
+      '/emulator/ejs-mount.js',
+      '/emulator/play.js'
+    ]);
+    for (const page of ['emulator/index.html', ...landers]) {
       const html = read(page);
-      assert.ok(html.includes('/emulator/socd.js'), `${page}: missing socd.js`);
-      assert.ok(html.includes('/emulator/bios.js'), `${page}: missing bios.js`);
-      assert.ok(html.includes('/emulator/rom-acquire.js'), `${page}: missing rom-acquire.js`);
-      assert.ok(html.includes('/emulator/games-sheet.js'), `${page}: missing games-sheet.js`);
-      assert.ok(html.includes('/emulator/ejs-mount.js'), `${page}: missing ejs-mount.js`);
-      const socdAt = html.indexOf('/emulator/socd.js');
-      const mountAt = html.indexOf('/emulator/ejs-mount.js');
-      const launchAt = html.indexOf('/emulator/launch.js');
-      const acquireAt = html.indexOf('/emulator/rom-acquire.js');
-      const browserAt = html.indexOf('/emulator/rom-browser.js');
-      assert.ok(socdAt < mountAt, `${page}: socd.js must load before ejs-mount.js`);
-      assert.ok(mountAt < launchAt, `${page}: ejs-mount.js must load before launch.js`);
-      assert.ok(acquireAt < browserAt, `${page}: rom-acquire.js must load before rom-browser.js`);
-      const sheetAt = html.indexOf('/emulator/games-sheet.js');
-      assert.ok(
-        acquireAt < sheetAt && sheetAt < browserAt,
-        `${page}: games-sheet.js must load between rom-acquire.js and rom-browser.js`
+      assert.ok(html.includes('/emulator/launch.js'), `${page}: missing launch.js`);
+      assert.doesNotMatch(
+        html,
+        /\/emulator\/(socd|ejs-mount|play)\.js/,
+        `${page}: loads play scripts`
       );
-      assert.ok(
-        html.indexOf('/emulator/bios.js') < launchAt,
-        `${page}: bios.js must load before launch.js`
+    }
+  });
+
+  it('lists the game-list scripts in dependency order on every console page', () => {
+    const listing = scriptList('LISTING_SCRIPTS');
+    assert.deepEqual(listing, [
+      '/emulator/internet-archive.js',
+      '/emulator/rom-acquire.js',
+      '/emulator/games-sheet.js',
+      '/emulator/rom-browser.js',
+      '/emulator/bios.js'
+    ]);
+    assert.ok(landers.length > 1, 'expected per-console pages');
+    for (const page of landers) {
+      const scripts = emulatorScripts(read(page));
+      const positions = listing.map((src) => scripts.indexOf(src));
+      assert.ok(!positions.includes(-1), `${page}: missing a game-list script`);
+      assert.deepEqual(
+        [...positions].sort((a, b) => a - b),
+        positions,
+        `${page}: order`
       );
+      assert.ok(positions.at(-1) < scripts.indexOf('/emulator/launch.js'), `${page}: launch last`);
+    }
+  });
+
+  it('keeps every console page on the generated lander script list', () => {
+    const template = emulatorScripts(read('scripts/sync-emulator-shell.mjs'));
+    assert.ok(template.includes('/emulator/launch.js'));
+    for (const page of landers) {
+      const scripts = emulatorScripts(read(page)).filter((src) => !src.includes('ruffle'));
+      assert.deepEqual(scripts, template, `${page} drifted from landerHtml()`);
+    }
+  });
+
+  it('keeps the console list off the hub', () => {
+    const hub = emulatorScripts(read('emulator/index.html'));
+    for (const src of scriptList('LISTING_SCRIPTS')) {
+      assert.ok(!hub.includes(src), `hub loads ${src}`);
     }
   });
 

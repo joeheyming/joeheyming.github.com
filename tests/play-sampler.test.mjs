@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { pageLoadsShared } from '../scripts/site-boot.mjs';
 
 const ROOT = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), 'utf8');
@@ -17,7 +18,7 @@ test('sampler page is local-first, accessible, and indexable', async () => {
   assert.match(html, /id="drop-zone"[\s\S]+role="button"[\s\S]+tabindex="0"/);
   assert.match(html, /Your file never leaves this device/);
   assert.match(html, /<script type="module" src="index\.js"><\/script>/);
-  assert.match(html, /<script src="\/achievements\.js"><\/script>/);
+  assert.ok(pageLoadsShared(html, 'achievements'));
 });
 
 test('sampler leads with the playable instrument, not the file picker', async () => {

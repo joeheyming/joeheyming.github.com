@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { JSDOM } from 'jsdom';
+import { pageLoadsShared } from '../scripts/site-boot.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = readFileSync(path.join(ROOT, 'achievements.js'), 'utf8');
@@ -192,7 +193,7 @@ test('every catalog app page loads the shared achievement runtime', () => {
     const htmlPath = path.join(ROOT, relativePath, 'index.html');
     assert.equal(existsSync(htmlPath), true, `missing page for ${appId}`);
     const html = readFileSync(htmlPath, 'utf8');
-    assert.match(html, /src=["']\/achievements\.js["']/, `${appId} does not load runtime`);
+    assert.ok(pageLoadsShared(html, 'achievements'), `${appId} does not load runtime`);
   }
 });
 

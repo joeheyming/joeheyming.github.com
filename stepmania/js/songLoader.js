@@ -361,16 +361,8 @@ async function loadChartFromPacks(packUrls, transport) {
 }
 
 /**
- * Take the head-start download for this simfile, if the page started one.
- * @param {string} simfileId
- * @returns {Promise<{ html: string, chartUrl: string | null, chartText: Promise<string | null> }> | null}
+ * @typedef {{ html: string, chartUrl: string | null, chartText: Promise<string | null> }} ZeniusHeadStart
  */
-function consumeZeniusPagePrefetch(simfileId) {
-  const slot = globalThis.__zeniusPagePrefetch;
-  if (!slot || String(slot.id) !== String(simfileId) || !slot.promise) return null;
-  globalThis.__zeniusPagePrefetch = undefined;
-  return slot.promise;
-}
 
 /**
  * The chart dialog can run before proxy.js. Only ask for it when the
@@ -391,15 +383,17 @@ async function transportWhenNeeded(transport) {
  * Fetch and parse simfile data from Zenius-I-Vanisher
  * @param {string} simfileId - The simfile ID to fetch
  * @param {import('./songProxyTransport.js').SongProxyTransport} [transport]
+ * @param {Promise<ZeniusHeadStart> | null} [headStart] the page and chart a
+ *   zenius= link started downloading before this module loaded
  * @returns {Promise<Object>} Parsed simfile data
  */
-export async function fetchZeniusSimfile(simfileId, transport) {
+export async function fetchZeniusSimfile(simfileId, transport, headStart) {
   const zeniusPageUrl = 'https://zenius-i-vanisher.com/v5.2/viewsimfile.php?simfileid=' + simfileId;
 
-  /** @type {{ html: string, chartUrl: string | null, chartText: Promise<string | null> } | null} */
+  /** @type {ZeniusHeadStart | null} */
   let prefetched = null;
   try {
-    prefetched = (await consumeZeniusPagePrefetch(simfileId)) || null;
+    prefetched = (await headStart) || null;
   } catch {
     prefetched = null;
   }

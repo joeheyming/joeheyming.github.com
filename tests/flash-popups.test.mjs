@@ -20,7 +20,7 @@ test('Flash player refuses SWF navigateToURL popups', () => {
 test('Flash is a console in the emulator hub', () => {
   const consoles = readFileSync(path.join(ROOT, 'emulator/consoles.js'), 'utf8');
   const hub = readFileSync(path.join(ROOT, 'emulator/index.html'), 'utf8');
-  const launch = readFileSync(path.join(ROOT, 'emulator/launch.js'), 'utf8');
+  const launch = readFileSync(path.join(ROOT, 'emulator/play.js'), 'utf8');
   const stub = readFileSync(path.join(ROOT, 'flash/index.html'), 'utf8');
   assert.match(consoles, /id:\s*'flash'/);
   assert.match(consoles, /player:\s*'ruffle'/);

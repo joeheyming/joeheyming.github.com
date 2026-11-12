@@ -37,7 +37,7 @@ Copy the `<head>` from a recent app and adapt the title, description, canonical 
 - **`meta name="robots" content="index, follow"`** — required for Google indexing (see [Search indexing & SEO](#search-indexing--seo))
 - `description`, `og:*`, `twitter:*`, `canonical` pointing to `https://joeheyming.github.io/my-app/`
 - `og:image` / `twitter:image` pointing to the preview PNG (generated in step 4)
-- The four shared scripts in order: async gtag loader, `/analytics.js`, `/nav.js`, `/feedback.js`, `/share.js`
+- The shared scripts in order: async gtag loader, `/analytics.js`, then one `<script src="/site.js">` tag. `site.js` loads nav, feedback, share, and achievements; options go on its tag (`data-nav-size="compact"`, `data-share-fab="off"`, `data-skip="achievements"`). Don't list those four scripts separately; `npm run sync:site-boot` rewrites a page that does, and `tests/site-boot.test.mjs` fails until you run it.
 - JSON-LD `SoftwareApplication` + breadcrumb (optional but good for SEO)
 
 ### 3. Register in `apps-registry.json`
@@ -161,9 +161,11 @@ When adding or fixing an app for Search:
 | File               | What it does                                                                                                                                   | When to load                                                                                                                              |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `/analytics.js`    | GA init, product outcomes, error tracking, INP, and shared-link UTM generation                                                                 | Almost always (with the async gtag loader)                                                                                                |
-| `/nav.js`          | Hamburger toggle (top-left) + left-rail drawer with all apps from `apps-registry.json`; hides itself inside iframes and standalone PWA         | All standalone pages                                                                                                                      |
-| `/feedback.js`     | `<feedback-button>` web component → Google Form                                                                                                | Most apps                                                                                                                                 |
-| `/share.js`        | Related-projects panel from `apps-registry.json` `related` field                                                                               | Apps with `related` entries                                                                                                               |
+| `/site.js`         | Loads the shared chrome below in order, without blocking the parser, and forwards `data-nav-size` / `data-share-fab`; `data-skip` drops any     | All standalone pages, right after `/analytics.js`                                                                                         |
+| `/nav.js`          | Hamburger toggle (top-left) + left-rail drawer with all apps from `apps-registry.json`; hides itself inside iframes and standalone PWA         | Through `/site.js`                                                                                                                        |
+| `/feedback.js`     | `<feedback-button>` web component → Google Form                                                                                                | Through `/site.js`                                                                                                                        |
+| `/share.js`        | Related-projects panel from `apps-registry.json` `related` field                                                                               | Through `/site.js` (`data-skip="share"` on pages without `related` entries)                                                               |
+| `/shared/lazy.js`  | ES module: `loadScript`, `loadScriptsInOrder`, `once`, `preload`, `preloadOnIntent`, the one just-in-time loader                              | Import (or `import()` from a classic script) wherever code loads on demand; see [Loading code just in time](#loading-code-just-in-time)  |
 | `/proxy.js`        | `window.proxyService` — CORS-safe fetch with fallback proxies, caching, circuit breaker                                                        | Only when fetching cross-origin resources (ROMs, APIs, etc.)                                                                              |
 | `/gamepad-core.js` | ES-module Gamepad API normalization, standard button/axis names, deadzones, connection lifecycle, and one polling loop                         | Import from app-specific adapters; it deliberately emits no keyboard, mouse, or game actions                                              |
 | `/gamepad-keys.js` | ES-module adapter that synthesizes arrow / Enter / Escape for discrete keyboard-driven games; no-op when the Gamepad API is absent             | Opt-in via `type="module"` (see `2048/`). **Never** on native consumers (`emulator/`, `stepmania/`, `doom/`, `pacman/`)                     |
@@ -177,12 +179,56 @@ The hamburger nav toggle is `position: fixed` at `top: 20px; left: 20px` (deskto
 - Titles or nav links at top-left: add `padding-left` equal to or greater than the toggle width + gap (≥ 120px desktop, ≥ 100px mobile). See `ascii/index.css` for an example.
 - Short app headers: opt into compact mode — the toggle shrinks and drops opacity:
   ```html
-  <script src="/nav.js" data-nav-size="compact"></script>
+  <script src="/site.js" data-nav-size="compact"></script>
   ```
 - Full-bleed hero layouts: use `padding-top` ≥ 60px on the first content block so the toggle doesn't land on a heading.
 
 Check the relevant app's source when changing its header. Do not add a
 site-wide browser sweep for this shared CSS invariant.
+
+---
+
+## Loading code just in time
+
+There is no bundler, so a page downloads exactly what its HTML and static
+`import`s name. Keep that set to what the first screen renders, and load the
+rest when the visitor asks for it.
+
+- **First screen only.** A `<script>` tag or a static `import` belongs on a
+  page only if the page's first screen uses it. Engines, players, editors,
+  and their input layers load on the gesture that needs them.
+- **One loader.** Load on demand with `/shared/lazy.js`, not a hand-rolled
+  `<script>` injector or a `setInterval` that waits for a global.
+  - `once(fn)` memoizes a loader. A failed load clears the memo, so the next
+    click retries.
+  - `loadScriptsInOrder([...])` loads classic scripts that publish
+    `window.*` globals, in order.
+  - Use plain `import()` for ES modules. A classic script can call
+    `import('/shared/lazy.js')` too.
+- **Preload on intent.** `preloadOnIntent(target, urls, { module })` fetches
+  the next step when the pointer enters `target` or a key is pressed inside it.
+  Focus alone is not intent: pages move focus themselves (initial focus, TV
+  roving), so it would preload on page load.
+- **Show failures.** If an on-demand load rejects, say so on the page
+  ("did not load, try again"). Don't leave a dead button.
+- **Budgets.** `tests/eager-load-budget.test.mjs` caps the bytes each large
+  page downloads before any interaction, using the static graph in
+  `tests/import-graph-helpers.mjs`. When you move code off a page, lower its
+  budget to the new total plus a little headroom. Raise a budget only when the
+  first screen really needs the new code.
+- **Testing lazy paths.** `tests/load-app-script.mjs` runs classic scripts in
+  jsdom. Its `/shared/lazy.js` evaluates the requested files from the repo and
+  records `window.__loadedScripts` and `window.__preloaded`, so a test can
+  check what loaded and when.
+
+Where the big apps draw the line:
+
+| Page                    | First screen                                    | Loaded on demand                                                                                                                                  |
+| ----------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `doom/`                 | Flavor picker, lifecycle, COI (`doom/boot.js`)  | `uzdoom-loader.js` graph, touch and gamepad input, and the engine (`doom/engine.js` `ensureEngine`) on launch; moddb and `/proxy.js` in manual mode; live chat at idle |
+| `emulator/`             | Console picker                                  | A console's game list (`LISTING_SCRIPTS` in `launch.js`)                                                                                         |
+| `emulator/<console>/`   | Game list                                       | `socd.js`, `ejs-mount.js`, `play.js` (`PLAY_SCRIPTS`), preloaded when the pointer enters the list                                                 |
+| `stepmania/`            | Song menu                                       | Play engine, library, and JSZip; a `zenius=` link primes the chart through `js/zeniusEntry.js`                                                    |
 
 ---
 
