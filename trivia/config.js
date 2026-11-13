@@ -4,7 +4,6 @@
 // Reads  — fetch Round / Current / Tallies via the public gviz JSON endpoint.
 //
 // Until placeholders are replaced, the client should no-op / demo-mode.
-// See SETUP.local.md for Form + Apps Script + Questions CSV wiring.
 
 (function () {
   'use strict';
@@ -17,7 +16,7 @@
     // After an answer, burst-poll so tallies catch up quickly.
     pollBurstMs: 1500,
     pollBurstForMs: 12000,
-    // Questions published per half-hour window (must match Apps Script).
+    // Questions published per half-hour window.
     questionsPerRound: 3,
 
     // Google Form `formResponse` URL.

@@ -1,6 +1,5 @@
 /**
  * Live-board retention rules for Posts.
- * Apps Script (`apps-script.local.gs`) mirrors this picker — keep them aligned.
  */
 
 export const MAX_LIVE_POSTS = 150;

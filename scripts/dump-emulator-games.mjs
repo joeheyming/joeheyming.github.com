@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Dump the emulator library to emulator/games.local.csv.
+// Dump the emulator library to a CSV.
 //
 // One row per game the ROM browser would list from Internet Archive today:
 // console id, display name, stable archive.org file URL, libretro box-art
@@ -13,16 +13,34 @@
 // hosts rotate; the ROM browser rewrites to the current CDN at play time.
 //
 // Usage:
-//   node scripts/dump-emulator-games.mjs
-//   node scripts/dump-emulator-games.mjs --console nes
+//   node scripts/dump-emulator-games.mjs --out <path>
+//   node scripts/dump-emulator-games.mjs --out <path> --console nes
+//   node scripts/dump-emulator-games.mjs --out <path> --fill-missing
 
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT_PATH = resolve(REPO_ROOT, 'emulator/games.local.csv');
+
+/**
+ * @param {string} flag
+ * @returns {string}
+ */
+function argValue(flag) {
+  const index = process.argv.indexOf(flag);
+  if (index < 0) return '';
+  const value = process.argv[index + 1];
+  return value && !value.startsWith('--') ? value : '';
+}
+
+const outArg = argValue('--out');
+if (!outArg) {
+  console.error('dump-emulator-games: pass --out <path>');
+  process.exit(1);
+}
+const OUT_PATH = isAbsolute(outArg) ? outArg : resolve(REPO_ROOT, outArg);
 const HEADER = 'console,name,downloadUrl,thumbnailUrl,fileExtension,size';
 const THUMBNAIL_ILLEGAL = /[&*/:`<>?\\|]/g;
 

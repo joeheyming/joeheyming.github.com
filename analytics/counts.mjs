@@ -23,9 +23,8 @@
 //    The other four are required.
 // 2. Responses → link a spreadsheet named analytics.
 //    Share the sheet: Anyone with the link → Viewer.
-// 3. Extensions → Apps Script → paste analytics/tally.local.gs, save.
-//    Run installTrigger once. onFormSubmit tallies Form Responses 1 into
-//    the Counts tab, then deletes those rows. Counts is one row per play.
+// 3. Bind a script to the spreadsheet that tallies each form response
+//    into the Counts tab (one row per play), then deletes that row.
 // 4. Send → prefilled link. Copy each entry.NNNNNNNN into entryIds.
 //    formActionUrl is https://docs.google.com/forms/d/e/<FORM_ID>/formResponse
 //    sheetId is the spreadsheet id between /spreadsheets/d/ and /edit.
@@ -1299,9 +1298,12 @@ function install() {
   function send(plays) {
     const fresh = plays.filter(allowNow);
     if (!fresh.length) return;
+    // Same hosts analytics.js refuses: localhost, loopback, LAN, and headless runners.
+    const local = isLocalDevHost(location.hostname, navigator.userAgent);
+    if (local) console.log('Play count skipped (localhost):', fresh);
     submitPlays(fresh, {
       config: CONFIG,
-      isLocal: false,
+      isLocal: local,
       fetchImpl: fetch,
       beaconImpl:
         typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function'

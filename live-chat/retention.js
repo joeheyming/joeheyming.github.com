@@ -1,6 +1,5 @@
 /**
  * Retention helpers for live chat RateLimits / Quarantine.
- * Apps Script (`apps-script.local.gs`) mirrors these constants and rules.
  */
 
 export const RATE_IDLE_MS = 14 * 24 * 60 * 60 * 1000;

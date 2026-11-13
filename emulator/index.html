@@ -117,7 +117,7 @@
                 "name": "Where do ROMs come from?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "You bring your own file, or browse an Internet Archive collection and play it in the page. Cartridge games and PS1 start from Play in browser; if that stalls, Download instead saves the file for the picker. Sega CD and Saturn discs are too large to stream, so those are downloaded from Archive first. The picker accepts .nes, .md / .bin / .gen / .smd, .gg, .32x, .sfc / .smc, .gb / .gbc, .ngp / .ngc, arcade .zip, Nintendo 64 .z64 / .n64 / .v64, and PlayStation disc images (.chd / .pbp / .iso). Neo Geo auto-fetches neogeo.zip BIOS; PS1 auto-fetches a US BIOS. No ROMs are bundled with the page itself."
+                  "text": "You bring your own file, or browse an Internet Archive collection and play it in the page. Cartridge games and PS1 start from Play in browser; if that stalls, Download instead saves the file for the picker. Sega CD and Saturn discs are too large to stream, so those are downloaded from Archive first. The picker accepts .nes, .md / .bin / .gen / .smd, .gg, .32x, .sfc / .smc, .gb / .gbc, .ngp / .ngc, arcade .zip, Atari 2600 .a26, Nintendo 64 .z64 / .n64 / .v64, and PlayStation disc images (.chd / .pbp / .iso). Neo Geo auto-fetches neogeo.zip BIOS; PS1 auto-fetches a US BIOS. No ROMs are bundled with the page itself."
                 }
               },
               {
@@ -237,7 +237,7 @@
       id="romFileInput"
       class="hidden-input"
       aria-label="Choose a ROM file"
-      accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.gba,.sfc,.smc,.z64,.n64,.v64,.chd,.pbp,.iso,.cue,.zip,.7z"
+      accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.gba,.sfc,.smc,.z64,.n64,.v64,.a26,.chd,.pbp,.iso,.cue,.zip,.7z"
     />
     <input
       type="file"
@@ -335,6 +335,11 @@
             <span class="picker-emoji">💿</span>
             <span class="picker-title">PS1</span>
             <span class="picker-sub">PlayStation</span>
+          </a>
+          <a class="picker-tile" href="/emulator/atari2600/">
+            <span class="picker-emoji">🛸</span>
+            <span class="picker-title">Atari 2600</span>
+            <span class="picker-sub">Video Computer System</span>
           </a>
           <a class="picker-tile" href="/emulator/flash/">
             <span class="picker-emoji">⚡</span>

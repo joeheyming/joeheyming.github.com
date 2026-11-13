@@ -1,6 +1,5 @@
 /**
  * Answers / Tallies / Quarantine retention for trivia.
- * Apps Script (`apps-script.local.gs`) mirrors these rules.
  * Closed-round order comes from Tallies (oldest row first). There is no
  * RoundHistory sheet.
  */

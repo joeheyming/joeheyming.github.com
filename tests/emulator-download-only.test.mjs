@@ -305,6 +305,38 @@ describe('?rom= deep links launch cartridges and hand off discs', () => {
     assert.equal(window.document.querySelector('.deeplink-handoff'), null);
   });
 
+  it('shows a cartridge screen while a deep-linked ROM is still downloading', async () => {
+    window = appWindow(PAGE, { url: 'https://x/emulator/nes/?rom=Zelda' });
+    loadClassic(window, 'emulator/consoles.js', 'emulator/rom-acquire.js');
+    /** @type {() => void} */
+    let release = () => {};
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    window.InternetArchiveRoms = function StubIa() {
+      this.fetchRomList = async () => ROMS.map((rom) => ({ ...rom }));
+      this.loadRom = () => gate.then(() => new Uint8Array([1, 2, 3, 4]));
+      this.clearListCache = () => {};
+    };
+    loadClassic(window, 'emulator/launch.js');
+    window.launchEmulator = () => {};
+
+    for (let i = 0; i < 8; i += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    }
+
+    const crt = window.document.querySelector('#boot-card .rom-crt');
+    assert.ok(crt);
+    assert.equal(crt.querySelector('.rom-crt-title').textContent, 'Zelda');
+    assert.equal(crt.querySelector('.rom-crt-status').textContent, 'Reading cartridge');
+    assert.ok(crt.querySelector('.rom-crt-meter'));
+    release();
+    for (let i = 0; i < 5; i += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    }
+    window.close();
+  });
+
   it('writes the game id into ?rom= and leaves history.back alone', async () => {
     await bootShell('https://x/emulator/nes/?tv=1');
     let backs = 0;

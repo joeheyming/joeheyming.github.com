@@ -6,7 +6,7 @@ Staging files for a Google Sheet that will drive the stranger/Jackbox-style app.
 | --- | --- | --- |
 | `questions.md` (this file) | Opinion + **cited** estimates | Hand-written; estimates need a source URL |
 | `opentdb-import.md` | Fact trivia | **Only** via `python3 trivia/fetch-opentdb.py` |
-| Sheet `Questions` tab | Runtime | `python3 trivia/md-to-csv.py` → import `questions.csv` (see SETUP.local.md) |
+| Sheet `Questions` tab | Runtime | `python3 trivia/md-to-csv.py` → import `questions.csv` |
 
 ## Anti-hallucination rules
 
@@ -20,7 +20,7 @@ Staging files for a Google Sheet that will drive the stranger/Jackbox-style app.
 
 1. Expand opinions here; expand facts with `fetch-opentdb.py --max-total 1500` (rate-limited ~5s/request).
 2. Convert markdown blocks → Sheet CSV: `python3 trivia/md-to-csv.py`.
-3. Import `questions.csv` into the Sheet **Questions** tab; Apps Script rotates **Current** every 30 minutes (see SETUP.local.md).
+3. Import `questions.csv` into the Sheet **Questions** tab. The sheet rotates **Current** every 30 minutes.
 4. App reads **Round** / **Current** / **Tallies** via gviz.
 
 ## Sheet columns (target schema)

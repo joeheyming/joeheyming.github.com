@@ -211,6 +211,115 @@ class RomBrowserElement extends HTMLElement {
           opacity: 0.85;
           max-width: 28rem;
         }
+        .loading.rom-loading {
+          height: auto;
+          align-items: stretch;
+          text-align: left;
+          font-size: 1rem;
+          color: inherit;
+        }
+        .rom-crt {
+          width: 100%;
+          max-width: 28rem;
+        }
+        .rom-crt-bezel {
+          position: relative;
+          overflow: hidden;
+          padding: 16px 16px 14px;
+          background: #140e0a;
+          color: #f3e2c2;
+          border-radius: 10px;
+          border: 3px solid #3d2a1c;
+          box-shadow:
+            inset 0 0 0 1px #6b4a2c,
+            0 8px 0 #1a120c;
+          font-family: var(--font-mono), ui-monospace, monospace;
+        }
+        .rom-crt-bezel::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: repeating-linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.18) 0 1px,
+            transparent 1px 3px
+          );
+        }
+        .rom-crt-kicker {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0 0 8px;
+          font-size: 11px;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+          color: var(--accent-bright);
+        }
+        .rom-crt-led {
+          width: 8px;
+          height: 8px;
+          flex: 0 0 auto;
+          background: var(--accent-bright);
+          box-shadow: 0 0 8px var(--accent-bright);
+          animation: rom-crt-blink 0.9s steps(1, end) infinite;
+        }
+        .rom-crt-title {
+          margin: 0 0 14px;
+          font-size: 18px;
+          font-weight: 700;
+          line-height: 1.3;
+          color: #f6ead4;
+          overflow-wrap: anywhere;
+        }
+        .rom-crt-meter {
+          height: 18px;
+          padding: 3px;
+          overflow: hidden;
+          background: #1a100c;
+          border: 2px solid #5c3b22;
+          box-shadow: inset 0 0 0 1px #000;
+        }
+        .rom-crt-fill {
+          height: 100%;
+          width: 38%;
+          background: repeating-linear-gradient(
+            90deg,
+            var(--accent-bright) 0 8px,
+            #2a1810 8px 12px
+          );
+          animation: rom-crt-sweep 1.05s steps(8, end) infinite;
+        }
+        .rom-crt-status {
+          margin: 10px 0 0;
+          font-size: 12px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: #c4a882;
+        }
+        @keyframes rom-crt-blink {
+          50% {
+            opacity: 0;
+          }
+        }
+        @keyframes rom-crt-sweep {
+          0% {
+            transform: translateX(-120%);
+          }
+          100% {
+            transform: translateX(280%);
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .rom-crt-led,
+          .rom-crt-fill {
+            animation: none;
+          }
+          .rom-crt-fill {
+            width: 100%;
+            opacity: 0.9;
+          }
+        }
         .external-download {
           display: flex;
           flex-direction: column;
@@ -961,8 +1070,14 @@ class RomBrowserElement extends HTMLElement {
     try {
       if (contentArea) {
         contentArea.innerHTML =
-          `<div class="loading">Loading ${this._escapeHtml(rom.title)}…` +
-          '<div class="loading-hint">Large games can take a minute.</div>' +
+          '<div class="loading rom-loading">' +
+          '<div class="rom-crt" role="status" aria-live="polite">' +
+          '<div class="rom-crt-bezel">' +
+          '<p class="rom-crt-kicker"><span class="rom-crt-led" aria-hidden="true"></span> Now loading</p>' +
+          `<p class="rom-crt-title">${this._escapeHtml(rom.title)}</p>` +
+          '<div class="rom-crt-meter" aria-hidden="true"><div class="rom-crt-fill"></div></div>' +
+          '<p class="rom-crt-status">Reading cartridge</p>' +
+          '</div></div>' +
           '<div class="error-actions"><button type="button" data-action="cancel-rom">Cancel — back to game list</button></div></div>';
         contentArea.querySelector('[data-action="cancel-rom"]')?.addEventListener('click', () => {
           controller.abort();

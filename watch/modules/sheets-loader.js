@@ -67,14 +67,11 @@ const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`;
  * @property {string} [iaFile]                   Exact basename pick for movie-file.
  * @property {string} [language]
  *   Expected audio language of the IA upload, ISO 639-1 (`en`, `pt`,
- *   `ja`…) or 639-3 (`eng`, `por`, `jpn`…). Authoritative source for
- *   `scripts/verify-content.local.mjs --check-language`, which ffprobes
- *   one episode per show and warns when the actual audio doesn't match.
- *   Defaults to `en` for unset cells — the catalog is overwhelmingly
- *   English so the column only needs filling in for non-English uploads.
- *   Use `und` to explicitly silence the check for items whose audio
- *   stream has no `TAG:language=` tag and isn't worth re-tagging by
- *   hand. Bilingual uploads can list comma-separated values (`en, ja`).
+ *   `ja`…) or 639-3 (`eng`, `por`, `jpn`…). Defaults to `en` for unset
+ *   cells — the catalog is overwhelmingly English, so the column only
+ *   needs filling in for non-English uploads. Use `und` when the audio
+ *   stream has no language tag. Bilingual uploads can list
+ *   comma-separated values (`en, ja`).
  */
 
 // ──────────── public API ────────────

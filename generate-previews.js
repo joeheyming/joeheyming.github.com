@@ -1383,6 +1383,12 @@ const PAGES = [
     url: `${BASE_URL}/analytics/`,
     output: 'analytics/analytics-preview.png',
     title: 'Analytics'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/emulator/atari2600/`,
+    output: 'emulator/atari2600/atari2600-preview.png',
+    title: 'Atari 2600'
   }
 ];
 

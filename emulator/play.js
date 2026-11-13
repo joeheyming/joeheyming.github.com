@@ -29,19 +29,6 @@
     if (btn) btn.textContent = 'Sound on — click the game if still silent';
   }
 
-  function placeGameListButton() {
-    const btn = document.getElementById('emu-game-list-btn');
-    const bar = document.getElementById('emu-play-chrome');
-    const overlay = document.querySelector('.share-overlay');
-    if (!btn || !bar) return;
-    // TV hides the share cluster, so the exit stays on the play bar there.
-    if (!isTv() && overlay) {
-      if (btn.parentElement !== overlay) overlay.insertBefore(btn, overlay.firstChild);
-    } else if (btn.parentElement !== bar) {
-      bar.appendChild(btn);
-    }
-  }
-
   /**
    * @param {{ showSaveStates?: boolean, audioUnlock?: boolean, audioNote?: string }} cfg
    * @param {() => void} onExit
@@ -70,18 +57,16 @@
         '<button type="button" class="emu-chrome-btn" id="emu-sound-btn">Sound off — click to enable</button>'
       );
     }
-    // Kept out of the save row so a missed Save click can't quit the game.
-    // placeGameListButton parks it in the top-right share cluster.
-    bits.push(
-      '<button type="button" class="emu-chrome-btn emu-chrome-exit" id="emu-game-list-btn" aria-label="Back to game list">' +
-        '<span class="emu-exit-full">Back to game list</span>' +
-        '<span class="emu-exit-short">← Games</span>' +
-        '</button>'
-    );
+    // Web leaves through the breadcrumb bar. TV hides that bar, so the exit
+    // stays on the play chrome, pushed clear of Save.
+    if (isTv()) {
+      bits.push(
+        '<button type="button" class="emu-chrome-btn emu-chrome-exit" id="emu-game-list-btn">Back to game list</button>'
+      );
+    }
     bar.innerHTML = bits.join('');
 
     document.getElementById('emu-game-list-btn')?.addEventListener('click', onExit);
-    placeGameListButton();
     document.getElementById('emu-sound-btn')?.addEventListener('click', unlockGameAudio);
     document.getElementById('emu-save-btn')?.addEventListener('click', () => {
       window.emulatorEjsMount?.saveQuickState();
@@ -131,10 +116,8 @@
 
     const bootEl = document.getElementById('boot');
     const gameContainer = document.getElementById('game-container');
-    const emuHeader = document.getElementById('emu-header');
     if (bootEl) bootEl.classList.add('hidden');
     if (gameContainer) gameContainer.classList.add('visible');
-    if (emuHeader) emuHeader.classList.add('is-playing');
     document.documentElement.dataset.gamepadNav = 'game';
 
     // Unlock once per console lander app id (derived from the registry).

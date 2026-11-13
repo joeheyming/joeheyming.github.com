@@ -55,6 +55,5 @@ exclude:
   - "*/README.md"
   - AGENTS.md
 
-  # --- Local-only docs. Also matched by *.local.md in .gitignore, but
-  #     belt-and-suspenders in case one slips into the working tree. ---
+  # Unpublished notes.
   - "*.local.md"

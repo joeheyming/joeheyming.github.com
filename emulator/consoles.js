@@ -609,6 +609,40 @@
       ]
     },
 
+    atari2600: {
+      id: 'atari2600',
+      title: 'Atari 2600',
+      subtitle: 'Video Computer System',
+      emoji: '🛸',
+      // EmulatorJS core: stella2014 (Stella).
+      ejsCore: 'atari2600',
+      fileAccept: '.a26,.bin,.zip,.7z',
+      fileExtsLabel: '.a26 / .bin',
+      seoDescription:
+        'Browser Atari 2600 emulator. Browse the No-Intro collection on Internet Archive or load your own .a26 / .bin ROM; save states and gamepads stay on this device. Powered by EmulatorJS and Stella.',
+      // Woodgrain brown — the console's case, kept clear of the orange and red hues.
+      accentHex: '#b45309',
+      accentGoldHex: '#78350f',
+      // Flat per-game .zip set from No-Intro, grouped in one Atari 2600/ folder.
+      // The item holds only 2600 titles, so no folder filter is needed.
+      iaBaseUrl: 'https://archive.org/download/atari-2600-no-intro-romset-2026-05-29',
+      iaThumbnailSystems: ['Atari - 2600'],
+      iaDescriptionPrefix: 'Atari 2600 game',
+      iaFileExtensions: ['.zip'],
+      iaPreferMetadata: true,
+      howto: ['Tap a game, then Play in browser, or load your own .a26 file.'],
+      romHelp:
+        'Bring your own .a26 / .bin dump, or browse the collection and choose Play in browser. If that is slow, use Download instead and load the saved file here.',
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'Fire button', key: 'Z' },
+        { label: 'Select', key: 'V' },
+        { label: 'Reset', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
     flash: {
       id: 'flash',
       title: 'Flash',

@@ -31,6 +31,8 @@
   /** True when we booted a core without cross-origin isolation (no threads). */
   let singleThreadMode = false;
   let pickerRoving = null;
+  /** Last console library we fetched. The in-page browser's list wins when it has one. */
+  let listedRoms = null;
 
   // Pages list only what their first screen renders. The game list (a
   // console page) and the play path load here, in this order, when needed.
@@ -353,12 +355,21 @@
     if (focusTarget) focusTarget.focus({ preventScroll: false });
   }
 
-  function renderEmuBreadcrumbs(cfg) {
+  function gameListHref() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('rom');
+    url.hash = '';
+    return `${url.pathname}${url.search}`;
+  }
+
+  /**
+   * @param {{ emoji?: string, title?: string } | null} cfg
+   * @param {string} [playingTitle] while a game is up, the console crumb returns to the list
+   */
+  function renderEmuBreadcrumbs(cfg, playingTitle) {
     const nav = document.getElementById('emu-breadcrumbs');
     const header = document.getElementById('emu-header');
     if (!nav || typeof window.renderBreadcrumbs !== 'function') return;
-
-    if (header) header.classList.remove('is-playing');
 
     // Lean-back / TV: D-pad focuses the picker; hide the trail so it
     // doesn't steal visual hierarchy (same idea as watch fullscreen).
@@ -372,10 +383,312 @@
       window.renderBreadcrumbs(nav, [{ emoji: '🎮', label: 'Emulator' }]);
       return;
     }
-    window.renderBreadcrumbs(nav, [
+    /** @type {Array<{ emoji?: string, label: string, href?: string }>} */
+    const crumbs = [
       { emoji: '🎮', label: 'Emulator', href: '/emulator/' },
       { emoji: cfg.emoji, label: cfg.title }
-    ]);
+    ];
+    if (playingTitle) {
+      crumbs[1].href = gameListHref();
+      crumbs.push({ label: playingTitle });
+    }
+    window.renderBreadcrumbs(nav, crumbs);
+    if (playingTitle) mountGameSwitcher(nav, cfg, playingTitle);
+  }
+
+  /**
+   * Games already on the page, or the library fetched for a deep link.
+   * @returns {object[] | null}
+   */
+  function knownRoms() {
+    const browser = document.querySelector('rom-browser');
+    if (browser && Array.isArray(browser.allRoms) && browser.allRoms.length) return browser.allRoms;
+    return listedRoms;
+  }
+
+  /**
+   * Sheet box art is either an https URL or a small data-URI image.
+   * @param {string} value
+   */
+  function sheetArtUrl(value) {
+    const url = String(value || '').trim();
+    if (/^https:\/\//i.test(url)) return url;
+    if (/^data:image\/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(url)) return url;
+    return '';
+  }
+
+  /**
+   * The running game's crumb is a typeahead over this console's library.
+   * Picking one reloads into `?rom=`, because a live core cannot be swapped in place.
+   * @param {HTMLElement} nav
+   * @param {{ id?: string }} cfg
+   * @param {string} playingTitle
+   */
+  function mountGameSwitcher(nav, cfg, playingTitle) {
+    const current = nav.querySelector('.app-crumb--current');
+    if (!current) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'emu-game-switch';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'app-crumb app-crumb--current emu-game-switch-input';
+    input.value = playingTitle;
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-label', 'Choose a game');
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'emu-game-switch-toggle';
+    toggle.setAttribute('aria-label', 'Show games');
+    toggle.textContent = '▾';
+    const list = document.createElement('ul');
+    list.className = 'emu-game-switch-list';
+    list.id = 'emu-game-listbox';
+    list.setAttribute('role', 'listbox');
+    list.hidden = true;
+    input.setAttribute('aria-controls', list.id);
+    wrap.append(input, toggle, list);
+    current.replaceWith(wrap);
+
+    const PAGE = 12;
+    /** @type {object[]} */
+    let sorted = [];
+    /** @type {object[]} */
+    let pool = [];
+    /** @type {object[]} */
+    let hits = [];
+    let shown = 0;
+    let active = -1;
+    let navigating = false;
+    let failed = false;
+    /** @type {object | null} */
+    let playing = null;
+
+    const isCurrent = (rom) =>
+      playing
+        ? rom === playing
+        : romQueryId(rom).toLowerCase() === playingTitle.trim().toLowerCase();
+
+    const close = () => {
+      list.hidden = true;
+      list.replaceChildren();
+      pool = [];
+      hits = [];
+      shown = 0;
+      active = -1;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+    };
+
+    const go = (rom) => {
+      const id = romQueryId(rom);
+      if (!id || isCurrent(rom)) {
+        input.value = playingTitle;
+        close();
+        return;
+      }
+      navigating = true;
+      const url = new URL(window.location.href);
+      url.searchParams.set('rom', id);
+      url.hash = '';
+      window.location.assign(`${url.pathname}${url.search}`);
+    };
+
+    const paintActive = () => {
+      const options = [...list.querySelectorAll('[role="option"]')];
+      options.forEach((el, i) => {
+        el.setAttribute('aria-selected', i === active ? 'true' : 'false');
+      });
+      const chosen = options[active];
+      if (chosen) {
+        input.setAttribute('aria-activedescendant', chosen.id);
+        if (typeof chosen.scrollIntoView === 'function') {
+          chosen.scrollIntoView({ block: 'nearest' });
+        }
+      } else {
+        input.removeAttribute('aria-activedescendant');
+      }
+    };
+
+    /**
+     * @param {object} rom
+     * @param {number} index
+     */
+    const optionNode = (rom, index) => {
+      const option = document.createElement('li');
+      option.className = 'emu-game-switch-option';
+      option.id = `emu-game-opt-${index}`;
+      option.setAttribute('role', 'option');
+      const art = sheetArtUrl(rom.thumbnailUrl);
+      if (art) {
+        const img = document.createElement('img');
+        img.alt = '';
+        img.decoding = 'async';
+        img.src = art;
+        option.appendChild(img);
+      } else {
+        const blank = document.createElement('span');
+        blank.className = 'emu-game-switch-art';
+        blank.setAttribute('aria-hidden', 'true');
+        option.appendChild(blank);
+      }
+      const name = document.createElement('span');
+      name.textContent = rom.title || rom.name || romQueryId(rom);
+      option.appendChild(name);
+      option.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        go(rom);
+      });
+      return option;
+    };
+
+    const matches = (query) => {
+      const q = String(query || '')
+        .trim()
+        .toLowerCase();
+      if (!sorted.length) return [];
+      if (!q) return sorted;
+      if (q === playingTitle.trim().toLowerCase()) {
+        const at = Math.max(
+          0,
+          sorted.findIndex((rom) => isCurrent(rom))
+        );
+        return sorted.slice(at);
+      }
+      return sorted.filter((rom) =>
+        String(rom.title || rom.name || '')
+          .toLowerCase()
+          .includes(q)
+      );
+    };
+
+    const appendPage = () => {
+      const next = pool.slice(shown, shown + PAGE);
+      next.forEach((rom, offset) => list.appendChild(optionNode(rom, shown + offset)));
+      shown += next.length;
+      hits = pool.slice(0, shown);
+    };
+
+    const render = (query) => {
+      pool = matches(query);
+      shown = 0;
+      hits = [];
+      list.replaceChildren();
+      active = -1;
+      if (!pool.length) {
+        const note = document.createElement('li');
+        note.className = 'emu-game-switch-empty';
+        note.textContent = failed
+          ? 'Game list did not load'
+          : sorted.length
+          ? 'No matching games'
+          : 'Loading games…';
+        list.appendChild(note);
+      } else {
+        appendPage();
+      }
+      const rect = wrap.getBoundingClientRect();
+      list.style.top = `${rect.bottom + 6}px`;
+      list.style.left = `${Math.max(8, rect.left)}px`;
+      list.hidden = false;
+      list.scrollTop = 0;
+      input.setAttribute('aria-expanded', 'true');
+      const currentHit = hits.findIndex((rom) => isCurrent(rom));
+      if (currentHit >= 0) active = currentHit;
+      paintActive();
+    };
+
+    list.addEventListener('scroll', () => {
+      if (list.hidden || shown >= pool.length) return;
+      if (list.scrollHeight <= list.clientHeight + 1) return;
+      if (list.scrollTop + list.clientHeight < list.scrollHeight - 32) return;
+      appendPage();
+    });
+
+    const open = () => {
+      input.focus();
+      render(input.value);
+    };
+
+    input.addEventListener('focus', () => {
+      input.select();
+      render(input.value);
+    });
+    input.addEventListener('click', () => render(input.value));
+    input.addEventListener('input', () => render(input.value));
+    toggle.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      open();
+    });
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (list.hidden || !hits.length) render(input.value);
+        if (hits.length) {
+          if (active < 0) active = 0;
+          else if (active < hits.length - 1) active += 1;
+          else if (shown < pool.length) {
+            appendPage();
+            active += 1;
+          }
+          paintActive();
+        }
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (!hits.length) return;
+        active = active < 0 ? hits.length - 1 : (active - 1 + hits.length) % hits.length;
+        paintActive();
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (list.hidden) render(input.value);
+        else if (hits[active]) go(hits[active]);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        input.value = playingTitle;
+        close();
+      }
+    });
+    input.addEventListener('blur', () => {
+      if (navigating) return;
+      close();
+      input.value = playingTitle;
+    });
+
+    const useRoms = (roms) => {
+      const named = (roms || []).filter((rom) => rom && typeof rom.name === 'string' && rom.name);
+      named.sort((a, b) =>
+        String(a.title || a.name || '').localeCompare(String(b.title || b.name || ''))
+      );
+      const acquire = romAcquire();
+      playing =
+        acquire && typeof acquire.findRomByQuery === 'function'
+          ? acquire.findRomByQuery(named, playingTitle)
+          : null;
+      sorted = named;
+      failed = false;
+      if (document.activeElement === input || !list.hidden) render(input.value);
+    };
+
+    const ready = knownRoms();
+    if (ready && ready.length) useRoms(ready);
+    else {
+      listRoms(cfg)
+        .then(useRoms)
+        .catch(() => {
+          failed = true;
+          if (!list.hidden) render(input.value);
+        });
+    }
   }
 
   function renderBootCard(cfg) {
@@ -697,16 +1010,37 @@
     const ia = acquire && acquire.createIaClient(cfg);
     if (sheet && typeof sheet.isConfigured === 'function' && sheet.isConfigured()) {
       try {
-        return await sheet.loadConsoleGames(cfg.id, {
+        const roms = await sheet.loadConsoleGames(cfg.id, {
           descriptionPrefix: cfg.iaDescriptionPrefix
         });
+        listedRoms = roms;
+        return roms;
       } catch (err) {
         console.warn('Games sheet unavailable; listing Internet Archive instead.', err);
         if (!ia) throw err;
       }
     }
     if (!ia) throw new Error('ROM browser is not configured for this console.');
-    return ia.fetchRomList();
+    const roms = await ia.fetchRomList();
+    listedRoms = roms;
+    return roms;
+  }
+
+  /**
+   * Cartridge screen shown while a deep-linked game is looked up or downloaded.
+   * @param {string} title
+   * @param {string} status
+   */
+  function romLoadScreen(title, status) {
+    return `
+      <div class="rom-crt" role="status" aria-live="polite">
+        <div class="rom-crt-bezel">
+          <p class="rom-crt-kicker"><span class="rom-crt-led" aria-hidden="true"></span> Now loading</p>
+          <p class="rom-crt-title">${escapeHtml(title)}</p>
+          <div class="rom-crt-meter" aria-hidden="true"><div class="rom-crt-fill"></div></div>
+          <p class="rom-crt-status">${escapeHtml(status)}</p>
+        </div>
+      </div>`;
   }
 
   /**
@@ -739,8 +1073,7 @@
 
     if (!streams) {
       bootCard.innerHTML = `
-        <h2>Finding ${escapeHtml(wanted)}</h2>
-        <p class="picker-help">Looking it up in the game library…</p>
+        ${romLoadScreen(wanted, 'Searching the library')}
         <button type="button" class="btn btn-secondary" id="cancelDeeplinkBtn">
           Cancel — back to game list
         </button>
@@ -765,8 +1098,7 @@
 
     const controller = new AbortController();
     bootCard.innerHTML = `
-      <h2>Loading ROM</h2>
-      <p class="picker-help">Loading ${escapeHtml(wanted)}…</p>
+      ${romLoadScreen(wanted, 'Reading cartridge')}
       <button type="button" class="btn btn-secondary" id="cancelDeeplinkBtn">
         Cancel — back to game list
       </button>
@@ -944,7 +1276,7 @@
     const playingTitle =
       String(romName || 'game')
         .replace(
-          /\.(zip|7z|chd|pbp|iso|cue|bin|gba|nes|sfc|smc|md|gen|n64|z64|v64|gb|gbc|nds|gg|ngp|ngc|swf|32x)$/i,
+          /\.(zip|7z|chd|pbp|iso|cue|bin|gba|nes|sfc|smc|md|gen|n64|z64|v64|gb|gbc|nds|gg|ngp|ngc|swf|32x|a26)$/i,
           ''
         )
         .trim() || 'game';
@@ -989,6 +1321,7 @@
       return;
     }
 
+    renderEmuBreadcrumbs(cfg, playingTitle);
     await window.emulatorPlay.play(romSource, cfg, {
       romName,
       title: playingTitle,

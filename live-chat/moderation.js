@@ -1,6 +1,5 @@
 /**
- * Live-chat moderation shared by the client and Apps Script.
- * Apps Script (`apps-script.local.gs`) mirrors these rules — keep them in sync.
+ * Live-chat moderation rules.
  *
  * Guidelines, from the live Messages / Quarantine tabs:
  * - Reject slurs. Fold leet, extra letters, and spaced-out letters first.

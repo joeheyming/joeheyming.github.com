@@ -62,6 +62,11 @@ test('local and dev hosts do not record plays', () => {
   assert.equal(isLocalDevHost('127.0.0.1'), true);
   assert.equal(isLocalDevHost('joeheyming.github.io'), false);
   assert.equal(isLocalDevHost('joeheyming.github.io', 'HeadlessChrome'), true);
+  const src = readFileSync(path.join(ROOT, 'analytics/counts.mjs'), 'utf8');
+  const send = src.slice(src.indexOf('function send(plays)'), src.indexOf('function readCache'));
+  assert.match(send, /isLocalDevHost\(location\.hostname,\s*navigator\.userAgent\)/);
+  assert.match(send, /isLocal:\s*local/);
+  assert.doesNotMatch(send, /isLocal:\s*false/);
 });
 
 test('apps opt in to play counts through heymingAnalytics.enable', () => {

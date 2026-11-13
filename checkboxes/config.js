@@ -26,11 +26,9 @@
 //    Sheet → Share → "Anyone with the link" → Viewer.
 //    The form already accepts public submissions — that's the write path.
 //
-// 4. INSTALL THE APPS SCRIPT (compaction)
-//    From the spreadsheet:  Extensions → Apps Script → paste in `apps-script.gs`
-//    from this folder, save, then:
-//      Triggers (clock icon) → Add Trigger → function: compactIfNeeded
-//                              event source: Time-driven, hourly.
+// 4. INSTALL COMPACTION
+//    The spreadsheet needs an hourly job that folds the response log
+//    into the Snapshot tab. Without it the sheet grows without bound.
 //
 // 5. PASTE THE IDs BELOW
 //    a. From the form's "Send" button, copy the "Get prefilled link" URL.
@@ -50,8 +48,7 @@ export const CONFIG = {
   // cells via tiled canvases (no DOM-per-cell at this scale) and the
   // snapshot tab stores the bitmap as base64 chunks (~170 KB total)
   // instead of one row per cellId, so neither the client nor Sheets
-  // deals with a 1M-row payload. See apps-script.gs for the
-  // chunked-snapshot schema.
+  // deals with a 1M-row payload.
   N: 1000000,
 
   // Polling interval for shared state, in ms. Short enough that
