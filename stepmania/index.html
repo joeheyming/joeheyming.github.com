@@ -147,9 +147,38 @@
          installs window.tailwind on boot and overwrites any pre-set
          config, so brand-tailwind.js sets `tailwind.config` after.
          A zenius= link skips this until after the chart dialog: the CDN
-         compiler blocks the main thread long enough to hide the choices. -->
+         compiler blocks the main thread long enough to hide the choices.
+         The CDN also rebuilds that stylesheet on every new light-DOM class.
+         One rebuild is a multi-second task, so once #sm-tailwind-safelist
+         is in the document the class observer stops. -->
     <script>
       (function () {
+        var NativeObserver = window.MutationObserver;
+        // Only the CDN's documentElement class watcher is gated. Other
+        // observers the page creates keep the real MutationObserver.
+        function WatchingObserver(callback) {
+          var tailwindWatch = false;
+          var compiled = false;
+          var observer = new NativeObserver(function (records, obs) {
+            if (tailwindWatch && compiled) return;
+            if (tailwindWatch && document.getElementById('sm-tailwind-safelist')) compiled = true;
+            return callback(records, obs);
+          });
+          var observe = observer.observe;
+          observer.observe = function (target, options) {
+            if (
+              target === document.documentElement &&
+              options &&
+              options.subtree &&
+              options.attributeFilter &&
+              options.attributeFilter.indexOf('class') !== -1
+            ) {
+              tailwindWatch = true;
+            }
+            return observe.call(observer, target, options);
+          };
+          return observer;
+        }
         var sources = [
           'https://cdn.tailwindcss.com/3.4.16',
           '/brand-tailwind.js',
@@ -162,9 +191,14 @@
           zenius = false;
         }
         if (!zenius) {
-          sources.forEach(function (src) {
-            document.write('<script src="' + src + '"><\/script>');
-          });
+          window.MutationObserver = WatchingObserver;
+          try {
+            sources.forEach(function (src) {
+              document.write('<script src="' + src + '"><\/script>');
+            });
+          } finally {
+            window.MutationObserver = NativeObserver;
+          }
           return;
         }
         function loadAt(i) {
@@ -172,10 +206,15 @@
             if (window.__applySmNeon) window.__applySmNeon();
             return;
           }
+          if (i === 0) window.MutationObserver = WatchingObserver;
           var script = document.createElement('script');
           script.src = sources[i];
           script.onload = function () {
+            if (i === 0) window.MutationObserver = NativeObserver;
             loadAt(i + 1);
+          };
+          script.onerror = function () {
+            if (i === 0) window.MutationObserver = NativeObserver;
           };
           document.head.appendChild(script);
         }
@@ -335,6 +374,8 @@
        viewport height with `flex-1` instead of a magic `calc(100vh - 80px)`
        that drifts whenever the responsive H1 changes size. -->
   <body class="bg-surface-0 h-screen overflow-hidden flex flex-col">
+    <!-- Classes the scripts add after the CDN's one compile. See tailwind-safelist.test.mjs. -->
+    <div id="sm-tailwind-safelist" hidden class="-translate-x-1/2 absolute actions active add animate-pulse arrow arrow-image artist audio-controls-container backdrop backdrop-blur-lg backdrop-blur-sm badge badge-diff badge-unplayable badge-video bg-danger bg-success bg-success/20 bg-surface-0 bg-surface-0/30 bg-surface-0/50 bg-surface-1 border border-hairline-accent border-hairline-strong border-success/30 border-t breadcrumb breadcrumb-item breadcrumb-separator btn-play btn-solid btn-text button-pressed buttons card category-filter-hint chart-choice chart-list chart-name chart-rating chip chips close-btn col-name combo content-grid content-icon content-info content-item content-item-body cursor-pointer difficulty-label difficulty-select difficulty-selector down duration-300 duration-500 empty empty-state empty-state-icon error-mark error-message exit-fullscreen-icon failed-badge fav-btn fixed flex flex-1 flex-col flex-shrink-0 font-bold font-medium font-semibold footer fs-score-percent fs-score-stats fs-stat fs-stat-label fs-stat-value fullscreen-exit-button fullscreen-icon fullscreen-only-controls fullscreen-score-overlay fullscreen-step-buttons fullscreen-toggle-btn game-over-content gamepad-debug gap-2 gap-3 grade grid grid-cols-2 h-2 h-20 h-full h-screen hidden hint hover:underline icon-only inner-glow inset-0 is-drop is-home is-search-home is-static is-unplayable items-center justify-between justify-center left-1/2 left-2 lg:flex-1 lg:flex-row lg:flex-shrink-0 lg:items-stretch lg:justify-center lg:max-h-full lg:max-w-none lg:min-h-0 lg:overflow-y-auto lg:w-80 list-toolbar list-toolbar-label listening loading loading-indicator loading-progress loading-progress-bar loading-text main-game-container max-w-4xl max-w-7xl max-w-lg mb-2 mb-3 mb-6 md:p-3 md:p-6 md:rounded-3xl min-h-0 mobile modal modal-body modal-close modal-content modal-header modal-open modal-title mt-2 multiplier mx-auto my-1 note notes object-cover opacity-0 overflow-hidden overlay p-2 p-3 p-4 panel pb-2 pb-8 pb-badge pb-delta pb-previous pb-row percent-score percentage performance-compact pointer-events-none pt-2 px-3 px-4 px-6 py-1.5 py-3 relative restart-btn restart-icon-only restart-text-label retry-btn rounded-2xl rounded-full rounded-lg rounded-xl row score score-box score-compact score-container score-horizontal score-label score-list score-panel score-row score-toggle score-value scroll-btn scroll-row search-btn search-container search-empty-msg search-fields search-input search-tab search-tabs section-label select-none selected seo-intro shadow-2xl shadow-lg share-btn shortcut-details show simfile-badges simfile-card simfile-external-link simfile-subtitle sm-boot-error sm-brand sm-controls-footer sm-hint-text sm-home sm-home-actions sm-home-browse sm-home-chip sm-home-chips sm-home-empty sm-home-heading sm-home-lists sm-home-more sm-home-more-hint sm-home-popular sm-home-quiet sm-home-section sm-home-title sm-speed sm-speed-label sm-speed-stage sm-speed-value sm-sr-only sm-stage-roomy sm-subtitle sm-title sm-toolbar sm-topbar songs-back songs-kicker songs-lead songs-list songs-main space-y-1 space-y-4 spinner sr-only stat-box stat-item stat-label stat-value stats stats-row status step-button step-button-container text-accent-primary text-center text-label text-lg text-sm text-sm-arrow-down text-sm-arrow-left text-sm-arrow-right text-sm-arrow-up text-success text-text-1 text-text-2 text-text-on-accent text-xl text-xs title top-2 top-4 touch-manipulation transform transition-all transition-opacity up updated video-note video-status visible w-2 w-80 w-full xl:w-96 z-10 z-50 zenius-browse-categories-btn zenius-browser-btn zenius-browser-container zenius-helper-panel zenius-link zenius-main-scroll zenius-popular-block zenius-recent-block zenius-recent-chip zenius-recent-chips zenius-recent-label zenius-saved-btn zenius-search-home zenius-search-home-lead zenius-secondary-row zenius-sort-select zenius-spotlight zenius-spotlight-empty zenius-spotlight-grid zenius-spotlight-hint zenius-spotlight-section zenius-spotlight-sections zenius-spotlight-title zenius-spotlight-title-link"></div>
     <script>
       // The score panel leaves the stage only under body.mobile. That class
       // used to be set when the play engine booted; the home screen no longer

@@ -228,7 +228,7 @@ Where the big apps draw the line:
 | `doom/`                 | Flavor picker, lifecycle, COI (`doom/boot.js`)  | `uzdoom-loader.js` graph, touch and gamepad input, and the engine (`doom/engine.js` `ensureEngine`) on launch; moddb and `/proxy.js` in manual mode; live chat at idle |
 | `emulator/`             | Console picker                                  | A console's game list (`LISTING_SCRIPTS` in `launch.js`)                                                                                         |
 | `emulator/<console>/`   | Game list                                       | `socd.js`, `ejs-mount.js`, `play.js` (`PLAY_SCRIPTS`), preloaded when the pointer enters the list                                                 |
-| `stepmania/`            | Song menu                                       | Play engine, library, and JSZip; a `zenius=` link primes the chart through `js/zeniusEntry.js`                                                    |
+| `stepmania/`            | Song menu                                       | Play engine in `js/play.js` chunks that yield between them, plus the library and JSZip; a `zenius=` link primes the chart through `js/zeniusEntry.js`. The Tailwind CDN compiles once, against `#sm-tailwind-safelist`, and then stops watching for new classes |
 
 ---
 
