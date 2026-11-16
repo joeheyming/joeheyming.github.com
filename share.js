@@ -6,145 +6,149 @@
 // empty undefined custom element. StepMania's CLS reserve then held a blank
 // 6.5rem hole in the toolbar. Restore the CE first; the widget IIFE follows.
 
-class ShareButtonElement extends HTMLElement {
-  static get observedAttributes() {
-    return ['title', 'text', 'url', 'theme', 'label'];
-  }
-
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-    this._urlGenerator = null;
-    this._textGenerator = null;
-    this._titleGenerator = null;
-    this.addEventListener('click', (e) => {
-      const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
-      if (path[0] === this) this.shadowRoot.getElementById('share-btn')?.click();
-    });
-  }
-
-  connectedCallback() {
-    if (window.self !== window.top) {
-      this.style.display = 'none';
-      return;
+// A second evaluation of this classic script otherwise throws
+// "ShareButtonElement has already been declared" before the define()
+// guard below can run. site.js and a page tag can both insert it.
+if (!customElements.get('share-button')) {
+  class ShareButtonElement extends HTMLElement {
+    static get observedAttributes() {
+      return ['title', 'text', 'url', 'theme', 'label'];
     }
-    // One tab stop. Enter and Space activate this host, so the inner button
-    // is not a second stop.
-    this.tabIndex = 0;
-    this.setAttribute('role', 'button');
-    this.render();
-    this.bindEvents();
-  }
 
-  attributeChangedCallback() {
-    if (this.shadowRoot.innerHTML) {
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'open' });
+      this._urlGenerator = null;
+      this._textGenerator = null;
+      this._titleGenerator = null;
+      this.addEventListener('click', (e) => {
+        const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+        if (path[0] === this) this.shadowRoot.getElementById('share-btn')?.click();
+      });
+    }
+
+    connectedCallback() {
+      if (window.self !== window.top) {
+        this.style.display = 'none';
+        return;
+      }
+      // One tab stop. Enter and Space activate this host, so the inner button
+      // is not a second stop.
+      this.tabIndex = 0;
+      this.setAttribute('role', 'button');
       this.render();
       this.bindEvents();
     }
-  }
 
-  set urlGenerator(fn) {
-    this._urlGenerator = fn;
-  }
-  get urlGenerator() {
-    return this._urlGenerator;
-  }
-  set textGenerator(fn) {
-    this._textGenerator = fn;
-  }
-  get textGenerator() {
-    return this._textGenerator;
-  }
-  set titleGenerator(fn) {
-    this._titleGenerator = fn;
-  }
-  get titleGenerator() {
-    return this._titleGenerator;
-  }
-
-  get shareTitle() {
-    if (typeof this._titleGenerator === 'function') return this._titleGenerator();
-    return this.getAttribute('title') || document.title;
-  }
-
-  get shareText() {
-    if (typeof this._textGenerator === 'function') return this._textGenerator();
-    return this.getAttribute('text') || '';
-  }
-
-  get shareUrl() {
-    if (typeof this._urlGenerator === 'function') return this._urlGenerator();
-    if (this.getAttribute('url')) return this.getAttribute('url');
-    if (typeof window.buildSharedUrl === 'function') {
-      return window.buildSharedUrl('share_button');
+    attributeChangedCallback() {
+      if (this.shadowRoot.innerHTML) {
+        this.render();
+        this.bindEvents();
+      }
     }
-    return window.location.href;
-  }
 
-  get theme() {
-    const t = this.getAttribute('theme') || 'primary';
-    return t === 'gradient' ? 'primary' : t;
-  }
+    set urlGenerator(fn) {
+      this._urlGenerator = fn;
+    }
+    get urlGenerator() {
+      return this._urlGenerator;
+    }
+    set textGenerator(fn) {
+      this._textGenerator = fn;
+    }
+    get textGenerator() {
+      return this._textGenerator;
+    }
+    set titleGenerator(fn) {
+      this._titleGenerator = fn;
+    }
+    get titleGenerator() {
+      return this._titleGenerator;
+    }
 
-  get label() {
-    return this.getAttribute('label') || '📤 Share';
-  }
+    get shareTitle() {
+      if (typeof this._titleGenerator === 'function') return this._titleGenerator();
+      return this.getAttribute('title') || document.title;
+    }
 
-  extractIcon(label) {
-    const emojiMatch = label.match(
-      /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u
-    );
-    return emojiMatch ? emojiMatch[0] : label.charAt(0);
-  }
+    get shareText() {
+      if (typeof this._textGenerator === 'function') return this._textGenerator();
+      return this.getAttribute('text') || '';
+    }
 
-  extractText(label) {
-    const emojiMatch = label.match(
-      /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u
-    );
-    if (emojiMatch) return label.replace(emojiMatch[0], '').trim();
-    return label;
-  }
+    get shareUrl() {
+      if (typeof this._urlGenerator === 'function') return this._urlGenerator();
+      if (this.getAttribute('url')) return this.getAttribute('url');
+      if (typeof window.buildSharedUrl === 'function') {
+        return window.buildSharedUrl('share_button');
+      }
+      return window.location.href;
+    }
 
-  getThemeStyles() {
-    const themes = {
-      primary: `
+    get theme() {
+      const t = this.getAttribute('theme') || 'primary';
+      return t === 'gradient' ? 'primary' : t;
+    }
+
+    get label() {
+      return this.getAttribute('label') || '📤 Share';
+    }
+
+    extractIcon(label) {
+      const emojiMatch = label.match(
+        /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u
+      );
+      return emojiMatch ? emojiMatch[0] : label.charAt(0);
+    }
+
+    extractText(label) {
+      const emojiMatch = label.match(
+        /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u
+      );
+      if (emojiMatch) return label.replace(emojiMatch[0], '').trim();
+      return label;
+    }
+
+    getThemeStyles() {
+      const themes = {
+        primary: `
         background: var(--accent-primary-bg);
         color: var(--text-on-accent);
         border: 1px solid var(--accent-primary-bg-hover);
       `,
-      dark: `
+        dark: `
         background: var(--surface-1);
         color: var(--accent-primary);
         border: 1px solid var(--accent-primary);
       `,
-      light: `
+        light: `
         background: var(--surface-1);
         color: var(--accent-primary);
         border: 1px solid var(--accent-primary);
       `,
-      glass: `
+        glass: `
         background: var(--accent-primary-bg);
         color: var(--text-on-accent);
         border: 1px solid var(--accent-primary-bg-hover);
       `,
-      retro: `
+        retro: `
         background: var(--surface-2, #1a1a2e);
         color: var(--success, #00ff00);
         border: 2px solid var(--success, #00ff00);
         font-family: var(--font-mono), 'Courier New', monospace;
       `,
-      paper: `
+        paper: `
         background: var(--accent-primary-bg);
         color: var(--text-on-accent);
         border: 1px solid var(--accent-primary-bg-hover);
       `
-    };
-    return themes[this.theme] || themes.primary;
-  }
+      };
+      return themes[this.theme] || themes.primary;
+    }
 
-  render() {
-    this.setAttribute('aria-label', this.label);
-    this.shadowRoot.innerHTML = `
+    render() {
+      this.setAttribute('aria-label', this.label);
+      this.shadowRoot.innerHTML = `
       <style>
         /* Reset the gradient-text trick (-webkit-background-clip: text +
            -webkit-text-fill-color: transparent) if an ancestor uses it.
@@ -233,91 +237,90 @@ class ShareButtonElement extends HTMLElement {
       </button>
       <div class="tooltip" id="tooltip" role="status"></div>
     `;
-  }
-
-  bindEvents() {
-    const btn = this.shadowRoot.getElementById('share-btn');
-    btn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      void this.handleShare();
-    });
-  }
-
-  async handleShare() {
-    if (typeof window.trackConversion === 'function') {
-      window.trackConversion('content_shared', 1);
     }
 
-    const shareData = {
-      title: this.shareTitle,
-      text: this.shareText,
-      url: this.shareUrl
-    };
+    bindEvents() {
+      const btn = this.shadowRoot.getElementById('share-btn');
+      btn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void this.handleShare();
+      });
+    }
 
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
-    if (navigator.share && window.isSecureContext && isMobile) {
+    async handleShare() {
+      if (typeof window.trackConversion === 'function') {
+        window.trackConversion('content_shared', 1);
+      }
+
+      const shareData = {
+        title: this.shareTitle,
+        text: this.shareText,
+        url: this.shareUrl
+      };
+
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+      if (navigator.share && window.isSecureContext && isMobile) {
+        try {
+          await navigator.share(shareData);
+          this.showTooltip('Shared!', 'success');
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+        }
+      }
+
+      await this.copyToClipboard();
+    }
+
+    async copyToClipboard() {
+      const textToCopy = this.shareText ? `${this.shareText} ${this.shareUrl}` : this.shareUrl;
       try {
-        await navigator.share(shareData);
-        this.showTooltip('Shared!', 'success');
-        return;
-      } catch (err) {
-        if (err && err.name === 'AbortError') return;
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(textToCopy);
+        } else {
+          const input = document.createElement('input');
+          input.value = textToCopy;
+          input.style.position = 'fixed';
+          input.style.left = '-9999px';
+          document.body.appendChild(input);
+          input.select();
+          document.execCommand('copy');
+          document.body.removeChild(input);
+        }
+        this.showTooltip('Link copied!', 'success');
+      } catch (error) {
+        console.error('Failed to copy:', error);
+        this.showTooltip('Copy failed', 'error');
       }
     }
 
-    await this.copyToClipboard();
-  }
-
-  async copyToClipboard() {
-    const textToCopy = this.shareText ? `${this.shareText} ${this.shareUrl}` : this.shareUrl;
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(textToCopy);
-      } else {
-        const input = document.createElement('input');
-        input.value = textToCopy;
-        input.style.position = 'fixed';
-        input.style.left = '-9999px';
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        document.body.removeChild(input);
-      }
-      this.showTooltip('Link copied!', 'success');
-    } catch (error) {
-      console.error('Failed to copy:', error);
-      this.showTooltip('Copy failed', 'error');
+    showTooltip(message, type) {
+      const tooltip = this.shadowRoot.getElementById('tooltip');
+      const button = this.shadowRoot.getElementById('share-btn');
+      if (!tooltip || !button) return;
+      tooltip.textContent = message;
+      tooltip.className = `tooltip ${type} show`;
+      const rect = button.getBoundingClientRect();
+      tooltip.style.left = `${rect.left + rect.width / 2}px`;
+      tooltip.style.top = `${rect.top - 40}px`;
+      // The host is the button, so the status node inside it is not announced.
+      const previous = this.getAttribute('aria-label');
+      this.setAttribute('aria-label', message);
+      setTimeout(() => {
+        tooltip.classList.remove('show');
+        if (this.getAttribute('aria-label') === message && previous) {
+          this.setAttribute('aria-label', previous);
+        }
+      }, 2000);
     }
   }
 
-  showTooltip(message, type) {
-    const tooltip = this.shadowRoot.getElementById('tooltip');
-    const button = this.shadowRoot.getElementById('share-btn');
-    if (!tooltip || !button) return;
-    tooltip.textContent = message;
-    tooltip.className = `tooltip ${type} show`;
-    const rect = button.getBoundingClientRect();
-    tooltip.style.left = `${rect.left + rect.width / 2}px`;
-    tooltip.style.top = `${rect.top - 40}px`;
-    // The host is the button, so the status node inside it is not announced.
-    const previous = this.getAttribute('aria-label');
-    this.setAttribute('aria-label', message);
-    setTimeout(() => {
-      tooltip.classList.remove('show');
-      if (this.getAttribute('aria-label') === message && previous) {
-        this.setAttribute('aria-label', previous);
-      }
-    }, 2000);
-  }
-}
-
-if (!customElements.get('share-button')) {
   customElements.define('share-button', ShareButtonElement);
+  window.ShareButton = ShareButtonElement;
 }
-window.ShareButton = ShareButtonElement;
 
 // Related Projects Component
 // Include this script on project pages to suggest related projects

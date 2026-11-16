@@ -63,3 +63,18 @@ test('share-button renders a labelled button', () => {
   assert.ok(button, 'shadow root should contain the share button');
   assert.ok((button.textContent || '').trim().length > 0, 'button should carry a visible label');
 });
+
+test('a second evaluation of share.js does not redeclare the element', () => {
+  const dom = new JSDOM('<!doctype html><html><body></body></html>', {
+    runScripts: 'outside-only',
+    url: 'https://joeheyming.github.io/doom/'
+  });
+  dom.window.fetch = () => Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+  dom.window.HeymingRegistryPath = { resolveAppIdFromLocation: () => 'doom' };
+  const source = readFileSync(path.join(ROOT, 'share.js'), 'utf8');
+  dom.window.eval(source);
+  assert.doesNotThrow(() => dom.window.eval(source));
+  const element = dom.window.document.createElement('share-button');
+  dom.window.document.body.appendChild(element);
+  assert.ok(element.shadowRoot, 'the first registration still upgrades the element');
+});

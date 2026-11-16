@@ -146,12 +146,44 @@ test('suppresses Watch archive.org / TVMaze media resource errors, not StepMania
     ),
     true
   );
+  assert.equal(
+    suppress(
+      'resource_error',
+      'Failed to load IMG: thumbnails.libretro.com/Named_Boxarts/Metroid.png',
+      'https://thumbnails.libretro.com/Nintendo%20-%20Game%20Boy/Named_Boxarts/Metroid.png'
+    ),
+    true
+  );
+  assert.equal(
+    suppress(
+      'resource_error',
+      'Failed to load IMG: cdn.thumbnails.libretro.com/Named_Boxarts/Metroid.png',
+      'https://cdn.thumbnails.libretro.com/Nintendo%20-%20Game%20Boy/Named_Boxarts/Metroid.png'
+    ),
+    true
+  );
+  assert.equal(
+    suppress(
+      'javascript_error',
+      'thumbnails.libretro.com failed',
+      'https://thumbnails.libretro.com/Named_Boxarts/Metroid.png'
+    ),
+    false
+  );
   assert.equal(suppress('resource_error', 'Failed to load VIDEO: unknown', ''), false);
   assert.equal(
     suppress(
       'resource_error',
       'Failed to load VIDEO: joeheyming.github.io/bg.webm',
       'https://joeheyming.github.io/stepmania/bg.webm'
+    ),
+    false
+  );
+  assert.equal(
+    suppress(
+      'resource_error',
+      'Failed to load IMG: joeheyming.github.io/box.png',
+      'https://joeheyming.github.io/emulator/box.png'
     ),
     false
   );

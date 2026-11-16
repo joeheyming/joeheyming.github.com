@@ -234,6 +234,9 @@ describe('doom flavors', () => {
       controller.indexOf('await primeFlavor')
     );
     assert.match(cardClick, /recordDoomClick\(flavor\)/);
+    assert.match(controller, /new URL\(\s*'\.\/uzdoom-loader\.js'/);
+    assert.match(controller, /import\(loaderModuleUrl\)/);
+    assert.doesNotMatch(controller, /import\('\.\/uzdoom-loader\.js'\)/);
     const heroClick = controller.slice(
       controller.indexOf("btn.addEventListener('click'"),
       controller.indexOf("trackLaunchWhenPlaying(flavor, 'autolaunch'")

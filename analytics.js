@@ -375,6 +375,9 @@ function isSuppressedResourceHost(host) {
   if (SUPPRESSED_RESOURCE_HOSTS.includes(host)) return true;
   if (host === 'archive.org' || host.endsWith('.archive.org')) return true;
   if (host === 'tvmaze.com' || host.endsWith('.tvmaze.com')) return true;
+  // Box art walks Libretro Named_Boxarts until one file exists. A miss
+  // is the lookup, and the game switcher mounts the same URLs.
+  if (host === 'thumbnails.libretro.com' || host.endsWith('.thumbnails.libretro.com')) return true;
   return false;
 }
 

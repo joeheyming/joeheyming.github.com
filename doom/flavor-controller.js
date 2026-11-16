@@ -15,6 +15,14 @@
 // mode and stays hidden via body.picker-mode CSS.
 
 (function () {
+  // import() in a classic script resolves against the document. A document
+  // whose base URL is about:blank (COI reload, embedded blank frame) then
+  // fails every flavor with "Failed to resolve module specifier". The script
+  // tag's own URL still points at /doom/.
+  var loaderModuleUrl = new URL(
+    './uzdoom-loader.js',
+    (document.currentScript && document.currentScript.src) || location.href
+  ).href;
   if (window.heymingAnalytics) window.heymingAnalytics.enable('play-counts');
   var params = new URLSearchParams(window.location.search);
   if (window.DoomFlavors) window.DoomFlavors.mount(document);
@@ -117,7 +125,7 @@
   function waitForLoader() {
     if (window.UZDoomLoader) return Promise.resolve(window.UZDoomLoader);
     if (!loaderReady) {
-      loaderReady = import('./uzdoom-loader.js').then(
+      loaderReady = import(loaderModuleUrl).then(
         function (mod) {
           return mod.UZDoomLoader;
         },
