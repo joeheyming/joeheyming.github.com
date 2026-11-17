@@ -22,11 +22,13 @@
   --cb-green: #2aa23a;
   --cb-purple: #9634cb;
   min-height: 100vh;
-  padding: 80px 12px 32px;
+  /* The header is a narrow centered card, so it shares the menu row
+     instead of sitting in a tall band underneath it. */
+  padding: 16px 12px 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 10px;
   background: var(--surface-2, #f0eee8);
   color: var(--text-1, #1a1a1a);
   font-family: var(--font-ui), system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -48,16 +50,15 @@
 
 .cb-header {
   position: sticky;
-  /* Stay under the fixed Menu button (top: 20px, about 42px tall) and
-     the info button. A smaller top lets the card slide up underneath
-     Menu as soon as the page scrolls. */
-  top: 72px;
+  /* Menu is top-left and the info button is top-right, both about
+     40px tall from y=20. The card is centered between them. */
+  top: 16px;
   z-index: 90;
   text-align: center;
-  max-width: 880px;
-  width: 100%;
+  width: fit-content;
+  max-width: min(34rem, calc(100vw - 280px));
   box-sizing: border-box;
-  padding: 10px 110px;
+  padding: 5px 12px 4px;
   background: color-mix(in srgb, var(--surface-1, #ffffff) 94%, transparent);
   border: 1px solid color-mix(in srgb, var(--text-1, #1a1a1a) 12%, transparent);
   border-radius: 8px;
@@ -66,15 +67,17 @@
 }
 
 .cb-header h1 {
-  margin: 0 0 6px;
-  font-size: clamp(1.75rem, 4.5vw, 2.5rem);
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.015em;
 }
 
 .cb-counter {
-  margin: 0;
-  font-size: clamp(1rem, 2.4vw, 1.25rem);
+  margin: 1px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.3;
   color: var(--text-2, #555);
   font-variant-numeric: tabular-nums;
 }
@@ -84,17 +87,34 @@
   font-weight: 700;
 }
 
+.cb-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0 0.75rem;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.cb-checkers {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-2, #555);
+  font-variant-numeric: tabular-nums;
+}
+
 .cb-image-open {
-  margin-top: 8px;
+  margin: 0;
   border: 0;
   background: transparent;
   color: var(--text-2, #555);
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 2px 0;
 }
 
 .cb-image-open:hover,
@@ -863,22 +883,19 @@
 
 @media (max-width: 480px) {
   .cb-wrapper {
-    padding: 70px 6px 24px;
+    /* On a phone the card is nearly full width, so it sits under the
+       menu (top: 12px, about 38px tall) instead of beside it. */
+    padding: 56px 6px 24px;
   }
 
   .cb-header {
-    /* Menu is top: 12px and about 38px tall on phones. */
-    top: 58px;
-    padding: 8px 54px;
+    top: 56px;
+    max-width: calc(100vw - 16px);
+    padding: 4px 10px 3px;
   }
 
   .cb-header h1 {
-    margin-bottom: 2px;
     font-size: 1rem;
-  }
-
-  .cb-counter {
-    font-size: 0.85rem;
   }
 }
 

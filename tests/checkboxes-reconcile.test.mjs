@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  ACTIVE_WINDOW_MS,
+  activeCheckerCount,
+  activeCheckersLabel,
   applyServerRow,
   colorForClient,
   CLIENT_COLORS,
@@ -62,6 +65,21 @@ test('another tab with the same client id still moves the ring', () => {
   assert.equal(isRemoteFlip({ before: 0, after: 1, ownClick: false }), true);
   assert.equal(isRemoteFlip({ before: 1, after: 1, ownClick: false }), false);
   assert.equal(isRemoteFlip({ before: 0, after: 1, ownClick: true }), false);
+});
+
+test('people who flipped a box in the last half-minute are still here', () => {
+  const now = 1_700_000_000_000;
+  const seen = [
+    ['a', now - 1000],
+    ['b', now - ACTIVE_WINDOW_MS],
+    ['c', now - ACTIVE_WINDOW_MS - 1],
+    ['d', now + 1000]
+  ];
+  assert.equal(activeCheckerCount(seen, now), 3);
+  assert.equal(activeCheckerCount([], now), 0);
+  assert.equal(activeCheckersLabel(0), 'No one else is checking boxes right now');
+  assert.equal(activeCheckersLabel(1), '1 person checking boxes right now');
+  assert.equal(activeCheckersLabel(2), '2 people checking boxes right now');
 });
 
 test('a pending click is not flipped by a disagreeing row', () => {

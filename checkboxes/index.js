@@ -1,7 +1,14 @@
 import { CONFIG, isConfigured } from './config.js';
 import { cursorKey, isCursorKey, nextCell } from './navigate.js';
 import { OUTLINE_NAMES, buildOutlines, outlineAt } from './outlines.js';
-import { applyServerRow, colorForClient, isRemoteFlip } from './reconcile.js';
+import {
+  ACTIVE_WINDOW_MS,
+  activeCheckerCount,
+  activeCheckersLabel,
+  applyServerRow,
+  colorForClient,
+  isRemoteFlip
+} from './reconcile.js';
 
 const N = CONFIG.N;
 const CONFIGURED = isConfigured(CONFIG);
@@ -106,6 +113,7 @@ const checkedEl = /** @type {HTMLElement} */ (document.getElementById('cb-checke
 const totalEl = /** @type {HTMLElement} */ (document.getElementById('cb-total'));
 const titleEl = /** @type {HTMLElement} */ (document.getElementById('cb-title'));
 const statusEl = /** @type {HTMLElement} */ (document.getElementById('cb-status'));
+const checkersEl = /** @type {HTMLElement | null} */ (document.getElementById('cb-checkers'));
 const bannerEl = /** @type {HTMLElement} */ (document.getElementById('cb-banner'));
 
 totalEl.textContent = N.toLocaleString();
@@ -1248,6 +1256,8 @@ function applySnapshot(rows) {
 let deltasPrimed = false;
 /** @type {Map<string, number>} */
 const remoteAtByClient = new Map();
+/** @type {Map<string, number>} client id → last flip we are willing to call "right now", ms */
+const checkerSeenAt = new Map();
 /** @type {Array<{ id: number, clientId: string }>} */
 const remoteQueue = [];
 let remotePlaying = false;
@@ -1358,14 +1368,24 @@ function applyDelta(rows) {
       dirtyTiles.add(Math.floor(id / COLS / ROWS_PER_TILE));
     }
     if (
-      deltasPrimed &&
       isRemoteFlip({
         before,
         after: next.bit,
         ownClick: confirmed || localClicks.has(id)
       })
     ) {
-      remote.push({ id, clientId });
+      const now = Date.now();
+      const fresh = ts >= now - ACTIVE_WINDOW_MS && ts <= now + 5000;
+      if (deltasPrimed) {
+        noteChecker(clientId, now);
+        remote.push({ id, clientId });
+      } else if (fresh) {
+        // The first poll replays the log. A flip from the last few
+        // seconds is still someone here; the rest of that log is not.
+        noteChecker(clientId, Math.min(ts, now));
+        remoteAtByClient.set(clientId, id);
+        placeRemote(clientId, id, false);
+      }
     }
   }
   for (const idx of dirtyTiles) {
@@ -1421,6 +1441,7 @@ async function poll() {
 // connection state (poll loop) with the write-path queue depth so a
 // user can tell at a glance whether their clicks are caught up.
 function updateStatus() {
+  renderCheckers();
   if (!CONFIGURED) {
     statusEl.textContent = 'demo mode';
     return;
@@ -1442,6 +1463,26 @@ function updateStatus() {
   const ago = lastSyncAt ? Math.round((Date.now() - lastSyncAt) / 1000) : 0;
   const sync = ago < 5 ? 'live' : `synced ${ago}s ago`;
   statusEl.textContent = `${sync}${queuedNote}`;
+}
+
+/** @param {string} clientId @param {number} at */
+function noteChecker(clientId, at) {
+  const prev = checkerSeenAt.get(clientId) ?? 0;
+  if (at > prev) checkerSeenAt.set(clientId, at);
+}
+
+/** Drop checkers (and their rings) whose last flip fell outside the window. */
+function renderCheckers(now = Date.now()) {
+  const cutoff = now - ACTIVE_WINDOW_MS;
+  for (const [id, ts] of checkerSeenAt) {
+    if (ts < cutoff) checkerSeenAt.delete(id);
+  }
+  for (const [id, el] of remoteEls) {
+    if ((checkerSeenAt.get(id) ?? 0) < cutoff) el.classList.remove('is-on');
+  }
+  if (!checkersEl) return;
+  const label = activeCheckersLabel(activeCheckerCount(checkerSeenAt, now));
+  if (checkersEl.textContent !== label) checkersEl.textContent = label;
 }
 
 // ---------------------------------------------------------------------

@@ -63,6 +63,45 @@ export const CLIENT_COLORS = [
   '#d97706'
 ];
 
+/**
+ * A checker still counts as here this long after their last flip.
+ * The sheet is polled every few seconds, so the window has to cover
+ * one quiet gap between clicks without keeping someone who left.
+ */
+export const ACTIVE_WINDOW_MS = 30000;
+
+/**
+ * How many of `lastSeen` (client id → last flip, ms) are still inside
+ * the window. Timestamps are caller clocks; this only compares them.
+ *
+ * @param {Iterable<[string, number]>} lastSeen
+ * @param {number} now
+ * @param {number} [windowMs]
+ * @returns {number}
+ */
+export function activeCheckerCount(lastSeen, now, windowMs = ACTIVE_WINDOW_MS) {
+  const cutoff = now - windowMs;
+  let count = 0;
+  for (const [, ts] of lastSeen) {
+    if (typeof ts === 'number' && ts >= cutoff) count++;
+  }
+  return count;
+}
+
+/**
+ * The header sentence for `activeCheckerCount`. Zero means other
+ * people: this tab's own clicks are not in the map.
+ *
+ * @param {number} count
+ * @returns {string}
+ */
+export function activeCheckersLabel(count) {
+  if (count <= 0) return 'No one else is checking boxes right now';
+  if (count === 1) return '1 person checking boxes right now';
+  const n = count.toLocaleString();
+  return `${n} people checking boxes right now`;
+}
+
 /** Stable color for one writer. The same id always maps to the same slot. */
 export function colorForClient(clientId) {
   const key = String(clientId || '');
