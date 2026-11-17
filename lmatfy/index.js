@@ -153,12 +153,13 @@ function exitPlaybackMode() {
 }
 
 /** Land the punchline, then send them where they were too lazy to go. */
-async function finish(engines, query, preview) {
+async function finish(engines, query, preview, token) {
   setNarrator(NARRATION.playPunchline, 'punchline');
   $('opening').textContent = openingCopy(engines);
   renderDestinations(engines, query);
   if (preview || !autoRedirects(engines)) return;
   await delay(PUNCHLINE_HOLD_MS);
+  if (token !== playToken) return;
   window.location.assign(destinationUrl(engines[0], query));
 }
 
@@ -170,7 +171,7 @@ async function play(request) {
 
   if (shouldSkipAnimation(request.instant, reducedMotion())) {
     promptInput().value = request.query;
-    await finish(request.engines, request.query, request.preview);
+    await finish(request.engines, request.query, request.preview, token);
     return;
   }
 
@@ -194,7 +195,7 @@ async function play(request) {
   await delay(240);
   if (token !== playToken) return;
 
-  await finish(request.engines, request.query, request.preview);
+  await finish(request.engines, request.query, request.preview, token);
 }
 
 function skipToEnd() {
