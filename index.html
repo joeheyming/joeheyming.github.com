@@ -422,7 +422,8 @@
           <h1 class="hos-hero-tagline">A desktop that fits in a tab.</h1>
           <p class="hos-hero-description">
             A browser desktop with windows, a taskbar, a virtual filesystem, and 50+ built-in apps.
-            Games, tools, and experiences. No install. No signup.
+            Games, tools, and experiences. No install. No signup. What you start stays in this
+            browser.
           </p>
           <div class="hos-hero-actions">
             <a href="/os/" class="hos-cta-primary">
@@ -447,6 +448,12 @@
           </div>
           <div class="hos-hero-art-glow"></div>
         </div>
+        <section id="your-desk" class="hos-desk" hidden aria-labelledby="your-desk-heading">
+          <h2 id="your-desk-heading" class="hos-desk-heading">On this browser</h2>
+          <div id="continue-app" class="hos-continue" hidden></div>
+          <div id="saved-games" class="hos-saved" hidden></div>
+          <div id="desk-achievements" class="hos-desk-achievements" hidden></div>
+        </section>
       </header>
 
       <!--
@@ -488,7 +495,6 @@
         class="hos-section hos-featured-section"
         aria-labelledby="popular-heading"
       >
-        <div id="continue-app" class="hos-continue" hidden></div>
         <h2 id="popular-heading" class="text-h2">Featured</h2>
         <p class="text-caption text-muted hos-section-blurb">
           A few apps to start with if you've never used Heyming OS before.
@@ -614,6 +620,7 @@
     </footer>
     <!-- Run after gallery nodes exist so first paint includes cards (CLS). -->
     <script src="/shared/app-sections.js"></script>
+    <script src="/emulator/resumes.js"></script>
     <script src="/index.js"></script>
     <script type="module" src="/posts/home-teaser.js"></script>
   </body>

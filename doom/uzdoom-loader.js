@@ -333,7 +333,12 @@ const { bootEngine } = installUzdomLoaderEngine({
 async function launchEngine() {
   if (LC.get() !== 'primed') return;
   LC.markLaunching();
-  window.heymingAchievements?.unlockForCurrentApp('first-action');
+  Promise.resolve(window.heymingAchievements?.unlockForCurrentApp('first-action')).then(
+    function () {
+      if (typeof window.syncDoomFlavorAchievements === 'function')
+        window.syncDoomFlavorAchievements();
+    }
+  );
   $('launchBtn').disabled = true;
   setStatus('Launching engine…');
 

@@ -40,10 +40,16 @@
     '/emulator/internet-archive.js',
     '/emulator/rom-acquire.js',
     '/emulator/games-sheet.js',
+    '/emulator/resumes.js',
     '/emulator/rom-browser.js',
     '/emulator/bios.js'
   ];
-  const PLAY_SCRIPTS = ['/emulator/socd.js', '/emulator/ejs-mount.js', '/emulator/play.js'];
+  const PLAY_SCRIPTS = [
+    '/emulator/resumes.js',
+    '/emulator/socd.js',
+    '/emulator/ejs-mount.js',
+    '/emulator/play.js'
+  ];
   const RUFFLE_PLAY_SCRIPTS = ['/emulator/play.js'];
 
   /** Flash runs in Ruffle, which the flash page loads itself; no EmulatorJS mount. */
@@ -844,11 +850,18 @@
    * Back then returns to the list entry underneath this one.
    * @param {{ name?: string, title?: string }} rom
    */
-  function pushRomQuery(rom) {
+  function pushRomQuery(rom, opts) {
     const id = romQueryId(rom);
     if (!id) return;
     const url = new URL(window.location.href);
-    if (url.searchParams.get('rom') === id && history.state && history.state.emulatorRom === id) {
+    if (opts && opts.resume) url.searchParams.set('resume', '1');
+    else url.searchParams.delete('resume');
+    if (
+      url.searchParams.get('rom') === id &&
+      history.state &&
+      history.state.emulatorRom === id &&
+      url.searchParams.get('resume') === new URL(window.location.href).searchParams.get('resume')
+    ) {
       return;
     }
     url.searchParams.set('rom', id);
@@ -863,8 +876,9 @@
   /** Drop `?rom=` in place when the visitor leaves a game that has not started yet. */
   function clearRomQuery() {
     const url = new URL(window.location.href);
-    if (!url.searchParams.has('rom')) return;
+    if (!url.searchParams.has('rom') && !url.searchParams.has('resume')) return;
     url.searchParams.delete('rom');
+    url.searchParams.delete('resume');
     const next = `${url.pathname}${url.search}${url.hash}`;
     if (typeof window.replaceHistorySilent === 'function') {
       window.replaceHistorySilent(history.state, next);
@@ -1120,7 +1134,10 @@
       const romData = await ia.loadRom(rom, { signal: controller.signal });
       if (controller.signal.aborted) return;
       const romFile = acquire.fileFromRomBytes(romData, rom);
-      window.launchEmulator(romFile, romFile.name, { tracked: true });
+      window.launchEmulator(romFile, romFile.name, {
+        tracked: true,
+        resume: new URLSearchParams(window.location.search).get('resume') === '1'
+      });
     } catch (err) {
       if (controller.signal.aborted || (err && err.name === 'AbortError')) return;
       console.error('Deep-link ROM load failed:', err);
@@ -1322,11 +1339,15 @@
     }
 
     renderEmuBreadcrumbs(cfg, playingTitle);
+    const resume =
+      !!(options && options.resume) ||
+      new URLSearchParams(window.location.search).get('resume') === '1';
     await window.emulatorPlay.play(romSource, cfg, {
       romName,
       title: playingTitle,
       biosFile: biosApi ? biosApi.getActiveFile() : null,
-      onExit: returnToGameList
+      onExit: returnToGameList,
+      resume
     });
   };
 })();

@@ -896,10 +896,125 @@ function renderContinueApp() {
   link.append(kicker, icon, name);
   slot.appendChild(link);
   slot.hidden = false;
+  revealDesk();
+}
+
+function revealDesk() {
+  const desk = document.getElementById('your-desk');
+  if (!desk) return;
+  const any = ['continue-app', 'saved-games', 'desk-achievements'].some(function (id) {
+    const el = document.getElementById(id);
+    return !!(el && !el.hidden && el.childNodes.length);
+  });
+  desk.hidden = !any;
+}
+
+function renderSavedGames() {
+  const slot = document.getElementById('saved-games');
+  if (!slot) return;
+  slot.replaceChildren();
+  slot.hidden = true;
+  const api = window.emulatorResumes;
+  if (!api || typeof api.read !== 'function' || typeof api.href !== 'function') return;
+  let rows = [];
+  try {
+    rows = api.read(localStorage);
+  } catch (_) {
+    return;
+  }
+  rows.forEach(function (row) {
+    const link = document.createElement('a');
+    link.className = 'hos-saved-card';
+    link.href = api.href(row);
+    link.dataset.nextApp = row.console || 'emulator';
+    link.dataset.nextSurface = 'home';
+    const kicker = document.createElement('span');
+    kicker.className = 'hos-saved-kicker';
+    kicker.textContent = 'Continue';
+    const title = document.createElement('span');
+    title.className = 'hos-saved-title';
+    title.textContent = row.title || row.file;
+    if (row.shot) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = row.shot;
+      link.append(kicker, img, title);
+    } else {
+      const fallback = document.createElement('span');
+      fallback.className = 'hos-saved-fallback';
+      fallback.setAttribute('aria-hidden', 'true');
+      fallback.textContent = '🎮';
+      link.append(kicker, fallback, title);
+    }
+    slot.appendChild(link);
+  });
+  slot.hidden = rows.length === 0;
+  revealDesk();
+}
+
+function renderDeskAchievements() {
+  const slot = document.getElementById('desk-achievements');
+  if (!slot) return;
+  slot.replaceChildren();
+  slot.hidden = true;
+  let unlocked = {};
+  try {
+    const parsed = JSON.parse(localStorage.getItem('heyming.achievements.v1') || '');
+    if (parsed && parsed.version === 1 && parsed.unlocked && typeof parsed.unlocked === 'object') {
+      unlocked = parsed.unlocked;
+    }
+  } catch (_) {
+    return;
+  }
+  const ids = Object.keys(unlocked);
+  if (!ids.length) return;
+  fetch('/achievements-catalog.json')
+    .then(function (response) {
+      if (!response.ok) throw new Error('catalog');
+      return response.json();
+    })
+    .then(function (doc) {
+      const catalog = Array.isArray(doc && doc.achievements) ? doc.achievements : [];
+      const byId = {};
+      catalog.forEach(function (item) {
+        if (item && item.id) byId[item.id] = item;
+      });
+      const recent = ids
+        .map(function (id) {
+          const row = unlocked[id] || {};
+          return { id: id, at: row.unlockedAt || '', item: byId[id] };
+        })
+        .filter(function (row) {
+          return row.item;
+        })
+        .sort(function (a, b) {
+          if (a.at === b.at) return 0;
+          return a.at < b.at ? 1 : -1;
+        })
+        .slice(0, 3);
+      if (!recent.length) return;
+      const count = document.createElement('a');
+      count.className = 'hos-ach-all';
+      count.href = '/achievements/';
+      count.textContent = ids.length + ' unlocked';
+      slot.appendChild(count);
+      recent.forEach(function (row) {
+        const chip = document.createElement('a');
+        chip.className = 'hos-ach-chip';
+        chip.href = '/achievements/';
+        chip.textContent = (row.item.icon ? row.item.icon + ' ' : '') + row.item.title;
+        slot.appendChild(chip);
+      });
+      slot.hidden = false;
+      revealDesk();
+    })
+    .catch(function () {});
 }
 
 function bootHome() {
   renderContinueApp();
+  renderSavedGames();
+  renderDeskAchievements();
   renderFeaturedHeroes();
   renderFeaturedProjects();
   renderAppGallery();

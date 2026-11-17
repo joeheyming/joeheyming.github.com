@@ -267,10 +267,9 @@ test('every level 2 achievement has a matching trigger in its app', () => {
     const relativePath = app.path.replace(/^\.\//, '').split('?')[0];
     const source = readJavaScriptTree(path.join(ROOT, relativePath));
     const slug = achievement.id.slice(achievement.appId.length + 1);
-    assert.equal(
-      source.includes(`unlockForCurrentApp('${slug}')`),
-      true,
-      `missing trigger for ${achievement.id}`
-    );
+    const triggered =
+      source.includes(`unlockForCurrentApp('${slug}')`) ||
+      source.includes(`unlockForApp('${achievement.appId}', '${slug}')`);
+    assert.equal(triggered, true, `missing trigger for ${achievement.id}`);
   }
 });

@@ -165,6 +165,12 @@
     return unlock(`${getCurrentAppId()}:${slug}`);
   }
 
+  async function unlockForApp(appId, slug) {
+    await ready;
+    if (typeof appId !== 'string' || typeof slug !== 'string') return false;
+    return unlock(`${appId}:${slug}`);
+  }
+
   function subscribe(listener) {
     if (typeof listener !== 'function') return () => {};
     listeners.add(listener);
@@ -207,6 +213,7 @@
     ready,
     unlock,
     unlockForCurrentApp,
+    unlockForApp,
     isUnlocked,
     getUnlocked,
     getCurrentAppId,

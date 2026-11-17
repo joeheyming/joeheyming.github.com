@@ -107,9 +107,27 @@
   }
 
   /**
+   * Count this console toward the hub achievements. The page's own app
+   * id is the console (nes, gba, …), so the hub entries are unlocked by
+   * name rather than by the current page.
+   * @param {string} consoleId
+   */
+  function noteConsolePlay(consoleId) {
+    const api = window.heymingAchievements;
+    return import('/play-progress.js').then(async function (progress) {
+      progress.note(localStorage, 'emulator', consoleId);
+      if (!api || typeof api.unlockForApp !== 'function') return;
+      await api.unlockForApp('emulator', 'first-action');
+      if (progress.count(localStorage, 'emulator') >= 3) {
+        await api.unlockForApp('emulator', 'three-consoles');
+      }
+    });
+  }
+
+  /**
    * @param {Blob} romSource
    * @param {{ id: string, player?: string }} cfg
-   * @param {{ romName: string, title: string, biosFile: File | null, onExit: () => void }} opts
+   * @param {{ romName: string, title: string, biosFile: File | null, onExit: () => void, resume?: boolean }} opts
    */
   async function play(romSource, cfg, opts) {
     if (typeof window.prependBaseTitle === 'function') window.prependBaseTitle(opts.title);
@@ -123,6 +141,7 @@
     // Unlock once per console lander app id (derived from the registry).
     if (Object.keys(window.EMULATOR_CONSOLES || {}).includes(cfg.id)) {
       window.heymingAchievements?.unlockForCurrentApp('first-action');
+      void noteConsolePlay(cfg.id);
     }
 
     mountPlayChrome(cfg, opts.onExit);
@@ -141,8 +160,10 @@
       cfg,
       romSource,
       romName: opts.romName,
+      title: opts.title,
       biosFile: opts.biosFile,
-      onExit: opts.onExit
+      onExit: opts.onExit,
+      resume: !!opts.resume
     });
   }
 

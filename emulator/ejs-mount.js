@@ -62,6 +62,10 @@
     }
   }
 
+  /** @type {{ console: string, file: string, title: string } | null} */
+  let mountedGame = null;
+  let pendingResume = false;
+
   function mount(opts) {
     opts = opts || {};
     const cfg = opts.cfg;
@@ -69,6 +73,16 @@
       console.error('emulatorEjsMount.mount: no console cfg; bailing.');
       return;
     }
+    pendingResume = !!opts.resume;
+    const fileName =
+      opts.romName ||
+      (opts.romSource && typeof opts.romSource === 'object' && opts.romSource.name) ||
+      '';
+    mountedGame = {
+      console: cfg.id || '',
+      file: fileName,
+      title: opts.title || fileName
+    };
 
     installCompactGamepadSlots();
 
@@ -369,9 +383,46 @@
       console.warn('Could not save state', err);
       ok = false;
     }
-    if (ok) toast(emu, 'SAVED STATE TO SLOT', 'success', ' ' + slot);
-    else toast(emu, 'FAILED TO SAVE STATE', 'error');
+    if (ok) {
+      toast(emu, 'SAVED STATE TO SLOT', 'success', ' ' + slot);
+      rememberResume();
+    } else toast(emu, 'FAILED TO SAVE STATE', 'error');
     return ok;
+  }
+
+  /**
+   * A small JPEG of the game screen for the card and the home page.
+   * A tainted canvas, or a core that has not drawn yet, yields nothing.
+   * @returns {string}
+   */
+  function captureShot() {
+    const canvas = document.querySelector('#game canvas') || document.querySelector('canvas');
+    if (!canvas || !canvas.width || !canvas.height) return '';
+    const width = 160;
+    const height = Math.max(1, Math.min(120, Math.round((canvas.height * width) / canvas.width)));
+    const copy = document.createElement('canvas');
+    copy.width = width;
+    copy.height = height;
+    const ctx = copy.getContext('2d');
+    if (!ctx) return '';
+    try {
+      ctx.drawImage(canvas, 0, 0, width, height);
+      const url = copy.toDataURL('image/jpeg', 0.55);
+      return url.startsWith('data:image/jpeg') ? url : '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function rememberResume() {
+    const api = window.emulatorResumes;
+    if (!api || typeof api.remember !== 'function' || !mountedGame || !mountedGame.file) return;
+    api.remember(window.localStorage, {
+      console: mountedGame.console,
+      file: mountedGame.file,
+      title: mountedGame.title,
+      shot: captureShot()
+    });
   }
 
   /**
@@ -451,6 +502,9 @@
       if (emu.started) keepSavesInBrowser(emu);
       emu.on('start', function () {
         keepSavesInBrowser(emu);
+        if (!pendingResume) return;
+        pendingResume = false;
+        loadQuickState();
       });
     };
     tryAttach();

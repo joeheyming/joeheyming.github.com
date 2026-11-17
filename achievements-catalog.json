@@ -990,6 +990,64 @@
       "tier": 2,
       "x": 736,
       "y": 640
+    },
+    {
+      "id": "doom:three-flavors",
+      "appId": "doom",
+      "title": "Three Flavors",
+      "description": "Launch three different Doom flavors.",
+      "icon": "🍫",
+      "parentId": "doom:first-action",
+      "requiresId": "doom:first-action",
+      "tier": 2,
+      "x": -1852,
+      "y": 0
+    },
+    {
+      "id": "doom:ten-flavors",
+      "appId": "doom",
+      "title": "Ten Flavors",
+      "description": "Launch ten different Doom flavors.",
+      "icon": "🔟",
+      "parentId": "doom:first-action",
+      "requiresId": "doom:first-action",
+      "tier": 2,
+      "x": -1662,
+      "y": 0
+    },
+    {
+      "id": "stepmania:five-songs",
+      "appId": "stepmania",
+      "title": "Five Songs",
+      "description": "Start five different StepMania songs.",
+      "icon": "🎶",
+      "parentId": "stepmania:first-action",
+      "requiresId": "stepmania:first-action",
+      "tier": 2,
+      "x": -24,
+      "y": 960
+    },
+    {
+      "id": "emulator:first-action",
+      "appId": "emulator",
+      "title": "Console Started",
+      "description": "Get a game running on any console.",
+      "icon": "🎮",
+      "parentId": "achievements:first-action",
+      "x": 3966,
+      "y": 0
+    },
+    {
+      "id": "emulator:three-consoles",
+      "appId": "emulator",
+      "title": "Three Consoles",
+      "description": "Play games on three different consoles.",
+      "icon": "🕹️",
+      "parentId": "emulator:first-action",
+      "requiresId": "emulator:first-action",
+      "tier": 2,
+      "x": 3966,
+      "y": 160
     }
   ]
 }

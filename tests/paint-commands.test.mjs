@@ -139,6 +139,7 @@ test('Paint-only commands follow their anchor; submenus sit at their first catal
     [
       'file.export.quickExportAsPng',
       'file.export.quickExportAsJpeg',
+      'file.export.openInImagine',
       '---',
       'file.export.layersToFiles'
     ]

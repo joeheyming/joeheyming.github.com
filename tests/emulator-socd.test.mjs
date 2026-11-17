@@ -194,6 +194,7 @@ describe('emulator SOCD wiring', () => {
 
   it('loads socd.js before ejs-mount.js on the play path, not on page load', () => {
     assert.deepEqual(scriptList('PLAY_SCRIPTS'), [
+      '/emulator/resumes.js',
       '/emulator/socd.js',
       '/emulator/ejs-mount.js',
       '/emulator/play.js'
@@ -215,6 +216,7 @@ describe('emulator SOCD wiring', () => {
       '/emulator/internet-archive.js',
       '/emulator/rom-acquire.js',
       '/emulator/games-sheet.js',
+      '/emulator/resumes.js',
       '/emulator/rom-browser.js',
       '/emulator/bios.js'
     ]);

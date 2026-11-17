@@ -311,6 +311,12 @@ export const COMMANDS = [
     after: 'file.export.quickExportAsPng',
     attrs: { 'data-file': 'save-jpeg' }
   }),
+  command('file.export.openInImagine', (ctx) => ctx.openInImagine(), {
+    label: 'Open in Imagine',
+    menu: ['File', 'Export'],
+    after: 'file.export.quickExportAsPng',
+    attrs: { 'data-file': 'open-in-imagine' }
+  }),
 
   // Edit
   command('edit.undo', (ctx) => ctx.undo(), {
@@ -684,8 +690,7 @@ export const COMMANDS = [
     enabled: (state) =>
       clipKeyReleases(state.layers ?? [], stateLayerSelection(state).ids) ||
       (state.layers ?? []).some(
-        (l, i) =>
-          stateLayerSelection(state).ids.includes(l.id) && canClip(state.layers ?? [], i)
+        (l, i) => stateLayerSelection(state).ids.includes(l.id) && canClip(state.layers ?? [], i)
       ),
     attrs: { 'data-layer': 'clipping-mask' }
   }),

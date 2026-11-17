@@ -31,6 +31,7 @@ export function createCommandCtx(p) {
       p.openFilenameModal('untitled.jpg', (f) =>
         p.downloadJPEG(f, p.state, p.canvasW(), p.canvasH())
       ),
+    openInImagine: () => p.openInImagine?.(p.state, p.canvasW(), p.canvasH()),
     file: p.file,
     placeEmbedded: () => p.placeInput?.click(),
     fileInfo: p.fileInfo,
@@ -206,6 +207,7 @@ export const COMMAND_CTX_KEYS = Object.freeze([
   'openFile',
   'exportPng',
   'exportJpeg',
+  'openInImagine',
   'file',
   'placeEmbedded',
   'fileInfo',

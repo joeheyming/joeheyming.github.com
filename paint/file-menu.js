@@ -4,6 +4,8 @@ import { flattenToCanvas } from './layers.js';
 import { drawObjectsOnto } from './objects.js';
 import { closeMenus } from './menu-bar.js';
 import { fileInfoTextEntries, insertPngText } from './file-extras.js';
+import { stageImageForImagine } from '/paint-handoff.js';
+import { launchOsApp } from '/os-embed.js';
 
 function exportFlattenOpts(state, transparentBg) {
   return {
@@ -89,6 +91,27 @@ export function downloadBlob(blob, filename) {
   link.href = url;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/**
+ * Stage the flattened canvas for Imagine, then open it. Imagine uses
+ * the PNG as the SD-Turbo source image.
+ *
+ * @param {object} state
+ * @param {number} w
+ * @param {number} h
+ */
+export async function openInImagine(state, w, h) {
+  try {
+    const blob = await exportPNGBlob(state, w, h);
+    if (!blob) return;
+    await stageImageForImagine(blob, 'paint.png');
+  } catch (err) {
+    console.warn('Could not hand the canvas to Imagine', err);
+    return;
+  }
+  window.heymingAchievements?.unlockForCurrentApp('canvas-exported');
+  if (!launchOsApp('imagine')) window.open('/imagine/', '_blank', 'noopener');
 }
 
 export async function downloadPNG(filename, state, w, h) {

@@ -12,7 +12,7 @@
 
 import { createOSEmbed } from '/os-embed.js';
 import { createNotifier } from '/notifications.js';
-import { stageImageForPaint } from '/paint-handoff.js';
+import { stageImageForPaint, takeImagineImage } from '/paint-handoff.js';
 import {
   isWebGpuSupported,
   isEngineReady,
@@ -1003,11 +1003,34 @@ function populateModelSelect() {
   els.model.value = selectedModelId;
 }
 
+/**
+ * A picture staged by Paint becomes the SD-Turbo source. Janus-Pro
+ * cannot start from an image, so the picker moves to SD-Turbo.
+ */
+async function takePaintSource() {
+  let staged = null;
+  try {
+    staged = await takeImagineImage();
+  } catch {
+    return;
+  }
+  if (!staged) return;
+  if (!selectedModel().supportsImage) {
+    selectedModelId = 'sd-turbo';
+    saveSelectedModel('sd-turbo');
+    if (els.model) els.model.value = 'sd-turbo';
+    applySelectedModel();
+  }
+  setSourceFile(new File([staged.blob], staged.fileName || 'paint.png', { type: 'image/png' }));
+  notify('Using the picture from Paint.', 'success');
+}
+
 async function boot() {
   populateModelSelect();
   wireEvents();
   renderHistory();
   refreshModeLine();
+  void takePaintSource();
 
   const ok = await checkWebGpuOrFail();
   if (!ok) return;

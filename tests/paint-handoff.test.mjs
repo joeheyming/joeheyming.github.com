@@ -49,6 +49,14 @@ describe('imagine hands off to paint', () => {
     assert.ok(download > 0 && paint > download && reuse > paint);
   });
 
+  it('paint can hand the canvas to Imagine as a source image', () => {
+    const menu = readFileSync(path.join(ROOT, 'paint/file-menu.js'), 'utf8');
+    const imagine = readFileSync(path.join(ROOT, 'imagine/index.js'), 'utf8');
+    assert.match(menu, /stageImageForImagine\(blob, 'paint\.png'\)/);
+    assert.match(imagine, /takeImagineImage\(/);
+    assert.match(imagine, /selectedModelId = 'sd-turbo'/);
+  });
+
   it('paint boots by placing a staged image after the restore prompt', () => {
     const js = readFileSync(path.join(ROOT, 'paint/paint.js'), 'utf8');
     assert.match(js, /import \{ takeStagedImage \} from '\/paint-handoff\.js'/);

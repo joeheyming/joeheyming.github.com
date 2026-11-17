@@ -945,6 +945,9 @@ export class MainPageController {
    */
   recordSongPlay(currentSong) {
     if (!currentSong) return;
+    import('./play-achievements.js')
+      .then((progress) => progress.syncStepmaniaSongs(currentSong.key))
+      .catch(() => {});
     if (window.heymingAnalytics && typeof window.heymingAnalytics.whenCounts === 'function') {
       window.heymingAnalytics.whenCounts((counts) => {
         if (typeof counts.recordStepmaniaPlay !== 'function') return;

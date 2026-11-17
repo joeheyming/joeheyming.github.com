@@ -264,6 +264,7 @@ import {
   confirmResize as confirmResizeUI,
   downloadPNG,
   downloadJPEG,
+  openInImagine,
   downloadLayerFiles,
   exportPNGBlob,
   mergedCanvas
@@ -6333,6 +6334,7 @@ function init() {
     openFilenameModal,
     downloadPNG,
     downloadJPEG,
+    openInImagine,
     canvasW,
     canvasH,
     newProject,

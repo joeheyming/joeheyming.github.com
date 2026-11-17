@@ -89,7 +89,34 @@
   // The sheet counts the click. The engine often never reaches a playable
   // frame, and once it does a follow-up post does not run. Google Analytics
   // still waits for that frame so doom_engine_launched stays a real start.
+  function flavorPlayId(flavor) {
+    if (!flavor) return '';
+    return typeof flavor === 'string' ? flavor : flavor.id || '';
+  }
+
+  // Distinct flavors on this browser. Retried after the first launch
+  // unlocks, because three-flavors and ten-flavors require it.
+  function syncDoomFlavorAchievements() {
+    return import('/play-progress.js').then(function (progress) {
+      var n = progress.count(localStorage, 'doom');
+      var api = window.heymingAchievements;
+      if (!api) return;
+      if (n >= 3) api.unlockForCurrentApp('three-flavors');
+      if (n >= 10) api.unlockForCurrentApp('ten-flavors');
+    });
+  }
+  window.syncDoomFlavorAchievements = syncDoomFlavorAchievements;
+
+  function noteDoomFlavor(flavor) {
+    var id = flavorPlayId(flavor);
+    return import('/play-progress.js').then(function (progress) {
+      if (id) progress.note(localStorage, 'doom', id);
+      return syncDoomFlavorAchievements();
+    });
+  }
+
   function recordDoomClick(flavor) {
+    noteDoomFlavor(flavor);
     if (!flavor || !window.heymingAnalytics) return;
     if (typeof window.heymingAnalytics.whenCounts !== 'function') return;
     window.heymingAnalytics.whenCounts(function (counts) {

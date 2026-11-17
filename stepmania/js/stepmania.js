@@ -937,7 +937,13 @@ function initStepmaniaDomAndLoop() {
   audioManager.onPlay(() => {
     if (!embedded) {
       LoadingOverlay.hide();
-      window.heymingAchievements?.unlockForCurrentApp('first-action');
+      Promise.resolve(window.heymingAchievements?.unlockForCurrentApp('first-action')).then(
+        function () {
+          import('./play-achievements.js')
+            .then((progress) => progress.syncStepmaniaSongs())
+            .catch(() => {});
+        }
+      );
     }
   });
 

@@ -64,6 +64,26 @@ const ACTION = {
 };
 
 /**
+ * Ask Heyming OS to open another app. Standalone returns false so the
+ * caller can open a tab instead.
+ *
+ * @param {string} appId
+ * @returns {boolean}
+ */
+export function launchOsApp(appId) {
+  if (!isOsEmbedded() || !appId) return false;
+  try {
+    window.parent.postMessage(
+      { type: MSG.IFRAME_MESSAGE, message: { type: ACTION.LAUNCH, app: appId } },
+      '*'
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * @returns {boolean} true when running inside a HeymingOS iframe
  *   (parent window has `HeymingOS`).
  */
@@ -149,10 +169,7 @@ export function createOSEmbed(config) {
   // launched us with. Mirrors what fs-os.js / paint did inline.
   if (embedded) {
     try {
-      window.parent.postMessage(
-        { type: MSG.REQUEST_PENDING_FILE, app },
-        '*'
-      );
+      window.parent.postMessage({ type: MSG.REQUEST_PENDING_FILE, app }, '*');
     } catch {
       /* parent went away */
     }

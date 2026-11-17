@@ -437,6 +437,18 @@ class RomBrowserElement extends HTMLElement {
            fetch still runs: loading=lazy plus display:none never starts.
            The frame keeps the grid aligned while the file is in flight. */
         .rom-art[hidden] { display: none !important; }
+        .rom-resume {
+          align-self: flex-start;
+          margin: 0 0 6px;
+          padding: 2px 8px;
+          border-radius: 999px;
+          background: var(--accent-bright);
+          color: var(--text-on-accent, #fff);
+          font-size: 0.72rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
         .rom-title {
           font-weight: 700;
           color: var(--text-1);
@@ -852,12 +864,28 @@ class RomBrowserElement extends HTMLElement {
   }
 
   /**
+   * A saved game on this console, if the resume index knows this ROM.
+   * @param {{ name?: string, title?: string }} rom
+   */
+  _resumeFor(rom) {
+    const api = window.emulatorResumes;
+    if (!api || typeof api.forRom !== 'function') return null;
+    try {
+      return api.forRom(localStorage, this.consoleId, rom);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  /**
    * Hidden box-art image for this ROM. Stays out of the card until it loads.
-   * A 404 advances to the next playlist, then the image is removed.
+   * A 404 advances to the next playlist. When every URL misses, a quick-save
+   * screenshot stands in for the box.
    * @param {{ name?: string }} rom
+   * @param {string} [shot]
    * @returns {HTMLImageElement|null}
    */
-  _romArt(rom) {
+  _romArt(rom, shot) {
     const acquire = window.emulatorRomAcquire;
     const systems = this.consoleConfig && this.consoleConfig.iaThumbnailSystems;
     const resolve =
@@ -868,7 +896,8 @@ class RomBrowserElement extends HTMLElement {
     const fallback = resolve ? resolve(systems, rom && rom.name) : [];
     const direct = rom && typeof rom.thumbnailUrl === 'string' ? rom.thumbnailUrl : '';
     const urls = direct ? [direct].concat(fallback.filter((url) => url !== direct)) : fallback;
-    if (!urls.length) return null;
+    const savedShot = typeof shot === 'string' && shot.startsWith('data:image/') ? shot : '';
+    if (!urls.length && !savedShot) return null;
 
     const img = document.createElement('img');
     img.className = 'rom-art';
@@ -882,14 +911,19 @@ class RomBrowserElement extends HTMLElement {
     });
     img.addEventListener('error', () => {
       index += 1;
-      if (index >= urls.length) {
-        img.remove();
+      if (index < urls.length) {
+        img.hidden = true;
+        img.src = urls[index];
         return;
       }
-      img.hidden = true;
-      img.src = urls[index];
+      if (savedShot && img.src !== savedShot) {
+        img.hidden = true;
+        img.src = savedShot;
+        return;
+      }
+      img.remove();
     });
-    img.src = urls[0];
+    img.src = urls[0] || savedShot;
     return img;
   }
 
@@ -972,7 +1006,9 @@ class RomBrowserElement extends HTMLElement {
       const description = this._escapeHtml(rom.description);
       const size = this._escapeHtml(rom.size);
       romCard.dataset.fullTitle = fullTitle;
-      if (fullTitle) romCard.setAttribute('aria-label', fullTitle);
+      const saved = this._resumeFor(rom);
+      if (fullTitle)
+        romCard.setAttribute('aria-label', saved ? `Continue ${fullTitle}` : fullTitle);
 
       const sameAsTitle =
         rom.description === rom.title ||
@@ -985,10 +1021,16 @@ class RomBrowserElement extends HTMLElement {
       `;
       const frame = document.createElement('div');
       frame.className = 'rom-art-frame';
-      const art = this._romArt(rom);
+      const art = this._romArt(rom, saved && saved.shot);
       if (art) frame.appendChild(art);
       romCard.prepend(frame);
-      romCard.addEventListener('click', () => this.loadRom(rom));
+      if (saved) {
+        const badge = document.createElement('div');
+        badge.className = 'rom-resume';
+        badge.textContent = 'Continue';
+        frame.after(badge);
+      }
+      romCard.addEventListener('click', () => this.loadRom(rom, { resume: !!saved }));
       romGrid.appendChild(romCard);
     });
 
@@ -1033,9 +1075,12 @@ class RomBrowserElement extends HTMLElement {
     }
   }
 
-  async loadRom(rom) {
+  async loadRom(rom, options) {
     this._hideTitlePop();
-    if (typeof window.emulatorPushRomQuery === 'function') window.emulatorPushRomQuery(rom);
+    const resume = !!(options && options.resume);
+    if (typeof window.emulatorPushRomQuery === 'function') {
+      window.emulatorPushRomQuery(rom, { resume });
+    }
     const contentArea = this.shadowRoot.getElementById('contentArea');
     const restoreList = () => {
       if (typeof window.emulatorClearRomQuery === 'function') window.emulatorClearRomQuery();
@@ -1110,7 +1155,7 @@ class RomBrowserElement extends HTMLElement {
       this.closeBrowser();
 
       if (typeof window.launchEmulator === 'function') {
-        window.launchEmulator(romFile, romFile.name, { tracked: true });
+        window.launchEmulator(romFile, romFile.name, { tracked: true, resume });
       } else {
         console.error('launchEmulator not available on window');
         alert('Emulator not ready. Please reload the page and try again.');
