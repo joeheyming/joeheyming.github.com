@@ -153,6 +153,36 @@ export function calculateNoteFrameIndex(musicBeat, noteBeat, numFrames = 16) {
   return ((raw % numFrames) + numFrames) % numFrames;
 }
 
+/** Frames in the snap-colored arrow strip. A 192nd shares the last one. */
+const NOTE_COLOR_COUNT = 8;
+
+/** StepMania quantizes a measure as 4 beats × 48 rows. */
+const ROWS_PER_MEASURE = 192;
+
+/**
+ * Arrow frame for a chart row. Same cascade as StepMania `GetNoteType`
+ * (`NoteTypes.cpp`): quarter, eighth, twelfth, sixteenth, twenty-fourth,
+ * thirty-second, forty-eighth, sixty-fourth. A 192nd uses the last frame.
+ * A row that is not a finite integer draws as a quarter.
+ * @param {number} row
+ * @returns {number}
+ */
+export function noteColorIndex(row) {
+  if (!Number.isInteger(row)) return 0;
+  const measure = ROWS_PER_MEASURE;
+  // 192nd sits one past the strip and clamps onto the sixty-fourth.
+  let color = NOTE_COLOR_COUNT;
+  if (row % (measure / 4) === 0) color = 0;
+  else if (row % (measure / 8) === 0) color = 1;
+  else if (row % (measure / 12) === 0) color = 2;
+  else if (row % (measure / 16) === 0) color = 3;
+  else if (row % (measure / 24) === 0) color = 4;
+  else if (row % (measure / 32) === 0) color = 5;
+  else if (row % (measure / 48) === 0) color = 6;
+  else if (row % (measure / 64) === 0) color = 7;
+  return Math.min(color, NOTE_COLOR_COUNT - 1);
+}
+
 /**
  * Check if a note is on screen
  * @param {number} beatUntilNote - Beats until note reaches target

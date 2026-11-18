@@ -12,12 +12,13 @@ import { adjudicateColumnPress, advanceHold, startHold } from './columnPressAdju
 import { ScorePanel } from './score-panel.js';
 import { LoadingOverlay } from './loading-overlay.js';
 import { secondsToBeats, beatsToSeconds } from './timing.js';
+import { beatToNoteRow } from './timingData.js';
 import { songClock } from './songClock.js';
 import { GameOverModal } from './game-over-modal.js';
 import {
   drawMine,
   drawHoldBody,
-  calculateNoteFrameIndex,
+  noteColorIndex,
   calculateNoteY,
   noteFieldY,
   noteSpanOnScreen,
@@ -65,7 +66,6 @@ const activeHolds = {};
  */
 const HOLD_LET_GO_HEALTH = 8;
 
-// Image directory
 const imgDir = '/stepmania/img/';
 
 // ============================================================================
@@ -139,7 +139,7 @@ function initializeActors() {
 const noteSprite = Sprite(imgDir + 'down-note.png', {
   frameWidth: 64,
   frameHeight: 64,
-  numFrames: 16
+  numFrames: 8
 });
 
 function getBrowserAlertText() {
@@ -691,7 +691,7 @@ function drawNoteField() {
       cmodInfo = null;
     }
 
-    const frameIndex = calculateNoteFrameIndex(musicBeat, beat);
+    const frameIndex = noteColorIndex(beatToNoteRow(beat));
 
     // Determine alpha (hide if already hit)
     let alpha = 1;

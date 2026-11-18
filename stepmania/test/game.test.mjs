@@ -1,14 +1,17 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import gameState from '../js/gameState.js';
 import { SimfileParser } from '../js/simfileParser.js';
 import { secondsToBeats, beatsToSeconds, getBPMAtBeat } from '../js/timing.js';
+import { beatToNoteRow } from '../js/timingData.js';
 import { HOLD_LET_GO_SECONDS, TAP_NOTE_POINTS } from '../js/judgmentPolicy.js';
 import { adjudicateColumnPress, advanceHold } from '../js/columnPressAdjudication.js';
 import { calculateDancePoints, calculateGrade } from '../js/score-panel.js';
 import {
   calculateNoteFrameIndex,
   calculateNoteY,
+  noteColorIndex,
   noteFieldY,
   receptorY
 } from '../js/noteRenderer.js';
@@ -951,5 +954,38 @@ describe('Note animation frame', () => {
     assert.equal(calculateNoteFrameIndex(2, 0), 8);
     assert.equal(calculateNoteFrameIndex(1, 0.5), 12);
     assert.equal(calculateNoteFrameIndex(4, 0), 0);
+  });
+});
+
+describe('Note snap color', () => {
+  it('picks the StepMania denominator frame for a chart row', () => {
+    assert.equal(noteColorIndex(0), 0);
+    assert.equal(noteColorIndex(48), 0);
+    assert.equal(noteColorIndex(24), 1);
+    assert.equal(noteColorIndex(16), 2);
+    assert.equal(noteColorIndex(12), 3);
+    assert.equal(noteColorIndex(36), 3);
+    assert.equal(noteColorIndex(8), 4);
+    assert.equal(noteColorIndex(6), 5);
+    assert.equal(noteColorIndex(4), 6);
+    assert.equal(noteColorIndex(3), 7);
+    assert.equal(noteColorIndex(1), 7);
+    assert.equal(noteColorIndex(-48), 0);
+    assert.equal(noteColorIndex(-24), 1);
+  });
+
+  it('draws a row that is not a finite integer as a quarter', () => {
+    assert.equal(noteColorIndex(Number.NaN), 0);
+    assert.equal(noteColorIndex(Number.POSITIVE_INFINITY), 0);
+  });
+
+  it('ships eight frames, and a quarter is a different frame from an eighth', () => {
+    const png = readFileSync(new URL('../img/down-note.png', import.meta.url));
+    assert.equal(png.readUInt32BE(16), 512);
+    assert.equal(png.readUInt32BE(20), 64);
+    const playfield = readFileSync(new URL('../js/stepmania.js', import.meta.url), 'utf8');
+    assert.match(playfield, /noteColorIndex\(beatToNoteRow\(beat\)\)/);
+    assert.equal(playfield.includes('calculateNoteFrameIndex'), false);
+    assert.notEqual(noteColorIndex(beatToNoteRow(0)), noteColorIndex(beatToNoteRow(0.5)));
   });
 });
