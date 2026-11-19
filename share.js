@@ -359,24 +359,17 @@ if (!customElements.get('share-button')) {
   // measurement window. The widget itself is `position: fixed`, so deferring
   // its insertion until after the registry resolves never affects document
   // flow.
-  async function loadAppsRegistry() {
-    try {
-      const res = await fetch('/apps-registry.json', { cache: 'default' });
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch (e) {
-      console.warn('[share.js] Could not load apps-registry.json', e);
-      return [];
-    }
+  function loadAppsRegistry() {
+    const api = window.HeymingRegistry;
+    if (!api) return Promise.resolve([]);
+    return api.ready.then((data) => (Array.isArray(data) ? data : [])).catch(() => []);
   }
 
   const registryMapsPromise = loadAppsRegistry().then((registryApps) => {
     const projectRelationships = {};
     const projectMetadata = {};
     for (const app of registryApps) {
-      const path = app.path || '';
-      const href = path.startsWith('./') ? '/' + path.slice(2) : path || `/${app.id}/`;
+      const href = window.HeymingRegistry ? window.HeymingRegistry.hrefFor(app) : `/${app.id}/`;
       projectMetadata[app.id] = {
         name: app.shortName || app.name,
         icon: app.icon || '📦',
@@ -393,45 +386,7 @@ if (!customElements.get('share-button')) {
     return { projectRelationships, projectMetadata, registryApps };
   });
 
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const existing = document.querySelector(`script[src="${src}"]`);
-      if (existing) {
-        if (existing.dataset.loaded === '1' || window.HeymingRegistryPath) {
-          resolve();
-          return;
-        }
-        existing.addEventListener('load', () => resolve(), { once: true });
-        existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), {
-          once: true
-        });
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = src;
-      script.async = false;
-      const timer = setTimeout(() => reject(new Error(`Timeout loading ${src}`)), 3000);
-      script.addEventListener('load', () => {
-        clearTimeout(timer);
-        script.dataset.loaded = '1';
-        resolve();
-      });
-      script.addEventListener('error', () => {
-        clearTimeout(timer);
-        reject(new Error(`Failed to load ${src}`));
-      });
-      document.head.appendChild(script);
-    });
-  }
-
-  function ensureRegistryPath() {
-    if (window.HeymingRegistryPath) return Promise.resolve();
-    return loadScript('/shared/registry-path.js').catch((error) => {
-      console.warn('[share.js] Could not load registry-path.js', error);
-    });
-  }
-
-  // First URL segment only — fallback when registry-path is unavailable.
+  // First URL segment only — fallback when the registry client has no match.
   function getCurrentProjectFallback() {
     const path = window.location.pathname;
     const segments = path.split('/').filter((s) => s);
@@ -439,13 +394,13 @@ if (!customElements.get('share-button')) {
   }
 
   function resolveCurrentProject(registryApps) {
-    const api = window.HeymingRegistryPath;
+    const api = window.HeymingRegistry;
     if (api && Array.isArray(registryApps)) {
-      return api.resolveAppIdFromLocation(
-        registryApps,
-        { pathname: window.location.pathname, search: window.location.search },
-        { fallback: () => getCurrentProjectFallback() }
-      );
+      const match = api.current(registryApps, {
+        pathname: window.location.pathname,
+        search: window.location.search
+      });
+      if (match) return match.id;
     }
     return getCurrentProjectFallback();
   }
@@ -1040,7 +995,6 @@ if (!customElements.get('share-button')) {
   async function insertWidget() {
     const [{ projectRelationships, projectMetadata, registryApps }] = await Promise.all([
       registryMapsPromise,
-      ensureRegistryPath(),
       domReady()
     ]);
     const widget = createRelatedProjects(projectRelationships, projectMetadata, registryApps);

@@ -1,89 +1,17 @@
 /**
  * Heyming OS - Constants and Configuration
- * Shared constants used across all OS modules
+ * Shared constants used across all OS modules.
+ *
+ * Message names live in `/shared/os-protocol.js` (`window.HeymingOsProtocol`).
+ * This module only looks them up.
  */
 
-/**
- * PostMessage API Schema
- * Standardized message types for iframe <-> OS communication
- *
- * All messages follow the format:
- * { type: MessageTypes.*, ...payload }
- *
- * Use origin '*' for local communication (same-origin iframes)
- */
-export const MessageTypes = {
-  // === App TO OS Messages ===
-
-  // Wrapper for all app-to-OS requests
-  IFRAME_MESSAGE: 'iframe-message',
-
-  // App requests any pending file to open (sent on app init)
-  REQUEST_PENDING_FILE: 'requestPendingFile',
-  // Payload: { app: string }
-
-  // App requests file open dialog
-  OPEN_FILE_DIALOG: 'openFileDialog',
-  // Payload: { accept?: string, multiple?: boolean }
-
-  // === OS TO App Messages ===
-
-  // OS sends file content to app
-  OPEN_FILE: 'openFile',
-  // Payload: { fileName: string, content: string|ArrayBuffer, mimeType?: string }
-
-  // OS notifies app that file was saved
-  FILE_SAVED: 'fileSaved',
-  // Payload: { success: boolean, path?: string, error?: string }
-
-  // OS broadcasts filesystem change to all iframes
-  FILESYSTEM_CHANGE: 'filesystem-change',
-  // Payload: { path: string, eventType: 'create'|'delete'|'move'|'copy'|'change' }
-
-  // OS replies to GET_OS_PREFS
-  OS_PREFS: 'osPrefs'
-  // Payload: prefs object + username/hostname
-};
-
-/**
- * IframeMessage Actions (used with MessageTypes.IFRAME_MESSAGE)
- *
- * Format: { type: 'iframe-message', action: IframeActions.*, ...payload }
- */
-export const IframeActions = {
-  // Open a file with a specific app (e.g. File Manager "Open with …", desktop context menu)
-  OPEN_FILE: 'openFile',
-  // Payload: { app: string, path: string, content: string|ArrayBuffer, fileName: string }
-
-  // Open a file using OS routing (let OS decide which app)
-  OPEN_DESKTOP_FILE: 'openDesktopFile',
-  // Payload: { file: { path: string, content?: string|ArrayBuffer, mimeType?: string } }
-
-  // Save file to filesystem
-  SAVE: 'save',
-  // Payload: { path: string, content: string|ArrayBuffer }
-
-  // Show Save As dialog
-  SAVE_AS: 'saveAs',
-  // Payload: { currentPath?: string, content: string|ArrayBuffer, suggestedName?: string }
-
-  // Launch an application
-  LAUNCH: 'launch',
-  // Payload: { appId: string, args?: string[] }
-
-  // Notify OS of filesystem change (from File Manager)
-  FILESYSTEM_CHANGED: 'filesystemChanged',
-  // Payload: { path: string }
-
-  SET_OS_PREFS: 'setOsPrefs',
-  GET_OS_PREFS: 'getOsPrefs',
-  OPEN_ABOUT: 'openAbout',
-  RESET_OS: 'resetOs'
-};
-
-// Freeze message constants
-Object.freeze(MessageTypes);
-Object.freeze(IframeActions);
+/** @returns {NonNullable<Window['HeymingOsProtocol']>} */
+export function osProtocol() {
+  const api = globalThis.window?.HeymingOsProtocol;
+  if (!api) throw new Error('Heyming OS protocol did not load');
+  return api;
+}
 
 export const Constants = {
   // Layout dimensions

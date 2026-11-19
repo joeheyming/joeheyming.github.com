@@ -46,7 +46,14 @@ describe('site boot', () => {
     const scripts = insertedBy('');
     assert.deepEqual(
       scripts.map((s) => s.getAttribute('src')),
-      ['/nav.js', '/feedback.js', '/share.js', '/achievements.js']
+      [
+        '/shared/registry-path.js',
+        '/shared/app-registry.js',
+        '/nav.js',
+        '/feedback.js',
+        '/share.js',
+        '/achievements.js'
+      ]
     );
     for (const s of scripts) assert.equal(s.async, false, `${s.src} keeps insertion order`);
   });
@@ -55,11 +62,17 @@ describe('site boot', () => {
     const scripts = insertedBy('data-nav-size="compact" data-share-fab="off" data-skip="feedback"');
     assert.deepEqual(
       scripts.map((s) => s.getAttribute('src')),
-      ['/nav.js', '/share.js', '/achievements.js']
+      [
+        '/shared/registry-path.js',
+        '/shared/app-registry.js',
+        '/nav.js',
+        '/share.js',
+        '/achievements.js'
+      ]
     );
-    assert.equal(scripts[0].getAttribute('data-nav-size'), 'compact');
-    assert.equal(scripts[1].getAttribute('data-share-fab'), 'off');
-    assert.equal(scripts[2].hasAttribute('data-share-fab'), false);
+    assert.equal(scripts[2].getAttribute('data-nav-size'), 'compact');
+    assert.equal(scripts[3].getAttribute('data-share-fab'), 'off');
+    assert.equal(scripts[4].hasAttribute('data-share-fab'), false);
   });
 
   it('rewrites separate tags into one, keeping options and position', () => {

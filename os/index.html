@@ -150,7 +150,9 @@
     <script src="/brand-icons.js"></script>
     <script src="mime-handlers.js"></script>
     <script src="app.js"></script>
-    <!-- OS modules (ES Module entry point) -->
+    <!-- OS modules (ES Module entry point). The protocol script is classic and
+         must run first: index.js reads window.HeymingOsProtocol at startup. -->
+    <script src="/shared/os-protocol.js"></script>
     <script type="module" src="os/index.js"></script>
     <link rel="stylesheet" href="os/styles/base.css" />
     <link rel="stylesheet" href="os/styles/window.css" />

@@ -10,9 +10,12 @@ function debug(...args) {
   }
 }
 
-/** Heyming OS expects `{ type: 'iframe-message', message }` (see os/IframeMessageBridge.js). */
+/** Send a catalog action to Heyming OS. The protocol wraps it. */
 function postOsIframeMessage(message) {
-  window.parent.postMessage({ type: 'iframe-message', message }, '*');
+  const api = window.HeymingOsProtocol;
+  if (!api) throw new Error('Heyming OS protocol did not load');
+  const { type, ...payload } = message;
+  api.sendToOs(type, payload);
 }
 
 class ImageViewer {

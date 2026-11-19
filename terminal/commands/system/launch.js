@@ -78,16 +78,16 @@ ${suggestions.map((s) => `  ${s.id}`).join('\n')}`;
   }
 
   try {
-    window.parent.postMessage(
-      {
-        type: 'iframe-message',
-        message: {
-          type: 'launch',
-          app: app.id
-        }
-      },
-      '*'
-    );
+    const api = window.HeymingOsProtocol;
+    if (!api) throw new Error('Heyming OS protocol did not load');
+    const sent = api.sendToOs(api.IframeActions.LAUNCH, { app: app.id });
+    if (!sent) {
+      return {
+        stdout: '',
+        stderr: `launch: ${app.name}: not running inside Heyming OS\n`,
+        exitCode: 1
+      };
+    }
 
     return { stdout: `🚀 Launching ${app.name}...`, stderr: '', exitCode: 0 };
   } catch (error) {
@@ -180,19 +180,21 @@ async function openFile(terminal, filePath) {
       };
     }
 
-    window.parent.postMessage(
-      {
-        type: 'iframe-message',
-        message: {
-          type: 'openDesktopFile',
-          file: {
-            path: resolvedPath,
-            content: item.content
-          }
-        }
-      },
-      '*'
-    );
+    const api = window.HeymingOsProtocol;
+    if (!api) throw new Error('Heyming OS protocol did not load');
+    const sent = api.sendToOs(api.IframeActions.OPEN_DESKTOP_FILE, {
+      file: {
+        path: resolvedPath,
+        content: item.content
+      }
+    });
+    if (!sent) {
+      return {
+        stdout: '',
+        stderr: `launch: ${fileName}: not running inside Heyming OS\n`,
+        exitCode: 1
+      };
+    }
 
     return {
       stdout: `📂 Opening ${fileName} with ${appInfo.appName}...`,

@@ -1,19 +1,11 @@
 import { WALLPAPER_PRESETS, loadPrefs } from '../os/prefs.js';
 import { getSavedUsername, getSavedHostname } from '../os/config.js';
 
-const MSG = {
-  IFRAME_MESSAGE: 'iframe-message',
-  OS_PREFS: 'osPrefs',
-  OPEN_FILE: 'openFile',
-  OPEN_FILE_DIALOG: 'openFileDialog'
-};
-
-const ACTION = {
-  SET_OS_PREFS: 'setOsPrefs',
-  GET_OS_PREFS: 'getOsPrefs',
-  OPEN_ABOUT: 'openAbout',
-  RESET_OS: 'resetOs'
-};
+function osProtocol() {
+  const api = window.HeymingOsProtocol;
+  if (!api) throw new Error('Heyming OS protocol did not load');
+  return api;
+}
 
 function isEmbedded() {
   try {
@@ -23,9 +15,8 @@ function isEmbedded() {
   }
 }
 
-function post(type, extra = {}) {
-  if (!isEmbedded()) return;
-  window.parent.postMessage({ type: MSG.IFRAME_MESSAGE, message: { type, ...extra } }, '*');
+function post(type, extra) {
+  osProtocol().sendToOs(type, extra);
 }
 
 /** @type {Record<string, unknown>} */
@@ -40,7 +31,7 @@ let state = {
 
 function sendPatch(patch) {
   if (isEmbedded()) {
-    post(ACTION.SET_OS_PREFS, { patch });
+    post(osProtocol().IframeActions.SET_OS_PREFS, { patch });
     return;
   }
   void standalonePatch(patch);
@@ -134,7 +125,7 @@ function bind() {
       );
       return;
     }
-    post(MSG.OPEN_FILE_DIALOG, {
+    post(osProtocol().MessageTypes.OPEN_FILE_DIALOG, {
       fileTypes: ['image/*', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'],
       title: 'Choose wallpaper'
     });
@@ -184,14 +175,14 @@ function bind() {
   });
   document.getElementById('reset-os')?.addEventListener('click', () => {
     if (isEmbedded()) {
-      post(ACTION.RESET_OS);
+      post(osProtocol().IframeActions.RESET_OS);
       return;
     }
     window.alert('Reset is available inside Heyming OS.');
   });
   document.getElementById('open-about')?.addEventListener('click', () => {
     if (isEmbedded()) {
-      post(ACTION.OPEN_ABOUT);
+      post(osProtocol().IframeActions.OPEN_ABOUT);
       return;
     }
     window.location.href = '/os/';
@@ -200,7 +191,7 @@ function bind() {
 
 window.addEventListener('message', (e) => {
   const data = e.data;
-  if (data?.type === MSG.OS_PREFS) {
+  if (data?.type === osProtocol().MessageTypes.OS_PREFS) {
     state.prefs = data.prefs || state.prefs;
     if (data.username) state.username = data.username;
     if (data.hostname) state.hostname = data.hostname;
@@ -209,7 +200,7 @@ window.addEventListener('message', (e) => {
     if (data.tagline) state.tagline = data.tagline;
     render();
   }
-  if (data?.type === MSG.OPEN_FILE && data.path) {
+  if (data?.type === osProtocol().MessageTypes.OPEN_FILE && data.path) {
     sendPatch({
       wallpaper: { source: 'vfs', path: data.path, fit: state.prefs.wallpaper?.fit || 'cover' }
     });
@@ -219,7 +210,7 @@ window.addEventListener('message', (e) => {
 bind();
 render();
 if (isEmbedded()) {
-  post(ACTION.GET_OS_PREFS);
+  post(osProtocol().IframeActions.GET_OS_PREFS);
 }
 
 const hash = location.hash.replace('#', '');

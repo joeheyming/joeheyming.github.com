@@ -40,6 +40,7 @@ Vocabulary for [joeheyming.github.io](https://joeheyming.github.io/) — the pub
 | **System application** | An Application bundled with the shell (e.g. Notepad, Surf) with `system: true` in config | Built-in (unless user-facing label says otherwise) |
 | **Application registry** | The authoritative list and metadata for all Applications (`appRegistry`) | Manifest, route table |
 | **Desktop icon** | A launch affordance on the Desktop for an Application that opts in | Shortcut (unless matching copy) |
+| **OS protocol** | The messages an Application window and HEYMING-OS exchange: an Application sends a named action wrapped in `iframe-message`, the OS replies with a top-level message (`/shared/os-protocol.js`) | postMessage API, bridge |
 
 ## Application taxonomy
 

@@ -1,8 +1,10 @@
 /**
  * Central window.postMessage listener for iframe apps talking to Heyming OS.
+ * Message shape lives in `/shared/os-protocol.js`. This module only decides
+ * what each request does.
  */
-import { MessageTypes, IframeActions } from './constants.js';
 import { Config, saveHostname } from './config.js';
+import { osProtocol } from './constants.js';
 import { loadPrefs, patchPrefs } from './prefs.js';
 
 /**
@@ -10,28 +12,32 @@ import { loadPrefs, patchPrefs } from './prefs.js';
  * @returns {() => void} unsubscribe
  */
 export function bindIframeMessageListener(os) {
-  const handler = (e) => {
-    const data = e.data;
-    if (data.type !== MessageTypes.IFRAME_MESSAGE) return;
-
-    const msg = data.message;
-    if (msg?.type === IframeActions.LAUNCH) {
+  const { routeRequest, IframeActions, MessageTypes } = osProtocol();
+  /** @type {NonNullable<Parameters<NonNullable<Window['HeymingOsProtocol']>['routeRequest']>[1]>} */
+  const handlers = {
+    [IframeActions.LAUNCH](msg) {
       os.launchApp(msg.app);
-    } else if (msg?.type === IframeActions.OPEN_FILE) {
+    },
+    [IframeActions.OPEN_FILE](msg) {
       os.openFileWithApp(msg.app, msg.path, msg.content, msg.fileName);
-    } else if (msg?.type === IframeActions.SAVE) {
+    },
+    [IframeActions.SAVE](msg) {
       os.saveFileToFilesystem(msg.path, msg.content, msg.fileName);
-    } else if (msg?.type === IframeActions.SAVE_AS) {
-      os.showSaveAsDialog(msg.content, msg.suggestedName, msg.sourceWindow, e.source);
-    } else if (msg?.type === IframeActions.OPEN_DESKTOP_FILE) {
+    },
+    [IframeActions.SAVE_AS](msg, source) {
+      os.showSaveAsDialog(msg.content, msg.suggestedName, msg.sourceWindow, source);
+    },
+    [IframeActions.OPEN_DESKTOP_FILE](msg) {
       void os.openDesktopFile(msg.file).catch((err) => {
         console.error('[HeymingOS] openDesktopFile (iframe) failed', err);
         os.notifications?.error?.(`Could not open file: ${err?.message || err}`);
       });
-    } else if (msg?.type === IframeActions.FILESYSTEM_CHANGED) {
+    },
+    [IframeActions.FILESYSTEM_CHANGED]() {
       os.desktop.refresh();
-    } else if (msg?.type === IframeActions.SET_OS_PREFS) {
-      const patch = msg.patch && typeof msg.patch === 'object' ? msg.patch : {};
+    },
+    [IframeActions.SET_OS_PREFS](msg, source) {
+      const patch = msg.patch && typeof msg.patch === 'object' ? { ...msg.patch } : {};
       if (typeof patch.hostname === 'string') {
         saveHostname(patch.hostname);
         delete patch.hostname;
@@ -40,16 +46,20 @@ export function bindIframeMessageListener(os) {
         patchPrefs(patch);
       }
       void os.applyPrefs();
-      _replyPrefs(e.source);
-    } else if (msg?.type === IframeActions.GET_OS_PREFS) {
-      _replyPrefs(e.source);
-    } else if (msg?.type === IframeActions.OPEN_ABOUT) {
+      _replyPrefs(source);
+    },
+    [IframeActions.GET_OS_PREFS](_msg, source) {
+      _replyPrefs(source);
+    },
+    [IframeActions.OPEN_ABOUT]() {
       os.openAboutDialog();
-    } else if (msg?.type === IframeActions.RESET_OS) {
+    },
+    [IframeActions.RESET_OS]() {
       os.resetOs();
-    } else if (msg?.type === MessageTypes.REQUEST_PENDING_FILE) {
-      if (os.pendingFileOpen && os.pendingFileOpen.app === msg.app) {
-        e.source.postMessage(
+    },
+    [MessageTypes.REQUEST_PENDING_FILE](msg, source) {
+      if (os.pendingFileOpen && os.pendingFileOpen.app === msg.app && source) {
+        source.postMessage(
           {
             type: MessageTypes.OPEN_FILE,
             path: os.pendingFileOpen.path,
@@ -60,21 +70,43 @@ export function bindIframeMessageListener(os) {
         );
         os.pendingFileOpen = null;
       }
-    } else if (msg?.type === MessageTypes.OPEN_FILE_DIALOG) {
-      os.showOpenFileDialog(msg.fileTypes, msg.title, e.source);
+    },
+    [MessageTypes.OPEN_FILE_DIALOG](msg, source) {
+      os.showOpenFileDialog(msg.fileTypes, msg.title, source);
     }
   };
 
-  window.addEventListener('message', handler);
-  return () => window.removeEventListener('message', handler);
+  const handler = (/** @type {MessageEvent} */ e) => {
+    const result = routeRequest(e.data, handlers, e.source);
+    if (result === 'unknown') {
+      console.warn('[HeymingOS] unknown iframe action:', actionOf(e.data));
+    }
+  };
+
+  const view = globalThis.window;
+  view.addEventListener('message', handler);
+  return () => view.removeEventListener('message', handler);
 }
 
+/**
+ * @param {unknown} data
+ * @returns {string | undefined}
+ */
+function actionOf(data) {
+  if (!data || typeof data !== 'object' || !('message' in data)) return undefined;
+  const message = /** @type {{ message?: unknown }} */ (data).message;
+  if (!message || typeof message !== 'object' || !('type' in message)) return undefined;
+  const action = /** @type {{ type?: unknown }} */ (message).type;
+  return typeof action === 'string' ? action : undefined;
+}
+
+/** @param {MessageEventSource | null} source */
 function _replyPrefs(source) {
   if (!source || typeof source.postMessage !== 'function') return;
   const prefs = loadPrefs();
   source.postMessage(
     {
-      type: MessageTypes.OS_PREFS,
+      type: osProtocol().MessageTypes.OS_PREFS,
       prefs,
       username: Config.USER,
       hostname: Config.HOSTNAME,

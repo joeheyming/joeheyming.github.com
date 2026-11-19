@@ -4,7 +4,7 @@
  */
 
 import { Config, debug, isFirstRun } from './config.js';
-import { Constants, MessageTypes } from './constants.js';
+import { Constants, osProtocol } from './constants.js';
 import { loadPrefs, clearOsLocalStorage, applyDocumentTheme } from './prefs.js';
 import { SetupWizardController } from './SetupWizardController.js';
 import { bindIframeMessageListener } from './IframeMessageBridge.js';
@@ -131,7 +131,7 @@ export class HeymingOS {
         try {
           iframe.contentWindow.postMessage(
             {
-              type: MessageTypes.FILESYSTEM_CHANGE,
+              type: osProtocol().MessageTypes.FILESYSTEM_CHANGE,
               path,
               details
             },
@@ -587,7 +587,7 @@ export class HeymingOS {
         if (sourceWindow) {
           sourceWindow.postMessage(
             {
-              type: MessageTypes.FILE_SAVED,
+              type: osProtocol().MessageTypes.FILE_SAVED,
               success: true,
               path: path,
               fileName: filename
@@ -613,7 +613,7 @@ export class HeymingOS {
           const content = FileSystemDB ? FileSystemDB.getContentForApp(item) : item.content ?? '';
           sourceWindow.postMessage(
             {
-              type: MessageTypes.OPEN_FILE,
+              type: osProtocol().MessageTypes.OPEN_FILE,
               path: item.path,
               content,
               fileName: fileName
@@ -672,7 +672,7 @@ export class HeymingOS {
           debug('Sending file to new window:', appId, fileName, 'windowId:', newWindow.id);
           iframe.contentWindow.postMessage(
             {
-              type: MessageTypes.OPEN_FILE,
+              type: osProtocol().MessageTypes.OPEN_FILE,
               path: path,
               content: content,
               fileName: fileName

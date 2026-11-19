@@ -166,14 +166,8 @@ export function createOSEmbed(config) {
   window.addEventListener('message', handleHostMessage);
 
   // On boot, ask the host whether there's a pending file the desktop
-  // launched us with. Mirrors what fs-os.js / paint did inline.
-  if (embedded) {
-    try {
-      window.parent.postMessage({ type: MSG.REQUEST_PENDING_FILE, app }, '*');
-    } catch {
-      /* parent went away */
-    }
-  }
+  // launched us with. The host only routes this when it is wrapped.
+  if (embedded) postToHost({ type: MSG.REQUEST_PENDING_FILE, app });
 
   /** @param {string} message @param {{ kind?: string }} [opts] */
   function notify(message, opts = {}) {

@@ -43,7 +43,10 @@ export async function createOsFs(rootPath) {
   });
 
   function postToOs(message) {
-    window.parent.postMessage({ type: 'iframe-message', message }, '*');
+    const api = window.HeymingOsProtocol;
+    if (!api) throw new Error('Heyming OS protocol did not load');
+    const { type, ...payload } = message;
+    api.sendToOs(type, payload);
   }
 
   // FileSystemDB lives in the parent window; binary blobs round-tripped

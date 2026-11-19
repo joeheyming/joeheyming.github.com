@@ -120,10 +120,9 @@ class CodeIDE {
 
     // If we are embedded under HeymingOS, ask for any pending file open.
     if (isOsEmbedded()) {
-      window.parent.postMessage(
-        { type: 'iframe-message', message: { type: 'requestPendingFile', app: 'code-ide' } },
-        '*'
-      );
+      const api = window.HeymingOsProtocol;
+      if (!api) throw new Error('Heyming OS protocol did not load');
+      api.sendToOs(api.MessageTypes.REQUEST_PENDING_FILE, { app: 'code-ide' });
     } else if (this.fs.kind === 'local') {
       // Auto-open the README in standalone mode so the welcome isn't lonely.
       try {

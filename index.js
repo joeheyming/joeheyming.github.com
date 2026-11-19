@@ -74,13 +74,9 @@ function tierFor(app) {
 }
 
 function featuredHrefFromPath(path) {
-  // Split off the query / fragment first so trailing-slash normalization
-  // doesn't accidentally append `/` after `?...` — e.g.
-  // './doom/?flavor=classic' must become '/doom/?flavor=classic'.
-  const m = path.match(/^([^?#]*)(.*)$/);
-  const base = (m ? m[1] : path).replace(/^\.\//, '').replace(/\/$/, '');
-  const suffix = m ? m[2] : '';
-  return '/' + base + '/' + suffix;
+  const api = window.HeymingRegistry;
+  if (!api) throw new Error('Heyming registry did not load');
+  return api.hrefFor({ path });
 }
 
 // Hero tiles: Doom + Stepmania, oversized dual layout. Same data shape as the
@@ -176,8 +172,11 @@ function renderAppGallery() {
   root.innerHTML = '';
 
   GALLERY_SECTIONS.forEach((section) => {
-    const apps = allApps
-      .filter((app) => app.listed !== false)
+    const apps = (
+      window.HeymingRegistry
+        ? window.HeymingRegistry.listed(allApps, 'gallery')
+        : allApps.filter((app) => app.listed !== false)
+    )
       .filter(section.filter)
       .sort((a, b) => (a.shortName || a.name).localeCompare(b.shortName || b.name));
 

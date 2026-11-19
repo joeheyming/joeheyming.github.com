@@ -94,6 +94,11 @@ function loadRuntime(url = 'https://joeheyming.github.io/doom/', { storage } = {
   };
 
   new Function('window', 'globalThis', REGISTRY_PATH)(dom.window, dom.window);
+  new Function(
+    'window',
+    'globalThis',
+    readFileSync(path.join(ROOT, 'shared/app-registry.js'), 'utf8')
+  )(dom.window, dom.window);
   dom.window.eval(SOURCE);
   return dom;
 }

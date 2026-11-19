@@ -361,7 +361,7 @@ export function applyFileManagerOps(FileManager) {
           {
             type: 'iframe-message',
             message: {
-              type: 'filesChanged'
+              type: 'filesystemChanged'
             }
           },
           '*'

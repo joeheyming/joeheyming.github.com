@@ -21,10 +21,22 @@
     { name: 'share', src: '/share.js', pass: ['data-share-fab'] },
     { name: 'achievements', src: '/achievements.js', pass: [] }
   ];
+  // The registry client has to run before any chrome that reads it. Feedback
+  // does not, so a feedback-only page does not download the registry.
+  var REGISTRY_CONSUMERS = ['nav', 'share', 'achievements'];
 
   var skip = (self.getAttribute('data-skip') || '').split(/\s+/);
+  var needsRegistry = SCRIPTS.some(function (entry) {
+    return REGISTRY_CONSUMERS.indexOf(entry.name) !== -1 && skip.indexOf(entry.name) === -1;
+  });
+  var queue = needsRegistry
+    ? [
+        { name: 'registry-path', src: '/shared/registry-path.js', pass: [] },
+        { name: 'registry', src: '/shared/app-registry.js', pass: [] }
+      ].concat(SCRIPTS)
+    : SCRIPTS;
   var anchor = self;
-  SCRIPTS.forEach(function (entry) {
+  queue.forEach(function (entry) {
     if (skip.indexOf(entry.name) !== -1) return;
     var s = document.createElement('script');
     s.src = entry.src;

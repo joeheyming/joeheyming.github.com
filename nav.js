@@ -787,20 +787,18 @@
   // ─── Registry load + drawer population ───────────────────────────────
   async function loadRegistry() {
     try {
-      const res = await fetch('/apps-registry.json', { cache: 'default' });
-      if (!res.ok) return [];
-      const data = await res.json();
+      const api = window.HeymingRegistry;
+      if (!api) return [];
+      const data = await api.ready;
       return Array.isArray(data) ? data : [];
-    } catch (e) {
-      console.warn('[nav.js] Could not load apps-registry.json', e);
+    } catch {
       return [];
     }
   }
 
   function appHrefForRegistryEntry(app) {
-    const path = app.path || '';
-    if (path.startsWith('./')) return '/' + path.slice(2);
-    return path || '/';
+    const api = window.HeymingRegistry;
+    return api ? api.hrefFor(app) : '/';
   }
 
   function locationMatchesApp(app) {
@@ -832,28 +830,6 @@
   }
 
   let cachedRegistry = [];
-
-  function ensureRegistryPathLoaded() {
-    if (window.HeymingRegistryPath) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      const src = '/shared/registry-path.js';
-      const existing = document.querySelector(`script[src="${src}"]`);
-      if (existing) {
-        existing.addEventListener('load', () => resolve(), { once: true });
-        existing.addEventListener('error', () => reject(new Error(src)), { once: true });
-        return;
-      }
-      const s = document.createElement('script');
-      s.src = src;
-      s.async = false;
-      s.addEventListener('load', () => {
-        s.dataset.loaded = '1';
-        resolve();
-      });
-      s.addEventListener('error', () => reject(new Error('Failed to load ' + src)));
-      document.head.appendChild(s);
-    });
-  }
 
   function buildSection(label, apps) {
     if (!apps.length) return null;
@@ -908,31 +884,9 @@
       return;
     }
 
-    // Build the set of "canonical" (query-free) app paths so we can
-    // de-duplicate stub entries. Rule: an entry whose `path` includes `?`
-    // is treated as a stub only when *another* registry entry has the
-    // same base path with no query — that's the `doom-mods` → `doom`
-    // case. Console apps live at path landers (`./emulator/nes/`).
-    // `navKeepQueryChildren` keeps query children visible alongside a hub
-    // when needed.
-    const canonicalBasePaths = new Set();
-    const keepQueryChildrenBases = new Set();
-    for (const app of cachedRegistry) {
-      const p = app.path || '';
-      if (p && !p.includes('?')) {
-        canonicalBasePaths.add(p);
-        if (app.navKeepQueryChildren) keepQueryChildrenBases.add(p);
-      }
-    }
-    const visible = cachedRegistry.filter((app) => {
-      if (app.listed === false) return false;
-      const path = app.path || '';
-      if (!path) return false;
-      if (!path.includes('?')) return true;
-      const base = path.split('?')[0];
-      if (keepQueryChildrenBases.has(base)) return true;
-      return !canonicalBasePaths.has(base);
-    });
+    const visible = window.HeymingRegistry
+      ? window.HeymingRegistry.listed(cachedRegistry, 'nav')
+      : [];
 
     // First-match-wins: iterate defs in order, each pulls its apps out of
     // `visible` via its filter, and the app is marked placed so later
@@ -1166,10 +1120,8 @@
 
   function boot() {
     insertChrome();
-    // Load registry path, section taxonomy, and registry JSON before rendering.
-    ensureRegistryPathLoaded()
-      .catch((err) => console.warn('[nav.js] registry-path unavailable', err))
-      .then(() => loadScriptOnce('/shared/app-sections.js'))
+    // Section taxonomy, then the shared registry, before rendering.
+    loadScriptOnce('/shared/app-sections.js')
       .catch((err) => console.warn('[nav.js] app-sections unavailable', err))
       .then(() => {
         if (window.HeymingAppSections?.SECTIONS) {

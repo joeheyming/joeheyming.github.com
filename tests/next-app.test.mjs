@@ -124,6 +124,7 @@ test('homepage continue links the last app and stays hidden without one', () => 
         return record;
       }
     };
+    dom.window.eval(readFileSync(path.join(ROOT, 'shared/app-registry.js'), 'utf8'));
     dom.window.eval(readFileSync(path.join(ROOT, 'index.js'), 'utf8'));
     return dom.window.document.getElementById('continue-app');
   }

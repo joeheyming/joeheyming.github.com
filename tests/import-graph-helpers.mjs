@@ -86,6 +86,11 @@ export function eagerScripts(pagePath) {
       // /site.js inserts the shared chrome at once; count it as eager.
       if (src === '/site.js') {
         const skip = (script.getAttribute('data-skip') || '').split(/\s+/);
+        const needsRegistry = ['nav', 'share', 'achievements'].some((name) => !skip.includes(name));
+        if (needsRegistry) {
+          add('/shared/registry-path.js', htmlDir, false, true);
+          add('/shared/app-registry.js', htmlDir, false, true);
+        }
         for (const name of SHARED_SCRIPTS) {
           if (!skip.includes(name)) add(`/${name}.js`, htmlDir, false, true);
         }

@@ -225,7 +225,7 @@ class RichNotepad {
       {
         type: 'iframe-message',
         message: {
-          type: 'saveFile',
+          type: 'save',
           path: this.currentFilePath,
           content: content,
           fileName: this.currentFileName

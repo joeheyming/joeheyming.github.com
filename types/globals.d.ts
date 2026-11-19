@@ -48,8 +48,63 @@ interface HeymingOSNamespace {
   getConfig?: typeof import('../os/config.js').getConfig;
 }
 
+interface HeymingOsMessage {
+  type: string;
+  app?: string;
+  path?: string;
+  content?: string | ArrayBuffer;
+  fileName?: string;
+  suggestedName?: string;
+  sourceWindow?: unknown;
+  file?: { path?: string; content?: string | ArrayBuffer; mimeType?: string };
+  fileTypes?: string[] | null;
+  title?: string;
+  patch?: Record<string, unknown>;
+}
+
+interface HeymingOsProtocolApi {
+  MessageTypes: {
+    IFRAME_MESSAGE: 'iframe-message';
+    REQUEST_PENDING_FILE: 'requestPendingFile';
+    OPEN_FILE_DIALOG: 'openFileDialog';
+    OPEN_FILE: 'openFile';
+    FILE_SAVED: 'fileSaved';
+    FILESYSTEM_CHANGE: 'filesystem-change';
+    OS_PREFS: 'osPrefs';
+  };
+  IframeActions: {
+    OPEN_FILE: 'openFile';
+    OPEN_DESKTOP_FILE: 'openDesktopFile';
+    SAVE: 'save';
+    SAVE_AS: 'saveAs';
+    LAUNCH: 'launch';
+    FILESYSTEM_CHANGED: 'filesystemChanged';
+    SET_OS_PREFS: 'setOsPrefs';
+    GET_OS_PREFS: 'getOsPrefs';
+    OPEN_ABOUT: 'openAbout';
+    RESET_OS: 'resetOs';
+  };
+  request(
+    action: string,
+    payload?: Record<string, unknown>
+  ): {
+    type: string;
+    message: HeymingOsMessage;
+  };
+  sendToOs(action: string, payload?: Record<string, unknown>): boolean;
+  routeRequest(
+    data: unknown,
+    handlers?: Partial<
+      Record<string, (payload: HeymingOsMessage, source: MessageEventSource | null) => void>
+    >,
+    source?: MessageEventSource | null
+  ): 'handled' | 'ignored' | 'unknown';
+}
+
 interface Window {
   HeymingOS: HeymingOSNamespace;
+  /** Classic script `/shared/os-protocol.js`, loaded before the OS module. */
+  HeymingOsProtocol?: HeymingOsProtocolApi;
   heymingOS: import('../terminal/core/heyming-os').HeymingOS;
   heymingAchievements?: HeymingAchievements;
   /** Desktop toast adapter (`achievements-toast.js`), loaded by achievements.js. */

@@ -19,7 +19,7 @@ import {
   saveHostname,
   getSavedHostname
 } from './config.js';
-import { Constants, MessageTypes, IframeActions } from './constants.js';
+import { Constants, osProtocol } from './constants.js';
 import { Icons } from './Icons.js';
 import { InputHandler } from './InputHandler.js';
 import { DragService } from './DragService.js';
@@ -43,6 +43,8 @@ import { OsDialog } from './OsDialog.js';
 
 // Main orchestrator
 import { HeymingOS } from './HeymingOS.js';
+
+const { MessageTypes, IframeActions } = osProtocol();
 
 // Assemble the HeymingOS namespace
 const OS = {

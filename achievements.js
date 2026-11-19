@@ -77,9 +77,12 @@
     });
   }
 
-  function ensureRegistryPath() {
-    if (window.HeymingRegistryPath) return Promise.resolve();
-    return loadScript('/shared/registry-path.js');
+  function registryReady() {
+    const api = window.HeymingRegistry;
+    if (api) return api.ready;
+    const error = new Error('Could not load apps-registry.json');
+    error.name = 'RegistryLoadError';
+    return Promise.reject(error);
   }
 
   function ensureToastModule() {
@@ -177,20 +180,14 @@
     return () => listeners.delete(listener);
   }
 
-  const ready = ensureRegistryPath()
-    .then(() =>
-      Promise.all([
-        fetch('/achievements-catalog.json').then((response) => {
-          if (!response.ok) throw new Error(`catalog HTTP ${response.status}`);
-          return response.json();
-        }),
-        fetch('/apps-registry.json').then((response) => {
-          if (!response.ok) throw new Error(`registry HTTP ${response.status}`);
-          return response.json();
-        }),
-        ensureToastModule()
-      ])
-    )
+  const ready = Promise.all([
+    fetch('/achievements-catalog.json').then((response) => {
+      if (!response.ok) throw new Error(`catalog HTTP ${response.status}`);
+      return response.json();
+    }),
+    registryReady(),
+    ensureToastModule()
+  ])
     .then(([catalogDocument, registryDocument]) => {
       catalog = Array.isArray(catalogDocument?.achievements) ? catalogDocument.achievements : [];
       registry = Array.isArray(registryDocument) ? registryDocument : [];
@@ -199,7 +196,9 @@
       return { catalog: [...catalog], currentAppId: getCurrentAppId() };
     })
     .catch((error) => {
-      console.warn('[achievements] initialization failed', error);
+      if (!error || error.name !== 'RegistryLoadError') {
+        console.warn('[achievements] initialization failed', error);
+      }
       return { catalog: [], currentAppId: getCurrentAppId() };
     });
 
