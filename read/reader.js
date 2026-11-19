@@ -1,3 +1,6 @@
+import { blockIndexOnPage } from './place.js';
+import { spokenText } from './prose.js';
+
 const MIN_FONT = 14;
 const MAX_FONT = 28;
 const DEFAULT_FONT = 18;
@@ -41,6 +44,16 @@ export class Reader {
 
     /** @type {((page: number, total: number) => void)|null} */
     this.onPageChange = null;
+
+    /** @type {((scrollTop: number) => void)|null} */
+    this.onUserPageTurn = null;
+
+    /** @type {((index: number) => boolean)|null} */
+    this.onBlockClick = null;
+
+    /** @type {HTMLElement[]} */
+    this._blocks = [];
+    this._speaking = -1;
 
     this._applyTheme();
     this._applyFont();
@@ -97,6 +110,7 @@ export class Reader {
   goToPage(n, behavior = 'smooth') {
     if (!this._stepHeight || !this._totalPages) return;
     const page = Math.max(0, Math.min(n, this._totalPages - 1));
+    const changed = page !== this._currentPage;
     const scrollable = this.container.scrollHeight - this.container.clientHeight;
     const target = Math.min(page * this._stepHeight, Math.max(0, scrollable));
     // Count the page now so a held arrow advances once per key, instead of
@@ -104,6 +118,7 @@ export class Reader {
     this._currentPage = page;
     this.container.scrollTo({ top: target, behavior });
     this._emitPageChange();
+    if (changed) this.onUserPageTurn?.(target);
   }
 
   scrollToHeading(id) {
@@ -186,7 +201,7 @@ export class Reader {
     this.controls.classList.remove('controls-hidden');
     // tabindex="-1" covers engines that ignore inert. Buttons are focusable
     // again once the toolbar is open.
-    for (const button of this.controls.querySelectorAll('button')) {
+    for (const button of this.controls.querySelectorAll('button, select')) {
       button.removeAttribute('tabindex');
     }
   }
@@ -196,7 +211,7 @@ export class Reader {
     if (!force && this.controls.contains(document.activeElement)) return;
     this.controls.classList.add('controls-hidden');
     this.controls.inert = true;
-    for (const button of this.controls.querySelectorAll('button')) {
+    for (const button of this.controls.querySelectorAll('button, select')) {
       button.tabIndex = -1;
     }
   }
@@ -236,6 +251,163 @@ export class Reader {
     const scrollable = this.container.scrollHeight - this.container.clientHeight;
     if (scrollable <= 0) return 0;
     return Math.max(0, Math.min(1, this.container.scrollTop / scrollable));
+  }
+
+  /**
+   * Show a document that is already headings and paragraphs.
+   * @param {string} bookId
+   * @param {{ type: string, level?: number, text: string }[]} blocks
+   * @param {number} [savedPosition]
+   */
+  loadBlocks(bookId, blocks, savedPosition = 0) {
+    this.currentBookId = String(bookId);
+    this._savedFraction = savedPosition > 0 && savedPosition <= 1 ? savedPosition : 0;
+    this._lastSavedFraction = this._savedFraction;
+    this._pendingFraction = -1;
+    this._wrapper = null;
+    this._toc = [];
+    this._blocks = [];
+    this._speaking = -1;
+    this._totalPages = 0;
+    this._currentPage = 0;
+    this.container.replaceChildren();
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'reader-page-wrapper';
+    const article = document.createElement('article');
+    article.className = 'reader-prose';
+    for (const block of blocks) {
+      const level = block.type === 'heading' ? Math.min(6, Math.max(1, block.level || 2)) : 0;
+      const el = document.createElement(level ? `h${level}` : 'p');
+      el.textContent = block.text;
+      article.appendChild(el);
+    }
+    const spacer = document.createElement('div');
+    spacer.className = 'reader-end-spacer';
+    spacer.setAttribute('aria-hidden', 'true');
+    article.appendChild(spacer);
+    wrapper.appendChild(article);
+    this.container.appendChild(wrapper);
+    this._wrapper = wrapper;
+    this._buildToc(article);
+    this._markSpeakable(article);
+    requestAnimationFrame(() => requestAnimationFrame(() => this._paginate()));
+  }
+
+  speakableTexts() {
+    return this._blocks.map((el) => spokenText(el.textContent || ''));
+  }
+
+  blockTops() {
+    return this._blocks.map((el) => this._contentTop(el));
+  }
+
+  pageViewHeight() {
+    return Math.max(0, this.container.clientHeight - 64);
+  }
+
+  firstBlockOnPage() {
+    return blockIndexOnPage(this.blockTops(), this.container.scrollTop, this.pageViewHeight());
+  }
+
+  /**
+   * @param {number} index
+   */
+  isBlockOnPage(index) {
+    const top = this.blockTops()[index];
+    if (top == null) return false;
+    const scrollTop = this.container.scrollTop;
+    const bottom = scrollTop + this.pageViewHeight();
+    return top >= scrollTop - 1 && top < bottom - 8;
+  }
+
+  /**
+   * @param {string} id
+   */
+  blockIndexForHeading(id) {
+    const el = this._wrapper?.querySelector(`#${CSS.escape(id)}`);
+    if (!el) return -1;
+    const marked = el.getAttribute('data-speak') != null ? el : el.querySelector('[data-speak]');
+    if (!marked) return -1;
+    const index = Number(marked.getAttribute('data-speak'));
+    return Number.isFinite(index) ? index : -1;
+  }
+
+  /**
+   * @param {number} index
+   */
+  scrollBlockToTop(index) {
+    const el = this._blocks[index];
+    if (!el) return;
+    const top = Math.max(0, this._contentTop(el) - 12);
+    const scrollable = Math.max(0, this.container.scrollHeight - this.container.clientHeight);
+    this.container.scrollTop = Math.min(top, scrollable);
+    this._updatePageFromScroll(true);
+    this._recordPending();
+  }
+
+  /**
+   * @param {number} index
+   */
+  setSpeakingBlock(index) {
+    if (this._speaking === index) return;
+    this._blocks[this._speaking]?.classList.remove('is-speaking');
+    this._speaking = index;
+    this._blocks[index]?.classList.add('is-speaking');
+  }
+
+  clearSpeaking() {
+    this._blocks[this._speaking]?.classList.remove('is-speaking');
+    this._speaking = -1;
+  }
+
+  /**
+   * A tap on a paragraph, not a drag that selected text or a tap on a link.
+   * @param {MouseEvent} event
+   */
+  _clickedBlock(event) {
+    if (!this.onBlockClick) return false;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || target.closest('a[href]')) return false;
+    const selection = window.getSelection?.();
+    if (selection && !selection.isCollapsed) return false;
+    const block = target.closest('[data-speak]');
+    if (!block || !this.container.contains(block)) return false;
+    const index = Number(block.getAttribute('data-speak'));
+    if (!Number.isFinite(index)) return false;
+    return this.onBlockClick(index);
+  }
+
+  /**
+   * @param {boolean} on
+   */
+  setListening(on) {
+    this.container.classList.toggle('is-listening', on);
+  }
+
+  /**
+   * @param {HTMLElement} article
+   */
+  _markSpeakable(article) {
+    this._blocks = [];
+    this._speaking = -1;
+    const selector = 'h1,h2,h3,h4,h5,h6,p,li,blockquote,pre,dd,dt,figcaption,td,th';
+    for (const el of article.querySelectorAll(selector)) {
+      if (el.querySelector(selector)) continue;
+      const text = spokenText(el.textContent || '');
+      if (!text) continue;
+      el.setAttribute('data-speak', String(this._blocks.length));
+      this._blocks.push(el);
+    }
+  }
+
+  /**
+   * @param {HTMLElement} el
+   */
+  _contentTop(el) {
+    const containerRect = this.container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    return this.container.scrollTop + (elRect.top - containerRect.top);
   }
 
   // ---------------------------------------------------------------------------
@@ -323,6 +495,7 @@ export class Reader {
     this._wrapper = wrapper;
 
     this._buildToc(article);
+    this._markSpeakable(article);
   }
 
   _buildToc(article) {
@@ -565,6 +738,7 @@ export class Reader {
 
   _setupControlsAutoHide() {
     this.container.addEventListener('click', (e) => {
+      if (this._clickedBlock(e)) return;
       const rect = this.container.getBoundingClientRect();
       const relY = (e.clientY - rect.top) / rect.height;
       if (relY < 0.25) {
@@ -622,13 +796,22 @@ export class Reader {
     if (this._wrapper) this._repaginate();
   }
 
+  showStatus(message) {
+    this._blocks = [];
+    this._speaking = -1;
+    this.container.replaceChildren();
+    const status = document.createElement('div');
+    status.className = 'reader-status';
+    const spinner = document.createElement('div');
+    spinner.className = 'reader-spinner';
+    const line = document.createElement('p');
+    line.textContent = message;
+    status.append(spinner, line);
+    this.container.appendChild(status);
+  }
+
   _showLoading() {
-    this.container.innerHTML = `
-      <div class="reader-status">
-        <div class="reader-spinner"></div>
-        <p>Loading book…</p>
-      </div>
-    `;
+    this.showStatus('Loading book…');
   }
 
   _showError(msg) {

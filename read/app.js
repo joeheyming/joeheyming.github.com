@@ -1,4 +1,7 @@
+import { attachListen } from './listen.js';
+import { deleteDocument, documentId, loadDocument, saveDocument } from './local-docs.js';
 import { Reader } from './reader.js';
+import { blocksFromFile, DocumentError, NOTHING_ALOUD, NO_SPEECH, titleFromName } from './prose.js';
 import {
   saveToShelf,
   getRecentBooks,
@@ -44,6 +47,17 @@ const btnCloseToc = document.getElementById('btn-close-toc');
 
 const reader = new Reader(readerContainer, readerControls);
 reader.setupPageZones(document.getElementById('zone-prev'), document.getElementById('zone-next'));
+const btnListen = /** @type {HTMLButtonElement} */ (document.getElementById('btn-listen'));
+const fileInput = /** @type {HTMLInputElement} */ (document.getElementById('file-input'));
+
+const listen = attachListen({
+  reader,
+  button: btnListen,
+  voiceSelect: /** @type {HTMLSelectElement} */ (document.getElementById('voice-select')),
+  synth: window.speechSynthesis || null,
+  onUnavailable: () => showToast(NO_SPEECH, 'error'),
+  onEmpty: () => showToast(NOTHING_ALOUD, 'error')
+});
 
 const THEMES = ['sepia', 'light', 'dark'];
 const THEME_LABELS = { dark: '🌙 Dark', sepia: '📜 Sepia', light: '☀️ Light' };
@@ -256,7 +270,7 @@ function renderShelf() {
         ${
           entry.coverUrl
             ? `<img src="${entry.coverUrl}" alt="" loading="lazy" onerror="this.style.display='none'">`
-            : `<div class="book-cover-placeholder">📚</div>`
+            : `<div class="book-cover-placeholder">${entry.local ? '📄' : '📚'}</div>`
         }
       </div>
       <div class="book-info">
@@ -276,6 +290,7 @@ function renderShelf() {
     remove.addEventListener('click', (e) => {
       e.stopPropagation();
       removeFromShelf(entry.id);
+      if (entry.local) deleteDocument(entry.id).catch(() => {});
       renderShelf();
     });
 
@@ -287,6 +302,19 @@ function renderShelf() {
     });
 
     card.addEventListener('click', async () => {
+      if (entry.local) {
+        try {
+          const doc = await loadDocument(entry.id);
+          if (!doc?.blocks?.length) {
+            showToast('That file is no longer on this device. Open it again.', 'error');
+            return;
+          }
+          openLocalBook(doc);
+        } catch {
+          showToast('That file is no longer on this device. Open it again.', 'error');
+        }
+        return;
+      }
       try {
         const data = await fetchBooks({ ids: entry.id });
         const book = data.results?.[0];
@@ -409,6 +437,7 @@ function openTocSheet() {
       item.addEventListener('click', () => {
         reader.scrollToHeading(entry.id);
         closeTocSheet();
+        if (listen.playing) listen.playAt(reader.blockIndexForHeading(entry.id));
       });
       li.appendChild(item);
       ul.appendChild(li);
@@ -440,11 +469,19 @@ tocSheet.addEventListener('keydown', (e) => {
 
 // --- Reader ---
 
-async function openBook(book) {
-  saveToShelf(book);
-  setBookIdInUrl(book.id, book.title);
-  readerTitle.textContent = book.title;
-  tocSheetBookTitle.textContent = book.title;
+reader.onPageChange = (page, total) => {
+  const pct = total > 1 ? (page / (total - 1)) * 100 : 0;
+  if (readingProgress) readingProgress.style.width = `${pct}%`;
+  if (readerProgressPct) readerProgressPct.textContent = total > 0 ? `${page + 1} / ${total}` : '';
+  if (total > 1 && page === total - 1) {
+    window.heymingAchievements?.unlockForCurrentApp('last-page');
+  }
+};
+
+function showReader(title) {
+  listen.stop();
+  readerTitle.textContent = title;
+  tocSheetBookTitle.textContent = title;
 
   closeTocSheet();
   browseView.classList.add('hidden');
@@ -460,18 +497,24 @@ async function openBook(book) {
   requestAnimationFrame(() => {
     document.getElementById('zone-next')?.focus({ preventScroll: true });
   });
+}
+
+function hideReader() {
+  listen.stop();
+  closeTocSheet();
+  readerView.classList.add('hidden');
+  readerView.removeAttribute('role');
+  browseView.classList.remove('hidden');
+  setBookIdInUrl(null);
+  renderShelf();
+}
+
+async function openBook(book) {
+  saveToShelf(book);
+  setBookIdInUrl(book.id, book.title);
+  showReader(book.title);
 
   const savedPos = getScrollPosition(book.id);
-
-  reader.onPageChange = (page, total) => {
-    const pct = total > 1 ? (page / (total - 1)) * 100 : 0;
-    if (readingProgress) readingProgress.style.width = `${pct}%`;
-    if (readerProgressPct)
-      readerProgressPct.textContent = total > 0 ? `${page + 1} / ${total}` : '';
-    if (total > 1 && page === total - 1) {
-      window.heymingAchievements?.unlockForCurrentApp('last-page');
-    }
-  };
 
   try {
     await reader.loadBook(book, savedPos);
@@ -487,14 +530,62 @@ reader.onScrollSave = (bookId, position) => {
 
 // --- Reader controls ---
 
-btnCloseReader.addEventListener('click', () => {
-  closeTocSheet();
-  readerView.classList.add('hidden');
-  readerView.removeAttribute('role');
-  browseView.classList.remove('hidden');
+btnCloseReader.addEventListener('click', hideReader);
+
+let fileOpenToken = 0;
+
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files?.[0];
+  fileInput.value = '';
+  if (!file) return;
+  const token = ++fileOpenToken;
+  const title = titleFromName(file.name);
   setBookIdInUrl(null);
-  renderShelf();
+  showReader(title);
+  reader.showStatus('Opening…');
+  try {
+    const doc = await blocksFromFile(file);
+    if (token !== fileOpenToken) return;
+    const id = documentId(file.name, file.size);
+    try {
+      await saveDocument({ id, title: doc.title, blocks: doc.blocks });
+    } catch {
+      /* The file still opens for this visit. */
+    }
+    saveToShelf({
+      id,
+      title: doc.title,
+      authors: [{ name: 'On this device' }],
+      formats: {},
+      local: true
+    });
+    readerTitle.textContent = doc.title;
+    tocSheetBookTitle.textContent = doc.title;
+    reader.loadBlocks(id, doc.blocks, getScrollPosition(id));
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
+  } catch (err) {
+    if (token !== fileOpenToken) return;
+    hideReader();
+    const message = err instanceof DocumentError ? err.message : 'That file could not be opened.';
+    showToast(message, 'error');
+  }
 });
+
+/**
+ * @param {{ id: string, title: string, blocks: { type: string, level?: number, text: string }[] }} doc
+ */
+function openLocalBook(doc) {
+  setBookIdInUrl(null);
+  showReader(doc.title);
+  saveToShelf({
+    id: doc.id,
+    title: doc.title,
+    authors: [{ name: 'On this device' }],
+    formats: {},
+    local: true
+  });
+  reader.loadBlocks(doc.id, doc.blocks, getScrollPosition(doc.id));
+}
 
 document.getElementById('btn-reader-text').addEventListener('click', () => {
   reader.showControls();

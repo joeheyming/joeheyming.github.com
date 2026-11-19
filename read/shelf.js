@@ -27,6 +27,7 @@ export function saveToShelf(book) {
     coverUrl: getCoverUrl(book),
     formats: book.formats || {},
     lastOpened: Date.now(),
+    ...(book.local ? { local: true } : {})
   };
   saveShelfData(shelf);
 }

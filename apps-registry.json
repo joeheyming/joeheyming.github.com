@@ -2366,7 +2366,7 @@
     "name": "Books 📚",
     "shortName": "Books",
     "description": "Free public-domain e-books from Project Gutenberg",
-    "detailedDescription": "Read thousands of free public-domain books from Project Gutenberg via the Gutendex API. Adjustable font size and family, dark/sepia/light themes. Your reading position is saved automatically per book.",
+    "detailedDescription": "Read thousands of free public-domain books from Project Gutenberg via the Gutendex API, or open a text, Markdown, HTML, or PDF file. Listen reads the words aloud with the device voice. Adjustable font size and family, dark/sepia/light themes. Your reading position is saved automatically per book.",
     "icon": "📚",
     "path": "./read/",
     "category": "utility",
@@ -2376,7 +2376,7 @@
     "taskbarText": "text-white",
     "defaultWidth": 700,
     "defaultHeight": 860,
-    "tags": ["books", "reading", "ebooks", "gutenberg", "public domain"],
+    "tags": ["books", "reading", "ebooks", "gutenberg", "public domain", "text to speech", "pdf"],
     "related": ["listen", "notepad", "programming-advice"],
     "shareCategory": "utility",
     "pwaShortcut": {

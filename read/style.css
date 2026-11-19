@@ -85,6 +85,51 @@ body {
   margin-top: 0.2rem;
 }
 
+.open-file {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.open-file-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.95rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.open-file-btn:hover,
+.open-file-btn:focus-visible {
+  border-color: var(--accent-primary-bg);
+}
+
+.open-file-hint {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.8rem;
+}
+
+.open-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ===== Search ===== */
 .search-wrap {
   position: relative;
@@ -386,6 +431,20 @@ body {
   order: 0;
 }
 
+/* The fixed Menu button covers the left of this bar. Start the title
+   past it: 120px from the viewport edge, 100px on a narrow window,
+   minus the bar's own left padding. An OS window has no toggle, so
+   the title stays at the bar's padding. */
+html:has(.heyming-nav-toggle) #reader-title {
+  margin-left: calc(120px - 0.75rem);
+}
+
+@media (max-width: 640px) {
+  html:has(.heyming-nav-toggle) #reader-title {
+    margin-left: calc(100px - 0.75rem);
+  }
+}
+
 .reader-ctrl-btn {
   display: inline-flex;
   align-items: center;
@@ -535,6 +594,95 @@ body {
   text-align: center;
 }
 
+#btn-listen {
+  gap: 0.4rem;
+}
+
+.listen-icon {
+  flex-shrink: 0;
+}
+
+#btn-listen.is-playing {
+  background: color-mix(in srgb, var(--read-night-accent) 28%, transparent);
+  border-color: color-mix(in srgb, var(--read-night-accent) 55%, transparent);
+  color: var(--read-night-accent-soft, var(--accent-primary-bg));
+}
+
+#reader-container.is-listening [data-speak] {
+  cursor: pointer;
+}
+
+#reader-container.is-listening [data-speak]:hover {
+  background: color-mix(in srgb, var(--reader-accent, var(--accent-primary-bg)) 8%, transparent);
+  border-radius: 0.25rem;
+}
+
+.reader-voice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  color: var(--text-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.reader-voice-select {
+  height: 44px;
+  max-width: 14rem;
+  min-width: 0;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--hairline-strong);
+  background: color-mix(in srgb, var(--read-night-bg) 90%, transparent);
+  color: var(--text-1);
+  font: inherit;
+  font-size: max(0.82rem, 16px);
+  cursor: pointer;
+}
+
+.reader-voice-select:focus-visible {
+  outline: none;
+  border-color: var(--accent-primary-bg);
+}
+
+[data-reader-theme='sepia'] .reader-voice {
+  color: var(--read-sepia-text, #3d2b1f);
+}
+
+[data-reader-theme='sepia'] .reader-voice-select {
+  background: color-mix(in srgb, var(--read-sepia-bg-soft) 90%, transparent);
+  border-color: var(--read-sepia-border, #c4a882);
+  color: var(--read-sepia-text, #3d2b1f);
+}
+
+[data-reader-theme='light'] .reader-voice {
+  color: var(--text-1);
+}
+
+[data-reader-theme='light'] .reader-voice-select {
+  background: var(--pure-white);
+  border-color: var(--text-1);
+  color: var(--text-1);
+}
+
+@media (max-width: 520px) {
+  #reader-nav-bar {
+    gap: 0.3rem;
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+  }
+
+  .reader-nav-btn {
+    padding: 0 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  .reader-nav-extra {
+    display: none;
+  }
+}
+
 /* Theme variants for nav bar */
 [data-reader-theme='sepia'] #reader-nav-bar {
   background: color-mix(in srgb, var(--read-sepia-bg) 96%, transparent);
@@ -549,6 +697,12 @@ body {
 
 [data-reader-theme='sepia'] .reader-nav-btn:hover {
   background: var(--read-sepia-bg-firm, #d9cfc1);
+}
+
+[data-reader-theme='sepia'] #btn-listen.is-playing {
+  background: color-mix(in srgb, var(--read-sepia-accent) 22%, transparent);
+  border-color: color-mix(in srgb, var(--read-sepia-accent) 45%, transparent);
+  color: var(--read-sepia-accent);
 }
 
 [data-reader-theme='sepia'] .reader-nav-btn-toc {
@@ -574,6 +728,12 @@ body {
 
 [data-reader-theme='light'] .reader-nav-btn:hover {
   background: var(--text-1);
+}
+
+[data-reader-theme='light'] #btn-listen.is-playing {
+  background: color-mix(in srgb, var(--read-night-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--read-night-accent) 35%, transparent);
+  color: var(--accent-primary-bg);
 }
 
 [data-reader-theme='light'] .reader-nav-btn-toc {
@@ -671,6 +831,11 @@ body {
     font-size: max(var(--reader-font-size, 18px), 17px);
     line-height: 1.85;
   }
+}
+
+.reader-prose .is-speaking {
+  background: color-mix(in srgb, var(--reader-accent, var(--accent-primary-bg)) 18%, transparent);
+  border-radius: 0.25rem;
 }
 
 .reader-prose p {
@@ -1131,8 +1296,13 @@ body {
     font-size: 1.25rem;
   }
 
-  .app-subtitle {
+  .app-subtitle,
+  .open-file-hint {
     display: none;
+  }
+
+  .open-file {
+    margin-top: 0.35rem;
   }
 
   .search-wrap {

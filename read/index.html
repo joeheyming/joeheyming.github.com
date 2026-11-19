@@ -16,7 +16,7 @@
     <meta charset="utf-8" />
     <meta
       name="description"
-      content="Read thousands of free public-domain books from Project Gutenberg. Adjustable font, themes, and reading position saved automatically. No ads, no signup."
+      content="Read free public-domain books from Project Gutenberg, or open a text, Markdown, HTML, or PDF file. Listen reads the words aloud. Adjustable font, themes, and your place saved automatically."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -26,7 +26,7 @@
     <meta property="og:title" content="Books — Free Public-Domain E-Books 📚" />
     <meta
       property="og:description"
-      content="Read thousands of free classics from Project Gutenberg. Dark, sepia, and light themes. Your reading position is saved automatically."
+      content="Read free classics from Project Gutenberg, or open a text, Markdown, HTML, or PDF file. Listen reads the words aloud. Your place is saved automatically."
     />
     <meta property="og:url" content="https://joeheyming.github.io/read/" />
     <meta property="og:image" content="https://joeheyming.github.io/read/read-preview.png" />
@@ -65,7 +65,7 @@
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
             "url": "https://joeheyming.github.io/read/",
-            "description": "Browse and read free public-domain books from Project Gutenberg. Adjustable font size, dark / sepia / light themes, and reading position saved automatically per book.",
+            "description": "Browse and read free public-domain books from Project Gutenberg, or open a text, Markdown, HTML, or PDF file. Listen reads the words aloud with the device voice. Adjustable font size, dark / sepia / light themes, and reading position saved automatically per book.",
             "author": {
               "@type": "Person",
               "name": "Joe Heyming",
@@ -78,7 +78,9 @@
               "Adjustable font size and reading width",
               "Dark, sepia, and light themes",
               "Reading position saved automatically",
-              "Works offline once a book is loaded"
+              "Works offline once a book is loaded",
+              "Listen reads the open book aloud",
+              "Open a text, Markdown, HTML, or PDF file"
             ]
           },
           {
@@ -118,6 +120,14 @@
               },
               {
                 "@type": "Question",
+                "name": "Can I listen to a book?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Listen uses the speaking voice on your device, starting at the paragraph on the current page. Open a file reads a text, Markdown, HTML, or PDF file the same way, and skips markup, code, and web addresses."
+                }
+              },
+              {
+                "@type": "Question",
                 "name": "Are there themes?",
                 "acceptedAnswer": {
                   "@type": "Answer",
@@ -148,6 +158,16 @@
         <header class="app-header">
           <h1>📚 Books</h1>
           <p class="app-subtitle">Free public-domain books from Project Gutenberg</p>
+          <div class="open-file">
+            <label class="open-file-btn" for="file-input">Open a file</label>
+            <input
+              id="file-input"
+              class="open-file-input"
+              type="file"
+              accept=".txt,.text,.md,.markdown,.html,.htm,.pdf,text/plain,text/markdown,text/html,application/pdf"
+            />
+            <p class="open-file-hint">txt, markdown, html, or pdf</p>
+          </div>
         </header>
 
         <!-- Search -->
@@ -242,6 +262,13 @@
         >
           🌙 Dark
         </button>
+
+        <label class="reader-voice">
+          <span class="reader-voice-label">Voice</span>
+          <select id="voice-select" class="reader-voice-select">
+            <option value="">Device voice</option>
+          </select>
+        </label>
       </div>
 
       <!-- Scrollable text -->
@@ -255,7 +282,8 @@
           id="btn-close-reader"
           aria-label="Back to library"
         >
-          ← Library
+          ←
+          <span class="reader-nav-extra">Library</span>
         </button>
 
         <span id="reader-progress-pct" class="reader-nav-progress" aria-live="polite"></span>
@@ -269,13 +297,18 @@
           Aa
         </button>
 
+        <button type="button" class="reader-nav-btn" id="btn-listen" aria-label="Listen">
+          Listen
+        </button>
+
         <button
           type="button"
           class="reader-nav-btn reader-nav-btn-toc"
           id="btn-toc"
           aria-label="Table of contents"
         >
-          ≡ Contents
+          ≡
+          <span class="reader-nav-extra">Contents</span>
         </button>
       </div>
     </div>
