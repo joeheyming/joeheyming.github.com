@@ -1,6 +1,77 @@
 import { blockIndexOnPage } from './place.js';
 import { spokenText } from './prose.js';
 
+/**
+ * Mirror directory for a Project Gutenberg ebook number.
+ * 1342 → "1/3/4/1342", 84 → "8/84", 9 → "0/9".
+ * @param {number | string} id
+ * @returns {string}
+ */
+export function gutenbergMirrorDir(id) {
+  const s = String(id);
+  const head = s.length === 1 ? '0' : s.slice(0, -1);
+  return `${head.split('').join('/')}/${s}`;
+}
+
+/**
+ * Where to read a Gutendex book, best host first. Numeric Gutenberg ids go
+ * to gutenberg.pglaf.org before www.gutenberg.org: the public host is
+ * frequently behind a maintenance page, and neither host sends CORS, so
+ * the browser has to read them through the proxy.
+ * @param {{ id?: number | string, formats?: Record<string, string> }} book
+ * @returns {{ url: string, isHtml: boolean }[]}
+ */
+export function bookTextSources(book) {
+  const formats = book?.formats || {};
+  const htmlUrl =
+    formats['text/html'] ||
+    formats['text/html; charset=utf-8'] ||
+    formats['text/html; charset=UTF-8'] ||
+    '';
+  const textUrl =
+    formats['text/plain; charset=utf-8'] ||
+    formats['text/plain; charset=UTF-8'] ||
+    formats['text/plain'] ||
+    formats['text/plain; charset=us-ascii'] ||
+    '';
+  const id = String(book?.id ?? '');
+  /** @type {{ url: string, isHtml: boolean }[]} */
+  const sources = [];
+  const push = (url, isHtml) => {
+    if (!url || sources.some((source) => source.url === url)) return;
+    sources.push({ url, isHtml });
+  };
+  if (/^\d+$/.test(id)) {
+    const hasHtml = Boolean(htmlUrl);
+    const hasText = Boolean(textUrl);
+    if (hasHtml || !hasText) {
+      push(`https://gutenberg.pglaf.org/cache/epub/${id}/pg${id}-images.html`, true);
+    }
+    if (hasText || !hasHtml) {
+      push(`https://gutenberg.pglaf.org/cache/epub/${id}/pg${id}.txt`, false);
+      push(
+        `https://mirror.csclub.uwaterloo.ca/gutenberg/${gutenbergMirrorDir(id)}/${id}-0.txt`,
+        false
+      );
+    }
+  }
+  push(htmlUrl, true);
+  push(textUrl, false);
+  return sources;
+}
+
+/**
+ * A proxy sometimes returns the host's error page with a success status.
+ * Real Project Gutenberg files are longer than the maintenance page.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function looksLikeBook(text) {
+  if (!text || text.length < 1000) return false;
+  const head = text.slice(0, 1500).toLowerCase();
+  return !head.includes('temporarily down for maintenance');
+}
+
 const MIN_FONT = 14;
 const MAX_FONT = 28;
 const DEFAULT_FONT = 18;
@@ -54,6 +125,7 @@ export class Reader {
     /** @type {HTMLElement[]} */
     this._blocks = [];
     this._speaking = -1;
+    this._loadGeneration = 0;
 
     this._applyTheme();
     this._applyFont();
@@ -75,6 +147,7 @@ export class Reader {
    * Load a book. savedPosition is a fraction 0–1 (legacy large pixel values → page 0).
    */
   async loadBook(book, savedPosition = 0) {
+    const generation = ++this._loadGeneration;
     this.currentBookId = String(book.id);
     this._savedFraction = savedPosition > 0 && savedPosition <= 1 ? savedPosition : 0;
     // Treat the caller-supplied position as "already persisted" so we
@@ -91,10 +164,19 @@ export class Reader {
 
     try {
       const { text, isHtml, baseUrl } = await this._fetchBookText(book);
+      if (generation !== this._loadGeneration) return;
       this._renderContent(text, isHtml, baseUrl);
-      // Two rAF so layout settles before we measure heights
-      requestAnimationFrame(() => requestAnimationFrame(() => this._paginate()));
+      // Two rAF so layout settles before we measure heights. A newer book
+      // opened while those frames were waiting must keep its own pagination.
+      requestAnimationFrame(() => {
+        if (generation !== this._loadGeneration) return;
+        requestAnimationFrame(() => {
+          if (generation !== this._loadGeneration) return;
+          this._paginate();
+        });
+      });
     } catch (err) {
+      if (generation !== this._loadGeneration) return;
       this._showError(err.message);
     }
   }
@@ -260,6 +342,7 @@ export class Reader {
    * @param {number} [savedPosition]
    */
   loadBlocks(bookId, blocks, savedPosition = 0) {
+    this._loadGeneration += 1;
     this.currentBookId = String(bookId);
     this._savedFraction = savedPosition > 0 && savedPosition <= 1 ? savedPosition : 0;
     this._lastSavedFraction = this._savedFraction;
@@ -415,43 +498,45 @@ export class Reader {
   // ---------------------------------------------------------------------------
 
   async _fetchBookText(book) {
-    const formats = book.formats || {};
-    const htmlUrl =
-      formats['text/html'] ||
-      formats['text/html; charset=utf-8'] ||
-      formats['text/html; charset=UTF-8'];
-    const textUrl =
-      formats['text/plain; charset=utf-8'] ||
-      formats['text/plain; charset=UTF-8'] ||
-      formats['text/plain'] ||
-      formats['text/plain; charset=us-ascii'];
+    const sources = bookTextSources(book);
+    if (!sources.length) throw new Error('No readable text format available for this book.');
 
-    const url = htmlUrl || textUrl;
-    if (!url) throw new Error('No readable text format available for this book.');
-    const isHtml = Boolean(htmlUrl);
+    // www.gutenberg.org answers with a maintenance page and no CORS header,
+    // so a direct read throws and every proxy reports failure. The same
+    // files are on gutenberg.pglaf.org; try that first, then a second
+    // mirror, and only then the URL Gutendex advertised.
+    let lastError = null;
+    for (const source of sources) {
+      try {
+        const text = await this._readUrl(source.url);
+        if (!looksLikeBook(text)) {
+          lastError = new Error('Book host returned an error page.');
+          continue;
+        }
+        return { text, isHtml: source.isHtml, baseUrl: source.url };
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError;
+  }
 
-    // Base URL for resolving relative `<img src="images/…">` paths in the
-    // fetched HTML. Gutendex hands us `/ebooks/<id>.html.images`, which
-    // 302s to the canonical `/cache/epub/<id>/pg<id>-images.html` where
-    // images live in an `images/` sibling directory. But PG doesn't send
-    // CORS headers, so we usually fall through to the proxy — and the
-    // proxy path can't report the post-redirect URL. Constructing the
-    // canonical cache URL directly from the numeric PG id sidesteps all
-    // of that and always resolves images to the right asset.
-    const pgId = /^\d+$/.test(String(book.id)) ? String(book.id) : null;
-    const baseUrl = pgId
-      ? `https://www.gutenberg.org/cache/epub/${pgId}/pg${pgId}-images.html`
-      : url;
-
+  /**
+   * @param {string} url
+   * @returns {Promise<string>}
+   */
+  async _readUrl(url) {
     try {
       const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
-      if (resp.ok) return { text: await resp.text(), isHtml, baseUrl };
+      if (resp.ok) {
+        const text = await resp.text();
+        if (text) return text;
+      }
     } catch {
-      // CORS or timeout — fall through to proxy
+      // CORS or timeout — fall through to the proxy.
     }
-
     const text = await window.proxyService.fetchWithProxy(url, { skipDirect: true });
-    return { text: text || '', isHtml, baseUrl };
+    return text || '';
   }
 
   _renderContent(text, isHtml, baseUrl = '') {

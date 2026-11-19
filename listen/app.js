@@ -1,4 +1,5 @@
 import { Player, getCoverUrl, formatCreator } from './player.js';
+import { closeView, hasListBelow, pushView, replaceView } from '../shared/view-history.js';
 import { saveProgress, getBookProgress, getRecentBooks, clearProgress } from './library.js';
 
 const IA_SEARCH = 'https://archive.org/advancedsearch.php';
@@ -132,22 +133,13 @@ function normalizeBook(doc) {
 }
 
 // --- URL persistence ---
-// Track the open book in the query string so refresh keeps you on the
-// same audiobook (its saved chapter/position lives in localStorage).
-// Uses `replaceState` — refresh works, back button still leaves the site.
+// The open audiobook lives in the query string, and opening one pushes a
+// history entry, so Back returns to the library the way /emulator/nes/?rom=
+// returns to the game list. Refresh or a shared link reopens the same book
+// (its saved chapter/position lives in localStorage).
 
 function getBookIdFromUrl() {
   return new URLSearchParams(window.location.search).get('book') || null;
-}
-
-function setBookIdInUrl(bookId) {
-  const url = new URL(window.location.href);
-  if (bookId) {
-    url.searchParams.set('book', String(bookId));
-  } else {
-    url.searchParams.delete('book');
-  }
-  history.replaceState(null, '', url.pathname + url.search + url.hash);
 }
 
 // --- UI helpers ---
@@ -406,7 +398,7 @@ async function runSearch(query) {
 
 // --- Book detail view ---
 
-async function openBook(book, startSectionIndex = null, startPosition = 0) {
+async function openBook(book, startSectionIndex = null, startPosition = 0, { push = true } = {}) {
   setLoading(true);
   try {
     // Load sections if not already present
@@ -432,7 +424,8 @@ async function openBook(book, startSectionIndex = null, startPosition = 0) {
     const position = startSectionIndex !== null ? startPosition : saved?.position ?? 0;
 
     currentBook = book;
-    setBookIdInUrl(book.identifier);
+    if (push) pushView({ book: book.identifier });
+    else replaceView({ book: book.identifier }, { open: hasListBelow() });
     showDetailView(book, sectionIndex);
     loadBookIntoPlayer(book, sectionIndex, position);
     // The player bar was display:none. Focus Play on the next frame.
@@ -677,13 +670,15 @@ chapterSheet.addEventListener('keydown', (e) => {
 
 // --- View navigation ---
 
-backBtn.addEventListener('click', () => {
+/** Show the library. History is the caller's business. The player bar stays up. */
+function showBrowse() {
   closeChapterSheet();
   detailView.classList.add('hidden');
   browseView.classList.remove('hidden');
-  setBookIdInUrl(null);
   renderContinueSection();
-});
+}
+
+backBtn.addEventListener('click', () => closeView({ book: null }, showBrowse));
 
 searchInput.addEventListener('input', handleSearchInput);
 
@@ -707,9 +702,19 @@ searchClear.addEventListener('click', () => {
 
 // --- Init ---
 
-async function restoreBookFromUrl() {
+/** Make the page match the URL: the library, or the audiobook it names. */
+async function syncFromUrl({ fromLoad = false } = {}) {
   const identifier = getBookIdFromUrl();
-  if (!identifier) return;
+  if (!identifier) {
+    if (!detailView.classList.contains('hidden')) showBrowse();
+    return;
+  }
+  if (!detailView.classList.contains('hidden') && currentBook?.identifier === identifier) return;
+  if (currentBook?.identifier === identifier && currentBook.sections?.length) {
+    // Already loaded and possibly playing: show it without restarting audio.
+    showDetailView(currentBook, player.currentIndex);
+    return;
+  }
   setLoading(true);
   try {
     const data = await iaMetadata(identifier);
@@ -720,16 +725,22 @@ async function restoreBookFromUrl() {
       creator: meta.creator,
       description: meta.description
     });
-    await openBook(book);
+    // Back or Forward landed here, so the entry is already in place: no push.
+    await openBook(book, null, 0, { push: false });
   } catch {
-    // Bad ID or offline — drop the param so a stale link doesn't stick.
-    setBookIdInUrl(null);
     showToast('Could not open that book.', 'error');
+    // Bad ID or offline — drop the param so a stale link doesn't stick.
+    if (fromLoad) replaceView({ book: null });
+    else showBrowse();
   } finally {
     setLoading(false);
   }
 }
 
+window.addEventListener('popstate', () => {
+  syncFromUrl();
+});
+
 renderContinueSection();
 renderBrowse();
-restoreBookFromUrl();
+syncFromUrl({ fromLoad: true });

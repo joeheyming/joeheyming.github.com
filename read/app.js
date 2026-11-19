@@ -1,6 +1,7 @@
 import { attachListen } from './listen.js';
 import { deleteDocument, documentId, loadDocument, saveDocument } from './local-docs.js';
 import { Reader } from './reader.js';
+import { closeView, hasListBelow, pushView, replaceView } from '../shared/view-history.js';
 import { blocksFromFile, DocumentError, NOTHING_ALOUD, NO_SPEECH, titleFromName } from './prose.js';
 import {
   saveToShelf,
@@ -99,12 +100,12 @@ async function searchBooks(query) {
 }
 
 // --- URL persistence ---
-// Track the open book in the query string so the reader survives refresh
-// and can be linked to. Uses `replaceState` (matches the pattern in
-// watch/) — refresh works, but the browser back button still leaves the
-// site rather than closing the book.
+// The open document lives in the query string, and opening one pushes a
+// history entry, so Back returns to the library the way /emulator/nes/?rom=
+// returns to the game list, and refresh or a shared link reopens the document.
 //
-// URL shape: `?book=<gutenberg-id>-<slug>` (e.g. `?book=45-anne-of-green-gables`).
+// URL shape: `?book=<gutenberg-id>-<slug>` (e.g. `?book=45-anne-of-green-gables`)
+// or `?doc=<local id>` for a file opened from this device.
 // The Gutenberg ID is stable forever (like an ISBN); the slug is purely
 // cosmetic — parsing takes the leading digits and ignores everything
 // after, so a stale or missing slug still resolves to the right book.
@@ -126,16 +127,17 @@ function getBookIdFromUrl() {
   return match ? match[1] : null;
 }
 
-function setBookIdInUrl(bookId, title = null) {
-  const url = new URL(window.location.href);
-  if (bookId) {
-    const slug = title ? slugifyTitle(title) : '';
-    url.searchParams.set('book', slug ? `${bookId}-${slug}` : String(bookId));
-  } else {
-    url.searchParams.delete('book');
-  }
-  history.replaceState(null, '', url.pathname + url.search + url.hash);
+function getDocIdFromUrl() {
+  return new URLSearchParams(window.location.search).get('doc') || null;
 }
+
+function bookParam(bookId, title) {
+  const slug = title ? slugifyTitle(title) : '';
+  return slug ? `${bookId}-${slug}` : String(bookId);
+}
+
+/** Id of the document the reader currently shows, or null at the library. */
+let openId = null;
 
 // --- Helpers ---
 
@@ -499,19 +501,33 @@ function showReader(title) {
   });
 }
 
+/** Show the library. History is the caller's business. */
 function hideReader() {
+  fileOpenToken++;
+  openId = null;
   listen.stop();
   closeTocSheet();
   readerView.classList.add('hidden');
   readerView.removeAttribute('role');
   browseView.classList.remove('hidden');
-  setBookIdInUrl(null);
   renderShelf();
 }
 
-async function openBook(book) {
+/** Leave the reader: Back when this page pushed it, else rewrite the URL. */
+function closeReader() {
+  closeView({ book: null, doc: null }, hideReader);
+}
+
+/**
+ * @param {object} book
+ * @param {{ push?: boolean }} [opts] `push: false` when the URL already names this book
+ */
+async function openBook(book, { push = true } = {}) {
   saveToShelf(book);
-  setBookIdInUrl(book.id, book.title);
+  openId = String(book.id);
+  const params = { book: bookParam(book.id, book.title), doc: null };
+  if (push) pushView(params);
+  else replaceView(params, { open: hasListBelow() });
   showReader(book.title);
 
   const savedPos = getScrollPosition(book.id);
@@ -530,7 +546,7 @@ reader.onScrollSave = (bookId, position) => {
 
 // --- Reader controls ---
 
-btnCloseReader.addEventListener('click', hideReader);
+btnCloseReader.addEventListener('click', closeReader);
 
 let fileOpenToken = 0;
 
@@ -540,13 +556,16 @@ fileInput.addEventListener('change', async () => {
   if (!file) return;
   const token = ++fileOpenToken;
   const title = titleFromName(file.name);
-  setBookIdInUrl(null);
+  openId = null;
+  pushView({ book: null, doc: null });
   showReader(title);
   reader.showStatus('Opening…');
   try {
     const doc = await blocksFromFile(file);
     if (token !== fileOpenToken) return;
     const id = documentId(file.name, file.size);
+    openId = id;
+    replaceView({ book: null, doc: id }, { open: true });
     try {
       await saveDocument({ id, title: doc.title, blocks: doc.blocks });
     } catch {
@@ -565,7 +584,7 @@ fileInput.addEventListener('change', async () => {
     window.heymingAchievements?.unlockForCurrentApp('first-action');
   } catch (err) {
     if (token !== fileOpenToken) return;
-    hideReader();
+    closeReader();
     const message = err instanceof DocumentError ? err.message : 'That file could not be opened.';
     showToast(message, 'error');
   }
@@ -574,8 +593,11 @@ fileInput.addEventListener('change', async () => {
 /**
  * @param {{ id: string, title: string, blocks: { type: string, level?: number, text: string }[] }} doc
  */
-function openLocalBook(doc) {
-  setBookIdInUrl(null);
+function openLocalBook(doc, { push = true } = {}) {
+  openId = doc.id;
+  const params = { book: null, doc: doc.id };
+  if (push) pushView(params);
+  else replaceView(params, { open: hasListBelow() });
   showReader(doc.title);
   saveToShelf({
     id: doc.id,
@@ -626,23 +648,48 @@ btnFontFamily.addEventListener('click', () => {
 
 // --- Init ---
 
-async function restoreBookFromUrl() {
+/** Make the page match the URL: the library, or the document it names. */
+async function syncFromUrl({ fromLoad = false } = {}) {
   const bookId = getBookIdFromUrl();
-  if (!bookId) return;
+  const docId = getDocIdFromUrl();
+  const wanted = bookId || docId;
+  if (!wanted) {
+    if (!readerView.classList.contains('hidden')) hideReader();
+    return;
+  }
+  if (openId === wanted) return;
+  // Back or Forward landed here, so the entry is already in place: no push.
+  // A fresh load keeps the entry's own state, which has no list below it.
+  const opts = { push: false };
   try {
-    const data = await fetchBooks({ ids: bookId });
-    const book = data.results?.[0];
-    if (book) {
-      openBook(book);
+    if (bookId) {
+      const data = await fetchBooks({ ids: bookId });
+      const book = data.results?.[0];
+      if (book) {
+        openBook(book, opts);
+      } else if (fromLoad) {
+        // Unknown ID — drop the param so it doesn't stick on refresh.
+        replaceView({ book: null });
+      }
+      return;
+    }
+    const doc = await loadDocument(docId);
+    if (doc?.blocks?.length) {
+      openLocalBook(doc, opts);
     } else {
-      // Unknown ID — drop the param so it doesn't stick on refresh.
-      setBookIdInUrl(null);
+      showToast('That file is no longer on this device. Open it again.', 'error');
+      if (fromLoad) replaceView({ doc: null });
+      else hideReader();
     }
   } catch {
     // Network hiccup — leave the URL alone so a retry (refresh) still works.
   }
 }
 
+window.addEventListener('popstate', () => {
+  syncFromUrl();
+});
+
 renderShelf();
 renderFeatured();
-restoreBookFromUrl();
+syncFromUrl({ fromLoad: true });
