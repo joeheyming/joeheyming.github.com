@@ -133,6 +133,47 @@
   }
 
   /**
+   * The same image in the playlist's libretro-thumbnails Git repo, for when
+   * the thumbnail host is down (it has served an empty index and 404s for
+   * every file). Empty for a URL that is not on the thumbnail host.
+   *
+   * @param {string} url
+   * @returns {string}
+   */
+  function thumbnailMirrorUrl(url) {
+    const prefix = `${THUMBNAIL_HOST}/`;
+    if (typeof url !== 'string' || url.indexOf(prefix) !== 0) return '';
+    const parts = url.slice(prefix.length).split('/');
+    if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return '';
+    let playlist;
+    try {
+      playlist = decodeURIComponent(parts[0]);
+    } catch {
+      return '';
+    }
+    const repo = playlist.replace(/ - /g, '_-_').replace(/ /g, '_');
+    return `https://raw.githubusercontent.com/libretro-thumbnails/${encodeURIComponent(
+      repo
+    )}/master/${parts[1]}/${parts[2]}`;
+  }
+
+  /**
+   * Each URL followed by its Git mirror, in order, without duplicates.
+   * @param {string[]} urls
+   * @returns {string[]}
+   */
+  function withThumbnailMirrors(urls) {
+    const out = [];
+    for (const url of Array.isArray(urls) ? urls : []) {
+      if (!url) continue;
+      if (out.indexOf(url) === -1) out.push(url);
+      const mirror = thumbnailMirrorUrl(url);
+      if (mirror && out.indexOf(mirror) === -1) out.push(mirror);
+    }
+    return out;
+  }
+
+  /**
    * Box-art URLs for a ROM name, one per libretro playlist. The name is the
    * filename with its extension already removed. Empty when nothing can be
    * looked up. Uses the exact filename. `thumbnailUrlsResolved` swaps in a
@@ -340,12 +381,32 @@
     );
   }
 
+  /**
+   * True when the console caps in-page play (`iaInBrowserMaxMB`) and the
+   * game's size label ("32.0 MB") is over it. Unknown sizes are tried.
+   *
+   * @param {{ iaInBrowserMaxMB?: number } | null | undefined} cfg
+   * @param {{ size?: string } | null | undefined} rom
+   * @returns {boolean}
+   */
+  function exceedsInBrowserLimit(cfg, rom) {
+    const max = cfg ? Number(cfg.iaInBrowserMaxMB) : 0;
+    if (!max || !rom) return false;
+    const match = /^\s*([\d.]+)\s*(KB|MB|GB)\b/i.exec(String(rom.size || ''));
+    if (!match) return false;
+    const unit = { kb: 1 / 1024, mb: 1, gb: 1024 }[match[2].toLowerCase()];
+    return Number(match[1]) * unit > max;
+  }
+
   window.emulatorRomAcquire = {
+    exceedsInBrowserLimit,
     createIaClient,
     fileFromRomBytes,
     findRomByQuery,
     thumbnailUrls,
     thumbnailUrlsResolved,
+    thumbnailMirrorUrl,
+    withThumbnailMirrors,
     thumbnailTokens,
     pickThumbnailName,
     preloadThumbnailIndexes

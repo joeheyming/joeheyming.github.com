@@ -159,6 +159,13 @@ describe('rom-browser hands off downloads instead of loading ROMs', () => {
       'https://thumbnails.libretro.com/Nintendo%20-%20Game%20Boy/Named_Boxarts/Metroid.png'
     );
 
+    // Each thumbnail-host miss retries the same file in the playlist's Git repo.
+    img.dispatchEvent(new window.Event('error'));
+    assert.equal(
+      img.getAttribute('src'),
+      'https://raw.githubusercontent.com/libretro-thumbnails/Nintendo_-_Game_Boy/master/Named_Boxarts/Metroid.png'
+    );
+
     img.dispatchEvent(new window.Event('error'));
     assert.match(img.getAttribute('src'), /Game%20Boy%20Color\/Named_Boxarts\/Metroid\.png$/);
 
@@ -166,7 +173,34 @@ describe('rom-browser hands off downloads instead of loading ROMs', () => {
     assert.equal(img.hidden, false);
 
     img.dispatchEvent(new window.Event('error'));
+    assert.match(img.getAttribute('src'), /Nintendo_-_Game_Boy_Color\/master\/Named_Boxarts/);
+
+    img.dispatchEvent(new window.Event('error'));
     assert.equal(card.querySelector('.rom-art'), null);
+  });
+
+  it('draws a titled placeholder for missing art when the console asks for one', async () => {
+    const el = await mountBrowser({
+      ...NES_CFG,
+      title: 'PSP',
+      artPlaceholder: true,
+      iaThumbnailSystems: ['Sony - PlayStation Portable']
+    });
+    const card = el.shadowRoot.querySelector('.rom-card');
+    const placeholder = card.querySelector('.rom-art-placeholder');
+    assert.ok(placeholder);
+    assert.equal(placeholder.hidden, false);
+    assert.equal(placeholder.querySelector('.rom-art-placeholder-badge').textContent, 'PSP');
+    assert.match(placeholder.querySelector('.rom-art-placeholder-title').textContent, /Metroid/);
+
+    // Real art replaces the stand-in once it loads.
+    card.querySelector('.rom-art').dispatchEvent(new window.Event('load'));
+    assert.equal(placeholder.hidden, true);
+  });
+
+  it('keeps cards without the flag free of placeholders', async () => {
+    const el = await mountBrowser(NES_CFG);
+    assert.equal(el.shadowRoot.querySelector('.rom-art-placeholder'), null);
   });
 
   it('paints the collection inline and leaves Backspace to the search field', async () => {

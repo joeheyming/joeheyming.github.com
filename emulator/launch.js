@@ -213,14 +213,31 @@
     // Picker page: nothing to emulate yet, always let it render.
     if (!cfg) return true;
     // EmulatorJS defaults EJS_threads to false. COI improves performance by
-    // making threaded builds available; it is not required by the cores in
-    // this registry. A browser without WebAssembly cannot run any of them.
+    // making threaded builds available; it is not required by most cores in
+    // this registry. A browser without WebAssembly cannot run any of them,
+    // and PSP (PPSSPP) ships only a threaded build.
+    if (cfg.requiresThreads) return false;
     return wasmSupported();
   }
 
-  function renderRuntimeUnavailable() {
+  /** @param {'threads' | undefined} [reason] */
+  function renderRuntimeUnavailable(reason) {
     const bootCard = document.getElementById('boot-card');
     if (!bootCard) return;
+    if (reason === 'threads') {
+      bootCard.innerHTML = `
+      <h2>Threads unavailable</h2>
+      <p class="coi-fail-copy">
+        This console needs SharedArrayBuffer, which the browser only allows on a
+        cross-origin isolated page. Reload once so the page can isolate itself.
+      </p>
+      <p class="picker-help">
+        A plain local static server cannot isolate the page; open the live site instead.
+        <a href="/emulator/">All consoles</a>
+      </p>
+    `;
+      return;
+    }
     bootCard.innerHTML = `
       <h2>Emulator unavailable</h2>
       <p class="coi-fail-copy">
@@ -534,6 +551,16 @@
         const img = document.createElement('img');
         img.alt = '';
         img.decoding = 'async';
+        const mirror = romAcquire()?.thumbnailMirrorUrl?.(art) || '';
+        if (mirror) {
+          img.addEventListener(
+            'error',
+            () => {
+              img.src = mirror;
+            },
+            { once: true }
+          );
+        }
         img.src = art;
         option.appendChild(img);
       } else {
@@ -765,7 +792,12 @@
 
     const controlsSummary = tv ? 'Controls' : 'Keyboard Controls';
     const gamepadHint =
-      tv || cfg.id === 'ps1' || cfg.id === 'n64' || cfg.id === 'segacd' || cfg.id === 'saturn'
+      tv ||
+      cfg.id === 'ps1' ||
+      cfg.id === 'psp' ||
+      cfg.id === 'n64' ||
+      cfg.id === 'segacd' ||
+      cfg.id === 'saturn'
         ? hasGamepadApi()
           ? `<p class="controls-gamepad-hint">A gamepad works best if you have one plugged in.</p>`
           : `<p class="controls-gamepad-hint">Use the keyboard or on-screen controls; this browser does not support gamepads.</p>`
@@ -989,7 +1021,8 @@
     panel.innerHTML = `
       <h3>${escapeHtml(rom.title)}</h3>
       <p>
-        This disc is too large to load in the page. Download the disc image
+        This ${cfg.iaAllowInBrowser ? 'game' : 'disc'} is too large to load in the page. Download
+        the ${cfg.iaAllowInBrowser ? 'file' : 'disc image'}
         from Internet Archive, then load the saved file below.
       </p>
       <div class="deeplink-handoff-actions">
@@ -1130,6 +1163,10 @@
       if (controller.signal.aborted) return;
       const rom = acquire.findRomByQuery(roms, wanted);
       if (!rom) throw new Error(`ROM not found: ${wanted}`);
+      if (acquire.exceedsInBrowserLimit(cfg, rom)) {
+        renderDeeplinkHandoff(cfg, rom);
+        return;
+      }
 
       const romData = await ia.loadRom(rom, { signal: controller.signal });
       if (controller.signal.aborted) return;
@@ -1146,10 +1183,11 @@
     }
   }
 
-  function markRuntimeUnavailable() {
+  /** @param {'threads' | undefined} [reason] */
+  function markRuntimeUnavailable(reason) {
     if (runtimeBlocked) return;
     runtimeBlocked = true;
-    renderRuntimeUnavailable();
+    renderRuntimeUnavailable(reason);
   }
 
   window.addEventListener('popstate', onRomPopState);
@@ -1264,7 +1302,7 @@
     settle.then((ok) => {
       if (!ok && cfg) {
         if (!canRunWithoutCoi(cfg)) {
-          markRuntimeUnavailable();
+          markRuntimeUnavailable(wasmSupported() ? 'threads' : undefined);
           return;
         }
         // Playable single-threaded: boot anyway and say so on the card.
@@ -1293,7 +1331,7 @@
     const playingTitle =
       String(romName || 'game')
         .replace(
-          /\.(zip|7z|chd|pbp|iso|cue|bin|gba|nes|sfc|smc|md|gen|n64|z64|v64|gb|gbc|nds|gg|ngp|ngc|swf|32x|a26)$/i,
+          /\.(zip|7z|chd|pbp|iso|cue|bin|gba|nes|sfc|smc|md|gen|n64|z64|v64|gb|gbc|nds|gg|ngp|ngc|swf|32x|a26|cso)$/i,
           ''
         )
         .trim() || 'game';
@@ -1317,6 +1355,10 @@
       return;
     }
     if (!window.crossOriginIsolated) {
+      if (cfg.requiresThreads) {
+        markRuntimeUnavailable('threads');
+        return;
+      }
       singleThreadMode = true;
     }
 

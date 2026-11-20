@@ -1631,6 +1631,36 @@
     "geo": false
   },
   {
+    "id": "psp",
+    "name": "PSP 🎮",
+    "shortName": "PSP",
+    "description": "PlayStation Portable emulator",
+    "detailedDescription": "Play PlayStation Portable games in your browser. No BIOS needed; pick a game from the PSP preservation collection on Internet Archive and play it in the page. Large discs can time out; then download the .cso and load it with the file picker. Bring-your-own .iso / .cso / .pbp files also work. Needs a desktop browser with SharedArrayBuffer; gamepad recommended. Part of the unified emulator shell (EmulatorJS / PPSSPP).",
+    "icon": "🎮",
+    "path": "./emulator/psp/",
+    "category": "game",
+    "subCategory": "console",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-slate-600/20 to-slate-900/20",
+    "border": "border-slate-500/30 hover:border-slate-400/50",
+    "taskbarGradient": "from-slate-600 to-slate-900",
+    "taskbarText": "text-white",
+    "tags": [
+      "retro",
+      "emulator",
+      "playstation",
+      "psp",
+      "playstation portable",
+      "handheld",
+      "ppsspp"
+    ],
+    "related": ["ps1", "nds", "gba", "n64", "snes", "doom"],
+    "shareCategory": "game",
+    "appTier": "experience",
+    "geo": false
+  },
+  {
     "id": "atari2600",
     "name": "Atari 2600 🛸",
     "shortName": "Atari 2600",

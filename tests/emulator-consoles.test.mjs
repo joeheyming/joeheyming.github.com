@@ -137,6 +137,26 @@ describe('emulator console registry', () => {
     }
   });
 
+  it('marks PSP as threads-only, disc-sized with in-page play, and BIOS-free', () => {
+    const psp = consoles.psp;
+    assert.ok(psp, 'expected a psp console');
+    assert.equal(psp.ejsCore, 'psp');
+    // PPSSPP has no single-thread build; launch.js refuses to boot it without COI.
+    assert.equal(psp.requiresThreads, true);
+    // Disc-sized like PS1: Play in browser is attempted, Download instead stays.
+    assert.equal(psp.iaExternalDownload, true);
+    assert.equal(psp.iaAllowInBrowser, true);
+    // The free CORS proxies cannot carry big discs, so those skip the loader.
+    assert.equal(psp.iaInBrowserMaxMB, 64);
+    assert.equal(psp.biosRequired, undefined);
+    assert.deepEqual(psp.iaFileExtensions, ['.cso']);
+    // The threads flag is PSP's alone; every other core still has a single-thread fallback.
+    for (const cfg of Object.values(consoles)) {
+      if (cfg.id !== 'psp')
+        assert.ok(!cfg.requiresThreads, `${cfg.id}: unexpected requiresThreads`);
+    }
+  });
+
   it('tells GBA and Game Boy apart, since players conflate them', () => {
     const gba = consoles.gba;
     const gb = consoles.gb;

@@ -9,6 +9,8 @@
 //
 // Shared shell files (rom-browser, launch, internet-archive) read from this
 // object and reconfigure themselves automatically.
+// `requiresThreads` marks a core with no single-thread build (PSP): without
+// cross-origin isolation the console shows an unavailable card instead of booting.
 // Consoles that need a system BIOS (Neo Geo, Sega CD, Saturn, PS1) set `biosRequired` +
 // `biosFileName`; launch.js persists the upload in IndexedDB.
 // Optional `biosIaBaseUrl` fetches BIOS from a different IA item than
@@ -26,8 +28,10 @@
 //
 // A result plays in the page: the shell fetches the bytes and hands EmulatorJS
 // a File. `iaExternalDownload` marks a disc-sized collection. Those stay on
-// the download-then-load handoff unless `iaAllowInBrowser` is also set (PS1),
+// the download-then-load handoff unless `iaAllowInBrowser` is also set (PS1, PSP),
 // in which case Play in browser is best-effort and Download instead remains.
+// `iaInBrowserMaxMB` sends a game bigger than that straight to the download
+// handoff, because the CORS proxies cannot carry it.
 (function () {
   'use strict';
 
@@ -602,6 +606,69 @@
         { label: '△ Triangle', key: 'W' },
         { label: 'L1 / R1', key: 'Q / E' },
         { label: 'L2 / R2', key: 'R / F' },
+        { label: 'Select', key: 'V' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
+    psp: {
+      id: 'psp',
+      title: 'PSP',
+      subtitle: 'PlayStation Portable',
+      emoji: '🎮',
+      // EmulatorJS core: ppsspp. The only core in the shell with no
+      // single-thread build (`requireThreads` in the EmulatorJS cores list),
+      // so launch.js refuses to boot it without cross-origin isolation.
+      ejsCore: 'psp',
+      requiresThreads: true,
+      // UMD dumps. EmulatorJS lists .elf / .prx too; those are homebrew.
+      fileAccept: '.iso,.cso,.pbp',
+      fileExtsLabel: '.iso / .cso / .pbp',
+      seoDescription:
+        'Browser PSP emulator. Pick a game from the PSP preservation collection on Internet Archive and play it in the page, or download a .cso and load it here. No BIOS to hunt down; saves and save states stay on this device. Needs a desktop browser with SharedArrayBuffer. Powered by EmulatorJS and PPSSPP.',
+      // Slate — the PSP's piano-black case, clear of PS1 blue and Neo Geo yellow.
+      accentHex: '#475569',
+      accentGoldHex: '#1e293b',
+      // Public flat .cso set. The Redump US item (PSP_US_Arquivista) is
+      // access-restricted: its download links 401 unless you are logged in.
+      iaBaseUrl: 'https://archive.org/download/psp-preservation-collection',
+      iaThumbnailSystems: ['Sony - PlayStation Portable'],
+      // libretro has art only for retail UMDs; the Minis and PSN titles in
+      // this set (about two-thirds) get a drawn stand-in instead.
+      artPlaceholder: true,
+      iaDescriptionPrefix: 'PSP game',
+      iaFileExtensions: ['.cso'],
+      iaPreferMetadata: true,
+      // Median game is about 30 MB, but a fifth run 200 MB to 1.6 GB. The
+      // free CORS proxies cap or stall on big bodies (measured: 3 MB is
+      // instant, 32 MB takes about a minute, and anything past 6 MB only
+      // gets through one slow proxy), so games over iaInBrowserMaxMB go
+      // straight to the download handoff instead of hanging on the loader.
+      iaExternalDownload: true,
+      iaAllowInBrowser: true,
+      iaInBrowserMaxMB: 64,
+      iaBinaryTimeout: 300000,
+      iaMaxRetries: 1,
+      howto: [
+        'Tap a game, then Play in browser. Games up to 64 MB load in the page; a 30 MB game takes about a minute.',
+        'Bigger games show Download from Internet Archive. Save the .cso, then load it here.',
+        'PSP needs threads: use desktop Chrome, Edge, or Firefox. It will not start on a plain localhost server.',
+        'A touchscreen gets on-screen buttons and an analog stick. Dragging on the game screen also pushes the stick, which is how you aim a slingshot; a quick tap presses ×. A gamepad works too.'
+      ],
+      romHelp:
+        'Play in browser works for games up to 64 MB and can take a minute or more. Bigger games download from Internet Archive; load the saved .cso here. Lighter 2D and early 3D games run best.',
+      showSaveStates: true,
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: '× Cross', key: 'X' },
+        { label: '○ Circle', key: 'S' },
+        { label: '□ Square', key: 'A' },
+        { label: '△ Triangle', key: 'W' },
+        { label: 'L / R', key: 'Q / E' },
+        { label: 'Analog', key: 'On-screen stick, gamepad, or drag on the screen' },
+        { label: 'Tap screen', key: 'Presses ×' },
         { label: 'Select', key: 'V' },
         { label: 'Start', key: 'Enter' },
         { label: 'Save state', key: 'F5' },

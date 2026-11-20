@@ -437,6 +437,44 @@ class RomBrowserElement extends HTMLElement {
            fetch still runs: loading=lazy plus display:none never starts.
            The frame keeps the grid aligned while the file is in flight. */
         .rom-art[hidden] { display: none !important; }
+        /* Missing box art: a disc-label stand-in in the console accent. */
+        .rom-art-placeholder {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          height: 100%;
+          padding: 10px;
+          box-sizing: border-box;
+          text-align: center;
+          background:
+            radial-gradient(circle at 50% 50%, transparent 18%, var(--accent-bright-soft) 19%),
+            linear-gradient(160deg, var(--surface-1, #1e293b), var(--surface-0));
+          border: 1px solid var(--accent-bright-soft);
+          border-radius: 8px;
+        }
+        .rom-art-placeholder[hidden] { display: none !important; }
+        .rom-art-placeholder-badge {
+          align-self: center;
+          padding: 1px 8px;
+          border-radius: 999px;
+          background: var(--accent-bright);
+          color: var(--text-on-accent, #fff);
+          font-size: 0.65rem;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+        }
+        .rom-art-placeholder-title {
+          color: var(--text-1);
+          font-size: 0.78rem;
+          font-weight: 700;
+          line-height: 1.2;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
         .rom-resume {
           align-self: flex-start;
           margin: 0 0 6px;
@@ -878,6 +916,27 @@ class RomBrowserElement extends HTMLElement {
   }
 
   /**
+   * Stand-in cover for a game with no box art: the console badge over the
+   * title. Shown while art loads and kept if every URL misses.
+   * @param {string} title
+   * @returns {HTMLDivElement}
+   */
+  _artPlaceholder(title) {
+    const cfg = this.consoleConfig || {};
+    const box = document.createElement('div');
+    box.className = 'rom-art-placeholder';
+    box.setAttribute('aria-hidden', 'true');
+    const badge = document.createElement('span');
+    badge.className = 'rom-art-placeholder-badge';
+    badge.textContent = cfg.title || '';
+    const name = document.createElement('span');
+    name.className = 'rom-art-placeholder-title';
+    name.textContent = title;
+    box.append(badge, name);
+    return box;
+  }
+
+  /**
    * Hidden box-art image for this ROM. Stays out of the card until it loads.
    * A 404 advances to the next playlist. When every URL misses, a quick-save
    * screenshot stands in for the box.
@@ -895,7 +954,11 @@ class RomBrowserElement extends HTMLElement {
         : acquire.thumbnailUrls);
     const fallback = resolve ? resolve(systems, rom && rom.name) : [];
     const direct = rom && typeof rom.thumbnailUrl === 'string' ? rom.thumbnailUrl : '';
-    const urls = direct ? [direct].concat(fallback.filter((url) => url !== direct)) : fallback;
+    const ordered = direct ? [direct].concat(fallback.filter((url) => url !== direct)) : fallback;
+    const urls =
+      acquire && typeof acquire.withThumbnailMirrors === 'function'
+        ? acquire.withThumbnailMirrors(ordered)
+        : ordered;
     const savedShot = typeof shot === 'string' && shot.startsWith('data:image/') ? shot : '';
     if (!urls.length && !savedShot) return null;
 
@@ -1023,6 +1086,15 @@ class RomBrowserElement extends HTMLElement {
       frame.className = 'rom-art-frame';
       const art = this._romArt(rom, saved && saved.shot);
       if (art) frame.appendChild(art);
+      if (this.consoleConfig && this.consoleConfig.artPlaceholder) {
+        const placeholder = this._artPlaceholder(parts.name || fullTitle);
+        frame.appendChild(placeholder);
+        if (art) {
+          art.addEventListener('load', () => {
+            placeholder.hidden = true;
+          });
+        }
+      }
       romCard.prepend(frame);
       if (saved) {
         const badge = document.createElement('div');
@@ -1107,6 +1179,10 @@ class RomBrowserElement extends HTMLElement {
       this.showExternalDownload(rom, restoreList);
       return;
     }
+    if (cfg && this._tooBigForBrowser(rom)) {
+      this.showExternalDownload(rom, restoreList, { tooBigForBrowser: true });
+      return;
+    }
 
     if (this._romLoadController) this._romLoadController.abort();
     const controller = new AbortController();
@@ -1135,7 +1211,25 @@ class RomBrowserElement extends HTMLElement {
         throw new Error('ROM source unavailable.');
       }
 
-      const romData = await ia.loadRom(rom, { signal: controller.signal });
+      // The proxy gives no byte progress, so show elapsed time. Without it a
+      // 30 MB game looks frozen for the minute the proxy needs.
+      const statusEl = contentArea && contentArea.querySelector('.rom-crt-status');
+      const startedAt = Date.now();
+      const ticker = statusEl
+        ? setInterval(() => {
+            const secs = Math.floor((Date.now() - startedAt) / 1000);
+            if (secs < 5) return;
+            const mins = Math.floor(secs / 60);
+            const clock = `${mins}:${String(secs % 60).padStart(2, '0')}`;
+            statusEl.textContent = `Reading cartridge… ${clock}. Big games can take a few minutes.`;
+          }, 1000)
+        : 0;
+      let romData;
+      try {
+        romData = await ia.loadRom(rom, { signal: controller.signal });
+      } finally {
+        if (ticker) clearInterval(ticker);
+      }
       if (controller.signal.aborted) return;
 
       // Wrap in a File so EmulatorJS sees a real filename — libretro cores
@@ -1197,12 +1291,19 @@ class RomBrowserElement extends HTMLElement {
     }
   }
 
+  /** True when the console caps in-page play and this game's size label is over it. */
+  _tooBigForBrowser(rom) {
+    const acquire = window.emulatorRomAcquire;
+    return !!(acquire && acquire.exceedsInBrowserLimit(this.consoleConfig, rom));
+  }
+
   /** Hand the user the Archive URL, then offer the local file picker. */
-  showExternalDownload(rom, restoreList) {
+  showExternalDownload(rom, restoreList, opts) {
     const contentArea = this.shadowRoot.getElementById('contentArea');
     if (!contentArea) return;
 
     const cfg = this.consoleConfig;
+    const tooBig = !!(opts && opts.tooBigForBrowser);
     const isDisc = !!(cfg && cfg.iaExternalDownload);
     const sizeLabel =
       rom.size && rom.size !== 'Unknown'
@@ -1211,7 +1312,9 @@ class RomBrowserElement extends HTMLElement {
         ? 'often 100–500+ MB'
         : 'size unavailable';
     const href = rom.downloadUrl || '#';
-    const explanation = isDisc
+    const explanation = tooBig
+      ? `This game is over ${cfg.iaInBrowserMaxMB} MB, too big to load in the page. Download it from Internet Archive in a new tab, then load the saved file here.`
+      : isDisc
       ? `${this._escapeHtml(
           cfg.title
         )} discs are too large to load in the page. Download from Internet Archive in a new tab, then load the saved file here. Chromebooks with little disk space may not have room.`

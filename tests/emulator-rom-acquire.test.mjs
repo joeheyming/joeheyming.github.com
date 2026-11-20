@@ -119,6 +119,61 @@ describe('emulator thumbnailUrls', () => {
   });
 });
 
+describe('emulator thumbnail mirrors', () => {
+  it('maps a thumbnail-host URL to the same file in the playlist Git repo', () => {
+    assert.equal(
+      acquire.thumbnailMirrorUrl(
+        'https://thumbnails.libretro.com/Sony%20-%20PlayStation%20Portable/Named_Snaps/2010%20FIFA%20(USA).png'
+      ),
+      'https://raw.githubusercontent.com/libretro-thumbnails/Sony_-_PlayStation_Portable/master/Named_Snaps/2010%20FIFA%20(USA).png'
+    );
+  });
+
+  it('leaves other hosts and malformed paths alone', () => {
+    assert.equal(acquire.thumbnailMirrorUrl('https://example.test/a.png'), '');
+    assert.equal(
+      acquire.thumbnailMirrorUrl('https://thumbnails.libretro.com/Named_Boxarts/a.png'),
+      ''
+    );
+    assert.equal(acquire.thumbnailMirrorUrl('data:image/png;base64,aaaa'), '');
+  });
+
+  it('puts each mirror right after its source URL', () => {
+    const host = 'https://thumbnails.libretro.com/Sega%20-%2032X/Named_Boxarts/Doom.png';
+    assert.deepEqual(
+      [...acquire.withThumbnailMirrors(['https://example.test/a.png', host, host])],
+      [
+        'https://example.test/a.png',
+        host,
+        'https://raw.githubusercontent.com/libretro-thumbnails/Sega_-_32X/master/Named_Boxarts/Doom.png'
+      ]
+    );
+  });
+});
+
+describe('emulator exceedsInBrowserLimit', () => {
+  const cfg = { iaInBrowserMaxMB: 64 };
+
+  it('sends games over the cap to the download handoff', () => {
+    assert.equal(acquire.exceedsInBrowserLimit(cfg, { size: '86.1 MB' }), true);
+    assert.equal(acquire.exceedsInBrowserLimit(cfg, { size: '1.6 GB' }), true);
+    assert.equal(acquire.exceedsInBrowserLimit(cfg, { size: '70000 KB' }), true);
+  });
+
+  it('keeps games at or under the cap in the page', () => {
+    assert.equal(acquire.exceedsInBrowserLimit(cfg, { size: '32.0 MB' }), false);
+    assert.equal(acquire.exceedsInBrowserLimit(cfg, { size: '64 MB' }), false);
+    assert.equal(acquire.exceedsInBrowserLimit(cfg, { size: '900 KB' }), false);
+  });
+
+  it('tries unknown sizes, and consoles with no cap', () => {
+    assert.equal(acquire.exceedsInBrowserLimit(cfg, { size: 'Unknown' }), false);
+    assert.equal(acquire.exceedsInBrowserLimit(cfg, {}), false);
+    assert.equal(acquire.exceedsInBrowserLimit({}, { size: '1.6 GB' }), false);
+    assert.equal(acquire.exceedsInBrowserLimit(null, { size: '1.6 GB' }), false);
+  });
+});
+
 describe('emulator pickThumbnailName', () => {
   const names = [
     'Legend of Zelda, The (USA)',

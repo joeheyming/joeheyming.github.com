@@ -102,6 +102,9 @@
     // a missing SharedArrayBuffer constructor.
     if (!window.crossOriginIsolated) {
       window.EJS_threads = false;
+    } else if (cfg.requiresThreads) {
+      // PPSSPP has no single-thread build, so the opt-in is not optional.
+      window.EJS_threads = true;
     }
     // EJS_color wants a string; pull from the computed accent so a
     // future identity tweak only has to touch consoles.js.
@@ -117,6 +120,17 @@
     window.EJS_defaultOptions = Object.assign({}, window.EJS_defaultOptions, {
       'save-state-location': 'browser'
     });
+    // EmulatorJS has no PSP on-screen layout, so a touch falls through to a
+    // SNES pad with no analog stick. Supply the PSP one, and show it when
+    // this device actually has a touchscreen. A saved "disabled" still wins,
+    // because loadSettings runs after these defaults.
+    if (isPsp(cfg)) {
+      window.EJS_VirtualGamepadSettings = pspTouchControls();
+      if (deviceHasTouch()) window.EJS_defaultOptions['virtual-gamepad'] = 'enabled';
+    } else {
+      delete window.EJS_VirtualGamepadSettings;
+      delete window.EJS_defaultOptions['virtual-gamepad'];
+    }
 
     if (cfg.biosRequired && opts.biosFile) {
       // Same shape as EJS_gameUrl (File). EmulatorJS reads .name so the
@@ -145,6 +159,12 @@
     // finger as a click would fire those by accident.
     if (cfg.id === 'nds' || cfg.ejsCore === 'nds') {
       installNdsStylus();
+    }
+    // The PSP on-screen pad listens for touch events. A Windows touchscreen
+    // often sends only pointer events, so replay a finger or pen as touch.
+    if (isPsp(cfg)) {
+      installPspTouch();
+      installPspDragAim();
     }
 
     const script = document.createElement('script');
@@ -510,6 +530,348 @@
     tryAttach();
   }
 
+  function isPsp(cfg) {
+    return !!(cfg && (cfg.id === 'psp' || cfg.ejsCore === 'psp'));
+  }
+
+  function deviceHasTouch() {
+    const nav = typeof navigator === 'undefined' ? null : navigator;
+    if (nav && Number(nav.maxTouchPoints) > 0) return true;
+    return typeof window !== 'undefined' && 'ontouchstart' in window;
+  }
+
+  /**
+   * On-screen PSP pad. Indexes match EmulatorJS's own PSP control scheme:
+   * 0 cross, 8 circle, 1 square, 9 triangle, 16–19 the analog stick.
+   * @returns {object[]}
+   */
+  function pspTouchControls() {
+    return [
+      {
+        type: 'button',
+        text: '△',
+        id: 'triangle',
+        location: 'right',
+        left: 40,
+        top: 0,
+        bold: true,
+        input_value: 9
+      },
+      {
+        type: 'button',
+        text: '○',
+        id: 'circle',
+        location: 'right',
+        left: 81,
+        top: 40,
+        bold: true,
+        input_value: 8
+      },
+      {
+        type: 'button',
+        text: '×',
+        id: 'cross',
+        location: 'right',
+        left: 40,
+        top: 80,
+        bold: true,
+        input_value: 0
+      },
+      {
+        type: 'button',
+        text: '□',
+        id: 'square',
+        location: 'right',
+        left: 0,
+        top: 40,
+        bold: true,
+        input_value: 1
+      },
+      {
+        type: 'zone',
+        id: 'stick',
+        location: 'left',
+        left: '50%',
+        top: '100%',
+        joystickInput: true,
+        inputValues: [16, 17, 18, 19]
+      },
+      {
+        type: 'dpad',
+        id: 'dpad',
+        location: 'left',
+        left: '50%',
+        top: '0%',
+        joystickInput: false,
+        inputValues: [4, 5, 6, 7]
+      },
+      {
+        type: 'button',
+        text: 'L',
+        id: 'l',
+        location: 'left',
+        left: 3,
+        top: -90,
+        bold: true,
+        block: true,
+        input_value: 10
+      },
+      {
+        type: 'button',
+        text: 'R',
+        id: 'r',
+        location: 'right',
+        right: 3,
+        top: -90,
+        bold: true,
+        block: true,
+        input_value: 11
+      },
+      {
+        type: 'button',
+        text: 'Select',
+        id: 'select',
+        location: 'center',
+        left: -5,
+        fontSize: 15,
+        block: true,
+        input_value: 2
+      },
+      {
+        type: 'button',
+        text: 'Start',
+        id: 'start',
+        location: 'center',
+        left: 60,
+        fontSize: 15,
+        block: true,
+        input_value: 3
+      }
+    ];
+  }
+
+  /**
+   * Replay a finger or pen as the touch events the on-screen PSP pad listens
+   * for. Chrome already emits both, so a real touch event suppresses this.
+   * @param {Document} [doc]
+   * @returns {boolean}
+   */
+  function installPspTouch(doc) {
+    const root = doc || document;
+    const game = root.getElementById('game');
+    const view = root.defaultView || window;
+    if (!game || game.dataset.pspTouch === 'on') return false;
+    game.dataset.pspTouch = 'on';
+    game.style.touchAction = 'none';
+
+    const synthetic = new WeakSet();
+    let nativeTouch = false;
+    const active = new Set();
+
+    // Desktop Firefox has no TouchEvent. The pad only reads targetTouches
+    // and the event type, so a plain Event with those fields is enough.
+    function touchPoint(ev) {
+      const point = {
+        identifier: ev.pointerId,
+        target: ev.target,
+        clientX: ev.clientX,
+        clientY: ev.clientY,
+        screenX: ev.screenX,
+        screenY: ev.screenY,
+        pageX: ev.pageX,
+        pageY: ev.pageY
+      };
+      if (typeof view.Touch !== 'function') return point;
+      try {
+        return new view.Touch(point);
+      } catch (err) {
+        return point;
+      }
+    }
+
+    function dispatchTouch(type, ev) {
+      const ended = type === 'touchend' || type === 'touchcancel';
+      const touches = ended ? [] : [touchPoint(ev)];
+      const changed = [touchPoint(ev)];
+      let te;
+      if (typeof view.TouchEvent === 'function') {
+        try {
+          te = new view.TouchEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            touches: touches,
+            targetTouches: touches,
+            changedTouches: changed
+          });
+        } catch (err) {
+          te = null;
+        }
+      }
+      if (!te) {
+        te = new view.Event(type, { bubbles: true, cancelable: true });
+        te.touches = touches;
+        te.targetTouches = touches;
+        te.changedTouches = changed;
+      }
+      synthetic.add(te);
+      ev.target.dispatchEvent(te);
+    }
+
+    function noteNative(ev) {
+      if (synthetic.has(ev)) return;
+      nativeTouch = ev.type !== 'touchend' && ev.type !== 'touchcancel';
+    }
+
+    function begin(ev) {
+      if (nativeTouch) return;
+      if (ev.pointerType !== 'touch' && ev.pointerType !== 'pen') return;
+      active.add(ev.pointerId);
+      if (ev.cancelable) ev.preventDefault();
+      dispatchTouch('touchstart', ev);
+    }
+
+    function move(ev) {
+      if (!active.has(ev.pointerId)) return;
+      if (ev.cancelable) ev.preventDefault();
+      dispatchTouch('touchmove', ev);
+    }
+
+    function end(ev) {
+      if (!active.has(ev.pointerId)) return;
+      active.delete(ev.pointerId);
+      if (ev.cancelable) ev.preventDefault();
+      dispatchTouch(ev.type === 'pointercancel' ? 'touchcancel' : 'touchend', ev);
+    }
+
+    game.addEventListener('touchstart', noteNative, true);
+    game.addEventListener('touchmove', noteNative, true);
+    game.addEventListener('touchend', noteNative, true);
+    game.addEventListener('touchcancel', noteNative, true);
+    game.addEventListener('pointerdown', begin, { capture: true, passive: false });
+    game.addEventListener('pointermove', move, { capture: true, passive: false });
+    game.addEventListener('pointerup', end, { capture: true, passive: false });
+    game.addEventListener('pointercancel', end, { capture: true, passive: false });
+    return true;
+  }
+
+  // Full stick deflection after this many pixels of drag.
+  const PSP_DRAG_RADIUS = 90;
+  // Less movement than this on release is a tap, not a drag.
+  const PSP_TAP_SLOP = 12;
+  const PSP_TAP_MS = 500;
+  // Input indexes in EmulatorJS's PSP scheme: left stick right, left, down, up; Cross.
+  const PSP_STICK = { right: 16, left: 17, down: 18, up: 19 };
+  const PSP_CROSS = 0;
+  const STICK_MAX = 0x7fff;
+
+  /**
+   * PPSSPP's libretro core reads only the joypad and sticks, never a
+   * pointer, so a finger on the game screen goes nowhere. Games built around
+   * dragging (Angry Birds' slingshot) read the stick instead. Turn a drag on
+   * the screen into stick deflection from where the finger landed, and a
+   * quick tap into Cross.
+   * @param {Document} [doc]
+   * @returns {boolean}
+   */
+  function installPspDragAim(doc) {
+    const root = doc || document;
+    const game = root.getElementById('game');
+    const view = root.defaultView || window;
+    if (!game || game.dataset.pspDrag === 'on') return false;
+    game.dataset.pspDrag = 'on';
+    game.style.touchAction = 'none';
+
+    let activeId = null;
+    let startX = 0;
+    let startY = 0;
+    let startedAt = 0;
+    let travelled = 0;
+
+    function manager() {
+      const emu = view.EJS_emulator;
+      return emu && emu.gameManager && typeof emu.gameManager.simulateInput === 'function'
+        ? emu.gameManager
+        : null;
+    }
+
+    function send(index, value) {
+      const gm = manager();
+      if (gm) gm.simulateInput(0, index, value);
+    }
+
+    // The game canvas, or the wrapper under it once EmulatorJS turns the
+    // canvas pointer-events: none for its on-screen pad. Buttons, the pad,
+    // and the menu bar are inside #game too and must keep their own taps.
+    function onSurface(ev) {
+      const target = ev.target;
+      if (!target || !target.classList) return false;
+      if (target === game || target.tagName === 'CANVAS') return true;
+      return target.classList.contains('ejs_canvas_parent');
+    }
+
+    function aim(ev) {
+      const dx = (ev.clientX - startX) / PSP_DRAG_RADIUS;
+      const dy = (ev.clientY - startY) / PSP_DRAG_RADIUS;
+      const x = Math.max(-1, Math.min(1, dx));
+      const y = Math.max(-1, Math.min(1, dy));
+      send(PSP_STICK.right, x > 0 ? Math.round(STICK_MAX * x) : 0);
+      send(PSP_STICK.left, x < 0 ? Math.round(STICK_MAX * -x) : 0);
+      send(PSP_STICK.down, y > 0 ? Math.round(STICK_MAX * y) : 0);
+      send(PSP_STICK.up, y < 0 ? Math.round(STICK_MAX * -y) : 0);
+      travelled = Math.max(travelled, Math.hypot(ev.clientX - startX, ev.clientY - startY));
+    }
+
+    function release() {
+      send(PSP_STICK.right, 0);
+      send(PSP_STICK.left, 0);
+      send(PSP_STICK.down, 0);
+      send(PSP_STICK.up, 0);
+    }
+
+    function begin(ev) {
+      if (activeId !== null || !onSurface(ev)) return;
+      if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+      activeId = ev.pointerId;
+      startX = ev.clientX;
+      startY = ev.clientY;
+      startedAt = Date.now();
+      travelled = 0;
+      if (ev.cancelable) ev.preventDefault();
+      const cap = ev.target;
+      if (cap && typeof cap.setPointerCapture === 'function') {
+        try {
+          cap.setPointerCapture(ev.pointerId);
+        } catch (err) {
+          // Moves still arrive on #game when capture is refused.
+        }
+      }
+    }
+
+    function move(ev) {
+      if (ev.pointerId !== activeId) return;
+      if (ev.cancelable) ev.preventDefault();
+      aim(ev);
+    }
+
+    function end(ev) {
+      if (ev.pointerId !== activeId) return;
+      activeId = null;
+      if (ev.cancelable) ev.preventDefault();
+      release();
+      const quick = Date.now() - startedAt <= PSP_TAP_MS;
+      if (ev.type === 'pointerup' && quick && travelled < PSP_TAP_SLOP) {
+        send(PSP_CROSS, 1);
+        view.setTimeout(() => send(PSP_CROSS, 0), 80);
+      }
+    }
+
+    game.addEventListener('pointerdown', begin, { capture: true, passive: false });
+    game.addEventListener('pointermove', move, { capture: true, passive: false });
+    game.addEventListener('pointerup', end, { capture: true, passive: false });
+    game.addEventListener('pointercancel', end, { capture: true, passive: false });
+    return true;
+  }
+
   /**
    * melonDS reads the stylus from RetroArch's mouse device. A trackpad
    * produces mouse events, so it already works. A Windows touchscreen
@@ -639,6 +1001,9 @@
     saveQuickState,
     loadQuickState,
     onSaveHotkey,
-    installNdsStylus
+    installNdsStylus,
+    installPspTouch,
+    installPspDragAim,
+    pspTouchControls
   };
 })();
