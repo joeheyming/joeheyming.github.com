@@ -1405,6 +1405,9 @@ const SNAPSHOT_REFRESH_MS = 60000;
 let connStatus = 'init';
 
 async function poll() {
+  // The OG-preview hook freezes the bitmap on a drawn heart. A poll
+  // that is already in flight must not paint the live snapshot over it.
+  if (window.cbPreviewHold) return;
   if (polling) return;
   polling = true;
   connStatus = 'syncing';
@@ -1418,6 +1421,7 @@ async function poll() {
     const deltaPromise = fetchTab(CONFIG.responsesTab);
     const snapPromise = wantSnapshot ? fetchTab(CONFIG.snapshotTab) : Promise.resolve(null);
     const [delta, snapRows] = await Promise.all([deltaPromise, snapPromise]);
+    if (window.cbPreviewHold) return;
     if (wantSnapshot) {
       applySnapshot(snapRows || []);
       lastSnapshotFetchAt = now;
@@ -1433,7 +1437,7 @@ async function poll() {
     console.warn('[checkboxes] poll failed', err);
   } finally {
     polling = false;
-    updateStatus();
+    if (!window.cbPreviewHold) updateStatus();
   }
 }
 

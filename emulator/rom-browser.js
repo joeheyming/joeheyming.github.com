@@ -1086,14 +1086,14 @@ class RomBrowserElement extends HTMLElement {
       frame.className = 'rom-art-frame';
       const art = this._romArt(rom, saved && saved.shot);
       if (art) frame.appendChild(art);
-      if (this.consoleConfig && this.consoleConfig.artPlaceholder) {
-        const placeholder = this._artPlaceholder(parts.name || fullTitle);
-        frame.appendChild(placeholder);
-        if (art) {
-          art.addEventListener('load', () => {
-            placeholder.hidden = true;
-          });
-        }
+      // Every console gets a stand-in. Box art hides it once a URL loads;
+      // a miss (BIOS dumps, 404s) keeps the title on the card.
+      const placeholder = this._artPlaceholder(parts.name || fullTitle);
+      frame.appendChild(placeholder);
+      if (art) {
+        art.addEventListener('load', () => {
+          placeholder.hidden = true;
+        });
       }
       romCard.prepend(frame);
       if (saved) {

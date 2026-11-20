@@ -164,6 +164,91 @@ function getCoverUrl(book) {
   );
 }
 
+function coverPlaceholder(emoji) {
+  const el = document.createElement('div');
+  el.className = 'book-cover-placeholder';
+  el.textContent = emoji;
+  return el;
+}
+
+/** @type {Map<string, Promise<string|null>>} */
+const openLibraryCovers = new Map();
+
+function openLibraryCover(title, author) {
+  const key = `${title}\n${author}`;
+  const cached = openLibraryCovers.get(key);
+  if (cached) return cached;
+  const pending = fetchOpenLibraryCover(title, author);
+  openLibraryCovers.set(key, pending);
+  return pending;
+}
+
+async function fetchOpenLibraryCover(title, author) {
+  const params = new URLSearchParams({
+    title: title || '',
+    fields: 'cover_i',
+    limit: '1'
+  });
+  if (author && author !== 'Unknown') params.set('author', author);
+  try {
+    const res = await fetch(`https://openlibrary.org/search.json?${params}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const docs = data && Array.isArray(data.docs) ? data.docs : [];
+    const first = docs[0];
+    const id = first && typeof first === 'object' ? first.cover_i : null;
+    return typeof id === 'number' ? `https://covers.openlibrary.org/b/id/${id}-L.jpg` : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Gutenberg's cover host 503s often enough that a card would otherwise
+ * be an empty rectangle. Try that URL first, then Open Library, then
+ * the emoji stand-in.
+ * @param {HTMLElement} parent
+ * @param {string|null} url
+ * @param {string} fallback
+ * @param {() => Promise<string|null>} lookup
+ */
+function mountCover(parent, url, fallback, lookup) {
+  parent.replaceChildren();
+  if (!url) {
+    parent.appendChild(coverPlaceholder(fallback));
+    return;
+  }
+  const img = document.createElement('img');
+  img.alt = '';
+  img.decoding = 'async';
+  img.addEventListener('error', () => {
+    onCoverError(img, fallback, lookup);
+  });
+  img.src = url;
+  parent.appendChild(img);
+}
+
+async function onCoverError(img, fallback, lookup) {
+  if (!img.isConnected) return;
+  if (img.dataset.triedFallback === '1') {
+    img.replaceWith(coverPlaceholder(fallback));
+    return;
+  }
+  img.dataset.triedFallback = '1';
+  let next = null;
+  try {
+    next = await lookup();
+  } catch {
+    next = null;
+  }
+  if (!img.isConnected) return;
+  if (next && next !== img.src) {
+    img.src = next;
+    return;
+  }
+  img.replaceWith(coverPlaceholder(fallback));
+}
+
 function showToast(msg, type = 'info') {
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
@@ -184,19 +269,17 @@ function createBookCard(book) {
   const lang = book.languages?.join(', ') || '';
 
   card.innerHTML = `
-    <div class="book-cover" aria-hidden="true">
-      ${
-        cover
-          ? `<img src="${cover}" alt="" loading="lazy" onerror="this.style.display='none'">`
-          : `<div class="book-cover-placeholder">📚</div>`
-      }
-    </div>
+    <div class="book-cover" aria-hidden="true"></div>
     <div class="book-info">
       <p class="book-title">${escapeHtml(book.title)}</p>
       <p class="book-author">${escapeHtml(author)}</p>
       ${lang ? `<p class="book-meta">${escapeHtml(lang.toUpperCase())}</p>` : ''}
     </div>
   `;
+  const coverEl = card.querySelector('.book-cover');
+  if (coverEl instanceof HTMLElement) {
+    mountCover(coverEl, cover, '📚', () => openLibraryCover(book.title || '', author));
+  }
 
   card.addEventListener('click', () => openBook(book));
 
@@ -268,19 +351,20 @@ function renderShelf() {
     card.setAttribute('aria-keyshortcuts', 'Delete Backspace');
 
     card.innerHTML = `
-      <div class="book-cover" aria-hidden="true">
-        ${
-          entry.coverUrl
-            ? `<img src="${entry.coverUrl}" alt="" loading="lazy" onerror="this.style.display='none'">`
-            : `<div class="book-cover-placeholder">${entry.local ? '📄' : '📚'}</div>`
-        }
-      </div>
+      <div class="book-cover" aria-hidden="true"></div>
       <div class="book-info">
         <p class="book-title">${escapeHtml(entry.title)}</p>
         <p class="book-author">${escapeHtml(entry.author)}</p>
         <p class="book-meta">Resume reading</p>
       </div>
     `;
+    const shelfCover = card.querySelector('.book-cover');
+    if (shelfCover instanceof HTMLElement) {
+      const emoji = entry.local ? '📄' : '📚';
+      mountCover(shelfCover, entry.coverUrl || null, emoji, () =>
+        entry.local ? Promise.resolve(null) : openLibraryCover(entry.title, entry.author)
+      );
+    }
 
     const remove = document.createElement('button');
     remove.type = 'button';

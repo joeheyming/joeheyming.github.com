@@ -198,9 +198,12 @@ describe('rom-browser hands off downloads instead of loading ROMs', () => {
     assert.equal(placeholder.hidden, true);
   });
 
-  it('keeps cards without the flag free of placeholders', async () => {
+  it('draws a titled placeholder on every console when box art is missing', async () => {
     const el = await mountBrowser(NES_CFG);
-    assert.equal(el.shadowRoot.querySelector('.rom-art-placeholder'), null);
+    const placeholder = el.shadowRoot.querySelector('.rom-art-placeholder');
+    assert.ok(placeholder);
+    assert.equal(placeholder.hidden, false);
+    assert.equal(placeholder.querySelector('.rom-art-placeholder-badge').textContent, 'NES');
   });
 
   it('paints the collection inline and leaves Backspace to the search field', async () => {

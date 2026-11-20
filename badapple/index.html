@@ -1161,6 +1161,11 @@
       // Initialize time display
       audio.addEventListener('loadedmetadata', updateProgress);
       updateProgress();
+
+      // The preview generator seeks to a frame and paints it. These stay
+      // off the page's own controls.
+      window.loadFrame = loadFrame;
+      window.paintFrame = paintFrame;
     </script>
 
     <!-- SEO content footer. Marked .seo-intro + hidden so it stays in the

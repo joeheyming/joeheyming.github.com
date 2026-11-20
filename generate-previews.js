@@ -312,29 +312,31 @@ const PAGES = [
     url: `${BASE_URL}/badapple/`,
     output: 'badapple/badapple-preview.png',
     title: 'Bad Apple ASCII',
-    // Default capture shows the player chrome with no animation
-    // frame rendered. Seek paused to ~45s where the silhouette is
-    // clear and recognizable so the preview shows the actual art.
+    // Default capture is an empty player. Seek paused to ~8s, the shot
+    // of the woman holding the apple, and paint it through the canvas
+    // renderer. Writing the frame text into #frame-display would remove
+    // the canvas and show a blob of glyphs instead of the picture.
     setup: async (page) => {
       await page.evaluate(async () => {
-        const SEC = 45;
+        const SEC = 8;
         const FRAME_RATE = 30;
         const audio = /** @type {HTMLAudioElement | null} */ (document.getElementById('audio'));
         if (audio) {
           audio.pause();
-          audio.currentTime = SEC;
+          try {
+            audio.currentTime = SEC;
+          } catch {
+            // Metadata may still be loading; the painted frame is what matters.
+          }
         }
         const frameNum = Math.floor(SEC * FRAME_RATE) + 1;
-        try {
-          const res = await fetch(`frame/${frameNum}.html`);
-          const html = await res.text();
-          const m = html.match(/<pre>\s*([\s\S]*?)\s*<\/pre>/);
-          const target = document.getElementById('frame-display');
-          const text =
-            m && typeof decodeBadAppleFrame === 'function' ? decodeBadAppleFrame(m[1]) : m && m[1];
-          if (text && target) target.textContent = text;
-        } catch {
-          // network blip — leave the frame blank rather than crash
+        const pageWindow = /** @type {any} */ (window);
+        if (
+          typeof pageWindow.loadFrame === 'function' &&
+          typeof pageWindow.paintFrame === 'function'
+        ) {
+          const text = await pageWindow.loadFrame(frameNum);
+          if (text) pageWindow.paintFrame(text);
         }
         const duration = (audio && audio.duration) || 6572 / FRAME_RATE;
         const pct = (SEC / duration) * 100;
@@ -726,7 +728,27 @@ const PAGES = [
   {
     url: `${BASE_URL}/read/`,
     output: 'read/read-preview.png',
-    title: 'Read'
+    title: 'Read',
+    // Gutenberg cover hosts often 503. The page then asks Open Library.
+    // Wait until the first row has a real cover or has given up, so the
+    // shot is not a row of empty rectangles.
+    setup: async (page) => {
+      await page.waitForSelector('#featured-grid .book-card', { timeout: 15000 }).catch(() => {});
+      await page
+        .waitForFunction(
+          () => {
+            const covers = document.querySelectorAll('#featured-grid .book-cover');
+            if (covers.length < 4) return false;
+            return [...covers].slice(0, 5).every((cover) => {
+              const img = cover.querySelector('img');
+              if (img instanceof HTMLImageElement) return img.complete && img.naturalWidth > 0;
+              return !!cover.querySelector('.book-cover-placeholder');
+            });
+          },
+          { timeout: 20000 }
+        )
+        .catch(() => {});
+    }
   },
   {
     url: `${BASE_URL}/chat/`,
@@ -1024,10 +1046,15 @@ const PAGES = [
             el.className = 'tile';
             el.dataset.id = String(id++);
             el.dataset.value = String(v);
-            el.textContent = String(v);
+            // Color lives on .tile-inner. A number painted on .tile itself
+            // sits on the empty-cell background and every value looks the same.
+            const inner = document.createElement('div');
+            inner.className = 'tile-inner';
+            inner.textContent = String(v);
+            el.appendChild(inner);
             const x = `calc((var(--cell-size) + var(--gap)) * ${c})`;
             const y = `calc((var(--cell-size) + var(--gap)) * ${r})`;
-            el.style.transform = `translate(${x}, ${y})`;
+            el.style.transform = `translate3d(${x}, ${y}, 0)`;
             tiles.appendChild(el);
           }
         }
@@ -1158,9 +1185,13 @@ const PAGES = [
       await page.waitForTimeout(300);
       await page.evaluate(() => {
         const w = /** @type {any} */ (window);
+        // Freeze the live poll first. It would otherwise replace this
+        // drawing with the shared million-box bitmap before the shot.
+        w.cbPreviewHold = true;
         const state = /** @type {Uint8Array | undefined} */ (w.cbState);
         const repaint = /** @type {(() => void) | undefined} */ (w.cbPaintAll);
         if (!state || !repaint) return;
+        state.fill(0);
 
         // Reverse-engineer COLS from the grid container's inline width
         // (set in index.js as `COLS * PITCH` px, with PITCH=35).
@@ -1211,7 +1242,7 @@ const PAGES = [
         const HW = 32;
         const HH = heart.length;
         if (COLS >= HW) {
-          const startRow = 5;
+          const startRow = 1;
           const startCol = Math.floor((COLS - HW) / 2);
           for (let r = 0; r < HH; r++) {
             for (let c = 0; c < HW; c++) {
@@ -1474,6 +1505,20 @@ async function takeScreenshot(page, pageConfig) {
         console.warn(`   ⚠️  setup hook for ${pageConfig.title} threw: ${err.message}`);
       }
     }
+
+    // The 630px-tall shot is a short window. On that height the how-to
+    // sits in the crop and, on the theremin, the pad collapses to nothing
+    // so the instructions are the whole picture. Hide the essay and give
+    // the playing surface the viewport.
+    await page.addStyleTag({
+      content: [
+        '.instrument-help, .ah-help { display: none !important; }',
+        '.instrument-body { height: 100vh !important; overflow: hidden !important; }',
+        '.theremin-stage { flex: 1 1 auto !important; min-height: 280px !important; }',
+        '.theremin-pad { min-height: 280px !important; height: 100% !important; }'
+      ].join('\n')
+    });
+    await page.waitForTimeout(150);
 
     // Ensure output directory exists
     await ensureDirectoryExists(pageConfig.output);
