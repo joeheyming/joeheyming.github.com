@@ -343,8 +343,14 @@ async function launchEngine() {
   setStatus('Launching engine…');
 
   // Paint the status before uzdoom.js parses. That script is the long
-  // task that was landing on the first click's INP.
-  if (typeof window.yieldToMain === 'function') await window.yieldToMain();
+  // task that was landing on the first click's INP. yieldToMain resumes
+  // before the paint, so wait for the frame instead.
+  if (typeof window.afterNextPaint === 'function') await window.afterNextPaint();
+  else {
+    await new Promise(function (resolve) {
+      setTimeout(resolve, 0);
+    });
+  }
   await mountDoomChat();
   try {
     await ensureEngine();

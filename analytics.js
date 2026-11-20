@@ -649,16 +649,36 @@ window.buildSharedUrl = function (source) {
 //
 // Uses `scheduler.yield()` when available (Chromium 129+ — highest-priority
 // continuation, respects task priority, no throttling in background tabs).
-// Falls back to a 0ms `setTimeout`, which still creates a new task boundary
-// and gives the renderer a chance to paint. Placed on `analytics.js`
-// because it loads synchronously in `<head>` on every page, so callers can
-// rely on `window.yieldToMain` being defined before any user interaction.
+// Falls back to a 0ms `setTimeout`. Neither waits for a paint: the
+// continuation can run before the frame the caller just changed is on
+// screen. Placed on `analytics.js` because it loads synchronously in
+// `<head>` on every page, so callers can rely on `window.yieldToMain`
+// being defined before any user interaction.
 window.yieldToMain = function yieldToMain() {
   if (typeof scheduler !== 'undefined' && typeof scheduler.yield === 'function') {
     return scheduler.yield();
   }
   return new Promise(function (resolve) {
     setTimeout(resolve, 0);
+  });
+};
+
+// Resolve after the browser has painted the current frame. A rAF callback
+// runs before that paint, so the timer scheduled from it runs after it.
+// Use this, not yieldToMain, when a click must show feedback before a long
+// task. A hidden tab pauses rAF, so a launch started in the background
+// waits until the tab is visible again.
+window.afterNextPaint = function afterNextPaint() {
+  return new Promise(function (resolve) {
+    var raf =
+      typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : function (cb) {
+            setTimeout(cb, 0);
+          };
+    raf(function () {
+      setTimeout(resolve, 0);
+    });
   });
 };
 

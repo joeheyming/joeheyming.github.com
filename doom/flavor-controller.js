@@ -115,6 +115,19 @@
     });
   }
 
+  // Resolve once the current frame has been painted. scheduler.yield() (what
+  // yieldToMain uses) only queues the continuation; the browser may run it
+  // before the paint. A rAF callback runs before the frame is painted, so a
+  // 0ms timer scheduled from it runs after the paint.
+  function waitForPaint() {
+    if (typeof window.afterNextPaint === 'function') return window.afterNextPaint();
+    return new Promise(function (resolve) {
+      requestAnimationFrame(function () {
+        setTimeout(resolve, 0);
+      });
+    });
+  }
+
   function recordDoomClick(flavor) {
     noteDoomFlavor(flavor);
     if (!flavor || !window.heymingAnalytics) return;
@@ -597,11 +610,13 @@
     btn.addEventListener('click', async function () {
       if (window.UZDoomLifecycle && window.UZDoomLifecycle.get() !== 'primed') return;
       var tStart = Date.now();
-      recordDoomClick(flavor);
-      trackLaunchWhenPlaying(flavor, 'autolaunch', tStart);
       btn.textContent = 'Loading…';
       btn.disabled = true;
-      // launch() yields to paint before it parses the engine.
+      // Paint Loading before the history and analytics work, and before
+      // launch() parses the engine.
+      await waitForPaint();
+      recordDoomClick(flavor);
+      trackLaunchWhenPlaying(flavor, 'autolaunch', tStart);
       if (window.UZDoomLoader) await window.UZDoomLoader.launch();
     });
     return ui;
@@ -651,18 +666,6 @@
       card.addEventListener('click', async function () {
         if (card.disabled) return;
         var flavor = card.dataset.flavor;
-        recordDoomClick(flavor);
-        // Push a history entry so Back returns to the picker, and so a
-        // COI reload resumes this game instead of forgetting the click.
-        if (FLAVORS[flavor]) {
-          var picked = new URL(window.location.href);
-          if (picked.searchParams.get('flavor') !== flavor) {
-            picked.search = 'flavor=' + encodeURIComponent(flavor);
-            // Prototype call: gtag's history wrapper would count this as a page view.
-            if (window.pushHistorySilent) window.pushHistorySilent({ flavor: flavor }, picked);
-            else History.prototype.pushState.call(history, { flavor: flavor }, '', String(picked));
-          }
-        }
         var tStart = Date.now();
         cards.forEach(function (c) {
           c.disabled = true;
@@ -690,12 +693,21 @@
         // Paint Loading before multi-MB prime + WASM launch so the
         // click's INP closes on the visual feedback frame (Search
         // Console flagged /doom/ just over the 200ms good threshold).
-        if (typeof window.yieldToMain === 'function') {
-          await window.yieldToMain();
-        } else {
-          await new Promise(function (r) {
-            setTimeout(r, 0);
-          });
+        await waitForPaint();
+
+        // Bookkeeping runs after the paint so it does not delay the
+        // feedback frame.
+        recordDoomClick(flavor);
+        // Push a history entry so Back returns to the picker, and so a
+        // COI reload resumes this game instead of forgetting the click.
+        if (FLAVORS[flavor]) {
+          var picked = new URL(window.location.href);
+          if (picked.searchParams.get('flavor') !== flavor) {
+            picked.search = 'flavor=' + encodeURIComponent(flavor);
+            // Prototype call: gtag's history wrapper would count this as a page view.
+            if (window.pushHistorySilent) window.pushHistorySilent({ flavor: flavor }, picked);
+            else History.prototype.pushState.call(history, { flavor: flavor }, '', String(picked));
+          }
         }
 
         try {

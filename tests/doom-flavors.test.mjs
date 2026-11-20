@@ -15,6 +15,10 @@ const controller = readFileSync(path.join(ROOT, 'doom/flavor-controller.js'), 'u
 const modeSwitch = readFileSync(path.join(ROOT, 'doom/mode-switch.js'), 'utf8');
 const catalog = readFileSync(path.join(ROOT, 'doom/flavors.js'), 'utf8');
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function mountFlavors() {
   const dom = new JSDOM(
     '<!DOCTYPE html><html><head></head><body>' +
@@ -24,6 +28,8 @@ function mountFlavors() {
       '</body></html>',
     { url: 'https://joeheyming.github.io/doom/', runScripts: 'outside-only' }
   );
+  // jsdom has no layout or paint loop; a timer stands in for the next frame.
+  dom.window.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 0);
   vm.runInContext(catalog, dom.getInternalVMContext());
   dom.window.DoomFlavors.mount(dom.window.document);
   return dom;
@@ -71,6 +77,8 @@ describe('doom flavors', () => {
     dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
     const before = dom.window.history.length;
     dom.window.document.querySelector('[data-flavor="mario"]').click();
+    // The card click paints Loading first, then pushes the history entry.
+    await delay(20);
     assert.equal(dom.window.location.pathname, '/doom/');
     assert.equal(dom.window.location.search, '?flavor=mario');
     assert.ok(dom.window.history.length > before, 'picker stays in history behind the flavor');

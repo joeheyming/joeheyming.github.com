@@ -279,9 +279,10 @@ test('Doom does not parse the engine while the flavor picker is idle', () => {
   assert.match(launch, /await launchEngine\(\)/, 'UZDoomLoader.launch calls launchEngine directly');
   assert.doesNotMatch(launch, /\$\('launchBtn'\)\.click\(\)/);
   const click = launch.slice(clickStart, launch.indexOf('setInterval(', clickStart));
-  assert.ok(click.indexOf('yieldToMain') < click.indexOf('ensureEngine()'));
+  assert.ok(click.indexOf('await window.afterNextPaint()') < click.indexOf('mountDoomChat()'));
   assert.ok(click.indexOf('mountDoomChat()') < click.indexOf('ensureEngine()'));
   assert.ok(click.indexOf('ensureEngine()') < click.indexOf('bootEngine()'));
+  assert.doesNotMatch(click, /await window\.yieldToMain\(\)/);
 });
 
 test('StepMania paints interaction feedback before heavy continuations', () => {
@@ -310,5 +311,52 @@ test('StepMania paints interaction feedback before heavy continuations', () => {
   );
   assert.ok(
     startPlaying.indexOf('await window.yieldToMain()') < startPlaying.indexOf('resetGame()')
+  );
+});
+
+test('Doom renders at half scale on phones', () => {
+  const source = readFileSync(path.join(ROOT, 'doom/uzdoom-loader-engine.js'), 'utf8');
+  const mobileStart = source.indexOf("classList.contains('mobile')");
+  assert.ok(mobileStart > 0, 'engine binds are gated on the mobile class');
+  const mobileBlock = source.slice(mobileStart, source.indexOf('FS.writeFile', mobileStart));
+  assert.match(mobileBlock, /vid_scalefactor 0\.5/);
+  assert.doesNotMatch(source.slice(0, mobileStart), /vid_scalefactor/);
+});
+
+test('Doom flavor card paints Loading before its bookkeeping and prime', () => {
+  const source = readFileSync(path.join(ROOT, 'doom/flavor-controller.js'), 'utf8');
+  assert.match(
+    source,
+    /function waitForPaint\(\)[\s\S]*requestAnimationFrame\(function \(\) \{\s*setTimeout\(resolve, 0\)/
+  );
+
+  const clickStart = source.indexOf("card.addEventListener('click'");
+  const click = source.slice(clickStart, source.indexOf('// Auto-launch path', clickStart));
+  const paint = click.indexOf('await waitForPaint()');
+  assert.ok(paint > 0, 'card click waits for a paint');
+  assert.ok(click.indexOf("classList.add('loading')") < paint);
+  assert.ok(paint < click.indexOf('recordDoomClick(flavor)'));
+  assert.ok(paint < click.indexOf('pushHistorySilent'));
+  assert.ok(paint < click.indexOf('primeFlavor(flavor'));
+  assert.doesNotMatch(click, /yieldToMain/);
+});
+
+test('Doom hero click paints Loading before its bookkeeping and launch', () => {
+  const source = readFileSync(path.join(ROOT, 'doom/flavor-controller.js'), 'utf8');
+  const hero = source.indexOf("getElementById('cleanLaunchBtn')");
+  const clickStart = source.indexOf("btn.addEventListener('click'", hero);
+  const click = source.slice(clickStart, source.indexOf('return ui;', clickStart));
+  const paint = click.indexOf('await waitForPaint()');
+  assert.ok(paint > 0, 'hero click waits for a paint');
+  assert.ok(click.indexOf("btn.textContent = 'Loading…'") < paint);
+  assert.ok(paint < click.indexOf('recordDoomClick(flavor)'));
+  assert.ok(paint < click.indexOf('UZDoomLoader.launch'));
+});
+
+test('afterNextPaint waits for a frame instead of yielding', () => {
+  const source = readFileSync(path.join(ROOT, 'analytics.js'), 'utf8');
+  assert.match(
+    source,
+    /window\.afterNextPaint = function afterNextPaint\(\) \{[\s\S]*requestAnimationFrame[\s\S]*setTimeout\(resolve, 0\)/
   );
 });

@@ -298,7 +298,11 @@ export function installUzdomLoaderEngine(ctx) {
           'vid_maxfps 60\n' +
           'cl_capfps 1\n';
         if (document.body.classList.contains('mobile')) {
-          cfg = 'unbind mouse1\n' + cfg;
+          // Touches on the game canvas wait for the next frame, and phones
+          // have far more pixels per frame than desktops. Render at half
+          // scale (the Video menu's "Scale Factor" slider, vid_scalefactor
+          // 0.25–2.0) to shorten that frame. Not yet measured on a device.
+          cfg = 'unbind mouse1\n' + cfg + 'vid_scalefactor 0.5\n';
         }
         FS.writeFile('/lod-input-binds.cfg', cfg);
         userArgs.push('-exec', '/lod-input-binds.cfg');
