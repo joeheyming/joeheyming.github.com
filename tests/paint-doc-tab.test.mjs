@@ -15,7 +15,7 @@ function load() {
 
 test('.doc-tab is the second row of .paint-layout, between the menu bar and options bar', () => {
   const document = load();
-  const rows = [...document.querySelector('.paint-layout').children];
+  const rows = [...document.querySelector('.paint-layout').children].filter((el) => !el.hidden);
   assert.equal(rows[0].id, 'menu-bar');
   assert.ok(rows[1].classList.contains('doc-tab'));
   assert.equal(rows[2].id, 'options-bar');

@@ -10,6 +10,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { JSDOM } from 'jsdom';
+import * as playProgress from '../play-progress.js';
 import { ROOT } from './import-graph-helpers.mjs';
 
 /** @type {Map<string, string>} */
@@ -101,7 +102,8 @@ function jsdomLazy(window) {
 /**
  * A jsdom window ready for classic app scripts: `matchMedia` and
  * `WebAssembly` present, and site-absolute imports routed through
- * `imports` (which overrides the default `/shared/lazy.js`).
+ * `imports` (which overrides the defaults `/shared/lazy.js` and the real
+ * `/play-progress.js`).
  * @param {string} html
  * @param {{ url?: string, imports?: Record<string, object> }} [opts]
  */
@@ -121,7 +123,11 @@ export function appWindow(html, opts = {}) {
   window.__loadedScripts = [];
   window.__preloaded = [];
   /** @type {Record<string, object>} */
-  const imports = { '/shared/lazy.js': jsdomLazy(window), ...opts.imports };
+  const imports = {
+    '/shared/lazy.js': jsdomLazy(window),
+    '/play-progress.js': playProgress,
+    ...opts.imports
+  };
   /** @param {string} spec */
   window.__appImport = (spec) =>
     spec in imports

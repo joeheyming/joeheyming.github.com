@@ -198,7 +198,6 @@ function landerHtml(cfg) {
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     ${siteBootTag({ navSize: 'compact', shareFab: 'off' })}
-    <script src="/proxy.js"></script>
 
     <script src="/emulator/leanback.js"></script>
     <script src="/emulator/consoles.js"></script>

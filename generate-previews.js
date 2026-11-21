@@ -90,7 +90,7 @@ const PAGES = [
   },
   {
     url: `${BASE_URL}/emulator/flash/`,
-    output: 'flash/flash-preview.png',
+    output: 'emulator/flash/flash-preview.png',
     title: 'Flash Player'
   },
   {

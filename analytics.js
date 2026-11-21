@@ -639,21 +639,12 @@ window.buildSharedUrl = function (source) {
   }
 };
 
-// Yield control back to the browser so it can paint (and process other
-// input) before the next chunk of JS runs. Heavy click handlers should
-// paint a "working…" state, `await window.yieldToMain()`, and then do the
-// long compute in the resumed continuation — post-yield work no longer
-// counts toward the click's INP. Site-wide utility because every app has
-// at least one interaction that could push INP past the 200ms threshold
-// without the pattern.
-//
-// Uses `scheduler.yield()` when available (Chromium 129+ — highest-priority
-// continuation, respects task priority, no throttling in background tabs).
-// Falls back to a 0ms `setTimeout`. Neither waits for a paint: the
-// continuation can run before the frame the caller just changed is on
-// screen. Placed on `analytics.js` because it loads synchronously in
-// `<head>` on every page, so callers can rely on `window.yieldToMain`
-// being defined before any user interaction.
+// Yield to the browser so it can process input before the next chunk of JS.
+// A heavy click handler paints a "working…" state, awaits yieldToMain(),
+// then computes in the continuation; post-yield work no longer counts toward
+// the click's INP. Uses `scheduler.yield()` when present, else a 0ms
+// `setTimeout`. Neither waits for a paint; use afterNextPaint for that.
+// Lives here because analytics.js loads in <head> on every page.
 window.yieldToMain = function yieldToMain() {
   if (typeof scheduler !== 'undefined' && typeof scheduler.yield === 'function') {
     return scheduler.yield();
@@ -663,20 +654,11 @@ window.yieldToMain = function yieldToMain() {
   });
 };
 
-// Resolve after the browser has painted the current frame. A rAF callback
-// runs before that paint, so the timer scheduled from it runs after it.
-// Use this, not yieldToMain, when a click must show feedback before a long
-// task. A hidden tab pauses rAF, so a launch started in the background
-// waits until the tab is visible again.
+// Resolve after the current frame has painted: a rAF callback runs before the
+// paint, the timer it sets runs after. rAF pauses in a hidden tab.
 window.afterNextPaint = function afterNextPaint() {
   return new Promise(function (resolve) {
-    var raf =
-      typeof requestAnimationFrame === 'function'
-        ? requestAnimationFrame
-        : function (cb) {
-            setTimeout(cb, 0);
-          };
-    raf(function () {
+    (window.requestAnimationFrame || setTimeout)(function () {
       setTimeout(resolve, 0);
     });
   });

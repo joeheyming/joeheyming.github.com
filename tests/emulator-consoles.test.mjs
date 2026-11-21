@@ -37,9 +37,15 @@ describe('emulator console registry', () => {
 
   it('gives every console the fields the shell reads', () => {
     for (const cfg of Object.values(consoles)) {
-      for (const field of ['title', 'subtitle', 'emoji', 'ejsCore', 'fileAccept', 'accentHex']) {
+      // Ruffle consoles (Flash) mount their own player; there is no EmulatorJS core.
+      const ruffle = cfg.player === 'ruffle';
+      const fields = ['title', 'subtitle', 'emoji', 'fileAccept', 'accentHex'];
+      if (!ruffle) fields.push('ejsCore');
+      for (const field of fields) {
         assert.ok(cfg[field], `${cfg.id}: missing ${field}`);
       }
+      if (ruffle)
+        assert.equal(cfg.ejsCore, undefined, `${cfg.id}: Ruffle consoles have no ejsCore`);
       assert.ok(Array.isArray(cfg.controls) && cfg.controls.length > 0, `${cfg.id}: no controls`);
       assert.match(cfg.fileAccept, /^\./, `${cfg.id}: fileAccept must be a dotted extension list`);
       assert.match(cfg.accentHex, /^#[0-9a-f]{6}$/i, `${cfg.id}: accentHex must be a hex color`);
@@ -104,7 +110,8 @@ describe('emulator console registry', () => {
 
   it('names a libretro thumbnail playlist for every browsable collection', () => {
     for (const cfg of Object.values(consoles)) {
-      if (!cfg.iaBaseUrl) continue;
+      // Flash thumbnails are captured by hand (`preserveCatalog`), not libretro art.
+      if (!cfg.iaBaseUrl || cfg.preserveCatalog) continue;
       assert.ok(
         Array.isArray(cfg.iaThumbnailSystems) && cfg.iaThumbnailSystems.length > 0,
         `${cfg.id}: iaThumbnailSystems must list at least one playlist`

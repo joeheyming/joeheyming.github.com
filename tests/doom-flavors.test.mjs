@@ -5,9 +5,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { JSDOM } from 'jsdom';
 import path from 'node:path';
-import vm from 'node:vm';
+import { appWindow, loadClassic } from './load-app-script.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(path.join(ROOT, 'doom/index.html'), 'utf8');
@@ -20,19 +19,20 @@ function delay(ms) {
 }
 
 function mountFlavors() {
-  const dom = new JSDOM(
+  // appWindow routes the controller's `import('/play-progress.js')` to the real module.
+  const window = appWindow(
     '<!DOCTYPE html><html><head></head><body>' +
       '<section id="flavorPicker"></section>' +
       '<div class="flavor-switch-menu"><div class="flavor-switch-sep"></div></div>' +
       '<div class="flavor-switch-menu"><div class="flavor-switch-sep"></div></div>' +
       '</body></html>',
-    { url: 'https://joeheyming.github.io/doom/', runScripts: 'outside-only' }
+    { url: 'https://joeheyming.github.io/doom/' }
   );
   // jsdom has no layout or paint loop; a timer stands in for the next frame.
-  dom.window.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 0);
-  vm.runInContext(catalog, dom.getInternalVMContext());
-  dom.window.DoomFlavors.mount(dom.window.document);
-  return dom;
+  window.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 0);
+  loadClassic(window, '/doom/flavors.js');
+  window.DoomFlavors.mount(window.document);
+  return { window };
 }
 
 function sliceFlavor(id, nextId) {
@@ -73,7 +73,7 @@ describe('doom flavors', () => {
         once: true
       });
     });
-    vm.runInContext(controller, dom.getInternalVMContext());
+    loadClassic(dom.window, '/doom/flavor-controller.js');
     dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
     const before = dom.window.history.length;
     dom.window.document.querySelector('[data-flavor="mario"]').click();

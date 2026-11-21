@@ -11,8 +11,8 @@ import { eagerScripts, staticImportSpecifiers, totalBytes } from './import-graph
 const BUDGETS = {
   'doom/': 230_000,
   'stepmania/': 285_000,
-  'emulator/': 302_000,
-  'emulator/nes/': 405_000,
+  'emulator/': 236_000,
+  'emulator/nes/': 344_000,
   'play/': 138_000,
   'watch/': 295_000
 };

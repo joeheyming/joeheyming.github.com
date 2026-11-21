@@ -419,6 +419,7 @@ describe('?rom= deep links launch cartridges and hand off discs', () => {
     const card = window.document.getElementById('boot-card');
     card.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
     assert.deepEqual(window.__preloaded, [
+      '/emulator/resumes.js',
       '/emulator/socd.js',
       '/emulator/ejs-mount.js',
       '/emulator/play.js'

@@ -7,6 +7,13 @@
 (function () {
   'use strict';
 
+  /** proxy.js is not on the first screen; load it before the first cross-origin fetch. */
+  async function ensureProxy() {
+    if (window.proxyService) return;
+    const lazy = await import('/shared/lazy.js');
+    await lazy.loadScript('/proxy.js');
+  }
+
   /** ZIP local/empty/spanned file signatures (PK..). */
   function looksLikeZip(bytes) {
     if (!bytes || bytes.length < 4) return false;
@@ -131,6 +138,7 @@
         return this.romCache;
       }
 
+      await ensureProxy();
       if (!window.proxyService) {
         throw new Error('Proxy service not available');
       }
@@ -459,6 +467,7 @@
      */
     async loadRom(rom, opts) {
       opts = opts || {};
+      await ensureProxy();
       if (!window.proxyService) {
         throw new Error('Proxy service not available');
       }

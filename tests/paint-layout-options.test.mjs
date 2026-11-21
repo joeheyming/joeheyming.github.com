@@ -17,7 +17,8 @@ function load() {
 test('options bar is the third row of .paint-layout, under the menu bar and document tab', () => {
   const { document } = load();
   const layout = document.querySelector('.paint-layout');
-  const rows = [...layout.children];
+  // #menu-static-fields is a hidden parking spot for menu fields, not a layout row.
+  const rows = [...layout.children].filter((el) => !el.hidden);
   assert.equal(rows[0].id, 'menu-bar');
   assert.ok(rows[1].classList.contains('doc-tab'));
   assert.equal(rows[2].id, 'options-bar');

@@ -8,6 +8,13 @@
 (function () {
   'use strict';
 
+  /** proxy.js is not on the first screen; load it before the BIOS download. */
+  async function ensureProxy() {
+    if (window.proxyService) return;
+    const lazy = await import('/shared/lazy.js');
+    await lazy.loadScript('/proxy.js');
+  }
+
   const BIOS_IDB_NAME = 'heyming-emulator-bios';
   const BIOS_IDB_VERSION = 1;
   const BIOS_STORE = 'bios';
@@ -181,7 +188,9 @@
 
   async function fetchBiosFromIa(cfg) {
     const url = biosIaUrl(cfg);
-    if (!url || !window.proxyService) return null;
+    if (!url) return null;
+    await ensureProxy().catch(() => {});
+    if (!window.proxyService) return null;
 
     const loadBtn = document.getElementById('loadBiosBtn');
     if (loadBtn) loadBtn.disabled = true;

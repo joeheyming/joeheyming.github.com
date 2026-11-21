@@ -121,7 +121,12 @@ test('custom level codec round trips canonical level data', () => {
   const code = encodeLevelData(data);
   const decoded = decodeLevelData(code);
 
-  assert.deepEqual(decoded, data);
+  assert.deepEqual(decoded, {
+    ...data,
+    heights: data.map.map((row) => row.map(() => 0)),
+    ramps: []
+  });
+  assert.deepEqual(decoded, canonicalizeLevelData(data));
   assert.ok(code.length < JSON.stringify(data).length * 2);
 });
 
