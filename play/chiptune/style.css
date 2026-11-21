@@ -1,12 +1,29 @@
-/* Chiptune tracker — dense dark editor under Play chrome */
+/* Chiptune tracker. Surfaces follow the site theme; the grid reads the same tokens. */
 
 .instrument-body {
-  --chip-bg: #0b0d12;
-  --chip-panel: #141822;
-  --chip-line: rgba(255, 255, 255, 0.1);
-  --chip-accent: #5eead4;
+  --chip-bg: var(--surface-0);
+  --chip-panel: var(--surface-1);
+  --chip-inset: var(--surface-2);
+  --chip-line: var(--hairline);
+  --chip-text: var(--text-1);
+  --chip-muted: var(--text-2);
+  --chip-faint: var(--text-3);
+  --chip-accent: var(--accent-primary);
+  --chip-accent-line: var(--hairline-accent);
+  --chip-note: var(--accent-primary);
+  --chip-note-edge: color-mix(in srgb, var(--surface-0) 55%, transparent);
+  --chip-playhead: color-mix(in srgb, var(--warning) 28%, transparent);
+  --chip-warn: var(--warning);
+  --chip-danger: var(--danger);
+  --chip-row: var(--surface-1);
+  --chip-row-alt: var(--surface-2);
+  --chip-row-mark: var(--accent-primary-soft);
+  --chip-label: var(--surface-0);
+  --chip-grid: color-mix(in srgb, var(--text-1) 8%, transparent);
+  --chip-beat: color-mix(in srgb, var(--text-1) 16%, transparent);
+  --chip-bar: color-mix(in srgb, var(--accent-primary) 45%, transparent);
   background: var(--chip-bg);
-  color: #e2e8f0;
+  color: var(--chip-text);
 }
 
 .instrument-header {
@@ -16,7 +33,7 @@
 
 .instrument-header h1,
 .now-playing {
-  color: #e2e8f0;
+  color: var(--chip-text);
 }
 
 .chip-toolbar {
@@ -40,16 +57,16 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #94a3b8;
+  color: var(--chip-muted);
 }
 
 .chip-toolbar input[type='number'],
 .chip-toolbar input[type='range'],
 .chip-toolbar select {
-  background: #0f131a;
+  background: var(--chip-inset);
   border: 1px solid var(--chip-line);
   border-radius: 6px;
-  color: #e2e8f0;
+  color: var(--chip-text);
   padding: 0.35rem 0.5rem;
   font: inherit;
 }
@@ -82,8 +99,8 @@
   padding: 0.35rem 0.55rem;
   border-radius: 6px;
   border: 1px solid var(--chip-line);
-  background: #0f131a;
-  color: #e2e8f0;
+  background: var(--chip-inset);
+  color: var(--chip-text);
   font: inherit;
   cursor: pointer;
   text-align: left;
@@ -91,14 +108,14 @@
 
 .tempo-face:hover,
 .control-tempo:focus-within .tempo-face {
-  border-color: rgba(94, 234, 212, 0.45);
+  border-color: var(--chip-accent-line);
 }
 
 .tempo-caption {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #94a3b8;
+  color: var(--chip-muted);
 }
 
 .tempo-value {
@@ -111,7 +128,7 @@
   content: ' BPM';
   font-size: 0.65rem;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--chip-muted);
 }
 
 .tempo-flyout {
@@ -130,8 +147,8 @@
   margin: 0;
   border-radius: 10px;
   border: 1px solid var(--chip-line);
-  background: #0f131a;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  background: var(--chip-inset);
+  box-shadow: var(--shadow-modal);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -159,7 +176,7 @@
 .tempo-flyout-min,
 .tempo-flyout-max {
   font-size: 0.62rem;
-  color: #64748b;
+  color: var(--chip-faint);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -181,7 +198,7 @@
 .tempo-flyout input[type='range']::-webkit-slider-runnable-track {
   width: 0.35rem;
   border-radius: 999px;
-  background: #1e293b;
+  background: var(--chip-inset);
 }
 
 .tempo-flyout input[type='range']::-webkit-slider-thumb {
@@ -215,7 +232,7 @@
 }
 
 .bars-total {
-  color: #94a3b8;
+  color: var(--chip-muted);
   font-size: 0.8rem;
   white-space: nowrap;
 }
@@ -223,10 +240,10 @@
 .bars-row input[type='number'] {
   width: 3.2rem;
   text-align: center;
-  background: #0f131a;
+  background: var(--chip-inset);
   border: 1px solid var(--chip-line);
   border-radius: 6px;
-  color: #e2e8f0;
+  color: var(--chip-text);
   padding: 0.35rem 0.35rem;
   font: inherit;
 }
@@ -242,8 +259,8 @@
   appearance: none;
   border-radius: 8px;
   border: 1px solid var(--chip-line);
-  background: #1e293b;
-  color: #e2e8f0;
+  background: var(--chip-inset);
+  color: var(--chip-text);
   padding: 0.45rem 0.7rem;
   cursor: pointer;
   font: inherit;
@@ -253,13 +270,15 @@
 }
 
 .primary-btn {
-  background: #0f766e;
-  border-color: #14b8a6;
+  background: var(--accent-primary-bg);
+  border-color: var(--chip-accent);
+  color: var(--text-on-accent);
 }
 
 .primary-btn[aria-pressed='true'] {
-  background: #b45309;
-  border-color: #f59e0b;
+  background: var(--chip-warn);
+  border-color: var(--chip-warn);
+  color: #1a1a1a;
 }
 
 .secondary-btn:hover:not(:disabled),
@@ -300,7 +319,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: var(--chip-muted);
 }
 
 .channel-list,
@@ -320,8 +339,8 @@
 .arrange-chip {
   appearance: none;
   border: 1px solid var(--chip-line);
-  background: #0f131a;
-  color: #cbd5e1;
+  background: var(--chip-inset);
+  color: var(--chip-text);
   border-radius: 8px;
   padding: 0.4rem 0.55rem;
   cursor: pointer;
@@ -332,8 +351,8 @@
 .channel-btn.is-active,
 .pattern-tab.is-active {
   border-color: var(--chip-accent);
-  box-shadow: inset 0 0 0 1px rgba(94, 234, 212, 0.35);
-  color: #fff;
+  box-shadow: inset 0 0 0 1px var(--chip-accent-line);
+  color: var(--chip-text);
 }
 
 .channel-btn.is-mute {
@@ -341,7 +360,7 @@
 }
 
 .channel-btn.is-solo {
-  border-color: #fbbf24;
+  border-color: var(--chip-warn);
 }
 
 .channel-btn .ch-idx {
@@ -371,15 +390,15 @@
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #94a3b8;
+  color: var(--chip-muted);
 }
 
 .channel-params input,
 .channel-params select {
-  background: #0f131a;
+  background: var(--chip-inset);
   border: 1px solid var(--chip-line);
   border-radius: 6px;
-  color: #e2e8f0;
+  color: var(--chip-text);
   padding: 0.3rem 0.45rem;
   font: inherit;
 }
@@ -394,13 +413,13 @@
 }
 
 .channel-params button[aria-pressed='true'] {
-  background: #334155;
-  border-color: #94a3b8;
+  background: var(--chip-inset);
+  border-color: var(--chip-muted);
 }
 
 .grid-wrap {
   overflow: auto;
-  background: #0b0d12;
+  background: var(--chip-bg);
   position: relative;
   max-height: calc(100vh - 260px);
 }
@@ -426,7 +445,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: var(--chip-muted);
 }
 
 #arrangement {
@@ -437,17 +456,17 @@
 }
 
 .arrange-chip.is-playing {
-  border-color: #fbbf24;
-  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.35);
+  border-color: var(--chip-warn);
+  box-shadow: inset 0 0 0 1px var(--chip-warn);
 }
 
 .arrange-chip:hover {
-  border-color: #f87171;
-  color: #fecaca;
+  border-color: var(--chip-danger);
+  color: var(--chip-danger);
 }
 
 .hint {
-  color: #64748b;
+  color: var(--chip-faint);
   font-size: 0.8rem;
 }
 

@@ -7,6 +7,7 @@ import { loadInitialState, saveState as persistState, buildShareUrl } from './st
 import { createRadarMap } from './radar-map.js';
 import { createCompareView } from './compare-view.js';
 import { createNotifier } from '/notifications.js';
+import { loadScriptsInOrder } from '/shared/lazy.js';
 
 /** @typedef {import('./state.js').AppState} AppState */
 /** @typedef {import('./state.js').SavedLocation} SavedLocation */
@@ -439,32 +440,77 @@ function renderMode() {
   // back up by renderTiles() / renderDetail().
 }
 
+const MAPLIBRE_SRC = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+const MAPLIBRE_CSS = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
+const WEATHER_LAYER_SRC = 'https://unpkg.com/@openmeteo/weather-map-layer@0.0.19/dist/index.js';
+
+/** @type {Promise<void> | null} */
+let radarLibsPromise = null;
+
+function loadRadarLibs() {
+  if (globalThis.maplibregl && globalThis.OMWeatherMapLayer) return Promise.resolve();
+  if (!radarLibsPromise) {
+    radarLibsPromise = (async () => {
+      if (!document.querySelector('link[data-radar-css]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = MAPLIBRE_CSS;
+        link.dataset.radarCss = '1';
+        document.head.appendChild(link);
+      }
+      await loadScriptsInOrder([MAPLIBRE_SRC, WEATHER_LAYER_SRC]);
+    })().catch((err) => {
+      radarLibsPromise = null;
+      throw err;
+    });
+  }
+  return radarLibsPromise;
+}
+
+/** @type {Promise<ReturnType<typeof createRadarMap>> | null} */
+let radarPromise = null;
+
 function ensureRadar() {
-  if (radar) return radar;
-  radar = createRadarMap({
-    map: $radarMap,
-    controls: $radarControls,
-    getUnits: () => state.units
-  });
-  // The radar map starts fetching its own model metadata (DWD ICON by
-  // default) as soon as it constructs. We only need to feed it the
-  // saved locations and forecast popups via setLocations / setForecasts
-  // below.
-  return radar;
+  if (radar) return Promise.resolve(radar);
+  if (!radarPromise) {
+    radarPromise = loadRadarLibs()
+      .then(() => {
+        if (radar) return radar;
+        radar = createRadarMap({
+          map: $radarMap,
+          controls: $radarControls,
+          getUnits: () => state.units
+        });
+        // The radar map starts fetching its own model metadata (DWD ICON by
+        // default) as soon as it constructs. We only need to feed it the
+        // saved locations and forecast popups via setLocations / setForecasts
+        // below.
+        return radar;
+      })
+      .catch((err) => {
+        radarPromise = null;
+        throw err;
+      });
+  }
+  return radarPromise;
 }
 
 function renderRadar() {
-  const r = ensureRadar();
-  r.invalidateSize();
-  r.setLocations(state.locations, state.activeLocationId);
-  r.setForecasts(forecastByLoc);
-  renderRadarTicker();
-  if (!state.locations.length) {
-    // No saved locations yet — keep the radar visible (the user can still
-    // browse weather worldwide) but also surface the same suggestion
-    // chips the cards mode shows.
-    $emptyState.classList.remove('hidden');
-  }
+  ensureRadar()
+    .then((r) => {
+      if (state.mode !== 'radar') return;
+      r.invalidateSize();
+      r.setLocations(state.locations, state.activeLocationId);
+      r.setForecasts(forecastByLoc);
+      renderRadarTicker();
+      if (!state.locations.length) {
+        // No saved locations yet — keep the radar visible (the user can still
+        // browse weather worldwide) but also surface the same suggestion
+        // chips the cards mode shows.
+        $emptyState.classList.remove('hidden');
+      }
+    })
+    .catch(() => {});
 }
 
 /**

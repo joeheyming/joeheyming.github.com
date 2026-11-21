@@ -137,7 +137,9 @@ export class MainPageController {
           return;
         }
         e.preventDefault();
-        void window.yieldToMain().then(() => this.restartSong());
+        const paint =
+          typeof window.afterNextPaint === 'function' ? window.afterNextPaint() : Promise.resolve();
+        void paint.then(() => this.restartSong());
       }
     });
   }
@@ -891,7 +893,11 @@ export class MainPageController {
     }
 
     LoadingOverlay.hide();
-    await window.yieldToMain();
+    // The play click's INP includes everything until the next paint.
+    // yieldToMain resumes before that paint, so resetting the chart and
+    // starting audio was still part of the click.
+    if (typeof window.afterNextPaint === 'function') await window.afterNextPaint();
+    else await new Promise((resolve) => setTimeout(resolve, 0));
 
     const currentSong = songManager.getCurrentSong();
     this.recordSongPlay(currentSong);

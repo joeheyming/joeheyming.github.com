@@ -64,20 +64,10 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/weather/" />
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/brand-tailwind.js"></script>
+    <link rel="stylesheet" href="tailwind.css" />
 
-    <!-- MapLibre GL JS — used by the radar mode for the multi-layer weather
-         map (Open-Meteo precip / temp / cloud / wind etc.). Loaded eagerly
-         so the global `maplibregl` is available the first time the user
-         toggles into Radar. -->
-    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-
-    <!-- Open-Meteo Weather Map Layer (the `om://` protocol). Adds the
-         OMWeatherMapLayer global; we hand MapLibre an `om://...` URL and
-         the package decodes the binary `.om` tiles client-side. -->
-    <script src="https://unpkg.com/@openmeteo/weather-map-layer@0.0.19/dist/index.js"></script>
+    <!-- MapLibre and the Open-Meteo layer load when Radar is opened.
+         See loadRadarLibs() in index.js. -->
 
     <!-- proxy.js must load BEFORE the app module so window.proxyService is ready. -->
     <script src="/proxy.js"></script>

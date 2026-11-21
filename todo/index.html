@@ -141,11 +141,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=optional"
       rel="stylesheet"
     />
-    <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
-         installs window.tailwind on boot and overwrites any pre-set
-         config, so brand-tailwind.js sets `tailwind.config` after. -->
-    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
-    <script src="/brand-tailwind.js"></script>
+    <link rel="stylesheet" href="tailwind.css" />
     <style>
       /* Back button clearance when CDN stylesheet fails to load */
       #todo-app-root {

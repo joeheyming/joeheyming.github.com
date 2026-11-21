@@ -10,6 +10,7 @@
  * no song picker, no per-song prefs — just the rhythm-game core.
  */
 
+import { loadScript } from '/shared/lazy.js';
 import { getCtx, getMaster, resumeIfSuspended, setMasterVolume } from '../play/shared/audio.js';
 import { AccordionSynth } from '../play/accordion/accordion-instruments.js';
 import { RIGHT_REGISTERS } from '../play/accordion/accordion-registers.js';
@@ -88,18 +89,43 @@ speedValEl.textContent = (Number(speedEl.value) / 100).toFixed(2) + '×';
 // right-hand reeds, makes the bass feel buried in the mix during the
 // rhythm-game's oom-pah-pah. ~1.7× linear ≈ +4.6 dB pulls it back up to
 // where the chord buttons sit perceptually.
-const audioCtx = getCtx();
-const bassGainNode = audioCtx.createGain();
-bassGainNode.gain.value = 1.75;
-bassGainNode.connect(getMaster());
-
-const synth = new AccordionSynth({ bassDestination: bassGainNode });
-synth.setTone(toneSelectEl.value);
-toneSelectEl.addEventListener('change', () => synth.setTone(toneSelectEl.value));
-
 const RIGHT_MASTER = RIGHT_REGISTERS.find((r) => r.id === 'LMH') || RIGHT_REGISTERS[0];
-synth.setRegister(RIGHT_MASTER.reeds);
-setMasterVolume(0.7);
+
+// Building the sampler and the bass soundfont is a multi-second task.
+// It used to run while the module evaluated, so the first tap on the
+// page waited on it. Start builds it, after the button has painted.
+const SOUNDFONT_SRC =
+  'https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js';
+
+let synth = null;
+/** @type {Promise<void> | null} */
+let audioReady = null;
+
+function ensureAudio() {
+  if (synth) return Promise.resolve();
+  if (!audioReady) {
+    audioReady = loadScript(SOUNDFONT_SRC)
+      .then(() => {
+        const audioCtx = getCtx();
+        const bassGainNode = audioCtx.createGain();
+        bassGainNode.gain.value = 1.75;
+        bassGainNode.connect(getMaster());
+        synth = new AccordionSynth({ bassDestination: bassGainNode });
+        synth.setTone(toneSelectEl.value);
+        synth.setRegister(RIGHT_MASTER.reeds);
+        setMasterVolume(0.7);
+      })
+      .catch((err) => {
+        audioReady = null;
+        throw err;
+      });
+  }
+  return audioReady;
+}
+
+toneSelectEl.addEventListener('change', () => {
+  if (synth) synth.setTone(toneSelectEl.value);
+});
 
 const laneVoices = new Map();
 
@@ -823,7 +849,7 @@ function stopRun() {
     inputDispose = null;
   }
   if (engine) engine.releaseAll({ onLaneAudioOff: laneAudioOff });
-  synth.allOff();
+  if (synth) synth.allOff();
 }
 
 function finishSong() {
@@ -843,14 +869,27 @@ function finishSong() {
 // ----- Buttons -----
 
 startBtnEl.addEventListener('click', () => {
-  try {
-    startSong();
-  } catch (err) {
-    console.error(err);
-    judgmentEl.textContent = 'LOAD ERROR';
-    judgmentEl.dataset.tier = 'miss';
-    voicingEl.textContent = String(err?.message || err);
-  }
+  if (!currentChart) return;
+  // Resume has to happen inside the gesture, before the await.
+  getCtx();
+  resumeIfSuspended();
+  const label = startBtnEl.textContent;
+  startBtnEl.disabled = true;
+  judgmentEl.textContent = 'LOADING…';
+  ensureAudio()
+    .then(() => {
+      startBtnEl.disabled = false;
+      startBtnEl.textContent = label;
+      startSong();
+    })
+    .catch((err) => {
+      console.error(err);
+      startBtnEl.disabled = false;
+      startBtnEl.textContent = label;
+      judgmentEl.textContent = 'LOAD ERROR';
+      judgmentEl.dataset.tier = 'miss';
+      voicingEl.textContent = String(err?.message || err);
+    });
 });
 
 pauseBtnEl.addEventListener('click', () => {

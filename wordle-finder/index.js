@@ -17,8 +17,8 @@ var wordsFilteredByAnswer;
 var allWords;
 
 function getWords() {
-  var clonedList = Array.from(allWords);
-  return clonedList;
+  if (!allWords) return [];
+  return Array.from(allWords);
 }
 
 var answers;
@@ -127,13 +127,40 @@ reset.onclick = function () {
   resetScorer();
 };
 
+function afterPaint() {
+  return new Promise(function (resolve) {
+    requestAnimationFrame(function () {
+      setTimeout(resolve, 0);
+    });
+  });
+}
+
+// The dictionary and the frequency table are large script evaluations.
+// They load after first paint, one file per frame, so a tap during
+// load is not stuck behind both of them plus the chart library.
 function fetchWords() {
-  // words.js is loaded via HTML script tag and should populate window.allwords
-  if (window.allwords) {
-    allWords = window.allwords;
-  } else {
-    console.error('window.allwords not found. Make sure words.js is loaded.');
-  }
+  return import('/shared/lazy.js')
+    .then(function (lazy) {
+      var files = [];
+      if (!window.wordFrequency) files.push('wordFrequency.js');
+      if (!window.allwords) files.push('words.js');
+      var chain = Promise.resolve();
+      files.forEach(function (src) {
+        chain = chain
+          .then(function () {
+            return lazy.loadScript(src);
+          })
+          .then(afterPaint);
+      });
+      return chain;
+    })
+    .then(function () {
+      if (window.allwords) {
+        allWords = window.allwords;
+      } else {
+        console.error('window.allwords not found. Make sure words.js is loaded.');
+      }
+    });
 }
 
 function helpClick() {

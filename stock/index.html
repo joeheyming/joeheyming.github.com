@@ -32,10 +32,7 @@
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Stock Ticker" />
-    <meta
-      property="og:title"
-      content="Stock Ticker — Candlestick Charts, Watchlist &amp; Alerts"
-    />
+    <meta property="og:title" content="Stock Ticker — Candlestick Charts, Watchlist &amp; Alerts" />
     <meta
       property="og:description"
       content="Browser stock dashboard with candlestick charts, technical indicators, multiple watchlists, portfolio tracking, and price alerts. Free, no sign-up."
@@ -73,11 +70,7 @@
         padding-left: 7.5rem !important;
       }
     </style>
-    <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
-         installs window.tailwind on boot and overwrites any pre-set
-         config, so brand-tailwind.js sets `tailwind.config` after. -->
-    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
-    <script src="/brand-tailwind.js"></script>
+    <link rel="stylesheet" href="tailwind.css" />
 
     <!-- proxy.js must load BEFORE the app module so window.proxyService is ready. -->
     <script src="/proxy.js"></script>

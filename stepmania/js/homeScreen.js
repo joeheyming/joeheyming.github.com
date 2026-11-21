@@ -246,6 +246,25 @@ export function showHomeNotice(message) {
 }
 
 /**
+ * One line on the menu, without rebuilding the song lists. The click paints
+ * this before the play engine or the song library evaluates.
+ * @param {string} message
+ */
+export function showHomeStatus(message) {
+  const el = document.getElementById('sm-boot-error');
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = message;
+}
+
+export function clearHomeStatus() {
+  const el = document.getElementById('sm-boot-error');
+  if (!el) return;
+  el.hidden = true;
+  el.textContent = '';
+}
+
+/**
  * Plain left-clicks on a recent or saved song stay on this page.
  * Modified clicks keep the link's normal navigation.
  * @param {MouseEvent} event
@@ -342,6 +361,7 @@ export function showHomeScreen() {
 }
 
 export function hideHomeScreen() {
+  clearHomeStatus();
   const home = document.getElementById('sm-home');
   const gameArea = document.getElementById('sm-micro');
   if (home) {

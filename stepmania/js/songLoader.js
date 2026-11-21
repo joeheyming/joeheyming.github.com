@@ -10,6 +10,8 @@ import {
   ZIP_MAX_RETRIES
 } from './songProxyTransport.js';
 
+export { formatLoadError } from './loadError.js';
+
 /** Network/loading settings */
 const FETCH_TIMEOUT = 15000;
 const MAX_RETRIES = 3;
@@ -35,31 +37,6 @@ export function resolveZeniusUrl(href) {
   }
   if (abs.protocol !== 'http:' && abs.protocol !== 'https:') return null;
   return abs.href;
-}
-
-/**
- * Turn a proxy / fetch failure into a short overlay line (no raw "Error protocol").
- * @param {unknown} err
- * @returns {string}
- */
-export function formatLoadError(err) {
-  const msg = err instanceof Error ? err.message : err == null ? '' : String(err);
-  if (/content type is not allowed on the free plan/i.test(msg)) {
-    return 'The download proxy blocked this audio file. Try Retry or pick another song.';
-  }
-  if (/media files are not supported/i.test(msg)) {
-    return 'The download proxy blocked this audio file. Try Retry or pick another song.';
-  }
-  if (/protocol/i.test(msg)) {
-    return 'Could not download this song (bad file URL). Try Retry or another song.';
-  }
-  if (/all proxies failed/i.test(msg)) {
-    return 'Could not download this song through any proxy. Try Retry or another song.';
-  }
-  if (!msg.trim()) {
-    return 'Could not download the audio for this song. Try Retry or pick another.';
-  }
-  return msg;
 }
 
 /**

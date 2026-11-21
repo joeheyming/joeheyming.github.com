@@ -9,6 +9,28 @@ import { fetchTopSimfilesFromListUrl } from './zeniusFetch.js';
 import { SPOTLIGHT_TOP_N } from './zeniusParsers.js';
 import { loadPopularSongs } from './popularSongs.js';
 
+const CARD_BATCH = 16;
+
+// The first batch stays in the current turn. The rest wait for a paint so a
+// tap during a long category is not stuck behind every card.
+function appendCardsInTurns(browser, gridEl, items, path, done) {
+  let index = 0;
+  function step() {
+    const end = Math.min(items.length, index + CARD_BATCH);
+    for (; index < end; index++) {
+      gridEl.appendChild(createZeniusContentCard(browser, items[index], path));
+    }
+    if (index < items.length) {
+      const again = () => step();
+      if (typeof window.afterNextPaint === 'function') void window.afterNextPaint().then(again);
+      else setTimeout(again, 0);
+      return;
+    }
+    if (done) done();
+  }
+  step();
+}
+
 function escapeHtml(text) {
   return String(text)
     .replace(/&/g, '&amp;')
@@ -409,6 +431,8 @@ export async function runZeniusSpotlight(browser, sourceLinks) {
       hint.hidden = true;
     }
     for (const { href, label, items } of results) {
+      if (typeof window.afterNextPaint === 'function') await window.afterNextPaint();
+      else await new Promise((resolve) => setTimeout(resolve, 0));
       const sec = document.createElement('section');
       sec.className = 'zenius-spotlight-section';
       const h = document.createElement('h3');
@@ -508,9 +532,12 @@ export function displayZeniusGridContent(browser, content, path) {
     browser._lastListPath = path;
     browser.shadowRoot.getElementById('list-toolbar').classList.remove('hidden');
     const sorted = browser.applySortToSimfiles(browser._lastSimfileListForSort);
-    sorted.forEach((item) => {
-      gridEl.appendChild(createZeniusContentCard(browser, item, path));
+    appendCardsInTurns(browser, gridEl, sorted, path, () => {
+      browser.initGridRovingTabIndex();
+      browser.updateStats();
+      updateZeniusBrowserLayout(browser);
     });
+    return;
   } else {
     browser._lastSimfileListForSort = [];
     browser._lastListPath = path;
@@ -518,16 +545,13 @@ export function displayZeniusGridContent(browser, content, path) {
     const sortedItems = [...items].sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
     );
-    sortedItems.forEach((item) => {
-      gridEl.appendChild(createZeniusContentCard(browser, item, path));
+    appendCardsInTurns(browser, gridEl, sortedItems, path, () => {
+      if (!onlyDirs) browser.initGridRovingTabIndex();
+      browser.updateStats();
+      updateZeniusBrowserLayout(browser);
     });
+    return;
   }
-
-  if (!onlyDirs) {
-    browser.initGridRovingTabIndex();
-  }
-  browser.updateStats();
-  updateZeniusBrowserLayout(browser);
 }
 
 export function displayZeniusSearchResultsGrid(browser, results, itemPath = '') {
@@ -555,14 +579,12 @@ export function displayZeniusSearchResultsGrid(browser, results, itemPath = '') 
 
   browser.shadowRoot.getElementById('list-toolbar').classList.remove('hidden');
   const sortedResults = browser.applySortToSimfiles(browser._lastSimfileListForSort);
-  sortedResults.forEach((item) => {
-    const itemEl = createZeniusContentCard(browser, item, itemPath);
-    gridEl.appendChild(itemEl);
+  appendCardsInTurns(browser, gridEl, sortedResults, itemPath, () => {
+    browser.initGridRovingTabIndex();
+    browser.setZeniusSpotlightUiVisible(false);
+    resetZeniusMainScroll(browser);
+    updateZeniusBrowserLayout(browser);
   });
-  browser.initGridRovingTabIndex();
-  browser.setZeniusSpotlightUiVisible(false);
-  resetZeniusMainScroll(browser);
-  updateZeniusBrowserLayout(browser);
 }
 
 export function showZeniusLoadingOverlay(browser, text) {

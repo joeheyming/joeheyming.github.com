@@ -1,6 +1,7 @@
 /* /meme/ — Meme Generator
  *
- * Dark, focused editor UI in the Imgflip / Canva genre. Three-column
+ * Focused editor UI in the Imgflip / Canva genre; chrome follows the site
+ * light/dark theme, the meme image and its text stay as authored. Three-column
  * layout on desktop (templates · stage · properties); collapses to
  * stacked sections on narrow screens.
  *
@@ -11,21 +12,20 @@
  */
 
 :root {
-  --bg-0: #0e1015;
-  --bg-1: #161a22;
-  --bg-2: #1d222d;
-  --bg-3: #262d3b;
-  --line: #2a3142;
-  --text-0: #f3f5fb;
-  --text-1: #c3c9d6;
-  --text-2: #8a91a3;
-  --accent: #4f8cff;
-  --accent-hot: #6aa3ff;
-  --accent-text: #ffffff;
-  --danger: #ff6b6b;
-  --ok: #36c08e;
-  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
+  /* App names map onto the brand ladder so the editor follows the site theme.
+   * --text-1 / --text-2 / --text-3 / --danger come straight from brand.css. */
+  --bg-0: var(--surface-0);
+  --bg-1: var(--surface-1);
+  --bg-2: var(--surface-2);
+  --bg-3: color-mix(in srgb, var(--surface-2) 80%, var(--text-1));
+  --line: var(--hairline);
+  --text-0: var(--text-1);
+  --accent: var(--accent-primary);
+  --accent-hot: var(--accent-primary-hover);
+  --accent-text: var(--text-on-accent);
+  --ok: var(--success);
+  --shadow-1: var(--shadow-card);
+  --shadow-2: var(--shadow-modal);
   --radius: 10px;
   --radius-sm: 6px;
   --header-h: 56px;
@@ -87,7 +87,7 @@ body {
 }
 
 .brand-tag {
-  color: var(--text-2);
+  color: var(--text-3);
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
@@ -135,12 +135,12 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #2f374a;
+  background: color-mix(in srgb, var(--bg-3) 85%, var(--text-1));
 }
 
 .btn-ghost {
   background: transparent;
-  color: var(--text-1);
+  color: var(--text-2);
   border-color: var(--line);
 }
 
@@ -201,7 +201,7 @@ body {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: var(--text-2);
+  color: var(--text-3);
 }
 
 input[type='search'],
@@ -293,7 +293,7 @@ input[type='number']:focus {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: radial-gradient(circle at 30% 20%, #161b27 0%, #0c0e14 70%);
+  background: radial-gradient(circle at 30% 20%, var(--bg-1) 0%, var(--bg-0) 70%);
   /* CRITICAL: grid items default to `min-width: auto`, which means the
      1fr column refuses to shrink below the intrinsic width of its
      content (here .stage, which JS sizes explicitly in pixels). At
@@ -316,7 +316,7 @@ input[type='number']:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #111;
+  background: var(--bg-2);
   box-shadow: var(--shadow-2);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -358,13 +358,13 @@ input[type='number']:focus {
 .empty-title {
   margin: 0;
   font-size: 16px;
-  color: var(--text-1);
+  color: var(--text-2);
 }
 
 .empty-sub {
   margin: 0;
   font-size: 12px;
-  color: var(--text-2);
+  color: var(--text-3);
 }
 
 .stage[data-loaded='1'] .empty-state {
@@ -374,7 +374,7 @@ input[type='number']:focus {
 .stage-tip {
   margin-top: 12px;
   font-size: 12px;
-  color: var(--text-2);
+  color: var(--text-3);
   min-height: 16px;
 }
 
@@ -408,7 +408,7 @@ input[type='number']:focus {
 
 .text-box.is-selected {
   border-color: var(--accent);
-  background: rgba(79, 140, 255, 0.05);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
 }
 
 .text-box-inner {
@@ -527,7 +527,7 @@ input[type='number']:focus {
 
 .box-item-header .box-handle {
   font-size: 12px;
-  color: var(--text-2);
+  color: var(--text-3);
   flex: 0 0 auto;
 }
 
@@ -535,7 +535,7 @@ input[type='number']:focus {
   margin-left: auto;
   background: transparent;
   border: 0;
-  color: var(--text-2);
+  color: var(--text-3);
   cursor: pointer;
   font-size: 14px;
 }
@@ -573,7 +573,7 @@ input[type='number']:focus {
   flex-direction: column;
   gap: 2px;
   font-size: 12px;
-  color: var(--text-2);
+  color: var(--text-3);
 }
 
 .box-controls select,
@@ -610,7 +610,7 @@ input[type='number']:focus {
   padding: 4px;
   background: var(--bg-1);
   border: 1px solid var(--line);
-  color: var(--text-1);
+  color: var(--text-2);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -685,7 +685,7 @@ input[type='number']:focus {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: var(--text-1);
+  color: var(--text-2);
 }
 
 .control > span:first-child {
@@ -700,7 +700,7 @@ input[type='number']:focus {
 .control-value {
   flex: 0 0 40px;
   text-align: right;
-  color: var(--text-2);
+  color: var(--text-3);
   font-variant-numeric: tabular-nums;
   font-size: 12px;
 }
@@ -713,7 +713,7 @@ input[type='number']:focus {
 .hint {
   margin: 0;
   font-size: 12px;
-  color: var(--text-2);
+  color: var(--text-3);
   line-height: 1.5;
 }
 

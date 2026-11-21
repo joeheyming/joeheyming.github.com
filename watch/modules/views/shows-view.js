@@ -986,7 +986,7 @@ function makeSavedCard(meta, ctx, onChange) {
 
   const thumb = document.createElement('div');
   thumb.className = 'tv-continue-thumb';
-  thumb.style.background = `linear-gradient(160deg, ${meta.showAccent || '#444'}33, #111)`;
+  thumb.style.setProperty('--tint', `${meta.showAccent || '#444'}33`);
   // `meta.thumbUrl` is stamped at save-time from `ep.image` (TVMaze
   // episode still). Standalone movies don't have an episode still, so
   // for any movie record (including ones saved before saveEpisode
@@ -1117,7 +1117,7 @@ function makeContinueCard(show, entry, ctx, onChange) {
 
   const thumb = document.createElement('div');
   thumb.className = 'tv-continue-thumb';
-  thumb.style.background = `linear-gradient(160deg, ${show.accent}33, #111)`;
+  thumb.style.setProperty('--tint', `${show.accent}33`);
   // Three-tier thumbnail strategy, same priority order as makeMovieCard:
   //
   //   1. `posterUrl` (movies) — direct https URL the registry author
@@ -1267,7 +1267,7 @@ function makeMovieCard(movie, ctx) {
 
   const poster = document.createElement('div');
   poster.className = 'tv-show-poster';
-  poster.style.background = `linear-gradient(160deg, ${movie.accent}33, #111)`;
+  poster.style.setProperty('--tint', `${movie.accent}33`);
 
   // Poster strategy for movies:
   //
@@ -1374,7 +1374,7 @@ function makeShowCard(show, ctx) {
 
   const poster = document.createElement('div');
   poster.className = 'tv-show-poster';
-  poster.style.background = `linear-gradient(160deg, ${show.accent}33, #111)`;
+  poster.style.setProperty('--tint', `${show.accent}33`);
 
   // Preview-catalog tiles (and any future row without TVMaze / poster)
   // skip the network and render the emoji placeholder directly.

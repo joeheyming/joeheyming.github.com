@@ -850,7 +850,16 @@ class RichNotepad {
   }
 }
 
-// Initialize the rich notepad when the DOM is loaded
+// Quill parses a large library. Load it after the page is up, then
+// construct the editor. A failed load leaves a note in the editor box.
 document.addEventListener('DOMContentLoaded', () => {
-  new RichNotepad();
+  import('/shared/lazy.js')
+    .then((lazy) => lazy.loadScript('https://cdn.quilljs.com/1.3.6/quill.min.js'))
+    .then(() => {
+      new RichNotepad();
+    })
+    .catch(() => {
+      const editor = document.getElementById('editor');
+      if (editor) editor.textContent = 'The editor did not load. Try again.';
+    });
 });

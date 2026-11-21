@@ -48,8 +48,9 @@ describe('StepMania boot does not wait on the whole app', () => {
     }
     const html = read('index.html');
     const prefetch = html.indexOf('__zeniusPagePrefetch');
-    const tailwind = html.indexOf('cdn.tailwindcss.com');
-    assert.ok(prefetch > 0 && prefetch < tailwind);
+    const sheet = html.indexOf('stepmania-utilities.css');
+    assert.doesNotMatch(html, /cdn\.tailwindcss\.com/);
+    assert.ok(prefetch > 0 && sheet > prefetch);
   });
 
   it('loads the catalog UI from the play controller only on demand', () => {

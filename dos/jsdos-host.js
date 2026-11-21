@@ -18,6 +18,8 @@
 //      of changed files (the FS delta).
 //   • `ci.exit()` / props.stop() — tears the emulator down.
 
+import { ensureDosRuntime } from './runtime.js';
+
 /* global Dos, JSZip */
 
 /**
@@ -35,6 +37,7 @@
  * @returns {Promise<HostHandle>}
  */
 export async function launchJsDos(host, bundleBytes, saveBytes, onStatus) {
+  await ensureDosRuntime();
   if (typeof Dos !== 'function') {
     throw new Error('js-dos failed to load from CDN.');
   }
@@ -69,8 +72,8 @@ export async function launchJsDos(host, bundleBytes, saveBytes, onStatus) {
       // js-dos resolves `<pathPrefix>emulators.js` (and `wdosbox.js`,
       // `wdosbox.wasm`, `wdosbox-x.js`, `wdosbox-x.wasm`) at boot.
       // Pinned to the same `emulators` version that the loaded
-      // `js-dos@8.3.20` was built against — see the CDN <script> in
-      // `index.html` and keep these in sync when bumping versions.
+      // `js-dos@8.3.20` was built against — see `dos/runtime.js` and
+      // keep these in sync when bumping versions.
       pathPrefix: 'https://cdn.jsdelivr.net/npm/emulators@8.3.8/dist/',
       theme: 'dark',
       // Keep saves local: no dos.zone account, no upstream telemetry.

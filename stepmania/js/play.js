@@ -50,8 +50,10 @@ export const PLAY_CHUNKS = [
 ];
 
 function yieldForInput() {
-  if (typeof window !== 'undefined' && typeof window.yieldToMain === 'function') {
-    return window.yieldToMain();
+  // scheduler.yield() runs before queued input, so a tap during this load
+  // waited for every remaining chunk. A paint gap lets that tap in first.
+  if (typeof window !== 'undefined' && typeof window.afterNextPaint === 'function') {
+    return window.afterNextPaint();
   }
   return new Promise((resolve) => {
     setTimeout(resolve, 0);

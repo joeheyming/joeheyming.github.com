@@ -1,7 +1,7 @@
-// The Tailwind CDN recompiles every stylesheet when a light-DOM class shows
-// up that it has not seen yet. That compile is the multi-second task behind
-// StepMania's field INP. The safelist element is scanned on the first build,
-// and the loader then ignores later class changes.
+// The Tailwind Play CDN compiles on the main thread. On this page that
+// compile was a multi-second task, which is the phone INP. The utilities
+// live in stepmania-utilities.css instead. A slash or variant class the
+// page uses has to be in that file; the CDN is not around to invent it.
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -12,35 +12,38 @@ import { collectStepmaniaClasses } from './tailwind-classes.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(path.join(root, 'index.html'), 'utf8');
+const css = readFileSync(path.join(root, 'stepmania-utilities.css'), 'utf8');
 
-describe('StepMania Tailwind safelist', () => {
-  it('lists every class the page can put on a light-DOM node', () => {
-    const marker = 'id="sm-tailwind-safelist"';
-    const at = html.indexOf(marker);
-    assert.notEqual(at, -1, 'index.html is missing #sm-tailwind-safelist');
-    const classAt = html.indexOf('class="', at);
-    const classEnd = html.indexOf('"', classAt + 'class="'.length);
-    const listed = html
-      .slice(classAt + 'class="'.length, classEnd)
-      .split(/\s+/)
-      .filter(Boolean);
-    const expected = collectStepmaniaClasses(root);
-    assert.deepEqual(listed, expected);
+describe('StepMania Tailwind sheet', () => {
+  it('does not load the compiler', () => {
+    assert.doesNotMatch(html, /cdn\.tailwindcss\.com/);
+    assert.doesNotMatch(html, /sm-tailwind-safelist/);
+    const link = html.indexOf('stepmania-utilities.css');
+    const body = html.indexOf('<body');
+    assert.ok(link !== -1 && link < body);
   });
 
-  it('stops the CDN from rebuilding once that list is in the document', () => {
-    const loader = html.indexOf('https://cdn.tailwindcss.com/3.4.16');
-    const watch = html.indexOf('sm-tailwind-safelist');
-    assert.ok(
-      watch !== -1 && watch < loader,
-      'the observer guard must be installed before the CDN'
-    );
-    assert.match(html, /tailwindWatch && compiled/);
+  it('covers the layout utilities', () => {
+    for (const sel of [
+      '.flex{',
+      '.h-screen',
+      '.bg-surface-0{',
+      '.text-sm-arrow-left',
+      '.bg-success\\/20',
+      '.bg-surface-0\\/50',
+      '.border-success\\/30'
+    ]) {
+      assert.ok(css.includes(sel), sel);
+    }
   });
 
-  it('puts the safelist ahead of the first body script', () => {
-    const div = html.indexOf('id="sm-tailwind-safelist"');
-    const script = html.indexOf('<script>', html.indexOf('<body'));
-    assert.ok(div !== -1 && div < script);
+  it('includes every slash or variant class the page uses', () => {
+    const missing = [];
+    for (const cls of collectStepmaniaClasses(root)) {
+      if (!cls.includes('/') && !cls.includes(':')) continue;
+      const escaped = '.' + cls.replace(/([:.\/[\]%])/g, '\\$1');
+      if (!css.includes(escaped)) missing.push(cls);
+    }
+    assert.deepEqual(missing, []);
   });
 });

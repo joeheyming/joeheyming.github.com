@@ -132,20 +132,17 @@
 
     <!-- Brand foundation. Load order matters:
          1. preconnect + Inter font CDN
-         2. Tailwind CDN — installs window.tailwind on boot
-         3. brand-tailwind.js — sets tailwind.config AFTER CDN is live
-            (current CDN overwrites window.tailwind, so config must
-            come after it loads)
-         4. brand.css (tokens)
-         5. brand-icons.js
-         6. OS stylesheets (built on top of brand tokens) -->
+         2. tailwind.css — compiled utilities. The Play CDN compiler is a
+            multi-second main-thread task, so this page does not run it.
+         3. brand.css (tokens)
+         4. brand-icons.js
+         5. OS stylesheets (built on top of brand tokens) -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
     />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/brand-tailwind.js"></script>
+    <link rel="stylesheet" href="tailwind.css" />
     <link rel="stylesheet" href="/brand.css" />
     <script src="/brand-icons.js"></script>
     <script src="mime-handlers.js"></script>

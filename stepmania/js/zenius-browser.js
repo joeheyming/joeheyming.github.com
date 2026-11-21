@@ -1,7 +1,11 @@
 // Zenius Browser Web Component - ES Module
 import { adoptSharedStyles } from './sharedStyles.js';
 import { createComponentProxy } from './componentProxy.js';
-import { parseZeniusHtmlContent, parseZeniusSearchResults } from './zeniusParsers.js';
+import {
+  parseZeniusHtmlContent,
+  parseZeniusSearchResults,
+  simfileItemsFromHtml
+} from './zeniusParsers.js';
 import {
   ZENIUS_BROWSER_SHADOW_HTML,
   createZeniusContentCard,
@@ -17,7 +21,7 @@ import {
   updateZeniusSavedButtonLabel,
   updateZeniusBrowserLayout
 } from './zeniusRender.js';
-import { formatLoadError } from './songLoader.js';
+import { formatLoadError } from './loadError.js';
 import { matchesSearchText } from './searchText.js';
 
 /**
@@ -287,9 +291,10 @@ class ZeniusBrowserElement extends HTMLElement {
     updateZeniusBrowserLayout(this);
 
     // Let the modal shell paint before rebuilding a potentially large cached
-    // song grid. Browse buttons were otherwise among this page's slowest
-    // interactions because both phases ran in the activation task.
-    await window.yieldToMain();
+    // song grid. yieldToMain resumes before that paint, so the grid build
+    // was still part of the click. Field INP for this page is about 1.8s.
+    if (typeof window.afterNextPaint === 'function') await window.afterNextPaint();
+    else await new Promise((resolve) => setTimeout(resolve, 0));
     if (!modal.classList.contains('show')) return;
 
     this.renderRecentChips();
@@ -417,6 +422,10 @@ class ZeniusBrowserElement extends HTMLElement {
 
   async loadContent(path) {
     this.showLoading('Loading content...');
+    // A cached category returns on a microtask, and building every card then
+    // runs before the next paint. Wait for the loading state to paint first.
+    if (typeof window.afterNextPaint === 'function') await window.afterNextPaint();
+    else await new Promise((resolve) => setTimeout(resolve, 0));
 
     try {
       let url;
@@ -451,7 +460,21 @@ class ZeniusBrowserElement extends HTMLElement {
     try {
       // Use the global proxy service
       const html = await window.proxyService.fetchWithProxy(url, { skipDirect: true });
-      const content = parseZeniusHtmlContent(html, this.currentPath);
+      const gap = () =>
+        typeof window.afterNextPaint === 'function'
+          ? window.afterNextPaint()
+          : new Promise((resolve) => setTimeout(resolve, 0));
+      await gap();
+      let content;
+      if (this.currentPath === '') {
+        content = parseZeniusHtmlContent(html, this.currentPath);
+      } else {
+        const items = await simfileItemsFromHtml(html, 0, gap);
+        content = {
+          type: items.length ? 'simfiles' : 'unknown',
+          items
+        };
+      }
       this.cache.set(url, content);
       return content;
     } catch (error) {

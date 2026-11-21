@@ -68,6 +68,16 @@ var chosenWords;
 var playWordsAnswer;
 
 function onStart() {
+  if (!allWords || !allWords.length) {
+    if (typeof fetchWords === 'function' && !onStart.waiting) {
+      onStart.waiting = true;
+      fetchWords().then(function () {
+        onStart.waiting = false;
+        onStart();
+      });
+    }
+    return;
+  }
   var radio = document.querySelector('[type=radio]:checked');
 
   // Handle benchmark mode separately
@@ -199,10 +209,32 @@ function renderWords() {
   wordDisplay.appendChild(fragment);
 }
 
+function ensurePlotly() {
+  if (window.Plotly) return Promise.resolve();
+  if (!ensurePlotly.pending) {
+    ensurePlotly.pending = import('/shared/lazy.js')
+      .then(function (lazy) {
+        return lazy.loadScript('https://cdn.plot.ly/plotly-2.12.1.min.js');
+      })
+      .catch(function (err) {
+        ensurePlotly.pending = null;
+        throw err;
+      });
+  }
+  return ensurePlotly.pending;
+}
+
 /**
- * Update the stats graph showing distribution of guesses
+ * Update the stats graph showing distribution of guesses.
+ * Plotly is fetched the first time a game is won, not at page load.
  */
 function updateStatsGraph() {
+  if (!window.Plotly) {
+    ensurePlotly()
+      .then(updateStatsGraph)
+      .catch(function () {});
+    return;
+  }
   var y = Object.keys(playStats);
   if (y.length === 0) return;
 

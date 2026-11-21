@@ -22,6 +22,22 @@ const MIN_COL = 14;
 const MAX_COL = 36;
 const LABEL_W = 44;
 
+const PAINT_VARS = [
+  '--chip-bg',
+  '--chip-row',
+  '--chip-row-alt',
+  '--chip-row-mark',
+  '--chip-bar',
+  '--chip-beat',
+  '--chip-grid',
+  '--chip-note',
+  '--chip-note-edge',
+  '--chip-playhead',
+  '--chip-label',
+  '--chip-text',
+  '--chip-muted'
+];
+
 export class PitchGrid {
   /**
    * @param {{
@@ -49,6 +65,19 @@ export class PitchGrid {
     this.isolatedPattern = -1;
     this._drag = null;
     this._raf = 0;
+    /** @type {Record<string, string>} */
+    this.paint = {};
+    this.readPaint();
+    this._onTheme = () => {
+      this.readPaint();
+      this.draw();
+    };
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', this._onTheme);
+    this._themeObserver = new MutationObserver(this._onTheme);
+    this._themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
 
     this.canvas.addEventListener('pointerdown', (e) => this._pointerDown(e));
     this.canvas.addEventListener('pointermove', (e) => this._pointerMove(e));
@@ -166,6 +195,24 @@ export class PitchGrid {
     this.draw();
   }
 
+  readPaint() {
+    const probe = document.createElement('span');
+    probe.style.position = 'absolute';
+    probe.style.left = '-9999px';
+    document.body.appendChild(probe);
+    for (const name of PAINT_VARS) {
+      probe.style.backgroundColor = `var(${name})`;
+      const resolved = getComputedStyle(probe).backgroundColor;
+      if (resolved && resolved !== 'rgba(0, 0, 0, 0)') this.paint[name] = resolved;
+    }
+    probe.remove();
+  }
+
+  /** @param {string} name */
+  ink(name) {
+    return this.paint[name] || '#888';
+  }
+
   clearPlayhead() {
     this.playheadStep = -1;
     this.playheadArr = 0;
@@ -183,16 +230,16 @@ export class PitchGrid {
     const h = PITCH_COUNT * ROW_H;
     ctx.clearRect(0, 0, w, h);
 
-    ctx.fillStyle = '#12151c';
+    ctx.fillStyle = this.ink('--chip-bg');
     ctx.fillRect(0, 0, w, h);
 
     for (let i = 0; i < PITCH_COUNT; i++) {
       const midi = PITCH_MAX - i;
       const y = i * ROW_H;
-      ctx.fillStyle = isBlackKey(midi) ? '#1a1f2a' : '#151922';
+      ctx.fillStyle = isBlackKey(midi) ? this.ink('--chip-row-alt') : this.ink('--chip-row');
       ctx.fillRect(LABEL_W, y, w - LABEL_W, ROW_H);
       if (isC(midi)) {
-        ctx.fillStyle = 'rgba(96, 165, 250, 0.08)';
+        ctx.fillStyle = this.ink('--chip-row-mark');
         ctx.fillRect(LABEL_W, y, w - LABEL_W, ROW_H);
       }
     }
@@ -203,10 +250,10 @@ export class PitchGrid {
       const isBar = abs % STEPS_PER_BAR === 0;
       const isBeat = abs % 4 === 0;
       ctx.strokeStyle = isBar
-        ? 'rgba(94, 234, 212, 0.35)'
+        ? this.ink('--chip-bar')
         : isBeat
-        ? 'rgba(255,255,255,0.14)'
-        : 'rgba(255,255,255,0.05)';
+        ? this.ink('--chip-beat')
+        : this.ink('--chip-grid');
       ctx.lineWidth = isBar ? 1.5 : 1;
       ctx.beginPath();
       ctx.moveTo(x, 0);
@@ -215,7 +262,7 @@ export class PitchGrid {
     }
     ctx.lineWidth = 1;
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = this.ink('--chip-grid');
     for (let i = 0; i <= PITCH_COUNT; i++) {
       const y = i * ROW_H;
       ctx.beginPath();
@@ -239,9 +286,9 @@ export class PitchGrid {
         const x = LABEL_W + (draw0 - origin) * colW + 1;
         const y = row * ROW_H + 1;
         const nw = (draw1 - draw0) * colW - 2;
-        ctx.fillStyle = '#5eead4';
+        ctx.fillStyle = this.ink('--chip-note');
         ctx.fillRect(x, y, nw, ROW_H - 2);
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.55)';
+        ctx.fillStyle = this.ink('--chip-note-edge');
         ctx.fillRect(x, y, Math.min(4, nw), ROW_H - 2);
       }
     }
@@ -251,16 +298,16 @@ export class PitchGrid {
       : this.playheadStep;
     if (this.playheadStep >= 0 && playAbs >= origin && playAbs < vis1) {
       const x = LABEL_W + (playAbs - origin) * colW;
-      ctx.fillStyle = 'rgba(251, 191, 36, 0.28)';
+      ctx.fillStyle = this.ink('--chip-playhead');
       ctx.fillRect(x, 0, colW, h);
     }
 
-    ctx.fillStyle = '#0d1017';
+    ctx.fillStyle = this.ink('--chip-label');
     ctx.fillRect(0, 0, LABEL_W - 1, h);
     for (let i = 0; i < PITCH_COUNT; i++) {
       const midi = PITCH_MAX - i;
       const y = i * ROW_H;
-      ctx.fillStyle = isC(midi) ? '#e2e8f0' : '#8b93a7';
+      ctx.fillStyle = isC(midi) ? this.ink('--chip-text') : this.ink('--chip-muted');
       ctx.font = '10px JetBrains Mono, ui-monospace, monospace';
       ctx.textBaseline = 'middle';
       ctx.fillText(midiToName(midi), 6, y + ROW_H / 2);

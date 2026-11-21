@@ -1,17 +1,20 @@
 :root {
-  --bg0: #d9e3ec;
-  --bg1: #eef3f7;
-  --ink: #1a2330;
-  --muted: #5c6b7a;
-  --panel: rgba(255, 255, 255, 0.72);
-  --panel-border: rgba(26, 35, 48, 0.1);
-  --edge: #7a8fa3;
-  --node: #1a2330;
-  --node-stroke: #ffffff;
-  --node-active: #0d6e6e;
-  --accent: #0d6e6e;
-  --accent-ink: #ffffff;
-  --shadow: 0 10px 30px rgba(26, 35, 48, 0.08);
+  --bg0: var(--surface-0, #fafafa);
+  --bg1: var(--surface-1, #ffffff);
+  --ink: var(--text-1, #1a1a1a);
+  --muted: var(--text-2, #555555);
+  --panel: color-mix(in srgb, var(--surface-1, #ffffff) 88%, transparent);
+  --panel-border: var(--hairline, #e5e5e0);
+  --edge: var(--text-3, #6c6c6c);
+  --node: var(--text-1, #1a1a1a);
+  --node-stroke: var(--surface-0, #fafafa);
+  --node-active: var(--accent-primary, #1a73e8);
+  --node-halo: color-mix(in srgb, var(--text-1, #1a1a1a) 18%, transparent);
+  --node-halo-active: color-mix(in srgb, var(--accent-primary, #1a73e8) 35%, transparent);
+  --vignette: color-mix(in srgb, var(--surface-1, #ffffff) 45%, transparent);
+  --accent: var(--accent-primary, #1a73e8);
+  --accent-ink: var(--text-on-accent, #ffffff);
+  --shadow: var(--shadow-card, 0 1px 3px rgba(0, 0, 0, 0.08));
   --font-display: 'Outfit', system-ui, sans-serif;
   --font-body: 'Source Sans 3', system-ui, sans-serif;
   --hud-pad-left: 120px;
@@ -28,7 +31,12 @@ html,
 body {
   margin: 0;
   height: 100%;
-  background: linear-gradient(160deg, var(--bg0) 0%, var(--bg1) 55%, #f7fafc 100%);
+  background: linear-gradient(
+    160deg,
+    var(--bg0) 0%,
+    var(--bg1) 55%,
+    var(--surface-2, #f0eee8) 100%
+  );
   color: var(--ink);
   font-family: var(--font-body);
   overflow: hidden;
@@ -40,7 +48,10 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: radial-gradient(rgba(26, 35, 48, 0.045) 1px, transparent 1px);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--ink) 12%, transparent) 1px,
+    transparent 1px
+  );
   background-size: 18px 18px;
   opacity: 0.7;
 }
@@ -94,7 +105,7 @@ body::before {
   min-width: 64px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--bg1);
   border: 1px solid var(--panel-border);
   text-align: center;
 }
@@ -130,7 +141,7 @@ body::before {
 .btn {
   appearance: none;
   border: 1px solid var(--panel-border);
-  background: #fff;
+  background: var(--bg1);
   color: var(--ink);
   font-family: var(--font-display);
   font-size: 0.85rem;
@@ -142,8 +153,8 @@ body::before {
 }
 
 .btn:hover:not(:disabled) {
-  border-color: rgba(13, 110, 110, 0.45);
-  background: #f3faf9;
+  border-color: var(--hairline-accent, var(--accent));
+  background: var(--surface-2, var(--bg0));
 }
 
 .btn:active:not(:disabled) {
@@ -162,8 +173,8 @@ body::before {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0a5a5a;
-  border-color: #0a5a5a;
+  background: var(--accent-primary-hover, var(--accent));
+  border-color: var(--accent-primary-hover, var(--accent));
   color: var(--accent-ink);
 }
 
@@ -205,9 +216,9 @@ body.related-panel-open .win-banner {
   transform: translateX(-50%) translateY(0);
   padding: 16px 26px 18px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(13, 110, 110, 0.25);
-  box-shadow: 0 16px 40px rgba(26, 35, 48, 0.15);
+  background: color-mix(in srgb, var(--bg1) 94%, transparent);
+  border: 1px solid var(--hairline-accent, var(--panel-border));
+  box-shadow: var(--shadow-modal, var(--shadow));
   text-align: center;
   pointer-events: none;
   animation: win-pop 0.45s ease both;
@@ -239,23 +250,23 @@ body.related-panel-open .win-banner {
 }
 
 .win-grade-letter[data-grade='A'] {
-  color: #0d6e6e;
+  color: var(--accent);
 }
 
 .win-grade-letter[data-grade='B'] {
-  color: #1a6b3c;
+  color: var(--success, #188038);
 }
 
 .win-grade-letter[data-grade='C'] {
-  color: #8a6d1d;
+  color: var(--warning, #f29900);
 }
 
 .win-grade-letter[data-grade='D'] {
-  color: #b35a1a;
+  color: var(--accent-yellow, #fbbc04);
 }
 
 .win-grade-letter[data-grade='F'] {
-  color: #b83228;
+  color: var(--danger, #d93025);
 }
 
 .win-grade-detail {

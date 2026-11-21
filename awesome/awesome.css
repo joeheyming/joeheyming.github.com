@@ -5,8 +5,8 @@
    ═══════════════════════════════════════════════════════════════════ */
 :root {
   /* ── awesome: LEGO Movie scoped palette ──────────────────────────
-   * Chrome (surfaces, scrims, hairlines, body text) routes through
-   * brand tokens. The "Everything is Awesome" candy identity — coral
+   * Chrome (start screen, info modal, info button, body text) routes
+   * through brand tokens so it follows the light/dark theme. The "Everything is Awesome" candy identity — coral
    * pop, LEGO teal, brick yellow, neon nyan magenta/cyan, firework
    * orange ladder — lives in these --awe-* tokens so the brand audit
    * sees zero bare literals while the song's loud palette stays loud.
@@ -15,18 +15,17 @@
   --awe-coral-bright: #ff8e53;
   --awe-teal: #4ecdc4;
   --awe-yellow: #ffe66d;
+  /* Candy hues mixed toward --text-1 so they stay readable as text on both
+   * light and dark surfaces. */
+  --awe-teal-ink: color-mix(in srgb, var(--awe-teal) 55%, var(--text-1));
+  --awe-yellow-ink: color-mix(in srgb, var(--awe-yellow) 45%, var(--text-1));
   --awe-neon-magenta: #ff00ff;
   --awe-neon-cyan: #00ffff;
   --awe-firework-orange: #ff6600;
   --awe-firework-yellow: #ffcc00;
   --awe-firework-trail: #ff9900;
-  --awe-deep-blue-1: #1a1a2e;
-  --awe-deep-blue-2: #16213e;
-  --awe-deep-blue-3: #0f3460;
   --awe-disco-chain-dark: #444444;
   --awe-disco-chain-light: #888888;
-  --awe-modal-bg-1: #1e1e2e;
-  --awe-modal-bg-2: #2a2a3e;
   --awe-spotify: #1db954;
   --awe-apple-red: #fc3c44;
   --awe-youtube-red: #ff0000;
@@ -65,10 +64,6 @@ body {
   padding: 0;
 }
 
-/* Defensive brand defaults: every visible-text element in this app paints
- * its own color (gradient titles, neon credit lines, info-section text),
- * but if any future descendant inherits from <body> it should land on the
- * brand light-on-dark, not the UA default black. */
 body {
   background-color: var(--surface-0);
   color: var(--text-1);
@@ -439,9 +434,9 @@ audio {
   min-height: 100vh;
   background: linear-gradient(
     135deg,
-    var(--awe-deep-blue-1, #1a1a2e) 0%,
-    var(--awe-deep-blue-2, #16213e) 50%,
-    var(--awe-deep-blue-3, #0f3460) 100%
+    var(--surface-0) 0%,
+    var(--surface-1) 50%,
+    var(--surface-2) 100%
   );
   position: relative;
   overflow: hidden;
@@ -483,7 +478,7 @@ audio {
 .start-title {
   font-family: 'Bangers', 'Impact', sans-serif;
   font-size: clamp(2.5rem, 8vw, 4.5rem);
-  color: var(--pure-white);
+  color: var(--text-1);
   text-shadow: 0 0 10px var(--awe-coral, #ff6b6b), 0 0 20px var(--awe-coral, #ff6b6b),
     0 0 40px var(--awe-coral, #ff6b6b), 3px 3px 0 var(--awe-teal, #4ecdc4);
   margin: 0 0 10px 0;
@@ -505,29 +500,29 @@ audio {
 .start-subtitle {
   font-family: 'Fredoka One', 'Comic Sans MS', cursive;
   font-size: 1.3rem;
-  color: var(--awe-yellow, #ffe66d);
+  color: var(--awe-yellow-ink);
   margin: 0 0 30px 0;
   letter-spacing: 1px;
 }
 
 .start-credits {
-  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 70%, transparent);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 20px 30px;
   margin-bottom: 30px;
-  border: 1px solid color-mix(in srgb, var(--pure-white) 20%, transparent);
+  border: 1px solid var(--hairline);
 }
 
 .credit-line {
   font-size: 1.1rem;
-  color: var(--pure-white);
+  color: var(--text-1);
   margin: 0 0 5px 0;
 }
 
 .credit-artist {
   font-size: 1.4rem;
-  color: var(--awe-teal, #4ecdc4);
+  color: var(--awe-teal-ink);
   font-weight: bold;
   margin: 0 0 5px 0;
 }
@@ -585,7 +580,7 @@ audio {
 }
 
 .start-hints {
-  color: color-mix(in srgb, var(--pure-white) 70%, transparent);
+  color: var(--text-2);
   font-size: 0.9rem;
   line-height: 1.8;
 }
@@ -596,7 +591,7 @@ audio {
 
 .keyboard-hint {
   font-size: 0.8rem !important;
-  color: color-mix(in srgb, var(--pure-white) 50%, transparent) !important;
+  color: var(--text-3) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -609,9 +604,9 @@ audio {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
-  border: 2px solid color-mix(in srgb, var(--pure-white) 30%, transparent);
-  color: var(--pure-white);
+  background: color-mix(in srgb, var(--surface-1) 80%, transparent);
+  border: 2px solid var(--hairline-strong);
+  color: var(--text-1);
   font-size: 24px;
   cursor: pointer;
   z-index: 10000;
@@ -652,11 +647,7 @@ audio {
 }
 
 .info-modal-content {
-  background: linear-gradient(
-    145deg,
-    var(--awe-modal-bg-1, #1e1e2e),
-    var(--awe-modal-bg-2, #2a2a3e)
-  );
+  background: linear-gradient(145deg, var(--surface-1), var(--surface-2));
   border-radius: 24px;
   padding: 40px;
   max-width: 600px;
@@ -665,8 +656,8 @@ audio {
   overflow-y: auto;
   position: relative;
   border: 1px solid var(--hairline);
-  box-shadow: 0 25px 80px color-mix(in srgb, var(--pure-black) 50%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--pure-white) 10%, transparent);
+  color: var(--text-1);
+  box-shadow: var(--shadow-modal);
 }
 
 .info-close {
@@ -676,9 +667,9 @@ audio {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
+  background: var(--surface-2);
   border: none;
-  color: var(--pure-white);
+  color: var(--text-1);
   font-size: 18px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -686,13 +677,14 @@ audio {
 
 .info-close:hover {
   background: var(--awe-coral, #ff6b6b);
+  color: var(--pure-white);
   transform: rotate(90deg);
 }
 
 .info-title {
   font-family: 'Bangers', 'Impact', sans-serif;
   font-size: 2.2rem;
-  color: var(--pure-white);
+  color: var(--text-1);
   text-align: center;
   margin: 0 0 30px 0;
   text-shadow: 0 0 20px color-mix(in srgb, var(--awe-coral, #ff6b6b) 50%, transparent);
@@ -712,19 +704,19 @@ audio {
 .info-section h3 {
   font-family: 'Fredoka One', sans-serif;
   font-size: 1.1rem;
-  color: var(--awe-teal, #4ecdc4);
+  color: var(--awe-teal-ink);
   margin: 0 0 12px 0;
 }
 
 .info-section p {
-  color: color-mix(in srgb, var(--pure-white) 85%, transparent);
+  color: var(--text-1);
   margin: 5px 0;
   line-height: 1.6;
 }
 
 .info-small {
   font-size: 0.8rem !important;
-  color: color-mix(in srgb, var(--pure-white) 50%, transparent) !important;
+  color: var(--text-3) !important;
   margin-top: 10px !important;
 }
 
@@ -780,7 +772,7 @@ audio {
 }
 
 .feature-list li {
-  color: color-mix(in srgb, var(--pure-white) 80%, transparent);
+  color: var(--text-2);
   padding: 6px 0;
   font-size: 0.95rem;
 }
@@ -796,17 +788,18 @@ audio {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: color-mix(in srgb, var(--pure-white) 80%, transparent);
+  color: var(--text-2);
   font-size: 0.9rem;
 }
 
 .shortcut kbd {
-  background: color-mix(in srgb, var(--pure-white) 15%, transparent);
+  background: var(--surface-2);
+  color: var(--text-1);
   padding: 5px 12px;
   border-radius: 6px;
   font-family: 'SF Mono', 'Monaco', monospace;
   font-size: 0.85rem;
-  border: 1px solid color-mix(in srgb, var(--pure-white) 20%, transparent);
+  border: 1px solid var(--hairline-strong);
 }
 
 /* Contact Links */
@@ -818,20 +811,20 @@ audio {
 }
 
 .contact-links a {
-  color: var(--awe-teal, #4ecdc4);
+  color: var(--awe-teal-ink);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .contact-links a:hover {
-  color: var(--awe-yellow, #ffe66d);
+  color: var(--awe-yellow-ink);
 }
 
 /* Disclaimer */
 .info-disclaimer {
   text-align: center;
   font-size: 0.75rem;
-  color: color-mix(in srgb, var(--pure-white) 40%, transparent);
+  color: var(--text-3);
   margin-top: 20px;
   font-style: italic;
 }

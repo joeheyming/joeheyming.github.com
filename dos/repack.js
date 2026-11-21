@@ -19,6 +19,8 @@
 // If the input zip is already a .jsdos bundle (has .jsdos/dosbox.conf
 // or .jsdos/jsdos.json at root) we pass the bytes through unchanged.
 
+import { ensureJsZip } from './runtime.js';
+
 /* global JSZip */
 
 const JSDOS_CONF_PATH = '.jsdos/dosbox.conf';
@@ -65,6 +67,7 @@ const EXECUTABLE_EXTS = new Set(['exe', 'com', 'bat']);
  * @returns {Promise<BundleResult>}
  */
 export async function repackToJsdos(input, options = {}) {
+  await ensureJsZip();
   if (typeof JSZip === 'undefined') {
     throw new Error('JSZip failed to load — try refreshing.');
   }

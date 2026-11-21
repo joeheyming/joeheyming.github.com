@@ -3,39 +3,43 @@
    ========================================================================== */
 
 :root {
-  color-scheme: dark;
-
-  --bg: #090d1b;
-  --surface: #0e1425b8;
-  --surface-raised: #172038;
-  --surface-hover: #202c4b;
-  --surface-input: #0a1020;
-  --pill-bg: #12182ad9;
+  /* Chrome follows the brand theme. The video cards stay dark because they
+     frame camera feeds, and the violet accent and outgoing bubble keep their
+     identity in both themes. Status hues come from brand --success,
+     --danger and --warning, which are tuned per theme. */
+  --bg: var(--surface-0);
+  --surface: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  --surface-raised: var(--surface-2);
+  --surface-hover: color-mix(in srgb, var(--surface-2), var(--text-1) 8%);
+  --surface-input: var(--surface-2);
+  --pill-bg: color-mix(in srgb, var(--surface-1) 85%, transparent);
   --caption-bg: #07101bc7;
+  --video-bg: linear-gradient(145deg, #1b2441, #0d1223 60%), #111827;
+  --video-text: #f3f5ff;
+  --video-text-muted: #b4bfdc;
 
-  --text: #f3f5ff;
-  --text-strong: #ffffff;
-  --text-muted: #b4bfdc;
-  --text-subtle: #9ca8c9;
+  --text: var(--text-1);
+  --text-strong: var(--text-1);
+  --text-muted: var(--text-2);
+  --text-subtle: var(--text-3);
+  --text-on-violet: #ffffff;
 
-  --border: #ffffff1c;
-  --border-strong: #ffffff2e;
-  --border-faint: #ffffff16;
+  --border: var(--hairline);
+  --border-strong: var(--hairline-strong);
+  --border-faint: var(--hairline);
 
   --accent: #8056ff;
   --accent-alt: #cf3ef2;
   --accent-focus: #a080ff;
-  --bubble-in: #202a45;
+  --bubble-in: var(--surface-2);
   --bubble-out: #7047d1;
 
-  --success: #75f0b4;
-  --success-border: #46db9b66;
-  --danger: #ffabb1;
-  --danger-border: #ff758066;
-  --warning: #f8dfaa;
-  --warning-strong: #ffe7b1;
-  --warning-bg: #402c0d44;
-  --warning-border: #ffc65d3b;
+  --success-border: color-mix(in srgb, var(--success) 40%, transparent);
+  --danger-border: color-mix(in srgb, var(--danger) 40%, transparent);
+  --warning-text: color-mix(in srgb, var(--warning) 55%, var(--text-1));
+  --warning-strong: color-mix(in srgb, var(--warning) 35%, var(--text-1));
+  --warning-bg: var(--warning-soft);
+  --warning-border: color-mix(in srgb, var(--warning) 35%, transparent);
 
   --radius-lg: 22px;
   --radius-md: 18px;
@@ -66,8 +70,17 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: radial-gradient(circle at 80% 0%, #3d1b703d, transparent 36rem),
-    radial-gradient(circle at 0% 100%, #123a703d, transparent 35rem), var(--bg);
+  background: radial-gradient(
+      circle at 80% 0%,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 36rem
+    ),
+    radial-gradient(
+      circle at 0% 100%,
+      color-mix(in srgb, #2f7ee0 10%, transparent),
+      transparent 35rem
+    ),
+    var(--bg);
 }
 
 h1,
@@ -127,7 +140,7 @@ button:disabled {
   width: 42px;
   height: 42px;
   place-items: center;
-  border: 1px solid #ffffff33;
+  border: 1px solid var(--border-strong);
   border-radius: 14px;
   color: var(--text-strong);
   font-size: 28px;
@@ -136,7 +149,7 @@ button:disabled {
 
 .eyebrow {
   margin: 0 0 2px;
-  color: #aab4d5;
+  color: var(--text-muted);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -150,10 +163,10 @@ button:disabled {
 
 .connection-status {
   padding: 9px 13px;
-  border: 1px solid #ffffff1f;
+  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   background: var(--pill-bg);
-  color: #cdd5ef;
+  color: var(--text-muted);
   font-size: 0.875rem;
   white-space: nowrap;
 }
@@ -186,7 +199,7 @@ button:disabled {
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: linear-gradient(145deg, #1b2441, #0d1223 60%), #111827;
+  background: var(--video-bg);
   box-shadow: 0 25px 55px #00000036;
 }
 
@@ -218,6 +231,7 @@ button:disabled {
   border: 1px solid #ffffff25;
   border-radius: var(--radius-pill);
   background: var(--caption-bg);
+  color: var(--video-text);
   font-size: 0.8rem;
   font-weight: 650;
 }
@@ -228,7 +242,7 @@ button:disabled {
   left: 50%;
   width: min(250px, 82%);
   margin: 0;
-  color: var(--text-muted);
+  color: var(--video-text-muted);
   font-size: 1rem;
   line-height: 1.45;
   text-align: center;
@@ -263,7 +277,7 @@ button:disabled {
 
 .lobby-presence[data-state='ready']::before {
   background: var(--success);
-  box-shadow: 0 0 0 4px #75f0b42b;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 17%, transparent);
 }
 
 .lobby-presence[data-state='busy']::before {
@@ -310,7 +324,7 @@ button:disabled {
 .button--primary {
   background: linear-gradient(120deg, var(--accent), var(--accent-alt));
   box-shadow: 0 7px 20px #7f40c044;
-  color: var(--text-strong);
+  color: var(--text-on-violet);
 }
 
 .button--primary:hover:not(:disabled) {
@@ -320,7 +334,7 @@ button:disabled {
 .button--secondary {
   border-color: var(--border-strong);
   background: var(--surface-raised);
-  color: #eff3ff;
+  color: var(--text);
 }
 
 .button--secondary:hover:not(:disabled) {
@@ -333,7 +347,7 @@ button:disabled {
 
 .chat-panel {
   overflow: hidden;
-  border: 1px solid #ffffff1a;
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
 }
@@ -382,6 +396,7 @@ button:disabled {
 .message--outgoing {
   align-self: flex-end;
   background: var(--bubble-out);
+  color: var(--text-on-violet);
 }
 
 .chat-form {
@@ -395,7 +410,7 @@ button:disabled {
 .chat-form input {
   min-width: 0;
   padding: 0 13px;
-  border: 1px solid #ffffff2c;
+  border: 1px solid var(--border-strong);
   border-radius: 11px;
   outline: none;
   background: var(--surface-input);
@@ -417,7 +432,7 @@ button:disabled {
   border: 1px solid var(--warning-border);
   border-radius: 13px;
   background: var(--warning-bg);
-  color: var(--warning);
+  color: var(--warning-text);
   font-size: 0.87rem;
   line-height: 1.5;
 }

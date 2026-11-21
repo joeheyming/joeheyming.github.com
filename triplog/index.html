@@ -167,11 +167,7 @@
       crossorigin=""
     ></script>
 
-    <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
-         installs window.tailwind on boot and overwrites any pre-set
-         config, so brand-tailwind.js sets `tailwind.config` after. -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/brand-tailwind.js"></script>
+    <link rel="stylesheet" href="tailwind.css" />
     <style>
       /*
        * Tailwind utility classes (flex, inline-flex, grid, …) all set

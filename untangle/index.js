@@ -329,6 +329,40 @@ function checkWin() {
   }
 }
 
+const PAINT_VARS = [
+  '--edge',
+  '--node',
+  '--node-stroke',
+  '--node-active',
+  '--node-halo',
+  '--node-halo-active',
+  '--vignette'
+];
+
+/** Resolved canvas colors. Canvas cannot paint a var() or color-mix() string. */
+const paint = {
+  '--edge': '#6c6c6c',
+  '--node': '#1a1a1a',
+  '--node-stroke': '#fafafa',
+  '--node-active': '#1a73e8',
+  '--node-halo': 'rgba(26, 26, 26, 0.18)',
+  '--node-halo-active': 'rgba(26, 115, 232, 0.35)',
+  '--vignette': 'rgba(255, 255, 255, 0.45)'
+};
+
+function readPaint() {
+  const probe = document.createElement('span');
+  probe.style.position = 'absolute';
+  probe.style.left = '-9999px';
+  document.documentElement.appendChild(probe);
+  for (const name of PAINT_VARS) {
+    probe.style.backgroundColor = `var(${name})`;
+    const resolved = getComputedStyle(probe).backgroundColor;
+    if (resolved && resolved !== 'rgba(0, 0, 0, 0)') paint[name] = resolved;
+  }
+  probe.remove();
+}
+
 function resize() {
   const wrap = canvas.parentElement;
   cssW = wrap.clientWidth || window.innerWidth;
@@ -360,13 +394,13 @@ function draw() {
     cssH / 2,
     Math.max(cssW, cssH) * 0.65
   );
-  g.addColorStop(0, 'rgba(255,255,255,0.35)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
+  g.addColorStop(0, paint['--vignette']);
+  g.addColorStop(1, 'transparent');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, cssW, cssH);
 
   // Edges — uniform (no crossing highlights)
-  ctx.strokeStyle = '#7a8fa3';
+  ctx.strokeStyle = paint['--edge'];
   ctx.globalAlpha = 0.72;
   ctx.lineWidth = 1.75;
   ctx.lineCap = 'round';
@@ -388,15 +422,15 @@ function draw() {
     const floating = !active && (Math.abs(n.vx) > FLOAT_STOP || Math.abs(n.vy) > FLOAT_STOP);
     ctx.beginPath();
     ctx.arc(n.x, n.y, nodeR, 0, Math.PI * 2);
-    ctx.fillStyle = active ? '#0d6e6e' : '#1a2330';
+    ctx.fillStyle = active ? paint['--node-active'] : paint['--node'];
     ctx.fill();
     ctx.lineWidth = 2.5;
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = paint['--node-stroke'];
     ctx.stroke();
     if (active || floating) {
       ctx.beginPath();
       ctx.arc(n.x, n.y, nodeR + (floating ? 4 : 5), 0, Math.PI * 2);
-      ctx.strokeStyle = floating ? 'rgba(26, 35, 48, 0.18)' : 'rgba(13, 110, 110, 0.35)';
+      ctx.strokeStyle = floating ? paint['--node-halo'] : paint['--node-halo-active'];
       ctx.lineWidth = 3;
       ctx.stroke();
     }
@@ -650,6 +684,19 @@ window.untangleGame = {
   getState: () => state,
   scramble: () => startLevel(state.level, { scrambleOnly: true })
 };
+
+readPaint();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  readPaint();
+  draw();
+});
+new MutationObserver(() => {
+  readPaint();
+  draw();
+}).observe(document.documentElement, {
+  attributes: true,
+  attributeFilter: ['data-theme']
+});
 
 resize();
 startLevel(1);

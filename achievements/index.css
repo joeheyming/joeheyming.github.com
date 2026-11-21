@@ -1,13 +1,19 @@
 :root {
-  color-scheme: dark;
-  --ink: #f5f2dc;
-  --muted: #b7b9a9;
-  --panel: #202a1d;
-  --panel-deep: #121a11;
-  --edge: #4b5e40;
   --gold: #ffd85a;
   --green: #6fbd45;
-  --block-shadow: #0a0f08;
+  --ink: var(--text-1);
+  --muted: var(--text-2);
+  --panel: color-mix(in srgb, var(--surface-1) 93%, var(--green));
+  --panel-deep: color-mix(in srgb, var(--surface-0) 92%, var(--green));
+  --panel-raised: color-mix(in srgb, var(--surface-2) 88%, var(--green));
+  --node: color-mix(in srgb, var(--surface-2) 90%, var(--green));
+  --edge: color-mix(in srgb, var(--hairline-strong) 65%, var(--green));
+  --gold-ink: color-mix(in srgb, var(--gold) 45%, var(--text-1));
+  --green-ink: color-mix(in srgb, #4f9a2d 60%, var(--text-1));
+  --grid-line: color-mix(in srgb, var(--text-1) 6%, transparent);
+  --bevel-light: rgb(255 255 255 / 18%);
+  --bevel-dark: rgb(0 0 0 / 20%);
+  --block-shadow: color-mix(in srgb, var(--surface-0) 75%, #000);
   font-family: 'Trebuchet MS', 'Arial Narrow', Arial, sans-serif;
 }
 
@@ -23,8 +29,8 @@ body {
 body {
   margin: 0;
   color: var(--ink);
-  background: linear-gradient(rgb(12 18 11 / 90%), rgb(12 18 11 / 96%)),
-    repeating-linear-gradient(0deg, transparent 0 31px, rgb(255 255 255 / 3%) 31px 32px), #172114;
+  background: repeating-linear-gradient(0deg, transparent 0 31px, var(--grid-line) 31px 32px),
+    var(--panel-deep);
 }
 
 button {
@@ -83,7 +89,7 @@ button {
 .eyebrow,
 .hover-card-app {
   margin: 0 0 3px;
-  color: #9dcc7c;
+  color: var(--green-ink);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.18em;
@@ -94,15 +100,15 @@ h1 {
   margin: 0;
   font-size: clamp(1.55rem, 3vw, 2.3rem);
   letter-spacing: 0.02em;
-  text-shadow: 3px 3px #090d08;
+  text-shadow: 3px 3px color-mix(in srgb, var(--green) 30%, transparent);
 }
 
 .progress-card {
   display: grid;
   width: min(390px, 42vw);
   padding: 12px 14px;
-  border: 3px solid #4d6045;
-  background: #1a2418;
+  border: 3px solid var(--edge);
+  background: var(--panel);
   box-shadow: 5px 5px var(--block-shadow);
   grid-template-columns: 1fr auto;
   gap: 7px 12px;
@@ -128,9 +134,9 @@ h1 {
 .progress-track {
   overflow: hidden;
   height: 13px;
-  border: 2px solid #0a0e09;
-  background: #30382e;
-  box-shadow: inset 2px 2px #181e16;
+  border: 2px solid var(--edge);
+  background: var(--panel-deep);
+  box-shadow: inset 2px 2px var(--bevel-dark);
 }
 
 .progress-track span {
@@ -144,15 +150,15 @@ h1 {
 
 .progress-percent {
   min-width: 38px;
-  color: var(--gold);
+  color: var(--gold-ink);
   font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
   font-size: 0.78rem;
 }
 
 .tree-card {
-  border: 4px solid #4b5b43;
+  border: 4px solid var(--edge);
   background: var(--panel);
-  box-shadow: inset 3px 3px rgb(255 255 255 / 5%), 7px 7px var(--block-shadow);
+  box-shadow: inset 3px 3px var(--bevel-light), 7px 7px var(--block-shadow);
 }
 
 .tree-card {
@@ -166,11 +172,11 @@ h1 {
   display: flex;
   min-height: 49px;
   padding: 7px 9px 7px 14px;
-  border-bottom: 4px solid #4b5b43;
+  border-bottom: 4px solid var(--edge);
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: #263321;
+  background: var(--panel-raised);
 }
 
 .tree-toolbar p {
@@ -181,27 +187,27 @@ h1 {
 
 .pixel-button {
   padding: 7px 12px;
-  border: 2px solid #839078;
+  border: 2px solid var(--edge);
   color: var(--ink);
-  background: #43513d;
-  box-shadow: inset 2px 2px rgb(255 255 255 / 13%), 3px 3px #0b1009;
+  background: var(--node);
+  box-shadow: inset 2px 2px var(--bevel-light), 3px 3px var(--block-shadow);
   cursor: pointer;
   font-weight: 800;
 }
 
 .pixel-button:hover {
-  background: #53644b;
+  background: color-mix(in srgb, var(--node) 85%, var(--green));
 }
 
 .pixel-button:active {
-  box-shadow: inset 2px 2px #192018;
+  box-shadow: inset 2px 2px var(--bevel-dark);
   transform: translate(2px, 2px);
 }
 
 .pixel-button:focus-visible,
 .achievement-node:focus-visible,
 .tree-viewport:focus-visible {
-  outline: 3px solid #fff29b;
+  outline: 3px solid var(--gold-ink);
   outline-offset: 3px;
 }
 
@@ -211,8 +217,8 @@ h1 {
   min-height: 0;
   flex: 1;
   background-color: var(--panel-deep);
-  background-image: linear-gradient(rgb(255 255 255 / 3%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 3%) 1px, transparent 1px);
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 32px 32px;
   cursor: grab;
   touch-action: none;
@@ -252,8 +258,8 @@ h1 {
   left: 14px;
   padding: 4px 8px;
   border: 2px solid var(--region-color);
-  color: #f5f2dc;
-  background: #172014;
+  color: var(--ink);
+  background: var(--panel);
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -275,12 +281,12 @@ h1 {
 }
 
 .connector-shadow {
-  stroke: #070a06;
+  stroke: var(--block-shadow);
   stroke-width: 9;
 }
 
 .connector {
-  stroke: #465044;
+  stroke: color-mix(in srgb, var(--text-3) 60%, var(--panel-deep));
   stroke-width: 5;
 }
 
@@ -290,7 +296,7 @@ h1 {
 }
 
 .connector.is-available {
-  stroke: #d3bd55;
+  stroke: color-mix(in srgb, #d3bd55 75%, var(--text-1));
   stroke-dasharray: 8 6;
   filter: drop-shadow(0 0 3px rgb(255 216 90 / 35%));
 }
@@ -305,10 +311,11 @@ h1 {
   width: 64px;
   height: 64px;
   padding: 0;
-  border: 4px solid #60695d;
-  color: #f5f2dc;
-  background: linear-gradient(135deg, rgb(255 255 255 / 9%), transparent 46%), #333b31;
-  box-shadow: inset -5px -5px #20271e, inset 4px 4px #4e594a, 5px 5px #080b07;
+  border: 4px solid color-mix(in srgb, var(--text-3) 50%, var(--node));
+  color: var(--ink);
+  background: linear-gradient(135deg, var(--bevel-light), transparent 46%), var(--node);
+  box-shadow: inset -5px -5px var(--bevel-dark), inset 4px 4px var(--bevel-light),
+    5px 5px var(--block-shadow);
   transform: translate(-50%, -50%);
   place-items: center;
   cursor: pointer;
@@ -322,8 +329,8 @@ h1 {
   display: grid;
   width: 20px;
   height: 20px;
-  border: 2px solid #687064;
-  background: #1a2018;
+  border: 2px solid var(--edge);
+  background: var(--panel);
   content: '🔒';
   place-items: center;
   font-size: 10px;
@@ -333,7 +340,7 @@ h1 {
   border-color: #e7cb55;
   background: linear-gradient(135deg, rgb(255 255 255 / 25%), transparent 45%), #806a27;
   box-shadow: inset -5px -5px #574710, inset 4px 4px #b79b3f, 0 0 14px rgb(255 219 80 / 28%),
-    5px 5px #080b07;
+    5px 5px var(--block-shadow);
 }
 
 .achievement-node.is-unlocked::after {
@@ -349,7 +356,7 @@ h1 {
   border-color: #d3bd55;
   background: linear-gradient(135deg, rgb(255 255 255 / 14%), transparent 45%), #554d28;
   box-shadow: inset -5px -5px #332d16, inset 4px 4px #756a36, 0 0 10px rgb(255 216 90 / 18%),
-    5px 5px #080b07;
+    5px 5px var(--block-shadow);
 }
 
 .achievement-node.is-available::after {
@@ -371,10 +378,10 @@ h1 {
   top: 50%;
   left: 50%;
   padding: 12px 16px;
-  border: 3px solid #526149;
+  border: 3px solid var(--edge);
   color: var(--muted);
-  background: #182116;
-  box-shadow: 5px 5px #080b07;
+  background: var(--panel);
+  box-shadow: 5px 5px var(--block-shadow);
   transform: translate(-50%, -50%);
   font-weight: 800;
 }
@@ -387,9 +394,10 @@ h1 {
   position: absolute;
   z-index: 10;
   width: min(310px, calc(100% - 24px));
-  border: 4px solid #596651;
-  background: #202a1d;
-  box-shadow: inset 3px 3px rgb(255 255 255 / 5%), 7px 7px #080b07;
+  border: 4px solid var(--edge);
+  color: var(--ink);
+  background: var(--panel);
+  box-shadow: inset 3px 3px var(--bevel-light), 7px 7px var(--block-shadow);
   pointer-events: none;
 }
 
@@ -399,9 +407,9 @@ h1 {
 
 .hover-card-state {
   padding: 8px 12px;
-  border-bottom: 4px solid #4b5b43;
-  color: #bfc6b9;
-  background: #303b2b;
+  border-bottom: 4px solid var(--edge);
+  color: var(--muted);
+  background: var(--panel-raised);
   font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -419,8 +427,8 @@ h1 {
 }
 
 .hover-card-state.is-locked {
-  color: #d1d1c7;
-  background: #3b4239;
+  color: var(--muted);
+  background: var(--node);
 }
 
 .hover-card-content {
@@ -434,9 +442,10 @@ h1 {
   display: grid;
   width: 58px;
   height: 58px;
-  border: 3px solid #687263;
-  background: #30382e;
-  box-shadow: inset -5px -5px #1d231b, inset 4px 4px #4a5546, 4px 4px #0a0e09;
+  border: 3px solid var(--edge);
+  background: var(--node);
+  box-shadow: inset -5px -5px var(--bevel-dark), inset 4px 4px var(--bevel-light),
+    4px 4px var(--block-shadow);
   place-items: center;
   font-size: 30px;
 }
@@ -449,22 +458,22 @@ h1 {
 
 .achievement-hover-card p {
   margin: 0;
-  color: #c5c8bb;
+  color: var(--muted);
   font-size: 0.82rem;
   line-height: 1.4;
 }
 
 .achievement-hover-card .hover-card-app {
   margin-bottom: 3px;
-  color: #9dcc7c;
+  color: var(--green-ink);
   font-size: 0.65rem;
 }
 
 .achievement-hover-card .hover-card-requirement {
   margin-top: 9px;
   padding-top: 8px;
-  border-top: 2px solid #465044;
-  color: #e5cf6b;
+  border-top: 2px solid var(--edge);
+  color: var(--gold-ink);
   font-size: 0.72rem;
   font-weight: 800;
 }

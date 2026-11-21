@@ -4,12 +4,28 @@
   box-sizing: border-box;
 }
 
+/* App names over brand tokens so the shell follows the site theme. The pink
+   and green identity hues are mixed toward --text-1, which darkens them on a
+   light page and lightens them on a dark one. */
+:root {
+  --ed-bg: var(--surface-0);
+  --ed-panel: var(--surface-1);
+  --ed-inset: var(--surface-2);
+  --ed-text: var(--text-1);
+  --ed-muted: var(--text-2);
+  --ed-subtle: var(--text-3);
+  --ed-border: var(--hairline);
+  --ed-border-strong: var(--hairline-strong);
+  --ed-pink: color-mix(in srgb, #ec4899 72%, var(--text-1));
+  --ed-green: color-mix(in srgb, #10b981 72%, var(--text-1));
+}
+
 html,
 body {
   margin: 0;
   min-height: 100%;
-  background: #070a14;
-  color: #e8eefc;
+  background: var(--ed-bg);
+  color: var(--ed-text);
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -30,7 +46,7 @@ body {
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.55rem 0.9rem 0.55rem 7.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--ed-border);
 }
 
 .ed-kicker {
@@ -38,7 +54,7 @@ body {
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #f472b6;
+  color: var(--ed-pink);
 }
 
 .ed-header h1 {
@@ -63,8 +79,8 @@ textarea {
 
 button,
 .ed-play {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: #161b2e;
+  border: 1px solid var(--ed-border-strong);
+  background: var(--ed-inset);
   color: inherit;
   border-radius: 0.45rem;
   padding: 0.4rem 0.7rem;
@@ -76,10 +92,11 @@ button,
 #btn-download {
   background: linear-gradient(135deg, #db2777, #7c3aed);
   border-color: transparent;
+  color: #fff;
 }
 
 button.is-on {
-  outline: 2px solid #f472b6;
+  outline: 2px solid var(--ed-pink);
 }
 
 .ed-layout {
@@ -90,14 +107,15 @@ button.is-on {
   max-width: 74rem;
   margin-inline: auto;
   min-height: 0;
-  background: radial-gradient(circle at 50% 30%, rgba(37, 99, 235, 0.08), transparent 42%), #03050a;
+  background: radial-gradient(circle at 50% 30%, rgba(37, 99, 235, 0.08), transparent 42%),
+    var(--ed-bg);
 }
 
 .ed-panel {
   padding: 0.85rem 1rem 2rem;
   overflow: auto;
   min-height: 0;
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--ed-border);
   border-style: solid;
   border-width: 0;
 }
@@ -108,8 +126,8 @@ button.is-on {
   top: 0;
   bottom: 0;
   width: min(24rem, 92vw);
-  background: #090d18;
-  box-shadow: 0 0 3rem rgba(0, 0, 0, 0.65);
+  background: var(--ed-panel);
+  box-shadow: var(--shadow-modal);
   transition: transform 160ms ease;
 }
 
@@ -138,8 +156,8 @@ button.is-on {
   justify-content: space-between;
   margin: -0.85rem -1rem 0.5rem;
   padding: 0.85rem 1rem 0.6rem;
-  background: #090d18;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--ed-panel);
+  border-bottom: 1px solid var(--ed-border);
 }
 
 .ed-panel-heading h2 {
@@ -156,7 +174,7 @@ button.is-on {
   font-size: 0.78rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--ed-subtle);
 }
 
 .ed-panel label {
@@ -165,7 +183,7 @@ button.is-on {
   gap: 0.2rem;
   margin: 0.35rem 0;
   font-size: 0.78rem;
-  color: #cbd5e1;
+  color: var(--ed-muted);
 }
 
 .ed-check {
@@ -178,9 +196,9 @@ input,
 select,
 textarea {
   width: 100%;
-  background: #0f1424;
+  background: var(--ed-inset);
   color: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--ed-border-strong);
   border-radius: 0.35rem;
   padding: 0.35rem 0.45rem;
 }
@@ -191,7 +209,7 @@ textarea {
 }
 
 .ed-drop {
-  border: 1px dashed rgba(244, 114, 182, 0.4);
+  border: 1px dashed color-mix(in srgb, var(--ed-pink) 45%, transparent);
   border-radius: 0.45rem;
   padding: 0.45rem;
 }
@@ -205,7 +223,7 @@ textarea {
   padding: 0;
   margin: 0.4rem 0 0;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--ed-subtle);
 }
 
 .ed-center {
@@ -214,8 +232,8 @@ textarea {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border-inline: 1px solid rgba(255, 255, 255, 0.1);
-  background: #080c18;
+  border-inline: 1px solid var(--ed-border);
+  background: var(--ed-panel);
 }
 
 #notefield {
@@ -231,8 +249,8 @@ textarea {
   gap: 0.5rem;
   align-items: center;
   padding: 0.55rem 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: #070a12;
+  border-top: 1px solid var(--ed-border);
+  background: var(--ed-bg);
 }
 
 .ed-tools {
@@ -247,17 +265,17 @@ textarea {
 }
 
 .ed-keys {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--ed-border);
   padding: 0.5rem 0.75rem 0.75rem;
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: var(--ed-subtle);
   max-height: 40vh;
   overflow: auto;
 }
 
 .ed-keys summary {
   cursor: pointer;
-  color: #cbd5f5;
+  color: var(--ed-muted);
 }
 
 .ed-keys dl {
@@ -269,7 +287,7 @@ textarea {
 
 .ed-keys dt {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #e2e8f0;
+  color: var(--ed-text);
 }
 
 .ed-keys dd {
@@ -280,11 +298,11 @@ textarea {
 .ed-msg {
   font-size: 0.75rem;
   line-height: 1.4;
-  color: #94a3b8;
+  color: var(--ed-subtle);
 }
 
 .ed-msg {
-  color: #fda4af;
+  color: var(--danger);
 }
 
 .ed-guide,
@@ -292,14 +310,14 @@ textarea {
   min-height: 0;
   overflow: auto;
   padding: 1rem 0.85rem;
-  color: #d1d5db;
-  background: #03050a;
+  color: var(--ed-muted);
+  background: var(--ed-bg);
 }
 
 .ed-guide h2,
 .ed-info h2 {
   margin: 0.7rem 0 0.35rem;
-  color: #34d399;
+  color: var(--ed-green);
   font-size: 0.76rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -322,19 +340,19 @@ textarea {
 
 .ed-guide dt,
 .ed-live-info dt {
-  color: #f3f4f6;
+  color: var(--ed-text);
 }
 
 .ed-guide dd,
 .ed-live-info dd {
   margin: 0;
-  color: #9ca3af;
+  color: var(--ed-subtle);
 }
 
 .ed-live-info dd {
   text-align: right;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #e5e7eb;
+  color: var(--ed-text);
   overflow-wrap: anywhere;
 }
 
@@ -342,7 +360,7 @@ textarea {
   display: block;
   margin: 0.4rem 0;
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--ed-subtle);
 }
 
 .ed-chart-picker select,
@@ -398,6 +416,7 @@ textarea {
   padding: 0.35rem 0.55rem;
   border-radius: 0.35rem;
   background: rgba(0, 0, 0, 0.75);
+  color: #fff;
   font-size: 0.75rem;
 }
 
@@ -412,6 +431,7 @@ textarea {
   translate: -50% 0;
   border-color: rgba(255, 255, 255, 0.35);
   background: rgba(10, 13, 24, 0.85);
+  color: #fff;
 }
 
 #btn-return-to-edit:hover,

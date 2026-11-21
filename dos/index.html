@@ -147,19 +147,9 @@
          the next navigation after install. Same pattern as doom/. -->
     <script src="/coi-serviceworker.js"></script>
 
-    <!-- js-dos v8 — open-source DOSBox-x compiled to WASM. Pinned via
-         jsDelivr to specific npm package versions so a future upstream
-         release can't silently break us. `emulators@8.3.8` matches the
-         version `js-dos@8.3.20` was built against (per its package.json
-         devDependencies); keep them aligned when bumping. The matching
-         `pathPrefix` lives in `dos/jsdos-host.js`. -->
+    <!-- js-dos v8 stylesheet. The js-dos and JSZip scripts load when a
+         game is launched (dos/runtime.js), not with the catalog. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/js-dos@8.3.20/dist/js-dos.css" />
-    <script src="https://cdn.jsdelivr.net/npm/js-dos@8.3.20/dist/js-dos.js"></script>
-
-    <!-- JSZip — needed to repack a user-supplied game zip with a
-         dynamically generated .jsdos/dosbox.conf so js-dos knows what
-         to boot. Pinned to a specific version for reproducibility. -->
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
     <!-- Brand foundation: Inter / JetBrains Mono + brand tokens. Loaded
          before the per-app stylesheet so the brand cascade is the base. -->

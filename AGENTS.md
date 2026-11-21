@@ -228,7 +228,7 @@ Where the big apps draw the line:
 | `doom/`                 | Flavor picker, lifecycle, COI (`doom/boot.js`)  | `uzdoom-loader.js` graph, touch and gamepad input, and the engine (`doom/engine.js` `ensureEngine`) on launch; moddb and `/proxy.js` in manual mode; live chat at idle |
 | `emulator/`             | Console picker                                  | A console's game list (`LISTING_SCRIPTS` in `launch.js`)                                                                                         |
 | `emulator/<console>/`   | Game list                                       | `socd.js`, `ejs-mount.js`, `play.js` (`PLAY_SCRIPTS`), preloaded when the pointer enters the list                                                 |
-| `stepmania/`            | Song menu                                       | Play engine in `js/play.js` chunks that yield between them, plus the library and JSZip; a `zenius=` link primes the chart through `js/zeniusEntry.js`. The Tailwind CDN compiles once, against `#sm-tailwind-safelist`, and then stops watching for new classes |
+| `stepmania/`            | Song menu                                       | Play engine in `js/play.js` chunks that yield between them, plus the library and JSZip; a `zenius=` link primes the chart through `js/zeniusEntry.js`. Layout utilities are the committed sheet `stepmania-utilities.css`. Do not load the Tailwind Play CDN here; its compiler is a multi-second main-thread task |
 
 ---
 
@@ -296,9 +296,9 @@ Test OS launch via `http://localhost:8000/os/` after registering the app.
 
 ### Tailwind CSS
 
-Tailwind is loaded from CDN (`https://cdn.tailwindcss.com`) and is available on some pages — the home page, the OS shell, and a handful of apps use it for layout and utility classes. It is **not a requirement**. Most apps use hand-rolled CSS in `index.css` with CSS custom properties. Prefer hand-rolled CSS for apps with their own visual identity; Tailwind is fine for pages that are primarily structural (dashboards, launchers, content-heavy layouts).
+Pages that use Tailwind utilities ship a committed stylesheet (`tailwind.css`, or `stepmania/stepmania-utilities.css` on StepMania). The Play CDN (`https://cdn.tailwindcss.com`) compiles on the main thread and was a multi-second task on phones, so do not load it. Tailwind is **not a requirement**. Most apps use hand-rolled CSS in `index.css` with CSS custom properties. Prefer hand-rolled CSS for apps with their own visual identity; the committed utility sheet is fine for pages that are primarily structural (dashboards, launchers, content-heavy layouts).
 
-Do not `npm install` Tailwind or add a build step — CDN only.
+Do not `npm install` Tailwind or add a build step. To refresh a sheet, load the page with the Play CDN locally, save the generated stylesheet, and commit that file.
 
 ### Third-party packages
 

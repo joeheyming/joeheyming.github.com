@@ -313,6 +313,54 @@ function chartsListedOnRow(row) {
  * @param {Document} doc
  * @param {{ type: string, items: Array<Record<string, unknown>> }} content
  */
+/**
+ * Pull simfile rows out of a listing without building a document for the
+ * whole page. A category page is large enough that one DOMParser call blocks
+ * a tap for more than a second. Each row is a small fragment. `gap` runs
+ * between batches so input can land.
+ * @param {string} html
+ * @param {number} [limit] stop after this many songs. 0 means the whole list.
+ * @param {() => Promise<void>} [gap]
+ * @returns {Promise<Array<Record<string, unknown>>>}
+ */
+export async function simfileItemsFromHtml(html, limit, gap) {
+  const content = { type: 'unknown', items: [] };
+  const source = String(html || '');
+  const needle = 'viewsimfile.php';
+  const parser = new DOMParser();
+  let from = 0;
+  let sinceGap = 0;
+  while (from < source.length) {
+    if (limit && content.items.length >= limit) break;
+    const at = source.indexOf(needle, from);
+    if (at < 0) break;
+    // Search only the nearby markup. lastIndexOf on the whole page is
+    // quadratic when a listing mentions the script name thousands of times.
+    const back = source.slice(Math.max(0, at - 4000), at);
+    const relStart = Math.max(back.lastIndexOf('<tr'), back.lastIndexOf('<TR'));
+    const forward = source.slice(at, Math.min(source.length, at + 8000));
+    const relEnd = forward.indexOf('</tr>') >= 0 ? forward.indexOf('</tr>') : forward.indexOf('</TR>');
+    if (relStart < 0 || relEnd < 0) {
+      from = at + needle.length;
+      continue;
+    }
+    const rowStart = at - back.length + relStart;
+    const end = at + relEnd;
+    const rowHtml = source.slice(rowStart, end + 5);
+    from = end + 5;
+    const doc = parser.parseFromString(rowHtml, 'text/html');
+    const before = content.items.length;
+    appendSimfileTableItemsToContent(doc, content);
+    if (content.items.length === before) continue;
+    sinceGap += content.items.length - before;
+    if (gap && sinceGap >= 20) {
+      sinceGap = 0;
+      await gap();
+    }
+  }
+  return content.items;
+}
+
 export function appendSimfileTableItemsToContent(doc, content) {
   const simfileLinks = doc.querySelectorAll('a[href*="viewsimfile.php"]');
   if (simfileLinks.length === 0) {

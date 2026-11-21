@@ -6,6 +6,42 @@ const BEATS_PER_MEASURE = 4;
 /** Left gutter reserves room for measure numbers, as the native field does. */
 const PAD = 44;
 
+/** Canvas chrome colors as brand-token expressions, resolved per theme. */
+const CHROME_TOKENS = {
+  field: 'var(--surface-1)',
+  snapLine: 'color-mix(in srgb, var(--text-1) 7%, transparent)',
+  beatLine: 'color-mix(in srgb, var(--text-1) 16%, transparent)',
+  measureLine: 'color-mix(in srgb, var(--text-1) 42%, transparent)',
+  measureLabel: 'var(--text-2)',
+  cursor: 'var(--text-1)'
+};
+
+let chromeCache = null;
+
+/**
+ * Canvas can't read var(), so each token is painted on a hidden probe and read
+ * back. backgroundColor keeps the alpha that `color` would flatten.
+ * @returns {Record<keyof typeof CHROME_TOKENS, string>}
+ */
+function chromeColors() {
+  if (chromeCache) return chromeCache;
+  const probe = document.createElement('span');
+  probe.hidden = true;
+  document.body.appendChild(probe);
+  const out = {};
+  for (const [name, value] of Object.entries(CHROME_TOKENS)) {
+    probe.style.backgroundColor = value;
+    out[name] = getComputedStyle(probe).backgroundColor;
+  }
+  probe.remove();
+  chromeCache = /** @type {Record<keyof typeof CHROME_TOKENS, string>} */ (out);
+  return chromeCache;
+}
+
+function invalidateChrome() {
+  chromeCache = null;
+}
+
 /**
  * @typedef {Object} NotefieldState
  * @property {Array} noteData
@@ -57,8 +93,9 @@ export function mountNotefield(canvas, getState, onInput) {
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
     pxPerBeat = basePxPerBeat * (state.zoom || 1);
+    const chrome = chromeColors();
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#0b1020';
+    ctx.fillStyle = chrome.field;
     ctx.fillRect(0, 0, w, h);
 
     if (state.playing) viewBeat = Math.max(0, state.playBeat - 0.5);
@@ -76,7 +113,7 @@ export function mountNotefield(canvas, getState, onInput) {
     // Faint snap grid, then beat and measure lines on top. Measure lines are
     // drawn on their own pass so an off-grid snap (triplets) can't skip them.
     ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.strokeStyle = chrome.snapLine;
     ctx.beginPath();
     for (
       let b = Math.ceil(startBeat / snapStep) * snapStep;
@@ -95,14 +132,14 @@ export function mountNotefield(canvas, getState, onInput) {
     for (let b = Math.max(0, Math.ceil(viewBeat)); b < viewBeat + beatsOnScreen; b += 1) {
       const y = receptorsY + (b - viewBeat) * pxPerBeat;
       const isMeasure = b % BEATS_PER_MEASURE === 0;
-      ctx.strokeStyle = isMeasure ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.14)';
+      ctx.strokeStyle = isMeasure ? chrome.measureLine : chrome.beatLine;
       ctx.lineWidth = isMeasure ? 2 : 1;
       ctx.beginPath();
       ctx.moveTo(pad, y);
       ctx.lineTo(w - pad, y);
       ctx.stroke();
       if (isMeasure) {
-        ctx.fillStyle = 'rgba(226,232,240,0.75)';
+        ctx.fillStyle = chrome.measureLabel;
         ctx.fillText(String(b / BEATS_PER_MEASURE), pad - 5, y);
       }
     }
@@ -136,7 +173,7 @@ export function mountNotefield(canvas, getState, onInput) {
 
     const cy = receptorsY + (state.cursorBeat - viewBeat) * pxPerBeat;
     const cx = pad + state.cursorCol * cw + cw / 2;
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = chrome.cursor;
     ctx.lineWidth = 2;
     ctx.strokeRect(cx - 22, cy - 22, 44, 44);
 
@@ -206,6 +243,11 @@ export function mountNotefield(canvas, getState, onInput) {
     raf = requestAnimationFrame(loop);
   }
 
+  const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const themeObserver = new MutationObserver(invalidateChrome);
+  themeObserver.observe(document.documentElement, { attributeFilter: ['data-theme'] });
+  darkQuery.addEventListener('change', invalidateChrome);
+
   size();
   window.addEventListener('resize', size);
   raf = requestAnimationFrame(loop);
@@ -214,6 +256,8 @@ export function mountNotefield(canvas, getState, onInput) {
     destroy() {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', size);
+      themeObserver.disconnect();
+      darkQuery.removeEventListener('change', invalidateChrome);
     }
   };
 }

@@ -1,7 +1,14 @@
 // Song-menu boot. The play engine, song library, and JSZip stay unloaded
 // until a click or a song URL needs them. The menu is already in the HTML.
 
-import { bindHomeScreen, showHomeNotice, showHomeScreen } from './homeScreen.js';
+import { bindHomeScreen, showHomeNotice, showHomeScreen, showHomeStatus } from './homeScreen.js';
+
+// scheduler.yield() (yieldToMain) can resume before the browser paints, so a
+// click that then evaluates the play engine keeps that work on its INP.
+function afterPaint() {
+  if (typeof window.afterNextPaint === 'function') return window.afterNextPaint();
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 /** @type {Promise<import('./mainPageController.js').MainPageController> | null} */
 let playReady = null;
@@ -30,7 +37,9 @@ function songRequested() {
 }
 
 function openLibrary() {
-  void import('./zenius-browser.js')
+  showHomeStatus('Opening the song library…');
+  void afterPaint()
+    .then(() => import('./zenius-browser.js'))
     .then(({ ZeniusBrowser }) => ZeniusBrowser.showBrowser())
     .catch((error) => {
       const detail = error instanceof Error ? error.message : 'The song library did not load.';
@@ -41,12 +50,16 @@ function openLibrary() {
 bindHomeScreen({
   onBrowse: openLibrary,
   onOpenFile: (file) => {
-    void ensurePlay()
+    showHomeStatus('Opening that pack…');
+    void afterPaint()
+      .then(() => ensurePlay())
       .then((controller) => controller.loadFromLocalFile(file))
       .catch(() => {});
   },
   onPlayZenius: (zeniusUrl) => {
-    void ensurePlay()
+    showHomeStatus('Loading the game…');
+    void afterPaint()
+      .then(() => ensurePlay())
       .then((controller) => controller.loadFromZeniusURL(zeniusUrl))
       .catch(() => {});
   }

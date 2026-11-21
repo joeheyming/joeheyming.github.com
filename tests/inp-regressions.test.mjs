@@ -293,8 +293,10 @@ test('StepMania paints interaction feedback before heavy continuations', () => {
     browserSource.indexOf('\n  hideBrowser()', showBrowserStart)
   );
   assert.ok(
-    showBrowser.indexOf('await window.yieldToMain()') < showBrowser.indexOf('renderRecentChips()')
+    showBrowser.indexOf('await window.afterNextPaint()') <
+      showBrowser.indexOf('renderRecentChips()')
   );
+  assert.doesNotMatch(showBrowser, /await window\.yieldToMain\(\)/);
 
   const controllerSource = readFileSync(
     path.join(ROOT, 'stepmania/js/mainPageController.js'),
@@ -307,11 +309,24 @@ test('StepMania paints interaction feedback before heavy continuations', () => {
   );
   assert.ok(
     startPlaying.indexOf('LoadingOverlay.hide()') <
-      startPlaying.indexOf('await window.yieldToMain()')
+      startPlaying.indexOf('await window.afterNextPaint()')
   );
   assert.ok(
-    startPlaying.indexOf('await window.yieldToMain()') < startPlaying.indexOf('resetGame()')
+    startPlaying.indexOf('await window.afterNextPaint()') < startPlaying.indexOf('resetGame()')
   );
+  assert.doesNotMatch(startPlaying, /await window\.yieldToMain\(\)/);
+
+  const menu = readFileSync(path.join(ROOT, 'stepmania/js/main.js'), 'utf8');
+  const play = menu.indexOf('onPlayZenius:');
+  const playHandler = menu.slice(play, menu.indexOf('});', play));
+  assert.ok(playHandler.indexOf('showHomeStatus(') < playHandler.indexOf('afterPaint()'));
+  assert.ok(playHandler.indexOf('afterPaint()') < playHandler.indexOf('ensurePlay()'));
+
+  const library = readFileSync(path.join(ROOT, 'stepmania/js/zenius-browser.js'), 'utf8');
+  const loadStart = library.indexOf('async loadContent(path)');
+  const load = library.slice(loadStart, library.indexOf('async fetchZeniusContent', loadStart));
+  assert.ok(load.indexOf("showLoading('Loading content...')") < load.indexOf('afterNextPaint()'));
+  assert.ok(load.indexOf('afterNextPaint()') < load.indexOf('fetchZeniusContent'));
 });
 
 test('Doom renders at half scale on phones', () => {
