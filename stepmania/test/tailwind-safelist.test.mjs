@@ -23,6 +23,15 @@ describe('StepMania Tailwind sheet', () => {
     assert.ok(link !== -1 && link < body);
   });
 
+  it('loads after the page sheets so preflight [hidden] wins ties', () => {
+    const link = html.indexOf('stepmania-utilities.css');
+    for (const sheet of ['css/screen.css', '/brand.css']) {
+      const at = html.indexOf(sheet);
+      assert.ok(at !== -1 && at < link, `${sheet} must load before stepmania-utilities.css`);
+    }
+    assert.match(css, /\[hidden\]:where\(:not\(\[hidden=until-found\]\)\)\{display:none\}/);
+  });
+
   it('covers the layout utilities', () => {
     for (const sel of [
       '.flex{',
@@ -41,7 +50,7 @@ describe('StepMania Tailwind sheet', () => {
     const missing = [];
     for (const cls of collectStepmaniaClasses(root)) {
       if (!cls.includes('/') && !cls.includes(':')) continue;
-      const escaped = '.' + cls.replace(/([:.\/[\]%])/g, '\\$1');
+      const escaped = '.' + cls.replace(/([:./[\]%])/g, '\\$1');
       if (!css.includes(escaped)) missing.push(cls);
     }
     assert.deepEqual(missing, []);

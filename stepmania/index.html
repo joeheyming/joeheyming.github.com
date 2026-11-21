@@ -143,10 +143,6 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/stepmania/" />
 
-    <!-- The Play CDN's compiler was a multi-second main-thread task on
-         this page, which is the phone INP. stepmania-utilities.css is
-         that compile (Tailwind 3.4.16, brand colors, arrow tints). -->
-    <link rel="stylesheet" href="stepmania-utilities.css" />
     <link href="css/screen.css" media="all" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="/live-chat/live-chat.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
@@ -261,6 +257,12 @@
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
     />
     <link rel="stylesheet" href="/brand.css" />
+    <!-- The Play CDN's compiler was a multi-second main-thread task on
+         this page, which is the phone INP. stepmania-utilities.css is
+         that compile (Tailwind 3.4.16, brand colors, arrow tints). It
+         stays last, where the CDN injected its styles: preflight's
+         [hidden] has to win ties such as .sm-home { display: flex }. -->
+    <link rel="stylesheet" href="stepmania-utilities.css" />
   </head>
   <!-- Body uses flex-col so the main container can claim the leftover
        viewport height with `flex-1` instead of a magic `calc(100vh - 80px)`

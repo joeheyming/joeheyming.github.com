@@ -96,17 +96,18 @@
 
     <!-- Brand foundation (load order matters):
          1. preconnect + Source Serif 4 + JetBrains Mono font CDN
-         2. tailwind.css — compiled utilities. The Play CDN compiler is a
-            multi-second main-thread task, so this page does not run it.
-         3. brand.css (tokens for var() consumers)
-         4. brand-icons.js (window.brandIcon registry)
-         5. index.css (page-specific styles built on tokens) -->
+         2. brand.css (tokens for var() consumers)
+         3. brand-icons.js (window.brandIcon registry)
+         4. index.css (page-specific styles built on tokens)
+         5. tailwind.css, last in <head> — compiled utilities. The Play CDN
+            compiler is a multi-second main-thread task, so this page does
+            not run it. The CDN injected its styles last, and preflight's
+            [hidden] still has to win ties with page classes. -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
     />
-    <link rel="stylesheet" href="/tailwind.css" />
     <link rel="stylesheet" href="/brand.css" />
     <script src="/brand-icons.js"></script>
     <link rel="stylesheet" href="/index.css" />
@@ -289,6 +290,7 @@
         ]
       }
     </script>
+    <link rel="stylesheet" href="/tailwind.css" />
   </head>
   <body class="hos-page">
     <!--

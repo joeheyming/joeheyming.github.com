@@ -132,17 +132,18 @@
 
     <!-- Brand foundation. Load order matters:
          1. preconnect + Inter font CDN
-         2. tailwind.css — compiled utilities. The Play CDN compiler is a
-            multi-second main-thread task, so this page does not run it.
-         3. brand.css (tokens)
-         4. brand-icons.js
-         5. OS stylesheets (built on top of brand tokens) -->
+         2. brand.css (tokens)
+         3. brand-icons.js
+         4. OS stylesheets (built on top of brand tokens)
+         5. tailwind.css, last in <head> — compiled utilities. The Play CDN
+            compiler is a multi-second main-thread task, so this page does
+            not run it. The CDN injected its styles last, and preflight's
+            [hidden] still has to win ties with page classes. -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
     />
-    <link rel="stylesheet" href="tailwind.css" />
     <link rel="stylesheet" href="/brand.css" />
     <script src="/brand-icons.js"></script>
     <script src="mime-handlers.js"></script>
@@ -170,6 +171,7 @@
         overflow: hidden;
       }
     </style>
+    <link rel="stylesheet" href="tailwind.css" />
   </head>
   <body class="hos-page h-full">
     <!-- First-run setup wizard (GNOME/Ubuntu-style) -->
