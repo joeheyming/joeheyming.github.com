@@ -17,10 +17,6 @@
       name="description"
       content="Free retro game emulator online — play NES, Sega Genesis / Mega Drive, Game Gear, Sega 32X, Sega CD, SNES, Game Boy, Game Boy Advance (GBA), Neo Geo, Nintendo 64 (N64), and PlayStation (PS1) games in your browser. Powered by EmulatorJS. No install, no ads. Bring your own ROM."
     />
-    <meta
-      name="keywords"
-      content="online emulator, retro game emulator, NES emulator online, Sega Genesis emulator, Mega Drive emulator, Game Gear emulator, Sega 32X emulator, SNES emulator, Game Boy emulator, Neo Geo emulator, N64 emulator, Nintendo 64 emulator, PlayStation emulator, PS1 emulator, browser emulator, play retro games online, EmulatorJS, free emulator, no install emulator"
-    />
 
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
@@ -69,24 +65,9 @@
         "@context": "https://schema.org",
         "@graph": [
           {
-            "@type": ["SoftwareApplication", "VideoGame"],
+            "@type": "SoftwareApplication",
             "name": "Retro Game Emulator Online",
-            "alternateName": [
-              "Online Retro Emulator",
-              "NES Emulator Online",
-              "Sega Genesis Emulator Online",
-              "Game Gear Emulator Online",
-              "Sega 32X Emulator Online",
-              "SNES Emulator Online",
-              "Game Boy Emulator Online",
-              "Neo Geo Emulator Online",
-              "Nintendo 64 Emulator Online",
-              "N64 Emulator Online",
-              "PlayStation Emulator Online",
-              "PS1 Emulator Online",
-              "Mega Drive Emulator Browser"
-            ],
-            "applicationCategory": "GameApplication",
+            "applicationCategory": "WebApplication",
             "operatingSystem": "Web Browser",
             "description": "Free online emulator for NES, Sega Genesis / Mega Drive, Game Gear, Sega 32X, SNES, Game Boy, Neo Geo, Nintendo 64 (N64), and PlayStation (PS1). Powered by EmulatorJS WebAssembly cores. No install, no ads. Bring your own ROM file or browse Internet Archive.",
             "url": "https://joeheyming.github.io/emulator/",
@@ -95,7 +76,11 @@
               "name": "Joe Heyming",
               "url": "https://joeheyming.github.io/about/"
             },
-            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
             "featureList": [
               "Play NES, Sega Genesis, Game Gear, Sega 32X, SNES, Game Boy, Neo Geo, Neo Geo Pocket, N64, and PlayStation games in your browser",
               "Save and load game states (F5 / F9)",
@@ -105,9 +90,7 @@
               "Bring your own ROM file or browse Internet Archive collection",
               "No install, no ads, no signup"
             ],
-            "keywords": "online emulator, NES emulator, Sega Genesis emulator, Game Gear emulator, Sega 32X emulator, SNES emulator, Game Boy emulator, Neo Geo emulator, Neo Geo Pocket emulator, N64 emulator, Nintendo 64 emulator, PlayStation emulator, PS1 emulator, retro gaming, EmulatorJS",
-            "inLanguage": "en",
-            "gamePlatform": ["Web Browser", "HTML5"]
+            "inLanguage": "en"
           },
           {
             "@type": "FAQPage",
@@ -187,7 +170,11 @@
                 "name": "Joe Heyming",
                 "item": "https://joeheyming.github.io/"
               },
-              { "@type": "ListItem", "position": 2, "name": "Retro Game Emulator" }
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Retro Game Emulator"
+              }
             ]
           }
         ]
@@ -360,65 +347,6 @@
       </div>
 
       <!-- SEO cross-link footer — hidden from users, visible to crawlers -->
-      <footer class="seo-intro" hidden>
-        <h2>Free Online Retro Game Emulator</h2>
-        <p>
-          Play classic NES (Nintendo Entertainment System), Sega Genesis / Mega Drive, Game Gear,
-          Sega 32X, SNES, Game Boy, Neo Geo, Neo Geo Pocket, Nintendo 64 (N64), and PlayStation
-          (PS1) games directly in your browser. No download, no install, no ads. Bring your own
-          <code>.nes</code>
-          ,
-          <code>.md</code>
-          ,
-          <code>.bin</code>
-          ,
-          <code>.gen</code>
-          ,
-          <code>.gg</code>
-          ,
-          <code>.32x</code>
-          ,
-          <code>.sfc</code>
-          ,
-          <code>.gb</code>
-          ,
-          <code>.gbc</code>
-          ,
-          <code>.ngp</code>
-          ,
-          <code>.ngc</code>
-          , arcade
-          <code>.zip</code>
-          , Nintendo 64
-          <code>.z64</code>
-          , or PlayStation
-          <code>.chd</code>
-          /
-          <code>.pbp</code>
-          file, or browse a built-in public-domain collection. Neo Geo needs a one-time
-          <code>neogeo.zip</code>
-          system BIOS; PS1 needs a region BIOS (US
-          <code>scph5501.bin</code>
-          auto-loads). Powered by EmulatorJS with the FCEUmm, genesis_plus_gx, picodrive, snes9x,
-          gambatte, FinalBurn Neo, mednafen_ngp, mupen64plus_next, and pcsx_rearmed libretro cores.
-        </p>
-        <nav aria-label="More retro games">
-          <strong>More retro games from Joe Heyming:</strong>
-          <a href="/emulator/flash/">Flash</a>
-          &middot;
-          <a href="/doom/">DOOM in Browser</a>
-          &middot;
-          <a href="/pacman/">3D Pac-Man</a>
-          &middot;
-          <a href="/stepmania/">StepMania</a>
-          &middot;
-          <a href="/minesweeper/">Minesweeper</a>
-          &middot;
-          <a href="/terminal/">Web Terminal</a>
-          &middot;
-          <a href="/about/">About Joe</a>
-        </nav>
-      </footer>
     </div>
 
     <!-- Game container — EmulatorJS mounts here after ROM is chosen -->

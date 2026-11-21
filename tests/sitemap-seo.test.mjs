@@ -3,7 +3,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -64,12 +64,13 @@ test('sitemap pages do not use MetaRefresh', () => {
   assert.deepEqual(offenders, [], `MetaRefresh tags:\n${offenders.join('\n')}`);
 });
 
-test('handheld emulator landers are not hidden-text / VideoGame spam', () => {
-  for (const page of [
-    'emulator/gb/index.html',
-    'emulator/gba/index.html',
-    'emulator/ngp/index.html'
-  ]) {
+test('emulator pages are not hidden-text / VideoGame spam', () => {
+  const pages = ['emulator/index.html'];
+  for (const name of readdirSync(path.join(ROOT, 'emulator'))) {
+    const lander = path.join('emulator', name, 'index.html');
+    if (existsSync(path.join(ROOT, lander))) pages.push(lander);
+  }
+  for (const page of pages) {
     const html = readFileSync(path.join(ROOT, page), 'utf8');
     const document = new JSDOM(html).window.document;
     assert.equal(document.querySelector('.seo-intro'), null, page);

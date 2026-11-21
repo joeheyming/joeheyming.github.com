@@ -17,10 +17,6 @@
       name="description"
       content="Free Nintendo 64 (N64) emulator online. Save states, gamepad support, Internet Archive browser or bring your own .z64 / .n64 / .v64 ROM. Powered by EmulatorJS / mupen64plus_next."
     />
-    <meta
-      name="keywords"
-      content="N64 emulator online, Nintendo 64 emulator browser, play N64 games online, mupen64plus_next, EmulatorJS, free N64 emulator"
-    />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Retro Emulator" />
@@ -60,10 +56,9 @@
         "@context": "https://schema.org",
         "@graph": [
           {
-            "@type": ["SoftwareApplication", "VideoGame"],
+            "@type": "SoftwareApplication",
             "name": "N64 Emulator Online",
-            "alternateName": ["Nintendo 64 Emulator", "Play N64 in Browser"],
-            "applicationCategory": "GameApplication",
+            "applicationCategory": "WebApplication",
             "operatingSystem": "Web Browser",
             "description": "Free Nintendo 64 (N64) emulator online. Save states, gamepad support, Internet Archive browser or bring your own .z64 / .n64 / .v64 ROM. Powered by EmulatorJS / mupen64plus_next.",
             "url": "https://joeheyming.github.io/emulator/n64/",
@@ -72,10 +67,12 @@
               "name": "Joe Heyming",
               "url": "https://joeheyming.github.io/about/"
             },
-            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-            "keywords": "N64 emulator online, Nintendo 64 emulator browser, play N64 games online, mupen64plus_next, EmulatorJS",
-            "inLanguage": "en",
-            "gamePlatform": ["Web Browser", "HTML5"]
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "inLanguage": "en"
           },
           {
             "@type": "BreadcrumbList",
@@ -92,7 +89,11 @@
                 "name": "Retro Game Emulator",
                 "item": "https://joeheyming.github.io/emulator/"
               },
-              { "@type": "ListItem", "position": 3, "name": "N64 Emulator" }
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "N64 Emulator"
+              }
             ]
           }
         ]
@@ -138,7 +139,13 @@
       aria-label="Choose a ROM file"
       accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.sfc,.smc,.z64,.n64,.v64,.chd,.pbp,.iso,.cue,.zip,.7z"
     />
-    <input type="file" id="biosFileInput" class="hidden-input" aria-label="Choose a BIOS file" accept=".zip,.7z,.bin" />
+    <input
+      type="file"
+      id="biosFileInput"
+      class="hidden-input"
+      aria-label="Choose a BIOS file"
+      accept=".zip,.7z,.bin"
+    />
 
     <div id="boot">
       <div class="brand" id="brand">
@@ -155,8 +162,7 @@
           Free Nintendo 64 emulator in your browser. Bring your own
           <code>.z64 / .n64 / .v64</code>
           ROM or browse Internet Archive. If Play in browser hangs, tap Download instead, then Load
-          saved ROM. Powered by
-          EmulatorJS (mupen64plus_next).
+          saved ROM. Powered by EmulatorJS (mupen64plus_next).
         </p>
         <p class="picker-help">
           <a href="/emulator/">All consoles</a>
@@ -168,14 +174,6 @@
           <a href="/about/">About</a>
         </p>
       </div>
-
-      <footer class="seo-intro" hidden>
-        <h2>N64 Emulator — Play Nintendo 64 Games in Browser</h2>
-        <p>
-          Free Nintendo 64 emulator online with save states, gamepad support, Internet Archive
-          browsing, and local .z64 / .n64 / .v64 files. Powered by EmulatorJS / mupen64plus_next.
-        </p>
-      </footer>
     </div>
 
     <div id="game-container">

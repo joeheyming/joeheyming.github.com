@@ -729,7 +729,7 @@
       iaDescriptionPrefix: 'Classic Flash game',
       iaPreferMetadata: true,
       seoDescription:
-        'Play classic Flash games in the browser. Browse the collection or load your own .swf. Powered by Ruffle.',
+        'Play classic Flash games in the browser with Ruffle. Browse the collection or load your own .swf. The game stays on this page, and the keyboard and mouse go to the game.',
       romHelp:
         'Browse the collection and choose Play in browser, or load your own .swf. Games stay on this page.',
       controls: [

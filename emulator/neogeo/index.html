@@ -13,49 +13,59 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="description" content="Free Neo Geo AES / MVS emulator online. Browse the Internet Archive collection or bring your own FBNeo .zip — neogeo.zip BIOS auto-loads once. Powered by EmulatorJS / FinalBurn Neo." />
-    <meta name="keywords" content="Neo Geo emulator online, AES MVS emulator, SNK arcade browser, FinalBurn Neo, EmulatorJS, free Neo Geo emulator" />
+    <meta
+      name="description"
+      content="Free Neo Geo AES / MVS emulator online. Browse the Internet Archive collection or bring your own FBNeo .zip — neogeo.zip BIOS auto-loads once. Powered by EmulatorJS / FinalBurn Neo."
+    />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Retro Emulator" />
     <meta property="og:title" content="Neo Geo Emulator — Play AES / MVS Arcade Games in Browser" />
-    <meta property="og:description" content="Free Neo Geo AES / MVS emulator online. Browse the Internet Archive collection or bring your own FBNeo .zip — neogeo.zip BIOS auto-loads once. Powered by EmulatorJS / FinalBurn Neo." />
+    <meta
+      property="og:description"
+      content="Free Neo Geo AES / MVS emulator online. Browse the Internet Archive collection or bring your own FBNeo .zip — neogeo.zip BIOS auto-loads once. Powered by EmulatorJS / FinalBurn Neo."
+    />
     <meta property="og:url" content="https://joeheyming.github.io/emulator/neogeo/" />
-    <meta property="og:image" content="https://joeheyming.github.io/emulator/neogeo/neogeo-preview.png" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/emulator/neogeo/neogeo-preview.png"
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta
-      property="og:image:alt"
-      content="Neo Geo emulator running in a web browser"
-    />
+    <meta property="og:image:alt" content="Neo Geo emulator running in a web browser" />
     <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="Neo Geo Emulator — Play AES / MVS Arcade Games in Browser" />
-    <meta name="twitter:description" content="Free Neo Geo AES / MVS emulator online. Browse the Internet Archive collection or bring your own FBNeo .zip — neogeo.zip BIOS auto-loads once. Powered by EmulatorJS / FinalBurn Neo." />
-    <meta name="twitter:image" content="https://joeheyming.github.io/emulator/neogeo/neogeo-preview.png" />
+    <meta
+      name="twitter:title"
+      content="Neo Geo Emulator — Play AES / MVS Arcade Games in Browser"
+    />
+    <meta
+      name="twitter:description"
+      content="Free Neo Geo AES / MVS emulator online. Browse the Internet Archive collection or bring your own FBNeo .zip — neogeo.zip BIOS auto-loads once. Powered by EmulatorJS / FinalBurn Neo."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/emulator/neogeo/neogeo-preview.png"
+    />
 
     <link rel="canonical" href="https://joeheyming.github.io/emulator/neogeo/" />
 
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥊</text></svg>" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥊</text></svg>"
+    />
 
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@graph": [
           {
-            "@type": [
-              "SoftwareApplication",
-              "VideoGame"
-            ],
+            "@type": "SoftwareApplication",
             "name": "Neo Geo Emulator Online",
-            "alternateName": [
-              "Neo Geo Emulator",
-              "Play Neo Geo in Browser"
-            ],
-            "applicationCategory": "GameApplication",
+            "applicationCategory": "WebApplication",
             "operatingSystem": "Web Browser",
             "description": "Free Neo Geo AES / MVS emulator online. Browse the Internet Archive collection or bring your own FBNeo .zip — neogeo.zip BIOS auto-loads once. Powered by EmulatorJS / FinalBurn Neo.",
             "url": "https://joeheyming.github.io/emulator/neogeo/",
@@ -69,12 +79,7 @@
               "price": "0",
               "priceCurrency": "USD"
             },
-            "keywords": "Neo Geo emulator online, AES MVS emulator, SNK arcade browser, FinalBurn Neo, EmulatorJS, free Neo Geo emulator",
-            "inLanguage": "en",
-            "gamePlatform": [
-              "Web Browser",
-              "HTML5"
-            ]
+            "inLanguage": "en"
           },
           {
             "@type": "BreadcrumbList",
@@ -143,7 +148,13 @@
       aria-label="Choose a ROM file"
       accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.sfc,.smc,.chd,.pbp,.iso,.cue,.zip,.7z"
     />
-    <input type="file" id="biosFileInput" class="hidden-input" aria-label="Choose a BIOS file" accept=".zip,.7z,.bin" />
+    <input
+      type="file"
+      id="biosFileInput"
+      class="hidden-input"
+      aria-label="Choose a BIOS file"
+      accept=".zip,.7z,.bin"
+    />
 
     <!-- Static fallback for crawlers / no-JS; launch.js replaces #brand / #boot-card. -->
     <div id="boot">
@@ -172,21 +183,6 @@
           <a href="/about/">About</a>
         </p>
       </div>
-
-      <footer class="seo-intro" hidden>
-        <h2>Neo Geo Emulator — Play AES / MVS Arcade Games in Browser</h2>
-        <p>Free Neo Geo AES / MVS emulator online. Browse the Internet Archive collection or bring your own FBNeo .zip — neogeo.zip BIOS auto-loads once. Powered by EmulatorJS / FinalBurn Neo.</p>
-        <nav aria-label="More retro games">
-          <strong>More retro games:</strong>
-          <a href="/emulator/">All emulators</a>
-          &middot;
-          <a href="/doom/">DOOM</a>
-          &middot;
-          <a href="/pacman/">3D Pac-Man</a>
-          &middot;
-          <a href="/stepmania/">StepMania</a>
-        </nav>
-      </footer>
     </div>
 
     <div id="game-container">
