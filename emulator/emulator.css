@@ -61,26 +61,39 @@ body {
   padding: 64px 16px 12px;
 }
 
-/* The wordmark stays, but the collection is the page. A 72px logo
- * plus a stacked load form left the game grid about 350px tall. */
+/* The wordmark stays, but the collection is the page: logo and title
+ * share one short row so the game list gets the height. */
 #boot:has(.boot-card-scroll) .brand {
   flex: 0 0 auto;
-  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  text-align: left;
 }
 
 #boot:has(.boot-card-scroll) .brand-logo {
-  font-size: 40px;
-  margin-bottom: 2px;
+  font-size: 30px;
+  margin-bottom: 0;
 }
 
 #boot:has(.boot-card-scroll) .brand h1 {
-  font-size: clamp(22px, 3vw, 30px);
+  font-size: clamp(18px, 2.4vw, 24px);
   letter-spacing: 1px;
+  line-height: 1.1;
 }
 
 #boot:has(.boot-card-scroll) .brand .sub {
-  margin-top: 2px;
+  margin-top: 1px;
+  font-size: 11px;
   letter-spacing: 2px;
+}
+
+@media (max-height: 700px) {
+  #boot:has(.boot-card-scroll) .brand .sub {
+    display: none;
+  }
 }
 
 #boot.hidden {
@@ -177,16 +190,127 @@ body {
   background: var(--card-bg);
 }
 
-.boot-card-header > h2 {
+.boot-card .boot-card-header > h2 {
   flex: 1 1 auto;
   min-width: 8rem;
   margin: 0;
 }
 
-/* Notices, BIOS, and help sit on their own row. The load button and
- * the controls summary stay on the title row. */
-.boot-card-header > :not(h2):not(.btn-stack):not(.controls-info) {
+/* The title, load button, how-to and controls share the first row.
+ * Notices and the BIOS strip follow it, one compact line each. */
+.boot-card-header > :not(h2):not(.btn-stack):not(.controls-info):not(.howto) {
   flex: 1 1 100%;
+  order: 1;
+}
+
+.boot-card-header > .leanback-banner,
+.boot-card-header > .audio-note,
+.boot-card-header > .deeplink-error,
+.boot-card-header > .picker-help {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.boot-card-header > .deeplink-error {
+  padding: 0;
+}
+
+.boot-card-header > .deeplink-handoff {
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.boot-card-header > .bios-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.boot-card-header .bios-status {
+  flex: 1 1 200px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.boot-card-header .bios-actions {
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.boot-card-header .bios-actions .btn {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 5px 10px;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.boot-card-header .bios-progress,
+.boot-card-header .bios-help {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.boot-card-header .bios-panel:has(.bios-status[data-ready='1']) .bios-help {
+  display: none;
+}
+
+.boot-card-header > .howto {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+}
+
+.boot-card-header .howto summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.boot-card-header .howto summary::before {
+  content: '▶';
+  font-size: 9px;
+  transition: transform 0.2s;
+}
+
+.boot-card-header .howto[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.boot-card-header .howto-panel {
+  display: none;
+}
+
+.boot-card-header .howto[open] .howto-panel {
+  display: block;
+  position: absolute;
+  z-index: 4;
+  left: 12px;
+  right: 12px;
+  top: calc(100% - 4px);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+}
+
+.boot-card-header .howto-panel > .rom-help {
+  margin: 0;
+}
+
+.boot-card-header .howto-panel > .rom-help + ol {
+  margin-top: 8px;
 }
 
 .boot-card-header > .btn-stack {
@@ -206,10 +330,6 @@ body {
   margin: 0;
   padding: 0;
   border-top: 0;
-}
-
-.boot-card-header > .rom-help {
-  margin: 0;
 }
 
 .boot-card-header .controls-panel {

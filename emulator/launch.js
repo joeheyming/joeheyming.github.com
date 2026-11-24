@@ -780,15 +780,18 @@
           </p>`
         : '';
 
-    const howtoHtml =
+    const romHelpHtml = cfg.romHelp ? `<p class="rom-help">${escapeHtml(cfg.romHelp)}</p>` : '';
+    const howtoStepsHtml =
       cfg.howto && cfg.howto.length
+        ? `<ol>${cfg.howto.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol>`
+        : '';
+    const howtoHtml =
+      romHelpHtml || howtoStepsHtml
         ? `<details class="howto">
         <summary>How to play</summary>
-        <ol>${cfg.howto.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol>
+        <div class="howto-panel">${romHelpHtml}${howtoStepsHtml}</div>
       </details>`
         : '';
-
-    const romHelpHtml = cfg.romHelp ? `<p class="rom-help">${escapeHtml(cfg.romHelp)}</p>` : '';
 
     const controlsSummary = tv ? 'Controls' : 'Keyboard Controls';
     const gamepadHint =
@@ -834,9 +837,8 @@
             : ''
         }
         ${biosPanelHtml}
-        ${fileStack}
-        ${romHelpHtml}
         ${tvNoCollectionHtml}
+        ${fileStack}
         ${howtoHtml}
         <details class="controls-info">
           <summary>${controlsSummary}</summary>
@@ -858,6 +860,17 @@
     if (loadBtn && romInput) {
       loadBtn.addEventListener('click', () => romInput.click());
     }
+
+    // How to play and Controls open into the same spot under the header.
+    const popovers = bootCard.querySelectorAll('.boot-card-header > details');
+    popovers.forEach((d) =>
+      d.addEventListener('toggle', () => {
+        if (!d.open) return;
+        popovers.forEach((other) => {
+          if (other !== d) other.open = false;
+        });
+      })
+    );
 
     bios()?.wireBiosControls(cfg);
     wireTvFocus(bootCard);
