@@ -126,6 +126,13 @@ export function appWindow(html, opts = {}) {
   const imports = {
     '/shared/lazy.js': jsdomLazy(window),
     '/play-progress.js': playProgress,
+    // launch.js mounts this on every emulator page. Tests that care about
+    // ordering pass their own copy; everyone else gets a resolved no-op.
+    '/emulator/live-chat-mount.js': {
+      mountEmulatorChat() {
+        return Promise.resolve();
+      }
+    },
     ...opts.imports
   };
   /** @param {string} spec */

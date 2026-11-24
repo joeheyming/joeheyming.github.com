@@ -12,8 +12,10 @@
 // pushHistorySilent so Back returns to the list without a second page view.
 // Sega CD and Saturn deep links stay on the download handoff. Once a game is
 // chosen, launchEmulator loads the play path (emulator/play.js: play chrome,
-// achievements, Ruffle or emulator/ejs-mount.js) and hands it the ROM. BIOS
-// lives in emulator/bios.js. This file keeps boot-card orchestration.
+// achievements, Ruffle or emulator/ejs-mount.js) and hands it the ROM. Live
+// chat mounts with the page and is awaited first, so its keyboard guard
+// wraps addEventListener before SOCD and EmulatorJS bind keys. BIOS lives
+// in emulator/bios.js. This file keeps boot-card orchestration.
 //
 // Lean-back (TV / console): hides the file picker, starts `?rom=<name>`
 // in the page when that console streams, and wires D-pad focus via
@@ -63,6 +65,21 @@
 
   function loadInOrder(srcs) {
     return lazy().then((l) => l.loadScriptsInOrder(srcs));
+  }
+
+  // One room for the hub and every console. The guard inside mountLiveChat
+  // has to exist before the play path registers key handlers.
+  /** @type {Promise<void> | null} */
+  let emulatorChat = null;
+  function mountEmulatorChat() {
+    if (!emulatorChat) {
+      emulatorChat = import('/emulator/live-chat-mount.js')
+        .then((mod) => mod.mountEmulatorChat())
+        .catch((err) => {
+          console.warn('[emulator] live chat did not load:', err);
+        });
+    }
+    return emulatorChat;
   }
 
   function ready(fn) {
@@ -1257,6 +1274,8 @@
       return;
     }
 
+    void mountEmulatorChat();
+
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
     const params = new URLSearchParams(window.location.search);
     const romQuery = params.get('rom');
@@ -1386,6 +1405,7 @@
     }
 
     try {
+      await mountEmulatorChat();
       await loadInOrder(playScripts(cfg));
     } catch (err) {
       console.error('launchEmulator: play scripts did not load', err);

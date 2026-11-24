@@ -30,6 +30,48 @@ function stubRuffle(window) {
   return loadedUrls;
 }
 
+it('mounts live chat before the play path binds keys', async () => {
+  /** @type {() => void} */
+  let releaseChat = () => {};
+  const chatReady = new Promise((resolve) => {
+    releaseChat = resolve;
+  });
+  let mounted = false;
+  const window = appWindow(PAGE, {
+    url: 'https://joeheyming.github.io/emulator/flash/',
+    imports: {
+      '/emulator/live-chat-mount.js': {
+        mountEmulatorChat() {
+          mounted = true;
+          return chatReady;
+        }
+      }
+    }
+  });
+  window.crossOriginIsolated = true;
+  stubRuffle(window);
+  loadClassic(
+    window,
+    'emulator/consoles.js',
+    'emulator/rom-acquire.js',
+    'shared/breadcrumbs.js',
+    'emulator/launch.js'
+  );
+  if (window.document.readyState === 'loading') {
+    window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
+  }
+  await Promise.resolve();
+  assert.equal(mounted, true, 'chat starts with the console page');
+
+  const launching = window.launchEmulator(new window.Blob(['swf']), 'Game.swf', { tracked: true });
+  await Promise.resolve();
+  assert.deepEqual(window.__loadedScripts, [], 'play scripts wait for the keyboard guard');
+  releaseChat();
+  await launching;
+  assert.deepEqual(window.__loadedScripts, ['/emulator/play.js']);
+  window.close();
+});
+
 it('starts a Flash game through the lazily loaded play path', async () => {
   const window = appWindow(PAGE, { url: 'https://joeheyming.github.io/emulator/flash/' });
   window.crossOriginIsolated = true;
