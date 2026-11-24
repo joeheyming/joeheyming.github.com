@@ -124,11 +124,19 @@
     // SNES pad with no analog stick. Supply the PSP one, and show it when
     // this device actually has a touchscreen. A saved "disabled" still wins,
     // because loadSettings runs after these defaults.
+    // Every other console uses EmulatorJS's own pad, which it only enables
+    // when the user agent looks like a phone. An iPad (which reports itself
+    // as a Mac), a phone on "desktop site", or an emulated phone view misses
+    // that sniff and gets no buttons. Turn the pad on whenever the primary
+    // pointer is a finger; touch laptops keep their mouse-first default.
     if (isPsp(cfg)) {
       window.EJS_VirtualGamepadSettings = pspTouchControls();
-      if (deviceHasTouch()) window.EJS_defaultOptions['virtual-gamepad'] = 'enabled';
     } else {
       delete window.EJS_VirtualGamepadSettings;
+    }
+    if (isPsp(cfg) ? deviceHasTouch() : primaryPointerIsTouch()) {
+      window.EJS_defaultOptions['virtual-gamepad'] = 'enabled';
+    } else {
       delete window.EJS_defaultOptions['virtual-gamepad'];
     }
 
@@ -522,6 +530,7 @@
       if (emu.started) keepSavesInBrowser(emu);
       emu.on('start', function () {
         keepSavesInBrowser(emu);
+        keepTouchPadVisible(emu);
         if (!pendingResume) return;
         pendingResume = false;
         loadQuickState();
@@ -538,6 +547,44 @@
     const nav = typeof navigator === 'undefined' ? null : navigator;
     if (nav && Number(nav.maxTouchPoints) > 0) return true;
     return typeof window !== 'undefined' && 'ontouchstart' in window;
+  }
+
+  function primaryPointerIsTouch() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  /**
+   * EmulatorJS builds the on-screen pad, then sets display:none. It turns
+   * the pad back on when the game starts, but its resize handler also
+   * measures a hidden pad by showing it and hiding it again 250ms later.
+   * A resize while the core is still loading — the address bar, or turning
+   * the phone landscape — schedules that hide, and the hide lands after
+   * the game has shown the pad. For a couple of seconds after start, put
+   * a pad back if this session asked for one. A saved "disabled" still wins.
+   * @param {object} emu
+   * @returns {boolean}
+   */
+  function keepTouchPadVisible(emu) {
+    const fe = emu && emu.frontend;
+    if (!fe || typeof fe.showVirtualGamepad !== 'function' || emu._heymingPadGuard) return false;
+    const wanted = function () {
+      if (typeof emu.getSettingValue !== 'function') return false;
+      return emu.getSettingValue('virtual-gamepad') !== 'disabled';
+    };
+    if (!wanted()) return false;
+    emu._heymingPadGuard = true;
+    let ticks = 0;
+    const timer = window.setInterval(function () {
+      ticks += 1;
+      if (ticks > 25 || !wanted()) {
+        window.clearInterval(timer);
+        return;
+      }
+      const pad = fe.virtualGamepad;
+      if (pad && pad.style.display === 'none') fe.showVirtualGamepad();
+    }, 100);
+    return true;
   }
 
   /**
@@ -996,6 +1043,7 @@
     mount,
     packGamepadSlots,
     keepSavesInBrowser,
+    keepTouchPadVisible,
     patchLegacyGetState,
     persistQuickStates,
     saveQuickState,

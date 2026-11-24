@@ -88,6 +88,48 @@ describe('PSP touch controls', () => {
     assert.equal(dom.window.EJS_defaultOptions['virtual-gamepad'], undefined);
   });
 
+  it('puts the pad back when a resize hides it after the game starts', async () => {
+    const dom = boot('<div id="game"></div>');
+    const pad = { style: { display: 'none' } };
+    let setting = 'enabled';
+    const emu = {
+      getSettingValue: () => setting,
+      frontend: {
+        virtualGamepad: pad,
+        showVirtualGamepad() {
+          pad.style.display = '';
+        }
+      }
+    };
+    assert.equal(dom.window.emulatorEjsMount.keepTouchPadVisible(emu), true);
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    assert.equal(pad.style.display, '');
+    pad.style.display = 'none';
+    setting = 'disabled';
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    assert.equal(pad.style.display, 'none');
+  });
+
+  it('shows the pad for every console when the primary pointer is a finger', () => {
+    const consoles = readFileSync(join(repoRoot, 'emulator/consoles.js'), 'utf8');
+    const cores = [...consoles.matchAll(/ejsCore:\s*'([^']+)'/g)].map((m) => m[1]);
+    assert.ok(cores.includes('segaGG'));
+    for (const core of cores) {
+      const dom = boot('<div id="game"></div>');
+      dom.window.matchMedia = (query) => ({ matches: query === '(pointer: coarse)' });
+      mount(dom, core);
+      assert.equal(dom.window.EJS_defaultOptions['virtual-gamepad'], 'enabled', core);
+    }
+  });
+
+  it('keeps the pad off for non-PSP consoles when the primary pointer is a mouse', () => {
+    const dom = boot('<div id="game"></div>');
+    Object.defineProperty(dom.window.navigator, 'maxTouchPoints', { value: 10 });
+    dom.window.matchMedia = () => ({ matches: false });
+    mount(dom, 'segaGG');
+    assert.equal(dom.window.EJS_defaultOptions['virtual-gamepad'], undefined);
+  });
+
   it('replays a finger as touch start, move, and end', () => {
     const dom = boot('<div id="game"><button type="button">×</button></div>');
     const { window } = dom;
