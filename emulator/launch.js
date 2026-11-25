@@ -59,6 +59,87 @@
     return cfg.player === 'ruffle' ? RUFFLE_PLAY_SCRIPTS : PLAY_SCRIPTS;
   }
 
+  /**
+   * iPadOS "Request Desktop Website" reports a Mac and hides the iPad token.
+   * A touch Mac is that iPad. iPhone/iPad in the UA covers mobile site mode.
+   */
+  function iosFilesPicker() {
+    const nav = navigator;
+    if (!nav) return false;
+    const ua = nav.userAgent || '';
+    if (/iPad|iPhone|iPod/i.test(ua)) return true;
+    const touch = nav.maxTouchPoints || 0;
+    if (touch < 2) return false;
+    return /Macintosh/i.test(ua) || nav.platform === 'MacIntel';
+  }
+
+  /**
+   * iPad Safari greys out a file whose type it does not know. .swf is one of
+   * those, and so is a .zip while accept lists only the Flash MIME type.
+   * Drop the filter there; prepareFlashRom checks the bytes.
+   * @param {HTMLInputElement | null} input
+   * @param {object | null | undefined} cfg
+   */
+  function applyRomAccept(input, cfg) {
+    if (!input) return;
+    if (cfg && cfg.player === 'ruffle' && iosFilesPicker()) {
+      input.removeAttribute('accept');
+      return;
+    }
+    if (cfg && cfg.fileAccept) input.setAttribute('accept', cfg.fileAccept);
+  }
+
+  function openRomFilePicker() {
+    const input = document.getElementById('romFileInput');
+    if (!input) return;
+    const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
+    applyRomAccept(input, cfg);
+    input.value = '';
+    input.click();
+  }
+
+  window.openEmulatorRomPicker = openRomFilePicker;
+
+  function playingTitleFrom(romName) {
+    return (
+      String(romName || 'game')
+        .replace(
+          /\.(zip|7z|chd|cdi|gdi|pbp|iso|cue|bin|gba|nes|sfc|smc|md|gen|n64|z64|v64|gb|gbc|nds|gg|ngp|ngc|swf|32x|a26|cso)$/i,
+          ''
+        )
+        .trim() || 'game'
+    );
+  }
+
+  /**
+   * A named .swf plays as itself. A .zip, or a file iPad saved with no
+   * extension, goes through flash-file.js, which stays off the first screen.
+   * @param {Blob} romSource
+   * @param {string} romName
+   * @returns {Promise<{ file: Blob, name: string } | { error: string }>}
+   */
+  async function prepareFlashRom(romSource, romName) {
+    const name = String(romName || '').trim();
+    if (/\.swf$/i.test(name)) return { file: romSource, name };
+    try {
+      await loadInOrder(['/emulator/flash-file.js']);
+    } catch (err) {
+      console.error('launchEmulator: flash file helper did not load', err);
+      return { error: 'The Flash player did not load. Check your connection and try again.' };
+    }
+    const api = window.emulatorFlashFile;
+    if (!api || typeof api.prepare !== 'function') {
+      return { error: 'The Flash player did not load. Check your connection and try again.' };
+    }
+    try {
+      return await api.prepare(romSource, name);
+    } catch (err) {
+      return {
+        error: err && err.userMessage ? err.userMessage : 'Could not read that Flash file.'
+      };
+    }
+  }
+
   function lazy() {
     return import('/shared/lazy.js');
   }
@@ -850,7 +931,7 @@
 
     const isDisc = !!cfg.iaExternalDownload;
     const isFlash = cfg.player === 'ruffle';
-    const loadLabel = isFlash ? 'Load .swf' : isDisc ? 'Load disc' : 'Load ROM';
+    const loadLabel = isFlash ? 'Load .swf / .zip' : isDisc ? 'Load disc' : 'Load ROM';
     const loadTitle = isFlash
       ? `Load a local Flash game (${cfg.fileExtsLabel})`
       : isDisc
@@ -895,13 +976,10 @@
       </div>
     `;
 
-    const romInput = document.getElementById('romFileInput');
-    if (romInput) romInput.setAttribute('accept', cfg.fileAccept);
+    applyRomAccept(document.getElementById('romFileInput'), cfg);
 
     const loadBtn = document.getElementById('loadRomBtn');
-    if (loadBtn && romInput) {
-      loadBtn.addEventListener('click', () => romInput.click());
-    }
+    if (loadBtn) loadBtn.addEventListener('click', openRomFilePicker);
 
     // How to play and Controls open into the same spot under the header.
     const popovers = bootCard.querySelectorAll('.boot-card-header > details');
@@ -1094,9 +1172,7 @@
     if (heading) header.insertBefore(panel, heading.nextSibling);
     else header.prepend(panel);
 
-    document.getElementById('deeplinkLoadLocalBtn')?.addEventListener('click', () => {
-      document.getElementById('romFileInput')?.click();
-    });
+    document.getElementById('deeplinkLoadLocalBtn')?.addEventListener('click', openRomFilePicker);
   }
 
   /**
@@ -1314,6 +1390,7 @@
     void mountEmulatorChat();
 
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
+    applyRomAccept(document.getElementById('romFileInput'), cfg);
     const params = new URLSearchParams(window.location.search);
     const romQuery = params.get('rom');
     let booted = false;
@@ -1386,6 +1463,7 @@
     if (romInput) {
       romInput.addEventListener('change', function () {
         const file = this.files && this.files[0];
+        this.value = '';
         if (!file) return;
         window.launchEmulator(file, file.name);
       });
@@ -1397,28 +1475,6 @@
     if (!cfg) {
       console.error('launchEmulator: no active console; bailing.');
       return;
-    }
-
-    const playingTitle =
-      String(romName || 'game')
-        .replace(
-          /\.(zip|7z|chd|cdi|gdi|pbp|iso|cue|bin|gba|nes|sfc|smc|md|gen|n64|z64|v64|gb|gbc|nds|gg|ngp|ngc|swf|32x|a26|cso)$/i,
-          ''
-        )
-        .trim() || 'game';
-    if (!options || !options.tracked) {
-      if (typeof window.trackEmulatorGame === 'function') {
-        window.trackEmulatorGame(cfg.id, playingTitle);
-      }
-      // Recording the play loads a script. The launch must not wait on it.
-      const analytics = window.heymingAnalytics;
-      if (analytics && typeof analytics.whenCounts === 'function') {
-        analytics.whenCounts((counts) => {
-          if (typeof counts.recordEmulatorPlay === 'function') {
-            counts.recordEmulatorPlay(cfg.id, playingTitle);
-          }
-        });
-      }
     }
 
     if (!wasmSupported()) {
@@ -1435,6 +1491,34 @@
         return;
       }
       singleThreadMode = true;
+    }
+
+    let source = romSource;
+    let name = romName;
+    if (cfg.player === 'ruffle') {
+      const prepared = await prepareFlashRom(romSource, romName);
+      if (prepared.error) {
+        insertBootNotice(prepared.error);
+        return;
+      }
+      source = prepared.file;
+      name = prepared.name;
+    }
+
+    const playingTitle = playingTitleFrom(name);
+    if (!options || !options.tracked) {
+      if (typeof window.trackEmulatorGame === 'function') {
+        window.trackEmulatorGame(cfg.id, playingTitle);
+      }
+      // Recording the play loads a script. The launch must not wait on it.
+      const analytics = window.heymingAnalytics;
+      if (analytics && typeof analytics.whenCounts === 'function') {
+        analytics.whenCounts((counts) => {
+          if (typeof counts.recordEmulatorPlay === 'function') {
+            counts.recordEmulatorPlay(cfg.id, playingTitle);
+          }
+        });
+      }
     }
 
     const biosApi = bios();
@@ -1460,8 +1544,8 @@
     const resume =
       !!(options && options.resume) ||
       new URLSearchParams(window.location.search).get('resume') === '1';
-    await window.emulatorPlay.play(romSource, cfg, {
-      romName,
+    await window.emulatorPlay.play(source, cfg, {
+      romName: name,
       title: playingTitle,
       biosFile: biosApi ? biosApi.getActiveFile() : null,
       onExit: returnToGameList,

@@ -1281,7 +1281,8 @@ class RomBrowserElement extends HTMLElement {
           ?.addEventListener('click', restoreList);
         contentArea.querySelector('[data-action="load-local"]')?.addEventListener('click', () => {
           this.closeBrowser();
-          document.getElementById('romFileInput')?.click();
+          if (typeof window.openEmulatorRomPicker === 'function') window.openEmulatorRomPicker();
+          else document.getElementById('romFileInput')?.click();
         });
       } else {
         alert('Could not load this game. Try again or load a saved file.');
@@ -1340,8 +1341,8 @@ class RomBrowserElement extends HTMLElement {
     contentArea.querySelector('[data-action="back-list"]')?.addEventListener('click', restoreList);
     contentArea.querySelector('[data-action="load-local"]')?.addEventListener('click', () => {
       this.closeBrowser();
-      const input = document.getElementById('romFileInput');
-      if (input) input.click();
+      if (typeof window.openEmulatorRomPicker === 'function') window.openEmulatorRomPicker();
+      else document.getElementById('romFileInput')?.click();
     });
   }
 

@@ -789,8 +789,19 @@ kbd {
   color: var(--text-1);
 }
 
+/* display:none blocks the file picker when a button calls click() on iPad Safari. */
 .hidden-input {
-  display: none;
+  position: fixed;
+  left: -100px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 #game-container {

@@ -791,8 +791,12 @@
       // The sheet rows and captured thumbnails are maintained by hand.
       // A full emulator dump must not replace them with a bare Archive listing.
       preserveCatalog: true,
-      fileAccept: '.swf,application/x-shockwave-flash',
-      fileExtsLabel: '.swf',
+      // Extensions only. iPad Safari maps accept to system file types, and it
+      // has none for .swf or application/x-shockwave-flash, so that MIME type
+      // greys out every file in the picker — a loose .swf and a .zip alike.
+      // launch.js drops accept on that picker. A .zip is unpacked before play.
+      fileAccept: '.swf,.zip',
+      fileExtsLabel: '.swf / .zip',
       accentHex: '#dc2626',
       accentGoldHex: '#7f1d1d',
       iaBaseUrl: 'https://archive.org/download/banned-from-equestria-daily-1.5',
@@ -802,7 +806,7 @@
       seoDescription:
         'Play classic Flash games in the browser with Ruffle. Browse the collection or load your own .swf. The game stays on this page, and the keyboard and mouse go to the game.',
       romHelp:
-        'Browse the collection and choose Play in browser, or load your own .swf. Games stay on this page.',
+        'Browse the collection and choose Play in browser, or load your own .swf or a .zip that contains one. Games stay on this page.',
       controls: [
         { label: 'Play', key: 'Click or tap' },
         { label: 'Keyboard', key: 'Arrow keys and Space, when the game uses them' }
