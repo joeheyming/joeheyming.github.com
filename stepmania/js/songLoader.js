@@ -4,6 +4,7 @@
 import { loadJSZip } from './jszipLoader.js';
 import { SimfileParser, danceSingleCharts } from './simfileParser.js';
 import { dwiToSm } from './dwi.js';
+import { ensureProxy } from './ensureProxy.js';
 import {
   createDefaultSongProxyTransport,
   ZIP_DOWNLOAD_TIMEOUT,
@@ -342,17 +343,14 @@ async function loadChartFromPacks(packUrls, transport) {
  */
 
 /**
- * The chart dialog can run before proxy.js. Only ask for it when the
- * head-start download does not already have the bytes.
+ * The chart dialog can run before proxy.js. Ask for it here, and only when
+ * the head-start download does not already have the bytes.
  * @param {import('./songProxyTransport.js').SongProxyTransport} [transport]
  * @returns {Promise<import('./songProxyTransport.js').SongProxyTransport>}
  */
 async function transportWhenNeeded(transport) {
   if (transport) return transport;
-  const started = Date.now();
-  while (!window.proxyService && Date.now() - started < 5000) {
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  }
+  await ensureProxy();
   return createDefaultSongProxyTransport();
 }
 

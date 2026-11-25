@@ -83,7 +83,12 @@ export function ensurePlay() {
     playReady = loadPlayChunks()
       .then(async () => {
         const { startStepmania } = await loadModule('stepmania.js');
+        // Each of these is its own long task on a phone. A tap during
+        // "Loading the game…" lands between them instead of waiting for
+        // the engine, the controller, and the canvas together.
+        await yieldForInput();
         const { startMainPageController } = await loadModule('mainPageController.js');
+        await yieldForInput();
         startStepmania();
         await yieldForInput();
         return startMainPageController();

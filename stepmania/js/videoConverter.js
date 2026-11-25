@@ -1,6 +1,7 @@
 // Video Converter Module - Uses FFmpeg.wasm to convert AVI to browser-playable formats
 // This allows playing AVI background videos from simfiles
 
+import { ensureProxy } from './ensureProxy.js';
 import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
 
 class VideoConverter {
@@ -219,6 +220,7 @@ class VideoConverter {
       // Fetch the AVI file through proxy if needed
       let videoData;
       if (videoUrl.includes('zenius-i-vanisher.com')) {
+        await ensureProxy();
         const arrayBuffer = await window.proxyService.fetchBinaryWithProxy(videoUrl, {
           skipDirect: true,
           headers: {

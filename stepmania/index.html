@@ -144,7 +144,6 @@
     <link rel="canonical" href="https://joeheyming.github.io/stepmania/" />
 
     <link href="css/screen.css" media="all" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" href="/live-chat/live-chat.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <!-- Inline <share-button> in the toolbar; suppress the floating FAB. -->
     <script src="/site.js" data-share-fab="off"></script>
@@ -691,13 +690,46 @@
          those cannot hold the difficulty choices off the screen. -->
     <loading-overlay id="loading-overlay"></loading-overlay>
 
-    <!-- Non-module scripts that need to be loaded first (global utilities) -->
-    <script src="../proxy.js"></script>
-    <!-- Song menu only. The play engine, library, and JSZip load on demand. -->
+    <!-- Song menu only. The play engine, library, JSZip, and proxy.js load
+         on demand. proxy.js is ~70 KB and was evaluating before the first tap. -->
     <script type="module" src="./js/main.js"></script>
     <script type="module">
-      import { mountLiveChat } from '/live-chat/index.js';
-      mountLiveChat({ room: 'stepmania' });
+      // Live chat is desktop-only. Importing it on a phone still parsed the
+      // module during the first tap. Load the sheet and the module once the
+      // menu is idle, and skip both on a phone.
+      (function () {
+        function phone() {
+          try {
+            if (window.matchMedia('(max-width: 768px)').matches) return true;
+            if (
+              window.matchMedia('(pointer: coarse)').matches &&
+              window.matchMedia('(hover: none)').matches
+            ) {
+              return true;
+            }
+          } catch (e) {
+            return false;
+          }
+          return false;
+        }
+        if (phone()) return;
+        var start = function () {
+          var link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = '/live-chat/live-chat.css';
+          document.head.appendChild(link);
+          import('/live-chat/index.js')
+            .then(function (mod) {
+              mod.mountLiveChat({ room: 'stepmania' });
+            })
+            .catch(function () {});
+        };
+        if (typeof window.requestIdleCallback === 'function') {
+          window.requestIdleCallback(start, { timeout: 2500 });
+        } else {
+          setTimeout(start, 1500);
+        }
+      })();
     </script>
     <game-over-modal id="game-over-modal"></game-over-modal>
     <sm-settings-sheet id="settings-sheet"></sm-settings-sheet>

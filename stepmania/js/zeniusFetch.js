@@ -1,3 +1,4 @@
+import { ensureProxy } from './ensureProxy.js';
 import { simfileItemsFromHtml } from './zeniusParsers.js';
 
 // A macrotask, so a tap can run before the next list is parsed. A microtask
@@ -8,6 +9,7 @@ function gapForInput() {
 }
 
 export async function fetchTopSimfilesFromListUrl(listUrl, limit, signal) {
+  await ensureProxy();
   const html = await window.proxyService.fetchWithProxy(listUrl, { skipDirect: true, signal });
   return simfileItemsFromHtml(html, limit, gapForInput);
 }

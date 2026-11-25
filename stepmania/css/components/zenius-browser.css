@@ -307,10 +307,22 @@ zenius-browser.modal-open .modal {
   padding: 0.6rem;
   border: 1px solid var(--hairline-accent);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s;
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  /* Off-screen cards skip layout. A category used to style every card in
+     the turn a tap was waiting on. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 5.5rem;
+}
+
+@media (pointer: coarse) {
+  .content-item {
+    /* Blur on every card is a backdrop read per row. Phones paint a flat fill. */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 .content-item:hover {

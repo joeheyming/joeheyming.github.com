@@ -67,6 +67,23 @@ bindHomeScreen({
 
 showHomeScreen();
 
+// proxy.js evaluates as one task. Wait until the menu has painted and the
+// browser is idle so that task is not the first tap's input delay.
+function warmProxyWhenIdle() {
+  const start = () => {
+    void import('./ensureProxy.js')
+      .then((mod) => mod.ensureProxy())
+      .catch(() => {});
+  };
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(start, { timeout: 2500 });
+  } else {
+    setTimeout(start, 1500);
+  }
+}
+
+warmProxyWhenIdle();
+
 if (songRequested()) {
   // Parse the chart UI before the play engine. Loading both at once keeps the
   // difficulty dialog behind the engine's module graph.

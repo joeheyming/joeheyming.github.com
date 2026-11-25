@@ -327,6 +327,36 @@ test('StepMania paints interaction feedback before heavy continuations', () => {
   const load = library.slice(loadStart, library.indexOf('async fetchZeniusContent', loadStart));
   assert.ok(load.indexOf("showLoading('Loading content...')") < load.indexOf('afterNextPaint()'));
   assert.ok(load.indexOf('afterNextPaint()') < load.indexOf('fetchZeniusContent'));
+
+  const searchStart = library.indexOf('async runZeniusSearch()');
+  const search = library.slice(
+    searchStart,
+    library.indexOf('reapplyCurrentListSort()', searchStart)
+  );
+  assert.ok(search.indexOf("showLoading('Searching…')") < search.indexOf('afterNextPaint()'));
+  assert.ok(search.indexOf('afterNextPaint()') < search.indexOf('ensureProxy()'));
+
+  const playEngine = readFileSync(path.join(ROOT, 'stepmania/js/play.js'), 'utf8');
+  const bootStart = playEngine.indexOf(
+    "const { startStepmania } = await loadModule('stepmania.js');"
+  );
+  const boot = playEngine.slice(
+    bootStart,
+    playEngine.indexOf('return startMainPageController()', bootStart)
+  );
+  const controllerAt = boot.indexOf("loadModule('mainPageController.js')");
+  const startAt = boot.indexOf('startStepmania()');
+  assert.ok(boot.indexOf('await yieldForInput()') < controllerAt);
+  assert.ok(boot.indexOf('await yieldForInput()', controllerAt) < startAt);
+
+  const html = readFileSync(path.join(ROOT, 'stepmania/index.html'), 'utf8');
+  assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*proxy\.js["']/);
+  assert.doesNotMatch(html, /import\s*\{[^}]*mountLiveChat/);
+  assert.match(html, /if \(phone\(\)\) return;/);
+  assert.match(
+    readFileSync(path.join(ROOT, 'stepmania/css/components/zenius-browser.css'), 'utf8'),
+    /content-visibility:\s*auto/
+  );
 });
 
 test('Doom renders at half scale on phones', () => {

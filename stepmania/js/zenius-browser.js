@@ -1,4 +1,5 @@
 // Zenius Browser Web Component - ES Module
+import { ensureProxy } from './ensureProxy.js';
 import { adoptSharedStyles } from './sharedStyles.js';
 import { createComponentProxy } from './componentProxy.js';
 import {
@@ -458,7 +459,8 @@ class ZeniusBrowserElement extends HTMLElement {
     }
 
     try {
-      // Use the global proxy service
+      // proxy.js loads on demand. The menu used to evaluate it up front.
+      await ensureProxy();
       const html = await window.proxyService.fetchWithProxy(url, { skipDirect: true });
       const gap = () =>
         typeof window.afterNextPaint === 'function'
@@ -594,6 +596,10 @@ class ZeniusBrowserElement extends HTMLElement {
     this._favoritesViewActive = false;
     this.setZeniusSpotlightUiVisible(false);
     this.showLoading('Searching…');
+    // Paint the searching state before proxy.js or the request. A cold
+    // proxy.js is one long task, and it used to sit on this click.
+    if (typeof window.afterNextPaint === 'function') await window.afterNextPaint();
+    else await new Promise((resolve) => setTimeout(resolve, 0));
 
     try {
       const params = new URLSearchParams();
@@ -601,6 +607,7 @@ class ZeniusBrowserElement extends HTMLElement {
       params.set('songartist', songArtist);
       const url = `https://zenius-i-vanisher.com/v5.2/simfiles_search_ajax.php?${params.toString()}`;
 
+      await ensureProxy();
       const html = await window.proxyService.fetchWithProxy(url, { skipDirect: true, signal });
 
       if (reqId !== this._searchReqId) {
