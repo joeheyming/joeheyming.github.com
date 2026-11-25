@@ -1426,6 +1426,12 @@ const PAGES = [
     url: `${BASE_URL}/emulator/psp/`,
     output: 'emulator/psp/psp-preview.png',
     title: 'PSP'
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/emulator/dreamcast/`,
+    output: 'emulator/dreamcast/dreamcast-preview.png',
+    title: 'Dreamcast'
   }
 ];
 

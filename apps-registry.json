@@ -1397,6 +1397,28 @@
     "geo": false
   },
   {
+    "id": "dreamcast",
+    "name": "Dreamcast 🌀",
+    "shortName": "Dreamcast",
+    "description": "Sega Dreamcast emulator",
+    "detailedDescription": "Play Sega Dreamcast games in your browser with the vendored Flycast core. Search the US CHD collection on Internet Archive, download a game, then load the saved .chd. BIOS auto-loads once and stays local. Needs WebGL2. Windows CE games do not boot. Part of the unified emulator shell.",
+    "icon": "🌀",
+    "path": "./emulator/dreamcast/",
+    "category": "game",
+    "subCategory": "console",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-indigo-600/20 to-slate-800/20",
+    "border": "border-indigo-500/30 hover:border-indigo-400/50",
+    "taskbarGradient": "from-indigo-700 to-slate-900",
+    "taskbarText": "text-white",
+    "tags": ["retro", "emulator", "sega", "dreamcast", "flycast", "gd-rom"],
+    "related": ["saturn", "sega", "ps1", "n64"],
+    "shareCategory": "game",
+    "appTier": "experience",
+    "geo": false
+  },
+  {
     "id": "gameboy",
     "name": "Game Boy 👾",
     "shortName": "Game Boy",

@@ -17,6 +17,8 @@
 // the game library (PS1: games are local-only, BIOS still auto-loads).
 //
 // EmulatorJS core IDs come from https://emulatorjs.org/docs/Options#ejs_core.
+// Dreamcast is the exception: EmulatorJS does not ship Flycast. The page
+// loads the GPLv2 core pinned in emulator/dreamcast/ (flycast-wasm v1.0).
 // The ROM browser lists games from the Google Sheet in games-sheet.js.
 // `iaBaseUrl` is the download client plus the input to
 // scripts/dump-emulator-games.mjs.
@@ -281,6 +283,75 @@
         { label: 'Y button', key: 'Q' },
         { label: 'Z button', key: 'E' },
         { label: 'L / R', key: 'Tab / R' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
+    dreamcast: {
+      id: 'dreamcast',
+      title: 'Dreamcast',
+      subtitle: '128-bit Sega console',
+      emoji: '🌀',
+      // Not an EmulatorJS CDN core. ejs-mount.js redirects the flycast
+      // core download to the vendored zip in this folder.
+      ejsCore: 'flycast',
+      // The vendored build renders with WebGL2 and has no software fallback.
+      requiresWebGL2: true,
+      fileAccept: '.chd,.cdi,.gdi,.cue,.iso,.zip,.7z',
+      fileExtsLabel: '.chd / .cdi / .gdi',
+      seoDescription:
+        'Browser Sega Dreamcast emulator. Search the US CHD collection on Internet Archive, download a game, then load the saved .chd here — the BIOS auto-loads once and stays on this device. Needs WebGL2. Powered by Flycast.',
+      // Indigo — the swirl, kept clear of 32X orange and Saturn emerald.
+      accentHex: '#4f46e5',
+      accentGoldHex: '#312e81',
+      // US CHD set, split A–O and P–Z. Flat single-file discs. GD-ROMs are
+      // too big to stream, so the browser only hands off a download.
+      iaBaseUrl: [
+        'https://archive.org/download/DreamcastCHD2020_0-O',
+        'https://archive.org/download/DreamcastCHD2020_P-Z'
+      ],
+      iaThumbnailSystems: ['Sega - Dreamcast'],
+      iaDescriptionPrefix: 'Dreamcast game',
+      iaFileExtensions: ['.chd'],
+      iaPreferMetadata: true,
+      iaExternalDownload: true,
+      biosRequired: true,
+      biosFileName: 'dc.zip',
+      biosStorageKey: 'dreamcast',
+      // Flycast reads these from the system directory. The mount points that
+      // directory at /, so the zip paths are the paths the core opens.
+      // archive.org/download/dc_boot has both dumps at the retail sizes.
+      biosIaBaseUrl: 'https://archive.org/download/dc_boot',
+      biosIaFiles: [
+        { remote: 'dc_boot.bin', path: 'dc/dc_boot.bin', size: 2097152 },
+        { remote: 'dc_flash.bin', path: 'dc/dc_flash.bin', size: 131072 }
+      ],
+      biosEntries: ['dc/dc_boot.bin', 'dc/dc_flash.bin'],
+      biosEntrySizes: {
+        'dc/dc_boot.bin': 2097152,
+        'dc/dc_flash.bin': 131072
+      },
+      biosHelp:
+        'BIOS auto-loads once from Internet Archive (dc_boot.bin and dc_flash.bin), then stays in this browser.',
+      howto: [
+        'Wait until BIOS says ready.',
+        'Browse the disc collection, download the .chd from Internet Archive, then Load local disc.',
+        'Games are large, often 200–900 MB. A .gdi is a file list and will not boot on its own.',
+        'Dreamcast needs WebGL2. The analog stick is the gamepad stick. Windows CE games such as Sega Rally 2 will not boot on this core.'
+      ],
+      romHelp:
+        'Discs are never streamed into the page. Download a .chd from Internet Archive, then load it here. BIOS auto-loads once. This core does not run Windows CE games.',
+      showSaveStates: true,
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'A button', key: 'X' },
+        { label: 'B button', key: 'S' },
+        { label: 'X button', key: 'A' },
+        { label: 'Y button', key: 'W' },
+        { label: 'L / R', key: 'Q / E' },
+        { label: 'Analog stick', key: 'Gamepad' },
         { label: 'Start', key: 'Enter' },
         { label: 'Save state', key: 'F5' },
         { label: 'Load state', key: 'F9' }

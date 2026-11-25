@@ -46,3 +46,22 @@ describe('packGamepadSlots', () => {
     assert.equal(packed[0], pad);
   });
 });
+
+describe('flycast core URL', () => {
+  it('sends EmulatorJS flycast downloads to the vendored core', () => {
+    const rewrite = load().emulatorEjsMount.flycastCoreUrl;
+    assert.equal(
+      rewrite('https://cdn.emulatorjs.org/latest/data/cores/reports/flycast.json?v=123'),
+      '/emulator/dreamcast/flycast-report.json'
+    );
+    assert.equal(
+      rewrite('https://cdn.emulatorjs.org/latest/data/cores/flycast-wasm.data?v=2026'),
+      '/emulator/dreamcast/flycast-wasm.data'
+    );
+    assert.equal(
+      rewrite('https://cdn.emulatorjs.org/latest/data/cores/flycast-legacy-wasm.data?v=1'),
+      '/emulator/dreamcast/flycast-wasm.data'
+    );
+    assert.equal(rewrite('https://cdn.emulatorjs.org/latest/data/cores/nes-wasm.data'), null);
+  });
+});

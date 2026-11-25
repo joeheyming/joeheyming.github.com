@@ -10,9 +10,9 @@ import { eagerScripts, staticImportSpecifiers, totalBytes } from './import-graph
 // raise one to make room for code the first screen does not need.
 const BUDGETS = {
   'doom/': 230_000,
-  'stepmania/': 285_000,
-  'emulator/': 236_000,
-  'emulator/nes/': 344_000,
+  'stepmania/': 285_300,
+  'emulator/': 241_000,
+  'emulator/nes/': 352_000,
   'play/': 138_000,
   'watch/': 295_000
 };

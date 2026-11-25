@@ -10,6 +10,7 @@
 
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -172,6 +173,48 @@ describe('emulator console registry', () => {
     assert.match(`${gba.romHelp} ${(gba.howto || []).join(' ')}`, /not Game Boy/i);
     assert.ok(gba.fileAccept.includes('.gba'));
     assert.ok(!gb.fileAccept.includes('.gba'));
+  });
+
+  it('registers Dreamcast as a vendored Flycast core, not a CDN core', () => {
+    const dc = consoles.dreamcast;
+    assert.ok(dc, 'expected a dreamcast console');
+    assert.equal(dc.ejsCore, 'flycast');
+    assert.equal(dc.requiresWebGL2, true);
+    assert.equal(dc.requiresThreads, undefined);
+    assert.deepEqual(dc.iaBaseUrl, [
+      'https://archive.org/download/DreamcastCHD2020_0-O',
+      'https://archive.org/download/DreamcastCHD2020_P-Z'
+    ]);
+    assert.equal(dc.iaExternalDownload, true);
+    assert.equal(dc.iaAllowInBrowser, undefined);
+    assert.deepEqual(dc.biosIaFiles, [
+      { remote: 'dc_boot.bin', path: 'dc/dc_boot.bin', size: 2097152 },
+      { remote: 'dc_flash.bin', path: 'dc/dc_flash.bin', size: 131072 }
+    ]);
+    assert.deepEqual(dc.biosEntries, ['dc/dc_boot.bin', 'dc/dc_flash.bin']);
+    assert.equal(dc.biosEntrySizes['dc/dc_boot.bin'], 2097152);
+    assert.equal(dc.biosEntrySizes['dc/dc_flash.bin'], 131072);
+    const copy = `${dc.romHelp} ${(dc.howto || []).join(' ')} ${dc.biosHelp}`;
+    assert.match(copy, /dc_boot\.bin/);
+    assert.match(copy, /WebGL2/);
+    assert.ok(!/play in browser/i.test(copy));
+    assert.ok(existsSync(join(repoRoot, 'emulator/dreamcast/flycast-wasm.data')));
+    assert.ok(existsSync(join(repoRoot, 'emulator/dreamcast/flycast-report.json')));
+    const report = JSON.parse(read('emulator/dreamcast/flycast-report.json'));
+    assert.equal(report.options.defaultWebGL2, true);
+    const listing = execFileSync(
+      'unzip',
+      ['-l', join(repoRoot, 'emulator/dreamcast/flycast-wasm.data')],
+      { encoding: 'utf8' }
+    );
+    for (const name of [
+      'flycast_libretro.js',
+      'flycast_libretro.wasm',
+      'core.json',
+      'build.json'
+    ]) {
+      assert.match(listing, new RegExp(name));
+    }
   });
 
   it('tells Neo Geo Pocket apart from arcade Neo Geo', () => {

@@ -15,6 +15,14 @@
     await lazy.loadScript('/proxy.js');
   }
 
+  /** Multi-file BIOS download, packing and zip checks; loaded when first needed. */
+  async function ensureBiosBundle() {
+    if (window.emulatorBiosBundle) return window.emulatorBiosBundle;
+    const lazy = await import('/shared/lazy.js');
+    await lazy.loadScript('/emulator/bios-bundle.js');
+    return window.emulatorBiosBundle;
+  }
+
   const BIOS_IDB_NAME = 'heyming-emulator-bios';
   const BIOS_IDB_VERSION = 1;
   const BIOS_STORE = 'bios';
@@ -43,10 +51,28 @@
   }
 
   function biosFileAccept(cfg) {
+    if (cfg && Array.isArray(cfg.biosEntries) && cfg.biosEntries.length) return '.zip';
     const name = (cfg && cfg.biosFileName) || '';
     if (/\.bin$/i.test(name)) return '.bin';
     if (/\.zip$/i.test(name)) return '.zip,.7z';
     return '.bin,.zip,.7z';
+  }
+
+  /**
+   * Loose BIOS dumps to download and pack. Null when the console uses one file.
+   * @param {object} cfg
+   * @returns {{ url: string, path: string, size: number }[]|null}
+   */
+  function biosBundleFiles(cfg) {
+    if (!cfg || !cfg.biosIaBaseUrl || !Array.isArray(cfg.biosIaFiles) || !cfg.biosIaFiles.length) {
+      return null;
+    }
+    const base = String(cfg.biosIaBaseUrl).replace(/\/$/, '');
+    return cfg.biosIaFiles.map((file) => ({
+      url: `${base}/${file.remote}`,
+      path: file.path,
+      size: file.size || 0
+    }));
   }
 
   /** ZIP magic for Neo Geo; size floor for PS1 SCPH .bin dumps (~512 KiB). */
@@ -54,6 +80,10 @@
     if (!bytes || bytes.length < 64) return false;
     const name = (cfg && cfg.biosFileName) || '';
     if (/\.zip$/i.test(name)) {
+      if (cfg && Array.isArray(cfg.biosEntries) && cfg.biosEntries.length) {
+        const zip = window.emulatorBiosBundle;
+        return !!zip && zip.zipHasBiosEntries(cfg, bytes);
+      }
       return bytes[0] === 0x50 && bytes[1] === 0x4b;
     }
     if (/\.bin$/i.test(name)) {
@@ -176,6 +206,8 @@
   /** Prefer biosIaBaseUrl (PS1); fall back to game iaBaseUrl (Neo Geo). */
   function biosIaUrl(cfg) {
     if (!cfg || !cfg.biosFileName) return null;
+    // A multi-file BIOS is packed locally; there is no single remote zip.
+    if (Array.isArray(cfg.biosIaFiles) && cfg.biosIaFiles.length) return null;
     const baseRaw = cfg.biosIaBaseUrl || (cfg.iaExternalDownload ? null : cfg.iaBaseUrl);
     if (!baseRaw) return null;
     const bases = Array.isArray(baseRaw) ? baseRaw : [baseRaw];
@@ -186,7 +218,22 @@
     return `${String(base).replace(/\/$/, '')}/${remoteName}`;
   }
 
+  async function fetchBiosBundle(cfg, files) {
+    const lib = await ensureBiosBundle();
+    return lib ? lib.fetchBundle(cfg, files, setBiosProgress) : null;
+  }
+
   async function fetchBiosFromIa(cfg) {
+    const bundle = biosBundleFiles(cfg);
+    if (bundle) {
+      const loadBtn = document.getElementById('loadBiosBtn');
+      if (loadBtn) loadBtn.disabled = true;
+      try {
+        return await fetchBiosBundle(cfg, bundle);
+      } finally {
+        if (loadBtn) loadBtn.disabled = false;
+      }
+    }
     const url = biosIaUrl(cfg);
     if (!url) return null;
     await ensureProxy().catch(() => {});
@@ -258,7 +305,7 @@
       console.warn('BIOS IndexedDB read failed:', err);
     }
 
-    if (!biosIaUrl(cfg)) return false;
+    if (!biosIaUrl(cfg) && !biosBundleFiles(cfg)) return false;
 
     if (opts.statusMessage !== false) {
       setBiosProgress(0, /\.bin$/i.test(cfg.biosFileName || '') ? 512 * 1024 : 0);
@@ -312,7 +359,19 @@
         this.value = '';
         if (!file) return;
         try {
-          const normalized = normalizeBiosFile(file, cfg);
+          let chosen = file;
+          if (cfg.biosEntries) {
+            await ensureBiosBundle();
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            if (!looksLikeBiosPayload(cfg, bytes)) {
+              statusBiosError('That zip needs dc/dc_boot.bin (2 MB) and dc/dc_flash.bin (128 KB).');
+              return;
+            }
+            chosen = new File([bytes], file.name || cfg.biosFileName, {
+              type: file.type || 'application/zip'
+            });
+          }
+          const normalized = normalizeBiosFile(chosen, cfg);
           await saveBiosToIdb(key, normalized);
           activeBiosFile = normalized;
           updateBiosStatusUi(cfg);
@@ -357,6 +416,7 @@
     normalizeBiosFile,
     biosIaUrl,
     looksLikeBiosPayload,
+    biosBundleFiles,
     biosMimeType,
     biosFileAccept
   };

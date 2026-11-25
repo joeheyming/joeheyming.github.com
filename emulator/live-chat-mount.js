@@ -15,13 +15,26 @@ function ensureChatCss() {
   (document.head || document.documentElement).appendChild(link);
 }
 
+/**
+ * Sit the chip in the top-right cluster, immediately left of Share.
+ * The panel stays on the chat root, so it still opens from that button.
+ * @param {Document} [doc]
+ */
+export function dockEmulatorChat(doc = document) {
+  const root = doc.querySelector('.live-chat');
+  const overlay = doc.querySelector('.share-overlay');
+  if (!root || !overlay || root.parentElement === overlay) return;
+  overlay.prepend(root);
+}
+
 /** @returns {Promise<void>} */
 export function mountEmulatorChat() {
   if (!mounted) {
     ensureChatCss();
     mounted = import('/live-chat/index.js')
       .then((mod) => {
-        mod.mountLiveChat({ room: 'emulator' });
+        mod.mountLiveChat({ room: 'emulator', toggle: true });
+        dockEmulatorChat();
       })
       .catch((err) => {
         console.warn('[emulator] live chat did not load:', err);

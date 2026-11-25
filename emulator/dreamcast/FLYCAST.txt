@@ -1,0 +1,23 @@
+Flycast WebAssembly core, GPLv2.
+
+Upstream emulator: https://github.com/flyinghead/flycast (commit 2c48c01)
+WebAssembly port and SH4 JIT: https://github.com/nasomers/flycast-wasm tag v1.0
+(release 2026-08-01, flycast_libretro.js and flycast_libretro.wasm)
+
+flycast-wasm.data is that release, repacked as a zip so EmulatorJS can extract it.
+No BIOS and no games are included.
+
+The v1.0 binary takes the desktop GL path on WebGL2: glGetString returns a
+bad pointer, findGLVersion leaves is_gles clear, and the first frame dies
+with "null function" (nasomers/flycast-wasm#3). Two local fixes:
+
+- webgl2-compat.js patches the context before EmulatorJS starts. It feeds
+  an OpenGL ES 3.0 version string, drops GL_INVALID_ENUM from getError so
+  video init is not aborted, and ignores texParameter on an unbound texture.
+- flycast_libretro.wasm, file offset 2805516: the is_gles test
+  (local.get 0; i32.const 1; i32.eq; local.set 0) is replaced with
+  i32.const 1; local.set 0, so findGLVersion always takes the GLES3 shaders.
+  flycast-report.json buildStart is bumped so EmulatorJS does not reuse a
+  cached copy of the unpatched core.
+
+Replacing flycast-wasm.data from upstream requires both fixes again.

@@ -836,6 +836,36 @@ kbd {
   gap: 8px;
 }
 
+/* Chat chip shares that cluster, immediately left of Share. It stays put
+ * and toggles the panel, which opens downward from the button. */
+.share-overlay .live-chat {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  width: 4.75rem;
+  height: 2.5rem;
+  --lc-height: min(420px, calc(100vh - 72px));
+}
+
+.share-overlay .live-chat__chip {
+  width: 100%;
+  height: 100%;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-overlay .live-chat--toggle .live-chat__chip[aria-expanded='true'] {
+  background: rgba(125, 211, 252, 0.22);
+  border-color: rgba(125, 211, 252, 0.95);
+}
+
+.share-overlay .live-chat__panel {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
 /* Pull the sitewide 🎯 related-projects FAB up into the same cluster.
  * Panel opens downward; share-fab (if present) stacks below the toggle. */
 .related-projects-container {
@@ -859,10 +889,10 @@ kbd {
   bottom: auto !important;
 }
 
-/* Leave room for the top-right share + 🎯 cluster over the breadcrumb bar.
+/* Leave room for the top-right chat + share + 🎯 cluster over the breadcrumb bar.
  * The current crumb stays content-sized so the trail reads as one control. */
 #emu-header.app-header .app-breadcrumbs {
-  padding-right: 170px;
+  padding-right: 280px;
 }
 
 #emu-header.app-header .app-crumb--current {

@@ -1,0 +1,8 @@
+{
+  "core": "flycast",
+  "buildStart": "2026-11-24T23:40:00Z",
+  "buildEnd": "2026-11-24T23:40:00Z",
+  "options": {
+    "defaultWebGL2": true
+  }
+}

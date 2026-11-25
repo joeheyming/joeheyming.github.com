@@ -237,10 +237,34 @@
     return wasmSupported();
   }
 
-  /** @param {'threads' | undefined} [reason] */
+  function webgl2Supported() {
+    try {
+      const canvas = document.createElement('canvas');
+      if (!canvas || typeof canvas.getContext !== 'function') return false;
+      return !!canvas.getContext('webgl2');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /** @param {'threads' | 'webgl2' | undefined} [reason] */
   function renderRuntimeUnavailable(reason) {
     const bootCard = document.getElementById('boot-card');
     if (!bootCard) return;
+    if (reason === 'webgl2') {
+      bootCard.innerHTML = `
+      <h2>WebGL2 unavailable</h2>
+      <p class="coi-fail-copy">
+        This console draws with WebGL2. This browser does not have it, so the
+        emulator cannot start.
+      </p>
+      <p class="picker-help">
+        Desktop Chrome, Edge, Firefox, or Safari can run it.
+        <a href="/emulator/">All consoles</a>
+      </p>
+    `;
+      return;
+    }
     if (reason === 'threads') {
       bootCard.innerHTML = `
       <h2>Threads unavailable</h2>
@@ -817,7 +841,8 @@
       cfg.id === 'psp' ||
       cfg.id === 'n64' ||
       cfg.id === 'segacd' ||
-      cfg.id === 'saturn'
+      cfg.id === 'saturn' ||
+      cfg.id === 'dreamcast'
         ? hasGamepadApi()
           ? `<p class="controls-gamepad-hint">A gamepad works best if you have one plugged in.</p>`
           : `<p class="controls-gamepad-hint">Use the keyboard or on-screen controls; this browser does not support gamepads.</p>`
@@ -1090,8 +1115,20 @@
         const roms = await sheet.loadConsoleGames(cfg.id, {
           descriptionPrefix: cfg.iaDescriptionPrefix
         });
-        listedRoms = roms;
-        return roms;
+        // A console added after the sheet was filled has no rows. The
+        // Archive listing is the same library the sheet was dumped from.
+        if (roms && roms.length) {
+          listedRoms = roms;
+          return roms;
+        }
+        if (ia) {
+          console.warn(
+            'Games sheet has no rows for this console; listing Internet Archive instead.'
+          );
+        } else {
+          listedRoms = roms;
+          return roms;
+        }
       } catch (err) {
         console.warn('Games sheet unavailable; listing Internet Archive instead.', err);
         if (!ia) throw err;
@@ -1321,6 +1358,8 @@
     // the former even when the page is already isolated.
     if (cfg && !wasmSupported()) {
       markRuntimeUnavailable();
+    } else if (cfg && cfg.requiresWebGL2 && !webgl2Supported()) {
+      markRuntimeUnavailable('webgl2');
     } else if (window.crossOriginIsolated) {
       bootUi();
     } else {
@@ -1363,7 +1402,7 @@
     const playingTitle =
       String(romName || 'game')
         .replace(
-          /\.(zip|7z|chd|pbp|iso|cue|bin|gba|nes|sfc|smc|md|gen|n64|z64|v64|gb|gbc|nds|gg|ngp|ngc|swf|32x|a26|cso)$/i,
+          /\.(zip|7z|chd|cdi|gdi|pbp|iso|cue|bin|gba|nes|sfc|smc|md|gen|n64|z64|v64|gb|gbc|nds|gg|ngp|ngc|swf|32x|a26|cso)$/i,
           ''
         )
         .trim() || 'game';
@@ -1384,6 +1423,10 @@
 
     if (!wasmSupported()) {
       markRuntimeUnavailable();
+      return;
+    }
+    if (cfg.requiresWebGL2 && !webgl2Supported()) {
+      markRuntimeUnavailable('webgl2');
       return;
     }
     if (!window.crossOriginIsolated) {

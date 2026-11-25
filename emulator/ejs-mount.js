@@ -46,6 +46,47 @@
     return packed;
   }
 
+  /**
+   * EmulatorJS core URLs that should be served from this site.
+   * The query string is a cache buster, so match the path, not the whole URL.
+   * @param {string} url
+   * @returns {string|null}
+   */
+  function flycastCoreUrl(url) {
+    const path = String(url || '').split('?')[0];
+    if (path.endsWith('/cores/reports/flycast.json')) {
+      return '/emulator/dreamcast/flycast-report.json';
+    }
+    if (/\/cores\/flycast(?:-thread)?(?:-legacy)?-wasm\.data$/.test(path)) {
+      return '/emulator/dreamcast/flycast-wasm.data';
+    }
+    return null;
+  }
+
+  function installFlycastCorePaths() {
+    if (installFlycastCorePaths.installed) return;
+    const origFetch = window.fetch ? window.fetch.bind(window) : null;
+    if (origFetch) {
+      window.fetch = function fetchFlycastCore(input, init) {
+        const raw = typeof input === 'string' ? input : input && input.url;
+        const next = flycastCoreUrl(raw);
+        if (!next) return origFetch(input, init);
+        if (typeof input === 'string' || input instanceof URL) return origFetch(next, init);
+        return origFetch(new Request(next, input), init);
+      };
+    }
+    if (typeof XMLHttpRequest === 'function') {
+      const origOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function openFlycastCore(method, url) {
+        const next = flycastCoreUrl(url);
+        const args = Array.prototype.slice.call(arguments);
+        if (next) args[1] = next;
+        return origOpen.apply(this, args);
+      };
+    }
+    installFlycastCorePaths.installed = true;
+  }
+
   function installCompactGamepadSlots() {
     if (installCompactGamepadSlots.installed) return;
     const nav = navigator;
@@ -140,6 +181,15 @@
       delete window.EJS_defaultOptions['virtual-gamepad'];
     }
 
+    if (cfg.ejsCore === 'flycast') {
+      // EmulatorJS asks the CDN for cores/flycast-wasm.data. That file is
+      // not there; the vendored zip in this repo is the core.
+      installFlycastCorePaths();
+      window.EJS_retroarchOpts = [{ name: 'system_directory', value: '/', isString: true }];
+    } else {
+      delete window.EJS_retroarchOpts;
+    }
+
     if (cfg.biosRequired && opts.biosFile) {
       // Same shape as EJS_gameUrl (File). EmulatorJS reads .name so the
       // canonical neogeo.zip filename is preserved for FBNeo.
@@ -175,12 +225,24 @@
       installPspDragAim();
     }
 
-    const script = document.createElement('script');
-    script.src = 'https://cdn.emulatorjs.org/latest/data/loader.js';
-    script.onload = function () {
-      attachBrowserSaves();
+    const attachLoader = function () {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.emulatorjs.org/latest/data/loader.js';
+      script.onload = function () {
+        attachBrowserSaves();
+      };
+      document.body.appendChild(script);
     };
-    document.body.appendChild(script);
+    if (cfg.ejsCore === 'flycast') {
+      // The WebGL2 shim has to patch getContext before EmulatorJS creates its
+      // canvas. A failed shim still boots the loader; the core may not draw.
+      import('/shared/lazy.js')
+        .then((lazy) => lazy.loadScript('/emulator/dreamcast/webgl2-compat.js'))
+        .catch((err) => console.warn('WebGL2 compat shim did not load:', err))
+        .finally(attachLoader);
+    } else {
+      attachLoader();
+    }
   }
 
   /**
@@ -1041,6 +1103,7 @@
 
   window.emulatorEjsMount = {
     mount,
+    flycastCoreUrl,
     packGamepadSlots,
     keepSavesInBrowser,
     keepTouchPadVisible,

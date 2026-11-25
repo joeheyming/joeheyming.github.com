@@ -198,10 +198,12 @@ function newMsgId() {
 /**
  * @param {object} opts
  * @param {string} opts.room
+ * @param {boolean} [opts.toggle] Keep the chip visible and let it open and close the panel.
  * @returns {{ destroy: () => void } | null}
  */
 export function mountLiveChat(opts = {}) {
   const room = String(opts.room || 'default').trim() || 'default';
+  const toggle = !!opts.toggle;
   if (!isDesktop()) return null;
 
   installKeyboardGuard();
@@ -222,7 +224,7 @@ export function mountLiveChat(opts = {}) {
   let stickToBottom = true;
 
   const root = document.createElement('div');
-  root.className = 'live-chat';
+  root.className = toggle ? 'live-chat live-chat--toggle' : 'live-chat';
   root.dataset.room = room;
   root.hidden = false;
   root.innerHTML = `
@@ -298,8 +300,9 @@ export function mountLiveChat(opts = {}) {
 
   function applyOpen() {
     panel.hidden = !open;
-    chip.hidden = open;
+    chip.hidden = toggle ? false : open;
     chip.setAttribute('aria-expanded', open ? 'true' : 'false');
+    chip.setAttribute('aria-label', open ? 'Close live chat' : 'Open live chat');
     storeOpenPref(open);
     if (open) {
       preloadTextModel();
@@ -474,8 +477,9 @@ export function mountLiveChat(opts = {}) {
   }
 
   chip.addEventListener('click', () => {
-    open = true;
+    open = toggle ? !open : true;
     applyOpen();
+    if (open) input.focus();
   });
   minBtn.addEventListener('click', () => {
     open = false;
