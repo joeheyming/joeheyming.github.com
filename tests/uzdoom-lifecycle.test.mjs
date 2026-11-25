@@ -23,14 +23,27 @@ import { JSDOM } from 'jsdom';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const LIFECYCLE_HREF = pathToFileURL(join(__dirname, '..', 'doom', 'lifecycle.js')).href;
 
+// The module reads `window` while it evaluates. Loads take turns so two
+// tests cannot swap that global between the assignment and the import.
+let loadGate = Promise.resolve();
+let loadGeneration = 0;
+
 async function freshLifecycle() {
-  const dom = new JSDOM('<!doctype html><html><body></body></html>', {
-    url: 'http://localhost/doom/?flavor=legend'
+  const turn = loadGate.then(async () => {
+    const dom = new JSDOM('<!doctype html><html><body></body></html>', {
+      url: 'http://localhost/doom/?flavor=legend'
+    });
+    const w = dom.window;
+    globalThis.window = w;
+    loadGeneration += 1;
+    await import(LIFECYCLE_HREF + '?n=' + loadGeneration);
+    return { lc: w.UZDoomLifecycle, win: w };
   });
-  const w = dom.window;
-  globalThis.window = w;
-  await import(LIFECYCLE_HREF + '?t=' + Date.now());
-  return { lc: w.UZDoomLifecycle, win: w };
+  loadGate = turn.then(
+    () => {},
+    () => {}
+  );
+  return turn;
 }
 
 describe('lifecycle: initial state', () => {
@@ -275,6 +288,96 @@ describe('lifecycle: history', () => {
     lc.markPlaying();
     assert.equal(lc.history().length, before);
   });
+});
+
+describe('lifecycle: every phase and event', () => {
+  // Spec for the machine. Kept here, not read back out of lifecycle.js.
+  const phases = ['loading', 'primed', 'launching', 'playing', 'exited', 'error'];
+  const events = [
+    'markPrimed',
+    'markLaunching',
+    'markPlaying',
+    'markExited',
+    'markError',
+    'unprime'
+  ];
+  const next = {
+    loading: { markPrimed: 'primed', markError: 'error', markExited: 'exited' },
+    primed: {
+      markLaunching: 'launching',
+      unprime: 'loading',
+      markError: 'error',
+      markExited: 'exited'
+    },
+    launching: {
+      markPlaying: 'playing',
+      unprime: 'loading',
+      markError: 'error',
+      markExited: 'exited'
+    },
+    playing: { markError: 'error', markExited: 'exited' },
+    exited: {},
+    error: {}
+  };
+
+  function fire(lc, event) {
+    if (event === 'markPrimed') return lc.markPrimed({ iwad: 'check' });
+    if (event === 'markLaunching') return lc.markLaunching();
+    if (event === 'markPlaying') return lc.markPlaying();
+    if (event === 'markExited') return lc.markExited(0, 'quit');
+    if (event === 'markError') return lc.markError('coi');
+    if (event === 'unprime') return lc.unprime();
+    throw new Error('unknown event ' + event);
+  }
+
+  async function reach(phase) {
+    const { lc } = await freshLifecycle();
+    if (phase === 'loading') return lc;
+    if (phase === 'error') {
+      assert.equal(lc.markError('coi'), true);
+      return lc;
+    }
+    if (phase === 'exited') {
+      assert.equal(lc.markExited(0, 'quit'), true);
+      return lc;
+    }
+    assert.equal(lc.markPrimed(), true);
+    if (phase === 'primed') return lc;
+    assert.equal(lc.markLaunching(), true);
+    if (phase === 'launching') return lc;
+    assert.equal(lc.markPlaying(), true);
+    return lc;
+  }
+
+  it('names every phase and every event', () => {
+    assert.deepEqual(Object.keys(next).sort(), phases.slice().sort());
+    assert.equal(phases.length * events.length, 36);
+  });
+
+  for (const phase of phases) {
+    for (const event of events) {
+      const to = next[phase][event] || null;
+      it(phase + ' + ' + event + ' → ' + (to || 'refused'), async () => {
+        const lc = await reach(phase);
+        const heard = [];
+        lc.subscribe(() => heard.push(true));
+        heard.length = 0;
+        const before = lc.history().length;
+        const ok = fire(lc, event);
+        if (to) {
+          assert.equal(ok, true);
+          assert.equal(lc.get(), to);
+          assert.equal(lc.history().length, before + 1);
+          assert.equal(heard.length, 1);
+        } else {
+          assert.equal(ok, false);
+          assert.equal(lc.get(), phase);
+          assert.equal(lc.history().length, before);
+          assert.equal(heard.length, 0);
+        }
+      });
+    }
+  }
 });
 
 describe('lifecycle: invalid phase names', () => {

@@ -16,6 +16,7 @@ import { Minimap } from './minimap.js';
 import { Fruit } from './fruit.js';
 import { decodeLevelData } from './level-data.js';
 import { focusControl } from './ui-keys.js';
+import { applyPhase, MAZE_EDGES } from './game-phase.js';
 import {
   GAME_STATES,
   GHOST_COLORS,
@@ -503,6 +504,10 @@ class Game {
     });
   }
 
+  setPhase(to) {
+    return applyPhase(this, MAZE_EDGES, to);
+  }
+
   async yieldForPaint() {
     if (typeof window !== 'undefined' && typeof window.yieldToMain === 'function') {
       await window.yieldToMain();
@@ -512,6 +517,9 @@ class Game {
   }
 
   async startGame() {
+    const opening = this.debugMode ? GAME_STATES.PLAYING : GAME_STATES.INTRO;
+    if (!this.setPhase(opening)) return;
+
     this.startScreen.classList.add('hidden');
     window.heymingAchievements?.unlockForCurrentApp('first-action');
 
@@ -521,7 +529,6 @@ class Game {
 
     // In debug mode, skip the intro sound and start immediately
     if (this.debugMode) {
-      this.state = GAME_STATES.PLAYING;
       this._staticFrameDirty = true;
       return;
     }
@@ -532,7 +539,6 @@ class Game {
     }
 
     // Start with intro - play start sound and wait for it to finish
-    this.state = GAME_STATES.INTRO;
     this.introScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
     focusControl(this.introScreen);
@@ -549,14 +555,13 @@ class Game {
     await this.audioManager.playStart(true);
 
     // Start the game
-    this.state = GAME_STATES.PLAYING;
+    this.setPhase(GAME_STATES.PLAYING);
     this.introScreen.classList.add('hidden');
     this._staticFrameDirty = true;
   }
 
   pauseGame() {
-    if (this.state === GAME_STATES.PLAYING) {
-      this.state = GAME_STATES.PAUSED;
+    if (this.setPhase(GAME_STATES.PAUSED)) {
       this.pauseScreen.classList.remove('hidden');
       this._staticFrameDirty = true;
       focusControl(this.pauseScreen);
@@ -568,8 +573,7 @@ class Game {
   }
 
   resumeGame() {
-    if (this.state === GAME_STATES.PAUSED) {
-      this.state = GAME_STATES.PLAYING;
+    if (this.setPhase(GAME_STATES.PLAYING)) {
       this.pauseScreen.classList.add('hidden');
       this._staticFrameDirty = true;
     }
@@ -587,7 +591,7 @@ class Game {
   async showIntro() {
     // In debug mode, skip the intro sound and start immediately
     if (this.debugMode) {
-      this.state = GAME_STATES.PLAYING;
+      if (!this.setPhase(GAME_STATES.PLAYING)) return;
       this._staticFrameDirty = true;
       return;
     }
@@ -598,7 +602,7 @@ class Game {
     }
 
     // Show intro screen
-    this.state = GAME_STATES.INTRO;
+    if (!this.setPhase(GAME_STATES.INTRO)) return;
     this.introScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
     focusControl(this.introScreen);
@@ -614,7 +618,7 @@ class Game {
     await this.audioManager.playStart(true);
 
     // Resume the game
-    this.state = GAME_STATES.PLAYING;
+    this.setPhase(GAME_STATES.PLAYING);
     this.introScreen.classList.add('hidden');
     this._staticFrameDirty = true;
   }
@@ -652,13 +656,13 @@ class Game {
 
     // In debug mode, skip the intro sound and start immediately
     if (this.debugMode) {
-      this.state = GAME_STATES.PLAYING;
+      if (!this.setPhase(GAME_STATES.PLAYING)) return;
       this._staticFrameDirty = true;
       return;
     }
 
     // Start with intro
-    this.state = GAME_STATES.INTRO;
+    if (!this.setPhase(GAME_STATES.INTRO)) return;
     this.introScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
 
@@ -673,7 +677,7 @@ class Game {
     await this.audioManager.playStart(true);
 
     // Start the game
-    this.state = GAME_STATES.PLAYING;
+    this.setPhase(GAME_STATES.PLAYING);
     this.introScreen.classList.add('hidden');
     this._staticFrameDirty = true;
   }
@@ -745,7 +749,7 @@ class Game {
   }
 
   gameOver() {
-    this.state = GAME_STATES.GAME_OVER;
+    if (!this.setPhase(GAME_STATES.GAME_OVER)) return;
     document.getElementById('final-score').textContent = this.score;
     this.gameOverScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
@@ -764,7 +768,7 @@ class Game {
   }
 
   win() {
-    this.state = GAME_STATES.WIN;
+    if (!this.setPhase(GAME_STATES.WIN)) return;
     document.getElementById('win-score').textContent = this.score;
     this.winScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
@@ -789,11 +793,9 @@ class Game {
   }
 
   loseLife() {
+    if (!this.setPhase(GAME_STATES.DEATH)) return;
     this.lives--;
     this.updateLivesDisplay();
-
-    // Enter death state to play animation
-    this.state = GAME_STATES.DEATH;
 
     // Reset death camera state
     this.deathCameraAngle = 0;

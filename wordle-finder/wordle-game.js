@@ -27,10 +27,36 @@
     guesses: [], // submitted guesses (lowercase strings)
     results: [], // parallel to guesses; arrays of 'correct'|'maybecorrect'|'incorrect'
     currentGuess: '',
-    status: 'idle', // 'idle' | 'playing' | 'won' | 'lost'
+    // 'idle' | 'playing' | 'won' | 'lost'. Writes go through applyStatus.
+    //   idle    — start → playing, clear → idle
+    //   playing — start → playing, win → won, lose → lost, clear → idle
+    //   won     — start → playing, clear → idle
+    //   lost    — start → playing, clear → idle
+    // A win or a loss from anywhere but playing is refused.
+    status: 'idle',
     letterStates: {}, // 'a' -> 'correct'|'maybecorrect'|'incorrect'
     messageTimer: null
   };
+
+  var WORDLE_EDGES = {
+    idle: { start: 'playing', clear: 'idle' },
+    playing: { start: 'playing', win: 'won', lose: 'lost', clear: 'idle' },
+    won: { start: 'playing', clear: 'idle' },
+    lost: { start: 'playing', clear: 'idle' }
+  };
+
+  function stepStatus(from, event) {
+    var row = WORDLE_EDGES[from];
+    var next = row && row[event];
+    return next || '';
+  }
+
+  function applyStatus(event) {
+    var next = stepStatus(state.status, event);
+    if (!next) return false;
+    state.status = next;
+    return true;
+  }
 
   function pickRandomAnswer() {
     var pool = window.wordleAnswers;
@@ -308,7 +334,7 @@
       return g === 'correct';
     });
     if (won) {
-      state.status = 'won';
+      applyStatus('win');
       if (window.heymingAchievements) {
         window.heymingAchievements.unlockForCurrentApp('word-guessed');
       }
@@ -319,7 +345,7 @@
         1800
       );
     } else if (state.guesses.length >= WORDLE_MAX_GUESSES) {
-      state.status = 'lost';
+      applyStatus('lose');
     }
 
     renderBoard();
@@ -407,7 +433,7 @@
     state.guesses = [];
     state.results = [];
     state.currentGuess = '';
-    state.status = 'playing';
+    applyStatus('start');
     state.letterStates = {};
     clearMessage();
     renderBoard();
@@ -423,7 +449,7 @@
     state.guesses = [];
     state.results = [];
     state.currentGuess = '';
-    state.status = 'idle';
+    applyStatus('clear');
     state.letterStates = {};
     clearMessage();
     renderBoard();
@@ -470,4 +496,5 @@
     initWordleGame();
     startNewGame(forcedAnswer);
   };
+  window.wordleStepStatus = stepStatus;
 })();

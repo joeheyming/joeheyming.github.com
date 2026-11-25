@@ -21,6 +21,7 @@ import { gameHud } from './game-hud.js';
 import { gameInput } from './game-input.js';
 import { gameState } from './game-state.js';
 import { gameSpawn } from './game-spawn.js';
+import { applyPhase, INFINITE_EDGES } from '../../pacman/js/game-phase.js';
 
 const CAMERA_STORAGE_KEY = 'pacman-camera-mode';
 const HUD_REFRESH_HZ = 5; // updates per second
@@ -33,6 +34,10 @@ const SAVE_PERIOD_S = 3;
 const POST_RESPAWN_GRACE_S = 1.5;
 
 class Game {
+  setPhase(to) {
+    return applyPhase(this, INFINITE_EDGES, to);
+  }
+
   constructor() {
     this.state = GAME_STATES.START;
     this._staticFrameDirty = true;

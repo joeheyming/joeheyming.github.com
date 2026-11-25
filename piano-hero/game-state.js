@@ -8,6 +8,14 @@
 
 import { JUDGMENT_LABELS } from './judgment-policy.js';
 
+/** Next status for each allowed target. Absent means the call is refused. */
+const STATUS_EDGES = {
+  idle: { playing: 'playing' },
+  playing: { paused: 'paused', finished: 'finished', idle: 'idle' },
+  paused: { playing: 'playing', idle: 'idle' },
+  finished: { idle: 'idle' }
+};
+
 /** Visual color per hand. Picked to be high-contrast on dark stages. */
 export const HAND_COLORS = {
   right: '#60a5fa',
@@ -26,7 +34,17 @@ class GameState {
     this.mode = 'watch';
     /** Per-hand visibility / audibility — both default on. */
     this.handsActive = { left: true, right: true };
-    /** Engine status: 'idle' | 'playing' | 'paused' | 'finished'. */
+    /**
+     * Engine status. `setStatus` only follows these edges. Anything else
+     * returns false, leaves `status` alone, and does not emit.
+     *   idle     → playing
+     *   playing  → paused | finished | idle
+     *   paused   → playing | idle
+     *   finished → idle
+     * `setChart` forces idle from every status, including idle, and still
+     * emits, because the chart and the score changed.
+     * @type {'idle' | 'playing' | 'paused' | 'finished'}
+     */
     this.status = 'idle';
     /** Tally indexed by JUDGMENT_INDEX. */
     this.tapNoteScores = new Array(JUDGMENT_LABELS.length).fill(0);
@@ -81,9 +99,17 @@ class GameState {
     this._emit();
   }
 
+  /**
+   * @param {string} status
+   * @returns {boolean} true when the status changed
+   */
   setStatus(status) {
-    this.status = status;
+    const row = STATUS_EDGES[this.status];
+    const next = row && row[status];
+    if (!next) return false;
+    this.status = next;
     this._emit();
+    return true;
   }
 
   resetScore() {

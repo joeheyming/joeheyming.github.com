@@ -10,8 +10,8 @@ const DIFFICULTY_STORAGE_KEY = 'pacman-infinite-difficulty';
 
 export const gameState = {
   startGame() {
+    if (!this.setPhase(GAME_STATES.PLAYING)) return;
     if (this.startScreen) this.startScreen.classList.add('hidden');
-    this.state = GAME_STATES.PLAYING;
     this._staticFrameDirty = true;
     window.heymingAchievements?.unlockForCurrentApp('first-action');
     // From here on we can persist progress (and pagehide will flush).
@@ -296,8 +296,8 @@ export const gameState = {
    * the player still gets the visual moment.
    */
   _enterDeath() {
+    if (!this.setPhase(GAME_STATES.DEATH)) return;
     const cause = this.pacman?._deathCause || 'void';
-    this.state = GAME_STATES.DEATH;
     this._staticFrameDirty = true;
     this._respawnTimer = RESPAWN_DELAY;
     this._deathCause = cause;
@@ -347,7 +347,7 @@ export const gameState = {
       this._enterGameOver();
       return;
     }
-    this.state = GAME_STATES.PLAYING;
+    if (!this.setPhase(GAME_STATES.PLAYING)) return;
     this._staticFrameDirty = true;
     this._postRespawnGrace = POST_RESPAWN_GRACE_S;
     // Force-stream new chunks around the respawn point in case it's far
@@ -362,6 +362,7 @@ export const gameState = {
    * machine so the timer-driven _respawn() path handles either outcome.
    */
   _loseLife(cause = 'ghost') {
+    if (!this.setPhase(GAME_STATES.DEATH)) return;
     this.lives--;
     this._deathCause = cause;
     // Iconic death cue from the original game (assets/sounds/death.wav).
@@ -381,14 +382,13 @@ export const gameState = {
     // Hand the next ~1.5s over to the death state machine so the spin
     // animation has time to play. _respawn() runs at the end and will
     // detect lives<=0 and roll into GAME_OVER for us.
-    this.state = GAME_STATES.DEATH;
     this._staticFrameDirty = true;
     this._respawnTimer = GAMEPLAY.PACMAN_DEATH_ANIM_DURATION;
     this.pacman.dieByGhost();
   },
 
   _enterGameOver() {
-    this.state = GAME_STATES.GAME_OVER;
+    if (!this.setPhase(GAME_STATES.GAME_OVER)) return;
     this._staticFrameDirty = true;
     this.audioManager.playGameOver?.();
     // Final-screen flavour line reflects whatever killed Pacman last.
@@ -447,7 +447,7 @@ export const gameState = {
     if (this.gameOverScreen) this.gameOverScreen.classList.add('hidden');
     this.lives = GAMEPLAY.STARTING_LIVES;
     this.food = GAMEPLAY.FOOD_START;
-    this.state = GAME_STATES.START;
+    if (!this.setPhase(GAME_STATES.START)) return;
     this._staticFrameDirty = true;
     if (this.world?.clearGhosts) this.world.clearGhosts();
     this._despawnFruit();

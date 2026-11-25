@@ -82,8 +82,7 @@ export const gameInput = {
   },
 
   pauseGame() {
-    if (this.state !== GAME_STATES.PLAYING) return;
-    this.state = GAME_STATES.PAUSED;
+    if (!this.setPhase(GAME_STATES.PAUSED)) return;
     this._staticFrameDirty = true;
     if (this.pauseScreen) this.pauseScreen.classList.remove('hidden');
     focusControl(this.pauseScreen);
@@ -91,8 +90,7 @@ export const gameInput = {
   },
 
   resumeGame() {
-    if (this.state !== GAME_STATES.PAUSED) return;
-    this.state = GAME_STATES.PLAYING;
+    if (!this.setPhase(GAME_STATES.PLAYING)) return;
     this._staticFrameDirty = true;
     if (this.pauseScreen) this.pauseScreen.classList.add('hidden');
   },

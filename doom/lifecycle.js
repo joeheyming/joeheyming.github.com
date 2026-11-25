@@ -30,17 +30,31 @@
 //                                        hard (not per-asset — every
 //                                        core asset failed).
 //
-// Write rules: every transition is called from exactly one place.
-//   - coi.js             : loading → error{coi}
-//   - uzdoom-loader.js   : loading → primed            (three sites:
-//                                                        picker, URL
-//                                                        auto-launch,
-//                                                        freedoom btn)
-//                        : primed → launching          (launchBtn click)
-//                        : launching → playing         (post-melt reveal)
-//                        : any → exited                (onEngineExit)
-//                        : any → error{wasm-abort}     (Module.onAbort)
-//   - index.html prime   : loading → error{autoprime}  (retry budget)
+// Legal edges. A missing edge returns false: the phase and the history
+// stay put, and subscribers are not called. markError and markExited are
+// legal from every non-terminal phase, because the engine-exit handler
+// is installed while the page is still loading, a callMain throw happens
+// during launching, and a later quit happens during playing.
+//
+//   loading   → primed      markPrimed      picker, Freedoom, primeWith
+//   loading   → error       markError       coi, autoprime, flavor-prime,
+//                                            wasm-abort
+//   loading   → exited      markExited      onEngineExit before launch
+//   primed    → launching   markLaunching   launchEngine, only from primed
+//   primed    → loading     unprime
+//   primed    → error       markError
+//   primed    → exited      markExited
+//   launching → playing     markPlaying     post-melt reveal
+//   launching → loading     unprime         file prep failed
+//   launching → error       markError
+//   launching → exited      markExited
+//   playing   → error       markError
+//   playing   → exited      markExited
+//
+// `exited` and `error` accept nothing further. Refusing those, and
+// refusing a jump such as playing → primed, is what keeps a quit from
+// flashing a half-playing UI. With ?bootlog=1 a refusal names the
+// from-phase, the event, and `terminal` or `illegal`.
 //
 // Read rules: anyone can subscribe. Common subscribers:
 //   - touch-input.js     : reveal overlay on `playing`, hide otherwise.
@@ -49,16 +63,32 @@
 //   - uzdoom-loader.js   : guard re-entry in launchBtn click.
 //   - instrumentation    : log every transition when ?bootlog=1.
 //
-// Terminal states (`exited`, `error`) swallow further transitions with
-// a warning — fiddle with them and the "engine quit but the UI flashed
-// a half-playing state" bugs come back.
-//
 // The lifecycle itself has zero dependencies — pure state, pure events.
 // Load this file FIRST, before coi.js and any engine scripts, so every
 // later subsystem finds a live singleton waiting.
 
 var PHASES = ['loading', 'primed', 'launching', 'playing', 'exited', 'error'];
 var TERMINAL = { exited: true, error: true };
+
+// Next phase for each event. Absent means the event is refused.
+var EDGES = {
+  loading: { markPrimed: 'primed', markError: 'error', markExited: 'exited' },
+  primed: {
+    markLaunching: 'launching',
+    unprime: 'loading',
+    markError: 'error',
+    markExited: 'exited'
+  },
+  launching: {
+    markPlaying: 'playing',
+    unprime: 'loading',
+    markError: 'error',
+    markExited: 'exited'
+  },
+  playing: { markError: 'error', markExited: 'exited' },
+  exited: {},
+  error: {}
+};
 
 var current = { phase: 'loading', detail: null };
 var subscribers = [];
@@ -102,21 +132,19 @@ function record(from, to, detail) {
   }
 }
 
-function set(phase, detail) {
-  if (PHASES.indexOf(phase) === -1) {
-    console.warn('[lifecycle] invalid phase:', phase);
-    return false;
-  }
-  if (TERMINAL[current.phase]) {
+function apply(event, detail) {
+  var from = current.phase;
+  var row = EDGES[from];
+  var to = row && row[event];
+  if (!to || PHASES.indexOf(to) === -1) {
     if (logEnabled) {
-      console.warn('[lifecycle] ignored ' + current.phase + ' → ' + phase + ' (terminal)');
+      var why = TERMINAL[from] ? 'terminal' : 'illegal';
+      console.warn('[lifecycle] ignored ' + from + ' ' + event + ' (' + why + ')');
     }
     return false;
   }
-  var from = current.phase;
-  if (from === phase) return false;
-  current = { phase: phase, detail: detail || null };
-  record(from, phase, detail);
+  current = { phase: to, detail: detail || null };
+  record(from, to, detail);
   var snap = subscribers.slice();
   for (var i = 0; i < snap.length; i++) {
     try {
@@ -161,26 +189,23 @@ export const UZDoomLifecycle = {
   },
 
   markPrimed: function (desc) {
-    return set('primed', desc || null);
+    return apply('markPrimed', desc || null);
   },
   markLaunching: function () {
-    return set('launching', null);
+    return apply('markLaunching', null);
   },
   markPlaying: function () {
-    return set('playing', null);
+    return apply('markPlaying', null);
   },
   markExited: function (code, reason) {
-    return set('exited', { code: code, reason: reason || null });
+    return apply('markExited', { code: code, reason: reason || null });
   },
   markError: function (reason, detail) {
-    return set('error', { reason: reason || 'unknown', detail: detail || null });
+    return apply('markError', { reason: reason || 'unknown', detail: detail || null });
   },
 
   unprime: function () {
-    if (current.phase === 'primed' || current.phase === 'launching') {
-      return set('loading', null);
-    }
-    return false;
+    return apply('unprime', null);
   },
 
   subscribe: subscribe,
