@@ -4,7 +4,8 @@
 // size. A button, link, or closed select does not keep the arrow. A
 // role="button" that is not a real <button> follows the same rule. Space
 // and Enter activate a select or autocomplete; arrows never do.
-// Up and Down leave a number, a slider, or a one-line field. Left and Right
+// Up and Down leave a number, a slider, or a one-line field (unless the
+// field's own handler prevents them, as terminal history does). Left and Right
 // leave a one-line field when the caret is already at that end. A game
 // surface keeps its arrows. Play and Pause hit the play control.
 (function () {
@@ -577,7 +578,11 @@
         takeArrow(event, el);
         return;
       }
-      if (atTextEdge(el, event.key)) {
+      // Up and Down in a one-line field wait for the bubble listener below,
+      // so a field with history or suggestions keeps them.
+      var fieldVertical =
+        singleLineText(el) && (event.key === 'ArrowUp' || event.key === 'ArrowDown');
+      if (!fieldVertical && atTextEdge(el, event.key)) {
         takeArrow(event, el);
         return;
       }

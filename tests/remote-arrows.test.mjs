@@ -171,6 +171,20 @@ test('arrows move focus and a select only opens from space', async () => {
   key(window, field, 'ArrowUp');
   assert.notEqual(window.document.activeElement, field);
 
+  let historySteps = 0;
+  const history = (e) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    historySteps += 1;
+  };
+  field.addEventListener('keydown', history);
+  field.focus();
+  key(window, field, 'ArrowUp');
+  key(window, field, 'ArrowDown');
+  assert.equal(historySteps, 2);
+  assert.equal(window.document.activeElement, field);
+  field.removeEventListener('keydown', history);
+
   class FieldHost extends window.HTMLElement {
     constructor() {
       super();
