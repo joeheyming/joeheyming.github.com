@@ -918,18 +918,6 @@ function initStepmaniaDomAndLoop() {
     }, 50);
   });
 
-  const scoreToggle = document.getElementById('scoreToggle');
-  if (scoreToggle) {
-    scoreToggle.addEventListener('click', function () {
-      const scorePanel = document.querySelector('.score-panel');
-      if (scorePanel) {
-        scorePanel.classList.toggle('show');
-        const isVisible = scorePanel.classList.contains('show');
-        this.textContent = isVisible ? '✕ Close' : '📊 Score';
-      }
-    });
-  }
-
   initManagers(audioElement, video);
   if (embedded) inputManager.disable();
   else bindSpeedChips();

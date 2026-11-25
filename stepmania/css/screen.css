@@ -142,18 +142,22 @@ body {
   width: 100%;
   max-width: 80rem;
   margin: 0 auto;
-  /* Clears the fixed nav toggle at top-left (see AGENTS.md); the bar is
-     centered, so wide viewports already have that clearance in the margin. */
-  padding: 0.85rem 1rem 0.6rem max(1rem, calc(8rem - (100vw - 80rem) / 2));
+  /* Clears the fixed nav toggle at top-left (see AGENTS.md). The bar is
+     centered, so a viewport wider than 80rem already has that clearance in
+     the margin. Narrower viewports must not grow this padding: the negative
+     term used to push the wordmark through the buttons. */
+  padding: 0.85rem 1rem 0.6rem max(1rem, calc(8rem - max(0px, 100vw - 80rem) / 2));
+  flex-wrap: wrap;
 }
 
 .sm-brand {
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
-  /* Take the free space beside the toolbar. A long song title ellipsizes
-     inside that space; a short tagline does not shrink into the gap. */
-  flex: 1 1 auto;
+  /* Take the free space beside the toolbar. The basis is about the
+     wordmark alone, so a long song title ellipsizes instead of wrapping
+     the toolbar to a second row (and resizing the stage mid-song). */
+  flex: 1 1 9.25rem;
   min-width: 0;
 }
 
@@ -187,11 +191,14 @@ body {
 
 .sm-toolbar {
   display: flex;
-  flex: none;
+  flex: 1 1 auto;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
 }
 
 @media (max-width: 768px) {
@@ -202,10 +209,12 @@ body {
     padding: 0.7rem 0.75rem 0.5rem;
   }
 
-  /* Nav toggle on the left, the fixed Score toggle on the right. */
+  /* Nav toggle sits on the left of the brand row. The column header would
+     read the row basis as a height. */
   .sm-brand {
+    flex: none;
     min-height: 40px;
-    padding: 0 6.5rem;
+    padding-left: 6.5rem;
   }
 
   .sm-title {
@@ -622,7 +631,34 @@ score-panel:not(:defined) {
   }
 }
 
-/* Mobile-specific score panel styles */
+/* Below the side-by-side breakpoint the panel is a sheet. In the column
+   layout it was a full-width block tall enough to crush the stage. */
+@media (max-width: 1023px) {
+  .score-panel {
+    position: fixed;
+    bottom: -100%;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    transition: bottom 0.3s ease-in-out;
+    max-height: 60vh;
+    max-width: none;
+    overflow-y: auto;
+    border-radius: 1rem 1rem 0 0;
+    margin: 0;
+    width: 100% !important;
+  }
+
+  .score-panel.show {
+    bottom: 0;
+  }
+
+  .score-panel:not(.show) {
+    display: none;
+  }
+}
+
+/* Touch laptops are wider than 1023px and still have no room for the column. */
 body.mobile .score-panel {
   position: fixed;
   bottom: -100%;
@@ -641,30 +677,31 @@ body.mobile .score-panel.show {
   bottom: 0;
 }
 
-/* Score toggle button for mobile */
-body.mobile .score-toggle {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  z-index: 60;
-  background: var(--accent-primary-bg);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--hairline-accent);
+/* Score toggle sits in the play rail (toolbar, or the stage gutter). */
+.score-toggle {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to right, var(--accent-primary), var(--accent-primary-bg));
   color: var(--text-on-accent);
-  border-radius: 0.5rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 0.75rem;
   padding: 0.5rem 1rem;
+  height: 2.5rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-body.mobile .score-toggle:hover {
+.score-toggle:hover {
   background: var(--accent-primary);
   transform: scale(1.05);
 }
 
-body.mobile .score-toggle:active {
+.score-toggle:active {
   transform: scale(0.95);
 }
 
@@ -673,9 +710,11 @@ body.mobile .score-panel:not(.show) {
   display: none;
 }
 
-/* Make score panel visible on non-mobile */
-body:not(.mobile) .score-toggle {
-  display: none;
+/* The side column is the score UI once the row layout fits. */
+@media (min-width: 1024px) {
+  body:not(.mobile) .score-toggle {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -779,10 +818,11 @@ body.mobile #gamepad-status {
 }
 
 @media (max-width: 768px) {
-  .restart-btn {
+  /* Same 2.5rem height as Songs and the difficulty picker in this row. */
+  .restart-btn,
+  .score-toggle {
     padding: 0.25rem 0.75rem;
     font-size: 12px;
-    height: 2rem;
   }
 }
 
@@ -957,18 +997,125 @@ body.mobile .sm-hint-text {
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* Stage HUD and speed chip sit beside the lanes, so they only appear
-   when CanvasManager reports room there (sm-stage-roomy). */
-.sm-speed-stage {
-  display: none;
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  z-index: 20;
+/* Play rail: Restart, Keys, Score, and speed. In the header until the
+   stage has room beside the lanes, then stageRail.js parks it there. */
+.sm-play-rail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-#sm-micro.sm-stage-roomy:not(.is-home) .sm-speed-stage {
-  display: inline-flex;
+#sm-micro .sm-play-rail {
+  display: none;
+  position: absolute;
+  z-index: 20;
+  top: 58px;
+  bottom: 12px;
+  left: calc(
+    var(--sm-pad-left, 8px) + var(--sm-side-room, 140px) + var(--sm-field-px, 320px) + 8px
+  );
+  width: min(9.25rem, max(0px, calc(var(--sm-side-room, 140px) + var(--sm-pad-right, 8px) - 16px)));
+  flex-direction: column;
+  justify-content: safe center;
+  align-items: stretch;
+  gap: 0.45rem;
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+#sm-micro.sm-stage-roomy:not(.is-home) .sm-play-rail {
+  display: flex;
+}
+
+#sm-micro .sm-play-rail > * {
+  pointer-events: auto;
+}
+
+#sm-micro .sm-play-rail .restart-btn,
+#sm-micro .sm-play-rail .score-toggle {
+  width: 100%;
+  height: auto;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.55rem;
+  background: color-mix(in srgb, #070814 78%, transparent);
+  color: #fff;
+  border: 1px solid color-mix(in srgb, #22d3ee 40%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: none;
+  font-size: 0.8rem;
+}
+
+#sm-micro .sm-play-rail .restart-btn:hover,
+#sm-micro .sm-play-rail .score-toggle:hover {
+  background: color-mix(in srgb, #22d3ee 30%, #070814);
+  transform: none;
+}
+
+#sm-micro .sm-play-rail .sm-speed {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#sm-micro .sm-play-rail .sm-speed-label {
+  flex: 1 0 100%;
+  text-align: center;
+  padding: 0.1rem 0 0;
+}
+
+/* Header copy of speed is the fallback when the on-screen arrows are
+   hidden and the stage has no gutter. The footer chip covers the rest.
+   The label makes that fallback wider than the row can spare. */
+.sm-toolbar .sm-play-rail .sm-speed {
+  display: none;
+}
+
+.sm-toolbar .sm-speed-label {
+  display: none;
+}
+
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  body:not(.mobile) .sm-toolbar .sm-play-rail .sm-speed {
+    display: inline-flex;
+  }
+}
+
+/* Nothing to restart or score on the song menu. */
+body:has(#sm-micro.is-home) .sm-toolbar .sm-play-rail .sm-speed,
+body:has(#sm-micro.is-home) #restart-btn,
+body:has(#sm-micro.is-home) #scoreToggle {
+  display: none !important;
+}
+
+/* Only the sheet needs its own close; the side column is always open. */
+.score-sheet-close {
+  display: block;
+  margin: 0 0 0.75rem auto;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--hairline-accent);
+  border-radius: 0.75rem;
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (min-width: 1024px) {
+  body:not(.mobile) .score-sheet-close {
+    display: none;
+  }
+}
+
+.score-sheet-close:focus-visible {
+  outline: 2px solid var(--focus-ring-inner);
+  outline-offset: 2px;
+}
+
+#sm-micro.sm-stage-roomy:not(.is-home) + .step-button-container .sm-speed {
+  display: none;
 }
 
 /* Audio controls container */

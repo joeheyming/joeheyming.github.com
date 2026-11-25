@@ -2,6 +2,7 @@
 // Centralized canvas state and drawing operations
 
 import { ARROW_WIDTH, TARGETS_Y, CANVAS_THEME } from './config.js';
+import { syncStageRail } from './stageRail.js';
 
 /** Canvas padding in pixels */
 const CANVAS_PADDING = 64;
@@ -91,6 +92,7 @@ export const CanvasManager = {
 
     // Ensure roundRect is available (polyfill for older browsers)
     this._ensureRoundRect(this.ctx);
+    if (containerId === 'sm-micro') syncStageRail();
 
     return this.ctx;
   },
@@ -164,6 +166,10 @@ export const CanvasManager = {
 
     const sideRoom = (innerWidth - this.width * this.scale) / 2;
     container.classList.toggle('sm-stage-roomy', sideRoom >= STAGE_SIDE_ROOM);
+    container.style.setProperty('--sm-side-room', `${sideRoom}px`);
+    container.style.setProperty('--sm-field-px', `${this.width * this.scale}px`);
+    container.style.setProperty('--sm-pad-left', style.paddingLeft);
+    container.style.setProperty('--sm-pad-right', style.paddingRight);
   },
 
   /**
@@ -196,6 +202,7 @@ export const CanvasManager = {
 
     this._calculateDimensions(container);
     this._applyDimensions();
+    if (containerId === 'sm-micro') syncStageRail();
   },
 
   /**

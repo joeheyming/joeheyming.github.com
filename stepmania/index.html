@@ -269,10 +269,11 @@
        that drifts whenever the responsive H1 changes size. -->
   <body class="bg-surface-0 h-screen overflow-hidden flex flex-col">
     <script>
-      // The score panel leaves the stage only under body.mobile. That class
-      // used to be set when the play engine booted; the home screen no longer
-      // loads the engine, so a phone painted the panel in the flow and the
-      // song menu was crushed under it. Same check as stepmania.js isMobile().
+      // body.mobile used to be set when the play engine booted. The home
+      // screen no longer loads the engine, so a phone painted the score
+      // sheet in the flow and the song menu was crushed under it. Same
+      // check as stepmania.js isMobile(). The Score button is bound here
+      // so the sheet opens before that engine loads.
       (function () {
         function mobile() {
           return (
@@ -284,6 +285,40 @@
         }
         sync();
         window.addEventListener('resize', sync);
+        // The sheet can cover the Score button (it sits in the stage
+        // gutter), so it also closes from its own button, Escape, or a tap
+        // outside it.
+        document.addEventListener('DOMContentLoaded', function () {
+          var scoreToggle = document.getElementById('scoreToggle');
+          var scorePanel = document.getElementById('score-sheet');
+          if (!scoreToggle || !scorePanel) return;
+          function setOpen(open) {
+            scorePanel.classList.toggle('show', open);
+            scoreToggle.textContent = open ? '✕ Close' : '📊 Score';
+            scoreToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          }
+          function isOpen() {
+            return scorePanel.classList.contains('show');
+          }
+          scoreToggle.addEventListener('click', function () {
+            setOpen(!isOpen());
+          });
+          scorePanel.addEventListener('click', function (event) {
+            if (event.target.closest('[data-score-close]')) setOpen(false);
+          });
+          document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && isOpen()) {
+              event.preventDefault();
+              setOpen(false);
+              scoreToggle.focus();
+            }
+          });
+          document.addEventListener('pointerdown', function (event) {
+            if (!isOpen()) return;
+            if (scorePanel.contains(event.target) || scoreToggle.contains(event.target)) return;
+            setOpen(false);
+          });
+        });
       })();
     </script>
     <!-- One-row top bar: the stage gets the height a stacked header used to take. -->
@@ -302,16 +337,40 @@
         <!-- Feedback Button -->
         <feedback-button label="💬 Feedback" theme="gradient"></feedback-button>
 
-        <!-- Restart Button -->
-        <button id="restart-btn" class="restart-btn" title="Restart Song (R)">
-          <span class="restart-icon-only">🔄</span>
-          <span class="restart-text-label">Restart</span>
-        </button>
+        <!-- Play controls. They live in this row until the stage has a
+             gutter beside the lanes, then stageRail.js moves the group there. -->
+        <div id="sm-play-rail" class="sm-play-rail">
+          <button id="restart-btn" class="restart-btn" type="button" title="Restart Song (R)">
+            <span class="restart-icon-only">🔄</span>
+            <span class="restart-text-label">Restart</span>
+          </button>
 
-        <button id="settings-btn" class="restart-btn" title="Keys and scroll" type="button">
-          <span class="restart-icon-only">⌨️</span>
-          <span class="restart-text-label">Keys</span>
-        </button>
+          <button id="settings-btn" class="restart-btn" title="Keys and scroll" type="button">
+            <span class="restart-icon-only">⌨️</span>
+            <span class="restart-text-label">Keys</span>
+          </button>
+
+          <button
+            class="score-toggle"
+            id="scoreToggle"
+            type="button"
+            aria-controls="score-sheet"
+            aria-expanded="false"
+          >
+            📊 Score
+          </button>
+
+          <div class="sm-speed" role="group" aria-label="Scroll speed">
+            <span class="sm-speed-label">Speed</span>
+            <button type="button" data-speed-step="down" title="Slower ([)" aria-label="Slower">
+              −
+            </button>
+            <output class="sm-speed-value" data-speed-value>x2.0</output>
+            <button type="button" data-speed-step="up" title="Faster (])" aria-label="Faster">
+              +
+            </button>
+          </div>
+        </div>
 
         <!-- Main Difficulty Selector -->
         <difficulty-selector id="main-difficulty-selector"></difficulty-selector>
@@ -328,9 +387,6 @@
         </div>
       </div>
     </header>
-
-    <!-- Score Toggle Button for Mobile -->
-    <button class="score-toggle" id="scoreToggle">📊 Score</button>
 
     <!-- Main Game Container - Fixed Layout.
          `lg:items-stretch` (not items-start) so the side score panel gets
@@ -459,17 +515,6 @@
             </div>
           </div>
 
-          <div class="sm-speed sm-speed-stage" role="group" aria-label="Scroll speed">
-            <span class="sm-speed-label">Speed</span>
-            <button type="button" data-speed-step="down" title="Slower ([)" aria-label="Slower">
-              −
-            </button>
-            <output class="sm-speed-value" data-speed-value>x2.0</output>
-            <button type="button" data-speed-step="up" title="Faster (])" aria-label="Faster">
-              +
-            </button>
-          </div>
-
           <!-- Fullscreen Exit Button (top left, only visible in fullscreen) -->
           <button
             id="fullscreen-exit-btn"
@@ -541,9 +586,12 @@
            cross-axis size, and `lg:overflow-y-auto` actually scrolls. -->
       <div
         class="score-panel w-full lg:w-80 xl:w-96 lg:flex-shrink-0 bg-surface-0/30 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-hairline-accent lg:min-h-0 lg:max-h-full lg:overflow-y-auto"
+        id="score-sheet"
         role="region"
         aria-label="Score and controls"
       >
+        <button type="button" class="score-sheet-close" data-score-close>✕ Close</button>
+
         <!-- Score Display -->
         <div class="mb-6 score-compact" hidden>
           <h2 class="text-xl font-bold text-text-1 mb-3 text-center">Score</h2>

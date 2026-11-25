@@ -353,6 +353,7 @@ export function showHomeScreen() {
     gameArea.style.backgroundImage = '';
     gameArea.classList.add('is-home');
   }
+  document.dispatchEvent(new Event('sm-stage-rail-sync'));
   refreshHomeLists();
   if (home) {
     home.hidden = false;
@@ -371,4 +372,5 @@ export function hideHomeScreen() {
   if (gameArea) {
     gameArea.classList.remove('is-home');
   }
+  document.dispatchEvent(new Event('sm-stage-rail-sync'));
 }
