@@ -16,6 +16,29 @@ const STATES = {
   HIDDEN: 'hidden'
 };
 
+/**
+ * Setup work that may run without replacing the screen.
+ * readyWaiting is the ready dialog before the audio has arrived.
+ * A missing row refuses the change.
+ */
+const TOUCH = {
+  hidden: { progress: false, title: true, play: 'refuse', audio: false },
+  loading: { progress: true, title: true, play: 'refuse', audio: false },
+  error: { progress: true, title: true, play: 'refuse', audio: false },
+  ready: { progress: false, title: false, play: 'start', audio: true },
+  readyWaiting: { progress: true, title: false, play: 'defer', audio: true }
+};
+
+/**
+ * @param {string} state
+ * @param {boolean} audioReady
+ * @returns {{ progress: boolean, title: boolean, play: string, audio: boolean }|undefined}
+ */
+function touchRow(state, audioReady) {
+  if (state === STATES.READY && !audioReady) return TOUCH.readyWaiting;
+  return TOUCH[state];
+}
+
 /** @param {unknown} value */
 function escapeHtml(value) {
   return String(value ?? '')
@@ -518,8 +541,9 @@ class LoadingOverlayElement extends HTMLElement {
 
   /** Start the selected chart, or remember to start once the audio arrives. */
   playSelected() {
-    if (this._state !== STATES.READY) return;
-    if (!this._audioReady) {
+    const row = touchRow(this._state, this._audioReady);
+    if (!row || (row.play !== 'defer' && row.play !== 'start')) return;
+    if (row.play === 'defer') {
       this._playWhenReady = true;
       return;
     }
@@ -590,7 +614,8 @@ class LoadingOverlayElement extends HTMLElement {
    * @param {string} status
    */
   updateProgress(status) {
-    if (this._state === STATES.HIDDEN || (this._state === STATES.READY && this._audioReady)) return;
+    const row = touchRow(this._state, this._audioReady);
+    if (!row || !row.progress) return;
     this._status = status;
     const statusEl = this.shadowRoot.getElementById('status');
     if (statusEl) statusEl.textContent = status;
@@ -601,7 +626,8 @@ class LoadingOverlayElement extends HTMLElement {
    */
   setTitle(title) {
     const next = String(title || '').trim();
-    if (!next || this._state === STATES.READY) return;
+    const row = touchRow(this._state, this._audioReady);
+    if (!next || !row || !row.title) return;
     this._title = next;
     const el = this.shadowRoot?.getElementById('title');
     if (el) el.textContent = next;
@@ -697,7 +723,8 @@ class LoadingOverlayElement extends HTMLElement {
 
   /** Audio finished. Enable Start without rebuilding the chart choices. */
   markAudioReady() {
-    if (this._state !== STATES.READY) return;
+    const row = touchRow(this._state, this._audioReady);
+    if (!row || !row.audio) return;
     this._audioReady = true;
     this._status = '';
     const startNow = this._playWhenReady;

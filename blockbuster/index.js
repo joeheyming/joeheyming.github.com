@@ -197,6 +197,14 @@ function animate() {
 /* Input — desktop pointer lock                                        */
 /* ------------------------------------------------------------------ */
 
+// Browsers without the Pointer Lock API throw if the method is missing.
+// A returned promise rejects on cooldown and ESC.
+function requestCanvasPointerLock(el) {
+  if (!el || typeof el.requestPointerLock !== 'function') return;
+  const lock = el.requestPointerLock();
+  if (lock && typeof lock.catch === 'function') lock.catch(() => {});
+}
+
 canvas.addEventListener('click', () => {
   if (suppressClick) {
     suppressClick = false;
@@ -205,7 +213,7 @@ canvas.addEventListener('click', () => {
   unlockAudio();
   if (!pointerLocked) {
     staticFrameDirty = true;
-    canvas.requestPointerLock();
+    requestCanvasPointerLock(canvas);
     return;
   }
   pickup?.onInteract();

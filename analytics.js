@@ -220,34 +220,59 @@ function initErrorTracking() {
     });
   });
 
+  // A navigation aborts every in-flight script and stylesheet, and each one
+  // fires a resource error before the document goes away. pagehide flips this
+  // so the deferred report below can drop that burst. A 404 on a page the
+  // visitor is still looking at still reports.
+  let pageUnloading = false;
+  window.addEventListener('pagehide', function () {
+    pageUnloading = true;
+  });
+
   // Track resource loading errors
   window.addEventListener(
     'error',
     function (event) {
-      if (event.target !== window) {
-        const resource = event.target.src || event.target.href || 'Unknown resource';
-        const tagName = event.target.tagName || 'Unknown';
-        // Reduce a full URL to the host + last path segment so labels stay
-        // under GA's ~100-char cap while still being triagable. We get one
-        // bucket per (tag, host, file) instead of one giant bucket for
-        // every resource error on the site.
-        const shortResource = summarizeResourceUrl(resource);
-        // Pages that need richer triage (e.g. stepmania video failures
-        // need the song title) can opt in by setting
-        // `el.dataset.errorContext` on the element. We pick it up here
-        // and append to the GA event_label.
-        const elementContext = (event.target.dataset && event.target.dataset.errorContext) || '';
+      // Shadow hosts retarget event.target, which hid <rom-browser> box-art
+      // misses behind "Unknown resource" and skipped the Libretro host filter.
+      // composedPath()[0] is the node that actually failed.
+      const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+      const el = path.length ? path[0] : event.target;
+      if (!el || el === window || el.nodeType !== 1) return;
+      const resource = el.src || el.href || 'Unknown resource';
+      const tagName = el.tagName || 'Unknown';
+      // Reduce a full URL to the host + last path segment so labels stay
+      // under GA's ~100-char cap while still being triagable. We get one
+      // bucket per (tag, host, file) instead of one giant bucket for
+      // every resource error on the site.
+      const shortResource = summarizeResourceUrl(resource);
+      // Pages that need richer triage (e.g. stepmania video failures
+      // need the song title) can opt in by setting
+      // `el.dataset.errorContext` on the element. We pick it up here
+      // and append to the GA event_label.
+      const elementContext = (el.dataset && el.dataset.errorContext) || '';
+      const playbackProbe = isPlaybackProbeTarget(el);
+      const pageUrl = window.location.href;
+      window.setTimeout(function () {
+        if (pageUnloading) return;
+        let visible = true;
+        try {
+          visible = document.visibilityState !== 'hidden';
+        } catch (_) {
+          visible = false;
+        }
+        if (!visible) return;
         trackError({
           type: 'resource_error',
           message: `Failed to load ${tagName}: ${shortResource}`,
           resource: resource,
           tagName: tagName,
           context: elementContext,
-          playbackProbe: isPlaybackProbeTarget(event.target),
-          url: window.location.href,
+          playbackProbe: playbackProbe,
+          url: pageUrl,
           timestamp: new Date().toISOString()
         });
-      }
+      }, 0);
     },
     true
   );
@@ -310,8 +335,11 @@ const SUPPRESSED_ERROR_PATTERNS = [
     match: /NotAllowedError.*requestPointerLock/i,
     types: ['unhandled_promise_rejection', 'javascript_error']
   },
+  // SDL pointer lock when the canvas's document is not the top document
+  // (Heyming OS iframe). Chrome says WrongDocumentError; Safari says
+  // SecurityError. The shared phrase is the part that stays put.
   {
-    match: /WrongDocumentError.*root document of this element/i,
+    match: /root document of this element/i,
     types: ['unhandled_promise_rejection', 'javascript_error']
   },
   {

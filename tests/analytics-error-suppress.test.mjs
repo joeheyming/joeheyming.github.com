@@ -53,10 +53,34 @@ test('suppresses residual Doom IDBFS InvalidStateError, not WASM abort', () => {
     ),
     false
   );
+  assert.equal(
+    suppress(
+      'unhandled_promise_rejection',
+      'SecurityError: The root document of this element is not valid.'
+    ),
+    true
+  );
+  assert.equal(
+    suppress(
+      'javascript_error',
+      'WrongDocumentError: The root document of this element is not valid.'
+    ),
+    true
+  );
   dom.window.close();
 });
 
-test('suppresses playback-probe resource errors until the queue gives up', () => {
+function errorEvents(dom) {
+  return Array.from(dom.window.dataLayer || [])
+    .map((args) => Array.from(args))
+    .filter((args) => args[0] === 'event' && args[1] === 'error_occurred');
+}
+
+function flushTick() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+test('suppresses playback-probe resource errors until the queue gives up', async () => {
   const dom = loadAnalytics('https://example.com/watch/');
   const suppress = dom.window.__analyticsShouldSuppressError;
   const resource = 'https://ia801604.us/download/show/episode.mp4';
@@ -78,11 +102,60 @@ test('suppresses playback-probe resource errors until the queue gives up', () =>
   source.dispatchEvent(new dom.window.Event('error'));
   delete video.dataset.playbackProbe;
   source.dispatchEvent(new dom.window.Event('error'));
+  await flushTick();
 
-  const events = Array.from(dom.window.dataLayer || [])
-    .map((args) => Array.from(args))
-    .filter((args) => args[0] === 'event' && args[1] === 'error_occurred');
+  assert.equal(errorEvents(dom).length, 1);
+  dom.window.close();
+});
+
+test('drops resource errors once the page is going away', async () => {
+  const visible = loadAnalytics('https://example.com/');
+  visible.window.console.warn = () => {};
+  visible.window.console.error = () => {};
+  const staying = visible.window.document.createElement('script');
+  staying.src = 'https://joeheyming.github.io/nav.js';
+  visible.window.document.body.appendChild(staying);
+  staying.dispatchEvent(new visible.window.Event('error'));
+  await flushTick();
+  assert.equal(errorEvents(visible).length, 1);
+  visible.window.close();
+
+  const leaving = loadAnalytics('https://example.com/');
+  leaving.window.console.warn = () => {};
+  leaving.window.console.error = () => {};
+  const aborted = leaving.window.document.createElement('script');
+  aborted.src = 'https://joeheyming.github.io/nav.js';
+  leaving.window.document.body.appendChild(aborted);
+  aborted.dispatchEvent(new leaving.window.Event('error'));
+  leaving.window.dispatchEvent(new leaving.window.Event('pagehide'));
+  await flushTick();
+  assert.equal(errorEvents(leaving).length, 0);
+  leaving.window.close();
+});
+
+test('a shadow-tree image error uses the image url, not the host', async () => {
+  const dom = loadAnalytics('https://example.com/emulator/nes/');
+  dom.window.console.warn = () => {};
+  dom.window.console.error = () => {};
+  const host = dom.window.document.createElement('rom-browser');
+  const shadow = host.attachShadow({ mode: 'open' });
+  const missed = dom.window.document.createElement('img');
+  missed.src =
+    'https://thumbnails.libretro.com/Nintendo%20-%20Game%20Boy/Named_Boxarts/Metroid.png';
+  shadow.appendChild(missed);
+  dom.window.document.body.appendChild(host);
+  missed.dispatchEvent(new dom.window.Event('error', { composed: true }));
+  await flushTick();
+  assert.equal(errorEvents(dom).length, 0);
+
+  const broken = dom.window.document.createElement('img');
+  broken.src = 'https://joeheyming.github.io/emulator/missing-box.png';
+  shadow.appendChild(broken);
+  broken.dispatchEvent(new dom.window.Event('error', { composed: true }));
+  await flushTick();
+  const events = errorEvents(dom);
   assert.equal(events.length, 1);
+  assert.match(events[0][2].event_label, /IMG: joeheyming.github.io\/missing-box\.png/);
   dom.window.close();
 });
 

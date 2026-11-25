@@ -7,6 +7,14 @@
 import { DIRECTION, KEY_MODE, CONTROLS, GAME_STATES, GAMEPLAY } from './constants.js';
 import { clickMenuButton, uiOwnsKey } from '../../pacman/js/ui-keys.js';
 
+// Browsers without the Pointer Lock API (the PS5 web view among them) throw
+// if the method is missing. A returned promise rejects on cooldown and ESC.
+function requestCanvasPointerLock(canvas) {
+  if (!canvas || typeof canvas.requestPointerLock !== 'function') return;
+  const lock = canvas.requestPointerLock();
+  if (lock && typeof lock.catch === 'function') lock.catch(() => {});
+}
+
 export class Controls {
   constructor(game) {
     this.game = game;
@@ -108,7 +116,7 @@ export class Controls {
       const isFirstPerson = this.game.cameraController?.currentMode === 2; // FPPOV
       const isPlaying = this.game.state === GAME_STATES.PLAYING;
       if (isFirstPerson && !this.isPointerLocked && isPlaying) {
-        canvas.requestPointerLock();
+        requestCanvasPointerLock(canvas);
       }
     });
 
@@ -150,7 +158,7 @@ export class Controls {
     const isFirstPerson = this.game.cameraController?.currentMode === 2; // FPPOV
     const isPlaying = this.game.state === 'playing';
     if (isFirstPerson && !this.isPointerLocked && isPlaying && this.canvas) {
-      this.canvas.requestPointerLock();
+      requestCanvasPointerLock(this.canvas);
     }
   }
 
