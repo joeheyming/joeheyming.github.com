@@ -1,6 +1,7 @@
-// The Load Game list used to say only "No files" when this browser had
-// no saves. Players asked how to open or get past it. The engine copy
-// lives in uzdoom.pk3; these checks lock the way-out text in place.
+// The Load Game list says only "No files" when this browser has no saves.
+// Players asked how to get past it. The how-to-play card is that answer.
+// Do not patch uzdoom.pk3 to change the line: rewriting that archive made
+// the engine exit with a memory fault on launch.
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -41,18 +42,18 @@ const pk3 = readFileSync(path.join(ROOT, 'doom/uzdoom.pk3'));
 const html = readFileSync(path.join(ROOT, 'doom/index.html'), 'utf8');
 
 describe('doom empty load-game screen', () => {
-  it('says there are no saves yet and how to leave', () => {
+  it('keeps the stock engine string and does not add a hint row', () => {
     const lang = readZipEntry(pk3, 'language.0');
-    assert.match(lang, /^No saves yet,MNU_NOFILES,/m);
-    assert.match(lang, /^Esc or MENU then New Game,MNU_NOFILES_HINT$/m);
-    assert.doesNotMatch(lang, /^No files,MNU_NOFILES,/m);
+    assert.match(lang, /^No files,MNU_NOFILES,/m);
+    assert.doesNotMatch(lang, /MNU_NOFILES_HINT/);
+    assert.doesNotMatch(lang, /^No saves yet,MNU_NOFILES,/m);
   });
 
-  it('draws that hint and leaves the list when OK is pressed', () => {
+  it('does not patch the load menu', () => {
     const menu = readZipEntry(pk3, 'zscript/engine/ui/menu/loadsavemenu.zs');
     assert.match(menu, /Stringtable\.Localize\("\$MNU_NOFILES"\)/);
-    assert.match(menu, /Stringtable\.Localize\("\$MNU_NOFILES_HINT"\)/);
-    assert.match(menu, /if \(mkey == MKEY_Enter\) Close\(\);/);
+    assert.doesNotMatch(menu, /MNU_NOFILES_HINT/);
+    assert.doesNotMatch(menu, /if \(mkey == MKEY_Enter\) Close\(\);/);
   });
 
   it('mentions the same way out on the how-to-play card', () => {
