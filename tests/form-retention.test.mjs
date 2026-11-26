@@ -21,6 +21,10 @@ import {
   shouldKeepAnswerOrTallyRow,
   shouldKeepQuarantineRow
 } from '../trivia/retention.js';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { IDLE_MS, MAX_GAME_ROWS, MAX_ROWS, rowIndexesToDrop } from '../chess/retention.js';
 
 describe('posts retention', () => {
   it('archives oldest posts once live count exceeds the cap', () => {
@@ -141,5 +145,46 @@ describe('trivia retention', () => {
     assert.equal(oldestPrefixToDrop(ids, 3, 'open'), 1);
     assert.equal(oldestPrefixToDrop(['open', 'open', 'open'], 1, 'open'), 0);
     assert.equal(MAX_SHEET_ROWS, 500);
+  });
+});
+
+describe('chess retention', () => {
+  const now = Date.parse('2026-11-25T00:00:00Z');
+  const fresh = now - 2 * 24 * 60 * 60 * 1000;
+  const stale = now - IDLE_MS - 1000;
+
+  it('keeps a game that still has a recent row, including its older moves', () => {
+    const rows = [
+      { gameId: 'LIVE1', at: stale },
+      { gameId: 'LIVE1', at: fresh },
+      { gameId: 'GONE1', at: stale }
+    ];
+    assert.deepEqual(rowIndexesToDrop(rows, now), [2]);
+  });
+
+  it('drops a blank game id and a game longer than the page can replay', () => {
+    const rows = [
+      { gameId: '', at: fresh },
+      ...Array.from({ length: MAX_GAME_ROWS + 1 }, () => ({ gameId: 'LONG1', at: fresh }))
+    ];
+    assert.equal(rowIndexesToDrop(rows, now).length, rows.length);
+  });
+
+  it('drops the stalest remaining games until the sheet cap holds', () => {
+    const rows = [
+      { gameId: 'OLD', at: fresh - 5000 },
+      { gameId: 'MID', at: fresh - 1000 },
+      { gameId: 'NEW', at: fresh }
+    ];
+    assert.deepEqual(rowIndexesToDrop(rows, now, { maxRows: 1 }), [0, 1]);
+    assert.equal(MAX_ROWS, 2000);
+  });
+
+  it('uses the same limits as the spreadsheet script', () => {
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const script = readFileSync(path.join(root, 'chess/apps-script.local.gs'), 'utf8');
+    assert.match(script, /var IDLE_MS = 30 \* 24 \* 60 \* 60 \* 1000/);
+    assert.match(script, /var MAX_ROWS = 2000/);
+    assert.match(script, /var MAX_GAME_ROWS = 300/);
   });
 });

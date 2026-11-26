@@ -1105,7 +1105,7 @@
     "defaultWidth": 540,
     "defaultHeight": 720,
     "tags": ["puzzle", "2048", "tiles", "numbers", "logic", "classic"],
-    "related": ["sudoku", "minesweeper", "wordle-finder", "calculator", "untangle"],
+    "related": ["sudoku", "minesweeper", "wordle-finder", "calculator", "untangle", "chess"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "2048",
@@ -1157,12 +1157,38 @@
     "defaultWidth": 600,
     "defaultHeight": 800,
     "tags": ["puzzle", "sudoku", "logic", "numbers", "classic"],
-    "related": ["minesweeper", "wordle-finder", "calculator"],
+    "related": ["minesweeper", "wordle-finder", "calculator", "chess"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "Sudoku",
       "short_name": "Sudoku",
       "description": "Classic 9×9 Sudoku in your browser"
+    },
+    "appTier": "experience",
+    "geo": true
+  },
+  {
+    "id": "chess",
+    "name": "Chess ♟",
+    "shortName": "Chess",
+    "description": "Pass-and-play chess, or a shared game by code",
+    "detailedDescription": "Play chess in the browser. Pass-and-play on one screen, or share a short code so each move is posted to a Google Form and the other player sees it on the same board.",
+    "icon": "♟",
+    "path": "./chess/",
+    "category": "game",
+    "gradient": "from-emerald-700/20 to-amber-600/20",
+    "border": "border-emerald-700/30 hover:border-emerald-600/50",
+    "taskbarGradient": "from-emerald-800 to-amber-900",
+    "taskbarText": "text-white",
+    "defaultWidth": 720,
+    "defaultHeight": 820,
+    "tags": ["chess", "board", "puzzle", "two player", "strategy"],
+    "related": ["iq", "sudoku", "2048"],
+    "shareCategory": "game",
+    "pwaShortcut": {
+      "name": "Chess",
+      "short_name": "Chess",
+      "description": "Pass-and-play chess in the browser"
     },
     "appTier": "experience",
     "geo": true

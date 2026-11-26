@@ -1432,7 +1432,13 @@ const PAGES = [
     url: `${BASE_URL}/emulator/dreamcast/`,
     output: 'emulator/dreamcast/dreamcast-preview.png',
     title: 'Dreamcast'
-  }
+  },
+  // --- synced from apps-registry.json ---
+  {
+    url: `${BASE_URL}/chess/`,
+    output: 'chess/chess-preview.png',
+    title: 'Chess'
+  },
 ];
 
 async function ensureDirectoryExists(filePath) {

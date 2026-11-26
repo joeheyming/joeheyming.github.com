@@ -157,6 +157,12 @@
       "url": "/sudoku/"
     },
     {
+      "name": "Chess",
+      "short_name": "Chess",
+      "description": "Pass-and-play chess in the browser",
+      "url": "/chess/"
+    },
+    {
       "name": "NES Emulator",
       "short_name": "NES",
       "description": "Play NES games in your browser",

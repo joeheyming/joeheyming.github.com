@@ -85,6 +85,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/chess/</loc>
+    <lastmod>2026-11-25T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/clock/</loc>
     <lastmod>2026-11-12T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
