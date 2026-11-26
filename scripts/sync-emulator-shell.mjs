@@ -45,13 +45,20 @@ function escapeAttr(s) {
   return escapeHtml(s).replace(/`/g, '&#96;');
 }
 
+function pickerMark(cfg) {
+  if (!cfg.logo) return `            <span class="picker-emoji">${cfg.emoji}</span>`;
+  return `            <img class="picker-logo" src="${escapeAttr(
+    cfg.logo
+  )}" alt="" width="320" height="180" />`;
+}
+
 function pickerTilesHtml(consoles) {
   return Object.values(consoles)
     .map((cfg) => {
       const href = `/emulator/${cfg.id}/`;
       return [
         `          <a class="picker-tile" href="${href}">`,
-        `            <span class="picker-emoji">${cfg.emoji}</span>`,
+        pickerMark(cfg),
         `            <span class="picker-title">${escapeHtml(cfg.title)}</span>`,
         `            <span class="picker-sub">${escapeHtml(cfg.subtitle)}</span>`,
         `          </a>`
@@ -237,7 +244,13 @@ function landerHtml(cfg) {
     <!-- Static fallback for crawlers / no-JS; launch.js replaces #brand / #boot-card. -->
     <div id="boot">
       <div class="brand" id="brand">
-        <span class="brand-logo">${emoji}</span>
+        ${
+          cfg.logo
+            ? `<img class="brand-logo" src="${escapeAttr(
+                cfg.logo
+              )}" alt="" width="320" height="180" />`
+            : `<span class="brand-logo">${emoji}</span>`
+        }
         <h1>
           ${escapeHtml(title)}
           <span class="sub">${escapeHtml(subtitle)}</span>

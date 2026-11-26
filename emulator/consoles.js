@@ -37,12 +37,18 @@
 (function () {
   'use strict';
 
+  // Hardware photos live on Wikimedia Commons (Evan Amos). The page points
+  // at them; it does not vendor the files. Flash has no free console photo.
+  const commonsPhoto = (file) =>
+    'https://commons.wikimedia.org/wiki/Special:FilePath/' + file + '?width=320';
+
   const CONSOLES = {
     nes: {
       id: 'nes',
       title: 'NES',
       subtitle: 'Nintendo Entertainment System',
       emoji: '🕹️',
+      logo: commonsPhoto('NES-Console-Set.png'),
       // EmulatorJS core (libretro: FCEUmm) — fast WASM 6502 with full mapper coverage.
       ejsCore: 'nes',
       fileAccept: '.nes,.zip,.7z',
@@ -77,6 +83,7 @@
       title: 'Sega Genesis',
       subtitle: 'Mega Drive Emulator',
       emoji: '🎮',
+      logo: commonsPhoto('Sega-Genesis-Mk2-6button.png'),
       // EmulatorJS core: genesis_plus_gx.
       ejsCore: 'segaMD',
       fileAccept: '.md,.bin,.gen,.smd,.zip,.7z',
@@ -107,6 +114,7 @@
       title: 'Game Gear',
       subtitle: 'Sega handheld',
       emoji: '📟',
+      logo: commonsPhoto('Sega-Game-Gear-WB.png'),
       // EmulatorJS core: genesis_plus_gx (same family as Genesis).
       ejsCore: 'segaGG',
       fileAccept: '.gg,.zip,.7z',
@@ -138,6 +146,7 @@
       title: 'Sega 32X',
       subtitle: 'Genesis add-on',
       emoji: '🚀',
+      logo: commonsPhoto('Sega-Genesis-32X-01.jpg'),
       // EmulatorJS core: picodrive.
       ejsCore: 'sega32x',
       fileAccept: '.32x,.bin,.zip,.7z',
@@ -188,6 +197,7 @@
       title: 'Sega CD',
       subtitle: 'Mega CD',
       emoji: '📀',
+      logo: commonsPhoto('Sega-CD-Model2-Set.png'),
       ejsCore: 'segaCD',
       fileAccept: '.chd,.iso,.bin,.cue,.zip,.7z',
       fileExtsLabel: '.zip / .chd / .iso',
@@ -232,6 +242,7 @@
       title: 'Sega Saturn',
       subtitle: 'Sega 32-bit disc console',
       emoji: '🪐',
+      logo: commonsPhoto('Sega-Saturn-Console-Set-Mk1.png'),
       // EmulatorJS core: yabause. Software-rendered (no WebGL dependency),
       // but two SH-2s plus VDP1/VDP2 in WASM make this the slowest console
       // in the shell — see the howto warning.
@@ -294,6 +305,7 @@
       title: 'Dreamcast',
       subtitle: '128-bit Sega console',
       emoji: '🌀',
+      logo: commonsPhoto('Dreamcast-Console-Set.png'),
       // Not an EmulatorJS CDN core. ejs-mount.js redirects the flycast
       // core download to the vendored zip in this folder.
       ejsCore: 'flycast',
@@ -363,6 +375,7 @@
       title: 'Game Boy',
       subtitle: 'Game Boy & Game Boy Color',
       emoji: '👾',
+      logo: commonsPhoto('Game-Boy-FL.png'),
       // EmulatorJS core: gambatte (handles both DMG and GBC).
       ejsCore: 'gb',
       fileAccept: '.gb,.gbc,.zip,.7z',
@@ -402,6 +415,7 @@
       title: 'GBA',
       subtitle: 'Game Boy Advance',
       emoji: '🟪',
+      logo: commonsPhoto('Nintendo-Game-Boy-Advance-Purple-FL.png'),
       ejsCore: 'gba',
       fileAccept: '.gba,.zip,.7z',
       fileExtsLabel: '.gba',
@@ -437,6 +451,7 @@
       title: 'Nintendo DS',
       subtitle: 'Dual-screen handheld',
       emoji: '🖊️',
+      logo: commonsPhoto('Nintendo-DS-Fat-Blue.jpg'),
       // EmulatorJS resolves `nds` to melonDS. No BIOS panel here on purpose:
       // bios7/bios9/firmware are optional for all three DS cores, and melonDS
       // logs "Missing bios/firmware in system directory. Using FreeBIOS."
@@ -485,6 +500,7 @@
       title: 'Neo Geo',
       subtitle: 'AES / MVS Arcade',
       emoji: '🥊',
+      logo: commonsPhoto('Neo-Geo-AES-Console-Set.png'),
       // EmulatorJS arcade core → FinalBurn Neo (handles Neo Geo AES/MVS).
       ejsCore: 'arcade',
       fileAccept: '.zip,.7z',
@@ -529,6 +545,7 @@
       title: 'Neo Geo Pocket',
       subtitle: 'NGP & Color',
       emoji: '🟠',
+      logo: commonsPhoto('Neo-Geo-Pocket-Color-Blue-Left.png'),
       // EmulatorJS core → mednafen_ngp (original + Color carts).
       ejsCore: 'ngp',
       fileAccept: '.ngp,.ngc,.zip,.7z',
@@ -562,6 +579,7 @@
       title: 'SNES',
       subtitle: 'Super Nintendo',
       emoji: '🟣',
+      logo: commonsPhoto('SNES-Mod1-Console-Set.png'),
       // EmulatorJS core: snes9x.
       ejsCore: 'snes',
       fileAccept: '.sfc,.smc,.zip,.7z',
@@ -592,6 +610,7 @@
       title: 'N64',
       subtitle: 'Nintendo 64',
       emoji: '🎲',
+      logo: commonsPhoto('Nintendo-64-Console-FL.png'),
       // EmulatorJS resolves `n64` to mupen64plus_next (parallel-n64 on iOS).
       ejsCore: 'n64',
       fileAccept: '.z64,.n64,.v64,.zip,.7z',
@@ -630,6 +649,7 @@
       title: 'PS1',
       subtitle: 'PlayStation',
       emoji: '💿',
+      logo: commonsPhoto('PSX-Console-wController.png'),
       // EmulatorJS core: pcsx_rearmed.
       ejsCore: 'psx',
       // Prefer single-file disc images; .bin+.cue needs companions and is awkward.
@@ -689,6 +709,7 @@
       title: 'PSP',
       subtitle: 'PlayStation Portable',
       emoji: '🎮',
+      logo: commonsPhoto('PSP-1000.png'),
       // EmulatorJS core: ppsspp. The only core in the shell with no
       // single-thread build (`requireThreads` in the EmulatorJS cores list),
       // so launch.js refuses to boot it without cross-origin isolation.
@@ -752,6 +773,7 @@
       title: 'Atari 2600',
       subtitle: 'Video Computer System',
       emoji: '🛸',
+      logo: commonsPhoto('Atari-2600-Wood-4Sw-Set.png'),
       // EmulatorJS core: stella2014 (Stella).
       ejsCore: 'atari2600',
       fileAccept: '.a26,.bin,.zip,.7z',

@@ -192,6 +192,17 @@
     );
   }
 
+  /** Console photo when the registry has one; emoji otherwise (Flash). */
+  function logoHtml(cfg, kind) {
+    const emoji = (cfg && cfg.emoji) || '🎮';
+    if (!cfg || !cfg.logo) {
+      const cls = kind === 'picker' ? 'picker-emoji' : 'brand-logo';
+      return `<span class="${cls}">${emoji}</span>`;
+    }
+    const cls = kind === 'picker' ? 'picker-logo' : 'brand-logo';
+    return `<img class="${cls}" src="${escapeHtml(cfg.logo)}" alt="" width="320" height="180" />`;
+  }
+
   function hexToRgba(hex, alpha) {
     const m = /^#?([0-9a-f]{6})$/i.exec(hex);
     if (!m) return hex;
@@ -884,7 +895,7 @@
     bootCard.classList.remove('boot-card-picker');
 
     brand.innerHTML = `
-      <span class="brand-logo">${cfg.emoji}</span>
+      ${logoHtml(cfg, 'brand')}
       <h1>
         ${cfg.title}
         <span class="sub">${cfg.subtitle}</span>
@@ -1137,7 +1148,7 @@
       .map((cfg) => {
         return `
           <a class="picker-tile" href="${pathFor(cfg.id)}" data-console="${cfg.id}">
-            <span class="picker-emoji">${cfg.emoji}</span>
+            ${logoHtml(cfg, 'picker')}
             <span class="picker-title">${escapeHtml(cfg.title)}</span>
             <span class="picker-sub">${escapeHtml(cfg.subtitle)}</span>
           </a>
@@ -1157,6 +1168,7 @@
       <p class="picker-help">
         Free, browser-based emulators. No install, no ads. Bring your own ROM
         or browse the built-in collection. Flash games play here too, via Ruffle.
+        Console photos by <a href="https://commons.wikimedia.org/wiki/User:Evan-Amos">Evan Amos</a>, Wikimedia Commons.
       </p>
     `;
 

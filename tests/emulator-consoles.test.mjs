@@ -36,6 +36,21 @@ describe('emulator console registry', () => {
     }
   });
 
+  it('points hardware logos at Wikimedia Commons photos', () => {
+    for (const cfg of Object.values(consoles)) {
+      if (cfg.id === 'flash') {
+        assert.equal(cfg.logo, undefined, 'flash keeps its emoji');
+        continue;
+      }
+      assert.match(
+        cfg.logo,
+        /^https:\/\/commons\.wikimedia\.org\/wiki\/Special:FilePath\/[^?]+?\?width=320$/,
+        `${cfg.id}: logo must be a Commons file URL`
+      );
+    }
+    assert.match(consoles.n64.logo, /Nintendo-64-Console-FL\.png/);
+  });
+
   it('gives every console the fields the shell reads', () => {
     for (const cfg of Object.values(consoles)) {
       // Ruffle consoles (Flash) mount their own player; there is no EmulatorJS core.

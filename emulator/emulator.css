@@ -78,6 +78,14 @@ body {
   margin-bottom: 0;
 }
 
+#boot:has(.boot-card-scroll) img.brand-logo {
+  width: 84px;
+  height: 52px;
+  margin-left: 0;
+  margin-right: 0;
+  border-radius: 8px;
+}
+
 #boot:has(.boot-card-scroll) .brand h1 {
   font-size: clamp(18px, 2.4vw, 24px);
   letter-spacing: 1px;
@@ -115,6 +123,16 @@ body {
   line-height: 1;
   margin-bottom: 12px;
   display: block;
+}
+
+img.brand-logo {
+  width: min(280px, 72vw);
+  height: 140px;
+  object-fit: contain;
+  margin-left: auto;
+  margin-right: auto;
+  background: #f3efe8;
+  border-radius: 12px;
 }
 
 .brand h1 {
@@ -1091,6 +1109,14 @@ kbd {
   line-height: 1;
 }
 
+.picker-logo {
+  width: 100%;
+  height: 76px;
+  object-fit: contain;
+  background: #f3efe8;
+  border-radius: 8px;
+}
+
 .picker-title {
   font-size: 16px;
   font-weight: 700;
@@ -1167,6 +1193,10 @@ kbd {
   color: var(--text-dim);
   text-align: center;
   line-height: 1.5;
+}
+
+.picker-help a {
+  color: var(--accent-bright, var(--text));
 }
 
 /* Deep-link wait: a dark cartridge screen inside the boot card. */
@@ -1488,8 +1518,18 @@ kbd {
   font-size: 56px;
 }
 
+:root[data-mode='tv'] #boot:has(.boot-card-scroll) img.brand-logo {
+  width: 120px;
+  height: 72px;
+}
+
 :root[data-mode='tv'] .brand-logo {
   font-size: 88px;
+}
+
+:root[data-mode='tv'] img.brand-logo {
+  width: min(360px, 40vw);
+  height: 180px;
 }
 
 :root[data-mode='tv'] .brand h1 {
@@ -1552,6 +1592,10 @@ kbd {
 
 :root[data-mode='tv'] .picker-emoji {
   font-size: 48px;
+}
+
+:root[data-mode='tv'] .picker-logo {
+  height: 96px;
 }
 
 :root[data-mode='tv'] .picker-title {
