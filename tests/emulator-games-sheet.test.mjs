@@ -188,6 +188,108 @@ describe('gviz table', () => {
   });
 });
 
+describe('cross-console search', () => {
+  before(() => {
+    window.eval(readFileSync(join(repoRoot, 'emulator/game-finder.js'), 'utf8'));
+  });
+
+  function finder() {
+    return window.emulatorGameFinder;
+  }
+
+  it('builds a limited, escaped name query and ignores a one-letter term', () => {
+    assert.equal(finder().searchSql('Ma'), "select * where lower(B) contains 'ma' limit 40");
+    assert.equal(
+      finder().searchSql("  O'Brien  "),
+      "select * where lower(B) contains 'o''brien' limit 40"
+    );
+    assert.equal(finder().searchSql('a'), '');
+    assert.equal(finder().searchSql('   '), '');
+    assert.equal(finder().searchSql('m'.repeat(80)).includes('limit 40'), true);
+    assert.equal(finder().searchSql('m'.repeat(80)).includes('m'.repeat(61)), false);
+  });
+
+  it('groups hits and links them at the console deep link', () => {
+    const href = finder().finderHref('nes', 'Legend of Zelda, The');
+    assert.equal(href, '/emulator/nes/?rom=Legend%20of%20Zelda%2C%20The');
+    assert.equal(finder().finderHref('', 'Zelda'), '');
+    const groups = finder().groupByConsole([
+      { console: 'snes', name: 'A' },
+      { console: 'nes', name: 'B' },
+      { console: 'nes', name: 'C' }
+    ]);
+    assert.equal(String(groups[0].console), 'snes');
+    assert.equal(String(groups[1].console), 'nes');
+    assert.equal(groups[1].games.length, 2);
+  });
+
+  it('asks the sheet for matches on every console and keeps forty', async () => {
+    sheet().__testing.setSheetId('sheet-id-example');
+    const payload = wrap({
+      status: 'ok',
+      table: {
+        cols: [
+          { label: 'console' },
+          { label: 'name' },
+          { label: 'downloadUrl' },
+          { label: 'thumbnailUrl' },
+          { label: 'fileExtension' },
+          { label: 'size' }
+        ],
+        rows: [
+          {
+            c: [
+              { v: 'nes' },
+              { v: 'Super Mario Bros.' },
+              { v: 'https://archive.org/download/nes-collection/Super%20Mario%20Bros.zip' },
+              { v: '' },
+              { v: '.zip' },
+              { v: '40 KB' }
+            ]
+          },
+          {
+            c: [
+              { v: 'snes' },
+              { v: 'Super Mario World' },
+              { v: 'https://archive.org/download/snes/Super%20Mario%20World.zip' },
+              { v: '' },
+              { v: '.zip' },
+              { v: '1 MB' }
+            ]
+          },
+          {
+            c: [
+              { v: 'nes' },
+              { v: 'Broken' },
+              { v: 'not-a-url' },
+              { v: '' },
+              { v: '.zip' },
+              { v: '' }
+            ]
+          }
+        ]
+      }
+    });
+    /** @type {string[]} */
+    const urls = [];
+    window.fetch = async (url) => {
+      urls.push(String(url));
+      return { ok: true, text: async () => payload };
+    };
+    try {
+      assert.equal((await finder().searchGames('m')).length, 0);
+      assert.equal(urls.length, 0);
+      const games = await finder().searchGames('Mario');
+      assert.deepEqual(Array.from(games, (game) => String(game.console)), ['nes', 'snes']);
+      assert.equal(games.length, 2);
+      const sql = new URL(urls[0]).searchParams.get('tq');
+      assert.equal(sql, "select * where lower(B) contains 'mario' limit 40");
+    } finally {
+      sheet().__testing.setSheetId(sheet().__testing.SHEET_ID);
+    }
+  });
+});
+
 describe('loadConsoleGames', () => {
   it('requests one console and skips a row that cannot be played', async () => {
     sheet().__testing.setSheetId('sheet-id-example');

@@ -11,8 +11,11 @@ import { eagerScripts, staticImportSpecifiers, totalBytes } from './import-graph
 const BUDGETS = {
   'doom/': 230_000,
   'stepmania/': 175_000,
-  'emulator/': 241_000,
-  'emulator/nes/': 352_000,
+  // Hub launch.js mounts the game finder and preloads the EmulatorJS loader.
+  // The NES lander shares that file, plus the ROM cache hook in the listing scripts.
+  // Isolation settles after the list is on screen, in that same file.
+  'emulator/': 249_000,
+  'emulator/nes/': 362_000,
   'play/': 138_000,
   'watch/': 295_000
 };

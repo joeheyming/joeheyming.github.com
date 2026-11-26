@@ -1211,12 +1211,15 @@ class RomBrowserElement extends HTMLElement {
         throw new Error('ROM source unavailable.');
       }
 
-      // The proxy gives no byte progress, so show elapsed time. Without it a
-      // 30 MB game looks frozen for the minute the proxy needs.
+      // A direct download reports bytes. The proxy does not, so until the
+      // first progress event, show elapsed time. Without it a 30 MB game
+      // looks frozen for the minute the proxy needs.
       const statusEl = contentArea && contentArea.querySelector('.rom-crt-status');
       const startedAt = Date.now();
+      let sawProgress = false;
       const ticker = statusEl
         ? setInterval(() => {
+            if (sawProgress) return;
             const secs = Math.floor((Date.now() - startedAt) / 1000);
             if (secs < 5) return;
             const mins = Math.floor(secs / 60);
@@ -1226,7 +1229,15 @@ class RomBrowserElement extends HTMLElement {
         : 0;
       let romData;
       try {
-        romData = await ia.loadRom(rom, { signal: controller.signal });
+        romData = await ia.loadRom(rom, {
+          signal: controller.signal,
+          onProgress: (progress) => {
+            if (!progress || !progress.received) return;
+            sawProgress = true;
+            const paint = window.emulatorRomCache && window.emulatorRomCache.paintProgress;
+            if (paint) paint(contentArea, progress);
+          }
+        });
       } finally {
         if (ticker) clearInterval(ticker);
       }

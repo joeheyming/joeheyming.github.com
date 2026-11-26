@@ -22,8 +22,9 @@
 // emulatorLeanback.applyRovingTabindex.
 //
 // Without cross-origin isolation there is no SharedArrayBuffer, so EmulatorJS
-// boots its normal single-thread cores with EJS_threads pinned off. Missing
-// WebAssembly itself is fatal.
+// boots its normal single-thread cores with EJS_threads pinned off. The game
+// list does not wait for that isolation. A core with no single-thread build
+// waits when the visitor starts a game. Missing WebAssembly itself is fatal.
 (function () {
   'use strict';
 
@@ -374,10 +375,38 @@
   /** Boot-card banner for single-thread mode; expectation-setting, not an error. */
   function singleThreadNoticeHtml() {
     if (!singleThreadMode) return '';
-    return `<p class="leanback-banner" data-connected="0">
+    return `<p class="leanback-banner" data-single-thread="1" data-connected="0">
         Single-thread mode — this browser has no SharedArrayBuffer, so frame
         rates may dip. Save states still work.
       </p>`;
+  }
+
+  /** Isolation may arrive after the list is already on screen. */
+  function ensureSingleThreadNotice() {
+    if (!singleThreadMode) return;
+    const header = document.querySelector('#boot-card .boot-card-header');
+    if (!header || header.querySelector('[data-single-thread]')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = singleThreadNoticeHtml();
+    const node = wrap.firstElementChild;
+    if (!node) return;
+    const banner = header.querySelector('#leanbackBanner');
+    if (banner) header.insertBefore(node, banner.nextSibling);
+    else header.insertBefore(node, header.children[1] || null);
+  }
+
+  /** One in-flight wait. The list never blocks on it. */
+  let coiPromise = null;
+  function coiReady() {
+    if (window.crossOriginIsolated) return Promise.resolve(true);
+    if (!coiPromise) {
+      const lb = leanback();
+      coiPromise =
+        lb && typeof lb.whenCoiSettled === 'function'
+          ? lb.whenCoiSettled()
+          : Promise.resolve(false);
+    }
+    return coiPromise;
   }
 
   // Keyboard, a remote, and a controller all move from the focused control.
@@ -995,7 +1024,13 @@
     bios()?.wireBiosControls(cfg);
     wireTvFocus(bootCard);
     lazy().then(
-      (l) => l.preloadOnIntent(bootCard, playScripts(cfg)),
+      (l) =>
+        l.preloadOnIntent(
+          bootCard,
+          playScripts(cfg).concat(
+            cfg.player === 'ruffle' ? [] : ['https://cdn.emulatorjs.org/latest/data/loader.js']
+          )
+        ),
       () => {}
     );
   }
@@ -1113,6 +1148,11 @@
     bootCard.innerHTML = `
       <h2>🕹️ Pick a console</h2>
       ${gamepadBannerHtml()}
+      <form class="game-finder" id="game-finder" role="search">
+        <label class="game-finder-label" for="game-finder-input">Find a game</label>
+        <input id="game-finder-input" class="game-finder-input" type="search" placeholder="Mario, Tetris, Sonic…" autocomplete="off" enterkeyhint="search" />
+        <div id="game-finder-results" class="game-finder-results" aria-live="polite"></div>
+      </form>
       <div class="picker-grid">${tiles}</div>
       <p class="picker-help">
         Free, browser-based emulators. No install, no ads. Bring your own ROM
@@ -1121,6 +1161,74 @@
     `;
 
     wireTvFocus(bootCard);
+    wireGameFinder(bootCard);
+  }
+
+  /** @type {Promise<object> | null} */
+  let gameFinderPromise = null;
+
+  function gameFinder() {
+    if (window.emulatorGameFinder) return Promise.resolve(window.emulatorGameFinder);
+    if (!gameFinderPromise) {
+      gameFinderPromise = loadInOrder(['/emulator/game-finder.js'])
+        .then(() => window.emulatorGameFinder)
+        .catch((err) => {
+          gameFinderPromise = null;
+          throw err;
+        });
+    }
+    return gameFinderPromise;
+  }
+
+  /**
+   * The form is on the hub immediately. Its script loads on the first search
+   * so the console grid still focuses without downloading the finder.
+   * @param {ParentNode} root
+   */
+  function wireGameFinder(root) {
+    const form = root.querySelector('#game-finder');
+    const input = /** @type {HTMLInputElement | null} */ (root.querySelector('#game-finder-input'));
+    const results = /** @type {HTMLElement | null} */ (root.querySelector('#game-finder-results'));
+    if (!form || !input || !results) return;
+    let timer = 0;
+    let token = 0;
+    const run = () => {
+      const mine = ++token;
+      const q = input.value;
+      if (q.trim().length < 2) {
+        results.replaceChildren();
+        return;
+      }
+      results.innerHTML = '<p class="game-finder-status">Searching…</p>';
+      gameFinder()
+        .then((finder) => {
+          if (mine !== token || !finder) return null;
+          return finder.searchGames(q).then((games) => ({ finder, games }));
+        })
+        .then((found) => {
+          if (!found || mine !== token) return;
+          found.finder.showResults(results, found.games || [], q);
+        })
+        .catch(() => {
+          if (mine !== token) return;
+          results.innerHTML =
+            '<p class="game-finder-status">The library did not load. Try again.</p>';
+        });
+    };
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      if (input.value.trim().length < 2) {
+        token += 1;
+        results.replaceChildren();
+        return;
+      }
+      timer = setTimeout(run, 300);
+    });
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      clearTimeout(timer);
+      run();
+    });
   }
 
   /** @param {string} message */
@@ -1311,7 +1419,13 @@
         return;
       }
 
-      const romData = await ia.loadRom(rom, { signal: controller.signal });
+      const romData = await ia.loadRom(rom, {
+        signal: controller.signal,
+        onProgress: (progress) => {
+          const paint = window.emulatorRomCache && window.emulatorRomCache.paintProgress;
+          if (paint) paint(bootCard, progress);
+        }
+      });
       if (controller.signal.aborted) return;
       const romFile = acquire.fileFromRomBytes(romData, rom);
       window.launchEmulator(romFile, romFile.name, {
@@ -1427,36 +1541,22 @@
       }
     };
 
-    const lb = leanback();
-    const settle =
-      lb && lb.whenCoiSettled ? lb.whenCoiSettled() : Promise.resolve(!!window.crossOriginIsolated);
-
-    // WebAssembly support and cross-origin isolation are independent. Check
-    // the former even when the page is already isolated.
+    // WebAssembly and WebGL2 are known immediately. Isolation is not, and
+    // the list does not need it: most cores run single-threaded, and the
+    // service worker may still reload the page once it can isolate.
     if (cfg && !wasmSupported()) {
       markRuntimeUnavailable();
     } else if (cfg && cfg.requiresWebGL2 && !webgl2Supported()) {
       markRuntimeUnavailable('webgl2');
-    } else if (window.crossOriginIsolated) {
-      bootUi();
     } else {
-      const bootCard = document.getElementById('boot-card');
-      if (bootCard) {
-        bootCard.innerHTML =
-          '<h2>Starting…</h2><p class="picker-help">Preparing the emulator runtime.</p>';
-      }
+      bootUi();
     }
 
-    settle.then((ok) => {
-      if (!ok && cfg) {
-        if (!canRunWithoutCoi(cfg)) {
-          markRuntimeUnavailable(wasmSupported() ? 'threads' : undefined);
-          return;
-        }
-        // Playable single-threaded: boot anyway and say so on the card.
-        singleThreadMode = true;
-      }
-      bootUi();
+    coiReady().then((ok) => {
+      if (runtimeBlocked || ok || window.crossOriginIsolated || !cfg) return;
+      if (!canRunWithoutCoi(cfg)) return;
+      singleThreadMode = true;
+      ensureSingleThreadNotice();
     });
 
     const romInput = document.getElementById('romFileInput');
@@ -1487,10 +1587,16 @@
     }
     if (!window.crossOriginIsolated) {
       if (cfg.requiresThreads) {
-        markRuntimeUnavailable('threads');
-        return;
+        // The list is already up. This is the only place that waits.
+        insertBootNotice('Preparing the emulator runtime…');
+        const ok = await coiReady();
+        if (!ok && !window.crossOriginIsolated) {
+          markRuntimeUnavailable('threads');
+          return;
+        }
+      } else {
+        singleThreadMode = true;
       }
-      singleThreadMode = true;
     }
 
     let source = romSource;

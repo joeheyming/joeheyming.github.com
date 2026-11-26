@@ -223,3 +223,55 @@ it('keeps a game-list button on TV, where the breadcrumb bar is hidden', async (
   assert.equal(window.document.querySelector('#emu-breadcrumbs .app-crumb'), null);
   window.close();
 });
+
+it('shows the game list without waiting for the emulator runtime', async () => {
+  const window = appWindow('<div id="brand"></div><div id="boot-card"></div>', {
+    url: 'https://joeheyming.github.io/emulator/nes/'
+  });
+  window.crossOriginIsolated = false;
+  window.emulatorRomAcquire = {};
+  window.emulatorLeanback = {
+    whenCoiSettled() {
+      return new Promise(() => {});
+    }
+  };
+  loadClassic(window, 'emulator/consoles.js', 'emulator/launch.js');
+  await Promise.resolve();
+
+  const card = window.document.getElementById('boot-card');
+  assert.match(card.textContent, /Load a ROM/);
+  assert.doesNotMatch(card.textContent, /Preparing the emulator runtime/);
+  window.close();
+});
+
+it('waits for isolation only when the core has no single-thread build', async () => {
+  const window = appWindow('<div id="brand"></div><div id="boot-card"></div>', {
+    url: 'https://joeheyming.github.io/emulator/psp/'
+  });
+  window.crossOriginIsolated = false;
+  window.emulatorRomAcquire = {};
+  /** @type {(ok: boolean) => void} */
+  let settle = () => {};
+  const pending = new Promise((resolve) => {
+    settle = resolve;
+  });
+  window.emulatorLeanback = { whenCoiSettled: () => pending };
+  loadClassic(window, 'emulator/consoles.js', 'emulator/launch.js');
+  await Promise.resolve();
+
+  const card = window.document.getElementById('boot-card');
+  assert.match(card.textContent, /Load a disc/);
+  const launching = window.launchEmulator(new window.Blob(['umd']), 'Game.iso', {
+    tracked: true
+  });
+  await Promise.resolve();
+  assert.deepEqual(window.__loadedScripts, []);
+  assert.match(card.textContent, /Preparing the emulator runtime/);
+  assert.doesNotMatch(card.textContent, /Threads unavailable/);
+
+  settle(false);
+  await launching;
+  assert.match(card.textContent, /Threads unavailable/);
+  assert.deepEqual(window.__loadedScripts, []);
+  window.close();
+});

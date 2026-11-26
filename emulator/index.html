@@ -250,6 +250,18 @@
 
       <div class="boot-card boot-card-picker" id="boot-card">
         <h2>🕹️ Pick a console</h2>
+        <form class="game-finder" id="game-finder" role="search" onsubmit="return false">
+          <label class="game-finder-label" for="game-finder-input">Find a game</label>
+          <input
+            id="game-finder-input"
+            class="game-finder-input"
+            type="search"
+            placeholder="Mario, Tetris, Sonic…"
+            autocomplete="off"
+            enterkeyhint="search"
+          />
+          <div id="game-finder-results" class="game-finder-results" aria-live="polite"></div>
+        </form>
         <div class="picker-grid">
           <!-- sync:emulator-picker:start -->
           <a class="picker-tile" href="/emulator/nes/">

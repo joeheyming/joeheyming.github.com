@@ -413,7 +413,7 @@ describe('?rom= deep links launch cartridges and hand off discs', () => {
     assert.deepEqual(launched, ['Zelda.zip']);
   });
 
-  it('preloads the play scripts only once the visitor points at the game list', async () => {
+  it('preloads the play scripts and the EmulatorJS loader once the visitor points at the game list', async () => {
     await bootShell('https://x/emulator/nes/');
     assert.deepEqual(window.__preloaded, []);
     const card = window.document.getElementById('boot-card');
@@ -422,7 +422,8 @@ describe('?rom= deep links launch cartridges and hand off discs', () => {
       '/emulator/resumes.js',
       '/emulator/socd.js',
       '/emulator/ejs-mount.js',
-      '/emulator/play.js'
+      '/emulator/play.js',
+      'https://cdn.emulatorjs.org/latest/data/loader.js'
     ]);
   });
 

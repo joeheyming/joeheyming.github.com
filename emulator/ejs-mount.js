@@ -107,6 +107,31 @@
   let mountedGame = null;
   let pendingResume = false;
 
+  /**
+   * Phones and cheap laptops. deviceMemory is Chrome-only; core count covers
+   * the rest. Smoothing is the cheap default to drop. It does not make N64
+   * feel like NES.
+   * @param {Navigator | { deviceMemory?: number, hardwareConcurrency?: number }} [nav]
+   */
+  function prefersLightVideo(nav) {
+    const info = nav || {};
+    const mem = Number(info.deviceMemory);
+    const cores = Number(info.hardwareConcurrency);
+    if (Number.isFinite(mem) && mem > 0 && mem <= 4) return true;
+    if (Number.isFinite(cores) && cores > 0 && cores <= 4) return true;
+    return false;
+  }
+
+  /**
+   * @param {Record<string, string>} options
+   * @param {Navigator | { deviceMemory?: number, hardwareConcurrency?: number }} [nav]
+   */
+  function applyVideoDefaults(options, nav) {
+    const next = Object.assign({}, options);
+    if (prefersLightVideo(nav)) next['video-smoothing'] = 'disabled';
+    return next;
+  }
+
   function mount(opts) {
     opts = opts || {};
     const cfg = opts.cfg;
@@ -158,13 +183,18 @@
     // GBA (or other) games. Keep states in this browser, which is what the
     // page already tells players. A previous session may have stored
     // "download"; keepSavesInBrowser flips it back once the core is up.
-    window.EJS_defaultOptions = Object.assign({}, window.EJS_defaultOptions, {
-      'save-state-location': 'browser'
-    });
+    window.EJS_defaultOptions = applyVideoDefaults(
+      Object.assign({}, window.EJS_defaultOptions, {
+        'save-state-location': 'browser'
+      }),
+      navigator
+    );
     // EmulatorJS has no PSP on-screen layout, so a touch falls through to a
     // SNES pad with no analog stick. Supply the PSP one, and show it when
     // this device actually has a touchscreen. A saved "disabled" still wins,
     // because loadSettings runs after these defaults.
+    // Genesis, CD, 32X, and Saturn place A/X at right:145 inside a 130px
+    // cluster, which clips that column. Supply a layout that fits.
     // Every other console uses EmulatorJS's own pad, which it only enables
     // when the user agent looks like a phone. An iPad (which reports itself
     // as a Mac), a phone on "desktop site", or an emulated phone view misses
@@ -172,6 +202,8 @@
     // pointer is a finger; touch laptops keep their mouse-first default.
     if (isPsp(cfg)) {
       window.EJS_VirtualGamepadSettings = pspTouchControls();
+    } else if (isSixButtonSega(cfg)) {
+      window.EJS_VirtualGamepadSettings = segaTouchControls(cfg.ejsCore);
     } else {
       delete window.EJS_VirtualGamepadSettings;
     }
@@ -605,6 +637,11 @@
     return !!(cfg && (cfg.id === 'psp' || cfg.ejsCore === 'psp'));
   }
 
+  function isSixButtonSega(cfg) {
+    const core = cfg && cfg.ejsCore;
+    return core === 'segaMD' || core === 'segaCD' || core === 'sega32x' || core === 'segaSaturn';
+  }
+
   function deviceHasTouch() {
     const nav = typeof navigator === 'undefined' ? null : navigator;
     if (nav && Number(nav.maxTouchPoints) > 0) return true;
@@ -757,6 +794,166 @@
         input_value: 3
       }
     ];
+  }
+
+  /**
+   * Six face buttons in EmulatorJS's 130×130 right cluster. The stock
+   * layout puts A/X at right:145, past the left edge, and the player
+   * clips them. These sit in two rows of three. emulator.css draws the
+   * face buttons at 40px, so right + 40 stays inside the cluster.
+   * Saturn's X/Y indexes differ from Genesis, and it has L/R instead of Mode.
+   * @param {string} core
+   * @returns {object[]}
+   */
+  function segaTouchControls(core) {
+    const saturn = core === 'segaSaturn';
+    const pad = [
+      {
+        type: 'button',
+        text: 'X',
+        id: 'x',
+        location: 'right',
+        right: 88,
+        top: 0,
+        bold: true,
+        fontSize: 16,
+        input_value: saturn ? 9 : 10
+      },
+      {
+        type: 'button',
+        text: 'Y',
+        id: 'y',
+        location: 'right',
+        right: 45,
+        top: 0,
+        bold: true,
+        fontSize: 16,
+        input_value: saturn ? 10 : 9
+      },
+      {
+        type: 'button',
+        text: 'Z',
+        id: 'z',
+        location: 'right',
+        right: 2,
+        top: 0,
+        bold: true,
+        fontSize: 16,
+        input_value: 11
+      },
+      {
+        type: 'button',
+        text: 'A',
+        id: 'a',
+        location: 'right',
+        right: 88,
+        top: 45,
+        bold: true,
+        fontSize: 16,
+        input_value: 1
+      },
+      {
+        type: 'button',
+        text: 'B',
+        id: 'b',
+        location: 'right',
+        right: 45,
+        top: 45,
+        bold: true,
+        fontSize: 16,
+        input_value: 0
+      },
+      {
+        type: 'button',
+        text: 'C',
+        id: 'c',
+        location: 'right',
+        right: 2,
+        top: 45,
+        bold: true,
+        fontSize: 16,
+        input_value: 8
+      },
+      {
+        type: 'dpad',
+        id: 'dpad',
+        location: 'left',
+        left: '50%',
+        right: '50%',
+        joystickInput: false,
+        inputValues: [4, 5, 6, 7]
+      },
+      {
+        type: 'button',
+        text: 'Start',
+        id: 'start',
+        location: 'center',
+        left: saturn ? 30 : 60,
+        fontSize: 15,
+        block: true,
+        input_value: 3
+      },
+      {
+        type: 'button',
+        text: 'Fast',
+        id: 'speed_fast',
+        location: 'center',
+        left: -35,
+        top: 50,
+        fontSize: 15,
+        block: true,
+        input_value: 27
+      },
+      {
+        type: 'button',
+        text: 'Slow',
+        id: 'speed_slow',
+        location: 'center',
+        left: 95,
+        top: 50,
+        fontSize: 15,
+        block: true,
+        input_value: 29
+      }
+    ];
+    if (saturn) {
+      pad.push(
+        {
+          type: 'button',
+          text: 'L',
+          id: 'l',
+          location: 'left',
+          left: 3,
+          top: -90,
+          bold: true,
+          block: true,
+          input_value: 12
+        },
+        {
+          type: 'button',
+          text: 'R',
+          id: 'r',
+          location: 'right',
+          right: 3,
+          top: -90,
+          bold: true,
+          block: true,
+          input_value: 13
+        }
+      );
+    } else {
+      pad.push({
+        type: 'button',
+        text: 'Mode',
+        id: 'mode',
+        location: 'center',
+        left: -5,
+        fontSize: 15,
+        block: true,
+        input_value: 2
+      });
+    }
+    return pad;
   }
 
   /**
@@ -1103,6 +1300,8 @@
 
   window.emulatorEjsMount = {
     mount,
+    prefersLightVideo,
+    applyVideoDefaults,
     flycastCoreUrl,
     packGamepadSlots,
     keepSavesInBrowser,

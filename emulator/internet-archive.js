@@ -14,6 +14,18 @@
     await lazy.loadScript('/proxy.js');
   }
 
+  /** IndexedDB ROM cache and the direct-download attempt. Optional. */
+  async function ensureRomCache() {
+    if (window.emulatorRomCache) return window.emulatorRomCache;
+    try {
+      const lazy = await import('/shared/lazy.js');
+      await lazy.loadScript('/emulator/rom-cache.js');
+    } catch (err) {
+      console.warn('ROM cache did not load', err);
+    }
+    return window.emulatorRomCache || null;
+  }
+
   /** ZIP local/empty/spanned file signatures (PK..). */
   function looksLikeZip(bytes) {
     if (!bytes || bytes.length < 4) return false;
@@ -467,22 +479,33 @@
      */
     async loadRom(rom, opts) {
       opts = opts || {};
-      await ensureProxy();
-      if (!window.proxyService) {
-        throw new Error('Proxy service not available');
+      const cache = await ensureRomCache();
+      if (cache && typeof cache.loadThroughCache === 'function') {
+        return cache.loadThroughCache(rom, opts, {
+          looksLikeRomPayload,
+          extensionOfUrl,
+          resolveUrl: (url) => this._resolveCdnDownloadUrl(url),
+          ensureProxy,
+          fetchProxied: (url, proxied) =>
+            fetchRom(url, {
+              timeout: this.binaryTimeout,
+              maxRetries: this.maxRetries,
+              // CDN hosts do not send Access-Control-Allow-Origin. The direct
+              // attempt already happened against the download URL.
+              skipDirect: true,
+              signal: proxied && proxied.signal
+            })
+        });
       }
-      const url = await this._resolveCdnDownloadUrl(rom.downloadUrl);
+      await ensureProxy();
+      if (!window.proxyService) throw new Error('Proxy service not available');
+      const url = await this._resolveCdnDownloadUrl(rom && rom.downloadUrl);
       if (opts.signal && opts.signal.aborted) {
         throw new DOMException('ROM download cancelled', 'AbortError');
       }
       return fetchRom(url, {
         timeout: this.binaryTimeout,
         maxRetries: this.maxRetries,
-        // archive.org's item CDN nodes (ia######.us.archive.org and friends)
-        // never send Access-Control-Allow-Origin, so a direct attempt is a
-        // guaranteed failure that costs a probe timeout and prints a CORS
-        // error the browser won't let us suppress. The listing path skips it
-        // for the same reason.
         skipDirect: true,
         signal: opts.signal
       });

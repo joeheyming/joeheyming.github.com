@@ -284,9 +284,23 @@
     return String(value).replace(/'/g, "''");
   }
 
+  /**
+   * One gviz query. A missing `games` tab retries the first worksheet.
+   * @param {string} sql
+   * @returns {Promise<Array<Record<string, unknown>>>}
+   */
+  function query(sql) {
+    if (!isConfigured()) return Promise.reject(new Error('games sheet is not configured'));
+    return readSheet(TAB, sql).catch((err) => {
+      if (!isMissingTab(err)) throw err;
+      return readSheet('', sql);
+    });
+  }
+
   window.emulatorGamesSheet = {
     isConfigured,
     loadConsoleGames,
+    query,
     clearCache,
     gameFromRow,
     parseGvizResponse,

@@ -832,6 +832,39 @@ kbd {
   height: 100%;
 }
 
+/* EmulatorJS's right cluster is 130×130 and its face buttons are 50px.
+   Genesis, CD, 32X, and Saturn pack six of them into that box (see
+   segaTouchControls). 40px matches those positions: the outer column
+   ends at right 88 + 40 = 128, inside the cluster instead of past it. */
+.ejs_virtualGamepad_button.cs_segaMD.b_a,
+.ejs_virtualGamepad_button.cs_segaMD.b_b,
+.ejs_virtualGamepad_button.cs_segaMD.b_c,
+.ejs_virtualGamepad_button.cs_segaMD.b_x,
+.ejs_virtualGamepad_button.cs_segaMD.b_y,
+.ejs_virtualGamepad_button.cs_segaMD.b_z,
+.ejs_virtualGamepad_button.cs_segaCD.b_a,
+.ejs_virtualGamepad_button.cs_segaCD.b_b,
+.ejs_virtualGamepad_button.cs_segaCD.b_c,
+.ejs_virtualGamepad_button.cs_segaCD.b_x,
+.ejs_virtualGamepad_button.cs_segaCD.b_y,
+.ejs_virtualGamepad_button.cs_segaCD.b_z,
+.ejs_virtualGamepad_button.cs_sega32x.b_a,
+.ejs_virtualGamepad_button.cs_sega32x.b_b,
+.ejs_virtualGamepad_button.cs_sega32x.b_c,
+.ejs_virtualGamepad_button.cs_sega32x.b_x,
+.ejs_virtualGamepad_button.cs_sega32x.b_y,
+.ejs_virtualGamepad_button.cs_sega32x.b_z,
+.ejs_virtualGamepad_button.cs_segaSaturn.b_a,
+.ejs_virtualGamepad_button.cs_segaSaturn.b_b,
+.ejs_virtualGamepad_button.cs_segaSaturn.b_c,
+.ejs_virtualGamepad_button.cs_segaSaturn.b_x,
+.ejs_virtualGamepad_button.cs_segaSaturn.b_y,
+.ejs_virtualGamepad_button.cs_segaSaturn.b_z {
+  width: 40px;
+  height: 40px;
+  line-height: 38px;
+}
+
 .share-overlay {
   position: fixed;
   /* Top-right cluster with the related-projects 🎯 FAB — keeps both
@@ -1071,6 +1104,63 @@ kbd {
   letter-spacing: 0.5px;
 }
 
+.game-finder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 0 0 16px;
+}
+
+.game-finder-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.game-finder-input {
+  flex: 1 1 180px;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.game-finder-results {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.game-finder-status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.game-finder-group h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.game-finder-group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.game-finder-group a {
+  color: var(--accent-bright, var(--text));
+}
+
 .picker-help {
   margin-top: 16px;
   font-size: 12px;
@@ -1148,6 +1238,11 @@ kbd {
   width: 38%;
   background: repeating-linear-gradient(90deg, var(--accent-bright) 0 8px, #2a1810 8px 12px);
   animation: rom-crt-sweep 1.05s steps(8, end) infinite;
+}
+
+.rom-crt-meter.is-measured .rom-crt-fill {
+  animation: none;
+  width: calc(var(--rom-progress, 0) * 100%);
 }
 
 .rom-crt-status {
